@@ -13,10 +13,12 @@ import { dirname, join } from "node:path";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 export function build() {
-	const mask = readFileSync(join(root, "src", "mask.js"), "utf8");
+	// Normalize CRLF (a Windows checkout with core.autocrlf) so the regexes
+	// below match and the output is byte-identical on every platform.
+	const mask = readFileSync(join(root, "src", "mask.js"), "utf8").replace(/\r\n/g, "\n");
 	const maskLiteral = mask.match(/Uint8Array\.from\(\[[\s\S]*?\]\)/)[0];
 
-	let src = readFileSync(join(root, "src", "parse.js"), "utf8");
+	let src = readFileSync(join(root, "src", "parse.js"), "utf8").replace(/\r\n/g, "\n");
 	src = src.replace(/import \{ MASK \} from "\.\/mask\.js";\n/, `const MASK = ${maskLiteral};\n`);
 	src = src.replace(/^export /gm, "");
 

@@ -60,8 +60,18 @@ export function* rawRecords(buf, stats) {
 		throw new Error("Not a Bolo log file (missing 'Bolo' signature)");
 	}
 	let pos = HEADER_SIZE;
+	// The 32-bit time tag derives from the Mac's TickCount() and wraps after
+	// ~2.7 years of uptime. Times are monotonic in file order (verified:
+	// zero backward steps across all sample logs), so a huge backward jump
+	// can only be a wrap: unwrap it so downstream timelines stay monotonic.
+	let timeBase = 0;
+	let lastRaw = -1;
 	while (pos + 5 <= buf.length) {
-		const time = buf[pos] | (buf[pos + 1] << 8) | (buf[pos + 2] << 16) | (buf[pos + 3] << 24);
+		const raw = (buf[pos] | (buf[pos + 1] << 8) | (buf[pos + 2] << 16) | (buf[pos + 3] << 24)) >>> 0;
+		if (lastRaw >= 0 && lastRaw - raw > 0x80000000) {
+			timeBase += 0x100000000;
+		}
+		lastRaw = raw;
 		const length = buf[pos + 4] ^ MASK[0];
 		// A record is length byte + 3-byte header at minimum, and the length
 		// byte is capped at 127 by the format (the mask is 128 bytes).
@@ -79,7 +89,7 @@ export function* rawRecords(buf, stats) {
 		for (let i = 0; i < data.length; i++) {
 			data[i] = buf[pos + 5 + i] ^ MASK[(i + 1) % MASK.length];
 		}
-		yield { offset: pos, time: time >>> 0, data };
+		yield { offset: pos, time: timeBase + raw, data };
 		pos = end;
 	}
 	if (stats && pos < buf.length) stats.truncatedBytes = buf.length - pos;

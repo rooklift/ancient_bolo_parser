@@ -12,15 +12,19 @@ const NEUTRAL = 16;
 
 /* Serpentine search path used when a dying tank's carried pills are dumped
  * around the death square (from Carl Osterwald's notes; first ring exact,
- * continued outward in the same clockwise pattern). Offsets are (dx, dy)
- * from the death square, in placement order. */
-const DUMP_PATH = [
-	[0, 0],
-	[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1],
-	[-1, -2], [0, -2], [1, -2], [2, -2], [2, -1], [2, 0], [2, 1], [2, 2],
-	[1, 2], [0, 2], [-1, 2], [-2, 2], [-2, 1], [-2, 0], [-2, -1], [-2, -2],
-	[-2, -3], [-1, -3], [0, -3], [1, -3], [2, -3], [3, -3], [3, -2],
-];
+ * outer rings continue the same clockwise pattern until the map is
+ * exhausted). Yields (dx, dy) offsets from the death square, in placement
+ * order: each ring starts one square left of its NE-ward corner, runs the
+ * top edge eastward, then clockwise round the other three edges. */
+function* dump_path() {
+	yield [0, 0];
+	for (let r = 1; r < MAP_SIZE; r++) {
+		for (let x = -(r - 1); x <= r; x++) yield [x, -r];
+		for (let y = -(r - 1); y <= r; y++) yield [r, y];
+		for (let x = r - 1; x >= -r; x--) yield [x, r];
+		for (let y = r - 1; y >= -r; y--) yield [-r, y];
+	}
+}
 
 /* Optionally seeded with extract_initial_map()'s result so the world has
  * full terrain from tick zero (the log's own map transfer trickles in over
@@ -120,7 +124,7 @@ function superboom(s, x, y) {
 
 /* Terrain a dumped (dead) pill can sit on: not a wall, not water. */
 function pill_dumpable(s, x, y) {
-	if (x >= MAP_SIZE || y >= MAP_SIZE) return false;
+	if (x < 0 || y < 0 || x >= MAP_SIZE || y >= MAP_SIZE) return false;
 	const t = s.grid[y * MAP_SIZE + x];
 	if (t === DEEP_SEA || t === 0 || t === 1 || t === 8 || t === 9) return false;
 	return !s.pills.some(p => p.inTank === null && p.x === x && p.y === y) && !base_at(s, x, y);
@@ -128,11 +132,13 @@ function pill_dumpable(s, x, y) {
 
 function dump_carried_pills(s, player, x, y) {
 	const carried = s.pills.filter(p => p.inTank === player);
-	let step = 0;
+	const path = dump_path(); /* shared iterator: the search never backtracks */
 	for (const p of carried) {
 		let placed = false;
-		while (step < DUMP_PATH.length) {
-			const [dx, dy] = DUMP_PATH[step++];
+		let it;
+		/* not for...of: break would close the shared generator */
+		while (!(it = path.next()).done) {
+			const [dx, dy] = it.value;
 			if (pill_dumpable(s, x + dx, y + dy)) {
 				p.inTank = null;
 				p.x = x + dx;
@@ -142,7 +148,7 @@ function dump_carried_pills(s, player, x, y) {
 				break;
 			}
 		}
-		if (!placed) { /* pathological map: drop on the death square regardless */
+		if (!placed) { /* every square on the map blocked: death square regardless */
 			p.inTank = null;
 			p.x = x;
 			p.y = y;
@@ -339,6 +345,10 @@ function apply_record(s, rec, effects, chat) {
 				}
 				break;
 			case "lgm_death":
+				/* the same record restates the dying man's position (b=8,
+				 * applied above), so clear him here; the replacement's
+				 * parachute arrives in later records */
+				if (s.men[pl] && !s.men[pl].parachute) s.men[pl] = null;
 				if (effects) effects.push({ time: rec.time, type: "lgm_death", x: sub.x, y: sub.y, player: pl });
 				break;
 			case "shell_falls":
