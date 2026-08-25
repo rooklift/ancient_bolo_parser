@@ -299,10 +299,11 @@ function prescale_factor(z) {
 	return Number.isInteger(scale) ? 1 : Math.ceil(scale);
 }
 
-/* Draw sprites over every visible map tile. Destination rects are rounded
- * per-edge so adjacent tiles share edges exactly (no seams at any zoom).
- * Returns whether anything was drawn (false until the atlas is ready). */
-function draw_view(ctx, grid, view, w, h) {
+/* Draw terrain and mine sprites over every visible map tile. Terrain can be
+ * suppressed independently; mine overlays still draw from the same atlas.
+ * Destination rects are rounded per-edge so adjacent tiles share edges
+ * exactly (no seams at any zoom). Returns false until the atlas is ready. */
+function draw_view(ctx, grid, view, w, h, draw_terrain = true) {
 	if (!ready) return false;
 	let z = view.zoom;
 	let factor = prescale_factor(z);
@@ -321,9 +322,11 @@ function draw_view(ctx, grid, view, w, h) {
 		for (let tx = tx0; tx < tx1; tx++) {
 			let x0 = Math.round((tx - view.ox) * z);
 			let x1 = Math.round((tx + 1 - view.ox) * z);
-			let sx = atlas_x.get(name_for(grid, tx, ty));
-			if (sx !== undefined) {
-				ctx.drawImage(src, sx * factor, 0, st, st, x0, y0, x1 - x0, y1 - y0);
+			if (draw_terrain) {
+				let sx = atlas_x.get(name_for(grid, tx, ty));
+				if (sx !== undefined) {
+					ctx.drawImage(src, sx * factor, 0, st, st, x0, y0, x1 - x0, y1 - y0);
+				}
 			}
 			let t = grid[ty * MAP_SIZE + tx];
 			if (t >= 10 && t <= 15 && mine_x !== undefined) {
