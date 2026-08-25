@@ -171,6 +171,11 @@ Playback must re-implement fragments of game logic:
 
 - **Dropped pills on tank death** are placed by an algorithm (serpentine
   search outward from the death square), not by explicit events.
+- **A quitting player's carried pills drop the same way** around their
+  last tank position, with no events (verified: in two mid-game
+  quits-while-carrying, the pills were later picked up within a tile of
+  the quitter's last tank centre — in one case both at once, lying
+  together).
 - **Pill-fire shell spawn position** is computed from the pill position and
   the direction nibble via Bolo's internal sine/cosine tables — but only if
   a player wants the shell visible from the instant of the `F4`: the shell
