@@ -132,7 +132,7 @@ nibble.
 | `F3` | 3+run | map terrain data: 2-byte `mapknown`, then one RLE run in `.bmap` format (run length byte includes the 4-byte run header) |
 | `F4 nd` | 2 | pillbox `n` fires, shell direction `d` (the shell itself then appears in the shell lists of the machine simulating the pill — normally its target; see `0d`–`3d`) |
 | `F5` | 3 | LGM death at `XX YY` |
-| `F6` | 1 | tank boards boat (boat consumed) |
+| `F6` | 1 | tank boards boat (boat consumed): the tank's centre square reverts from river-with-boat to plain river with **no** accompanying `6T` event — playback must apply the change itself (verified: all 38 sample boardings sit on terrain 9, none has a terrain event) |
 | `F7` | 1 | tank lays mine |
 | `F8` | 2+len | node id: Pascal string `player@node`; also sent on rename |
 | `F9` | 2 | tank death; code 1 = explosion, 2 = crater, 3 = sunk in deep sea (an F901 may be followed by F902 mid-animation). The respawn is the next tank position without the dying bit; measured gaps are 5.0–6.8 s (median 6.0) |
