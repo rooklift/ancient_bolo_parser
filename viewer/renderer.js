@@ -146,6 +146,7 @@ let clock = 0;           /* current tick */
 let playing = false;
 let speed = 1;
 let viewpoint = -1; /* player whose side draws as friendly; -1 = first player */
+let player_locked = false;
 let effect_lo = 0;       /* rolling window start into game.effects */
 let chat_shown = 0;
 let last_frame = null;
@@ -211,6 +212,16 @@ function css_size() {
 }
 function tile_to_screen_x(tx) { return (tx - view.ox) * view.zoom; }
 function tile_to_screen_y(ty) { return (ty - view.oy) * view.zoom; }
+
+function centre_locked_player() {
+	if (!player_locked || !game || !cur || viewpoint < 0) return false;
+	let position = BoloGame.tank_position_at(game, cur, viewpoint, clock);
+	if (!position) return false;
+	let { w, h } = css_size();
+	view.ox = position.x - w / (2 * view.zoom);
+	view.oy = position.y - h / (2 * view.zoom);
+	return true;
+}
 
 function clamp_view() {
 	let { w, h } = css_size();
@@ -446,6 +457,7 @@ function world_y(o) { return o.y + (o.py ?? 0) / 16 + 0.5; }
 
 function draw() {
 	if (!cur) return;
+	centre_locked_player();
 	let { w, h } = css_size();
 	let z = view.zoom;
 
@@ -757,6 +769,7 @@ function load_log(bytes, name) {
 		return;
 	}
 	game = newGame;
+	player_locked = false;
 	clock = game.t0;
 	cur = BoloGame.clone_state(game.keyframes[0].state);
 	cursor = 0;
@@ -826,6 +839,13 @@ function toggle_simple_terrain() {
 	request_draw();
 }
 
+function toggle_player_lock() {
+	if (!game || viewpoint < 0) return;
+	player_locked = !player_locked;
+	centre_locked_player();
+	request_draw();
+}
+
 /* Controls give focus back to the window once used, so they don't sit
  * highlighted and don't capture the global playback keys (space, arrows). */
 play_btn.addEventListener("click", () => {
@@ -839,6 +859,7 @@ speed_el.addEventListener("change", () => {
 viewpoint_el.addEventListener("change", () => {
 	viewpoint = parseInt(viewpoint_el.value, 10);
 	viewpoint_el.blur();
+	centre_locked_player();
 	request_draw();
 });
 seek_el.addEventListener("input", () => {
@@ -891,6 +912,9 @@ window.addEventListener("keydown", e => {
 		set_clock(clock - TPS * (e.shiftKey ? 60 : 10), true);
 	} else if (e.code === "ArrowRight") {
 		set_clock(clock + TPS * (e.shiftKey ? 60 : 10));
+	} else if (e.code === "KeyL" && (e.ctrlKey || e.metaKey)) {
+		e.preventDefault();
+		toggle_player_lock();
 	} else if (e.code === "KeyG" && (e.ctrlKey || e.metaKey)) {
 		e.preventDefault();
 		toggle_obj_sprites();
@@ -915,6 +939,7 @@ canvas.addEventListener("pointerdown", e => {
 });
 canvas.addEventListener("pointermove", e => {
 	if (panning && pan_start) {
+		if (e.offsetX !== pan_start.mx || e.offsetY !== pan_start.my) player_locked = false;
 		view.ox = pan_start.ox - (e.offsetX - pan_start.mx) / view.zoom;
 		view.oy = pan_start.oy - (e.offsetY - pan_start.my) / view.zoom;
 		clamp_view();
@@ -972,6 +997,7 @@ if (window.api) {
 			case "zoom-in": zoom_step(1); break;
 			case "zoom-out": zoom_step(-1); break;
 			case "zoom-fit": zoom_to_action(); break;
+			case "toggle-player-lock": toggle_player_lock(); break;
 			case "toggle-obj-sprites": toggle_obj_sprites(); break;
 			case "toggle-lgm-sprites": toggle_lgm_sprites(); break;
 			case "toggle-big-shots": toggle_big_shots(); break;
