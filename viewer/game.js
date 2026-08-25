@@ -366,12 +366,10 @@ function apply_record(s, rec, effects, chat) {
 				if (p) {
 					const add = { pill_repair_4: 4, pill_repair_8: 8, pill_repair_12: 12, pill_repair_full: 15 }[sub.type];
 					p.armour = Math.min(15, p.armour + add);
-					/* Ownership on repair is an ASSUMPTION, not measured:
-					 * across both sample logs every repair is of a friendly
-					 * or neutral pill (hostile captures all happen by
-					 * picking up dead pills), so no rule here has ever been
-					 * exercised against real data. */
-					if (sub.type !== "pill_repair_full" || p.owner === NEUTRAL) p.owner = pl;
+					/* Repairs never change ownership (player testimony:
+					 * enemy pills stay enemy, neutral stay neutral —
+					 * anything else would break the game). Capture happens
+					 * by picking a dead pill up and replanting it. */
 				}
 				break;
 			}
