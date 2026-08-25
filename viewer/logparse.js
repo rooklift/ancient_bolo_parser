@@ -211,6 +211,9 @@ function parseIdSubpackets(rec, data, pos) {
 			} else if (byte === 0xf3) {    // map terrain run (map-file RLE)
 				ensure(data, pos, 4);
 				const runLen = data[pos + 3]; // includes its own 4-byte run header
+				if (runLen < 4) {
+					throw new Error("map run shorter than its own header");
+				}
 				ensure(data, pos, 3 + runLen);
 				subs.push({
 					type: "map_run",

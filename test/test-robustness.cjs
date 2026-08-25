@@ -105,32 +105,31 @@ check("header-only file yields no records", [...BoloLog.records(header())].lengt
 	check("b=a extension type", r.subpackets[0].type, "lgm_position");
 }
 
-// --- the generated viewer parser must match the committed file ---
+// One awaited main for the async checks: two detached IIFEs could race,
+// with the later one exiting before the earlier finished.
 (async () => {
-	const fsp = require("node:fs");
+	// --- the generated viewer parser must match the committed file ---
 	const { build } = await import("../tools/build-viewer-parser.mjs");
 	// CRLF-normalize so a core.autocrlf checkout compares content, not line endings
-	const committed = fsp.readFileSync(path.join(__dirname, "..", "viewer", "logparse.js"), "utf8").replace(/\r\n/g, "\n");
+	const committed = fs.readFileSync(path.join(__dirname, "..", "viewer", "logparse.js"), "utf8").replace(/\r\n/g, "\n");
 	check("viewer/logparse.js is freshly generated from src/parse.js", build() === committed, true);
-})();
 
-// --- parity: both parser builds must agree on the whole sample log ---
-(async () => {
+	// --- parity: both parser builds must agree on the whole sample log ---
 	const esm = await import("../src/parse.js");
 	const log1 = path.join(__dirname, "..", "fixtures", "n20021018.2");
-	if (!fs.existsSync(log1)) {
+	if (fs.existsSync(log1)) {
+		const buf = new Uint8Array(fs.readFileSync(log1));
+		const a = [...esm.records(buf)];
+		const b = [...BoloLog.records(buf)];
+		check("parity: record counts", a.length, b.length);
+		check("parity: parseLog truncatedBytes", esm.parseLog(buf).truncatedBytes, BoloLog.parseLog(buf).truncatedBytes);
+		let diverged = -1;
+		for (let i = 0; i < a.length; i++) {
+			if (JSON.stringify(a[i]) !== JSON.stringify(b[i])) { diverged = i; break; }
+		}
+		check("parity: all records identical (first divergence)", diverged, -1);
+	} else {
 		console.log("skip: fixtures/n20021018.2 not present; parity test skipped");
-		process.exit(failures ? 1 : 0);
 	}
-	const buf = new Uint8Array(fs.readFileSync(log1));
-	const a = [...esm.records(buf)];
-	const b = [...BoloLog.records(buf)];
-	check("parity: record counts", a.length, b.length);
-	check("parity: parseLog truncatedBytes", esm.parseLog(buf).truncatedBytes, BoloLog.parseLog(buf).truncatedBytes);
-	let diverged = -1;
-	for (let i = 0; i < a.length; i++) {
-		if (JSON.stringify(a[i]) !== JSON.stringify(b[i])) { diverged = i; break; }
-	}
-	check("parity: all records identical (first divergence)", diverged, -1);
-	process.exit(failures ? 1 : 0);
+	process.exitCode = failures ? 1 : 0;
 })();
