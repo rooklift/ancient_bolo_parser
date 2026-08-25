@@ -195,6 +195,20 @@ function apply_record(s, rec, effects, chat) {
 		s.men[pl] = null;
 	}
 
+	/* The tank-status nibble and direction are likewise live on every
+	 * record, position or not: 99.8% of position-less flag changes and
+	 * 99.3% of steady-course directions are confirmed by the sender's
+	 * next position record. T=7 (joining/dead) and T=F (attached log)
+	 * carry no tank state; a position subpacket below overwrites all of
+	 * this anyway. */
+	if (rec.tankStatus !== 0x0f && rec.tankStatus !== 0x07 && !(rec.tankStatus & 0x08) && s.tanks[pl]) {
+		const t = s.tanks[pl];
+		t.inBoat = !!(rec.tankStatus & 0x01);
+		t.hidden = !!(rec.tankStatus & 0x02);
+		t.dying = !!(rec.tankStatus & 0x04);
+		t.dir = rec.tankDir;
+	}
+
 	for (const sub of rec.subpackets) {
 		switch (sub.type) {
 			case "tank_position":
