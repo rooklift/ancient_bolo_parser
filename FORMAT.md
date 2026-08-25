@@ -184,11 +184,15 @@ Playback must re-implement fragments of game logic:
   the squares touched by the 15×15 box centre±7, which is the tank's
   footprint minus any single-pixel sliver of overlap on the far side of
   the centre. The sliding wreck then clears only the centre square
-  beneath each later dying position (the rule WinBolo implements).
-  This is the model best supported by the 446-log corpus's later
-  tree-related activity on the affected squares — explicit tree-fells
-  and hidden-in-trees tanks convict wider rules, while shells flying
-  through supposedly-standing forest and pill plants on it convict
+  beneath each later dying position. WinBolo independently implements
+  this sliding-wreck centre-square behaviour; it does not implement the
+  initial 7-pixel blast rule. This is the model best supported by the
+  446-log corpus's later tree-related activity on the affected squares:
+  it produces 24 raw repeat-clear conflicts, 23 of them within one second
+  (consistent with event ordering), just one longer-lived conflict, and
+  no later hidden-in-trees tanks on inferred-cleared squares. Explicit
+  tree-fells and hidden tanks strongly convict wider rules, while shells
+  flying through supposedly-standing forest and pill plants on it convict
   narrower ones (`tools/falsify-death-footprint-3.cjs`; the two earlier
   rounds that bracketed the rule are kept alongside it). The evented
   terminal cratering (`7T`/`7D`, see `F9`) is separate and unaffected.
