@@ -195,12 +195,39 @@ if (!fs.existsSync(log1)) {
 	check("LGM stops across lag", centre_x(lag, 110), 10.5);
 
 	let tank_entry = BoloGame.build([
+		{ time: 90, seq: 90, status: 0, player: 0, tankStatus: 8, tankDir: 0,
+			subpackets: [{
+				type: "tank_position", x: 10, y: 10, pixelX: 0, pixelY: 0,
+				direction: 0, inBoat: false, hidden: false, dying: false,
+				speed: 0, motion: 0,
+			}] },
 		position(100, 10),
-		{ time: 105, seq: 105, status: 0, player: 0, tankStatus: 0,
-			tankDir: 0, subpackets: [] },
-		position(112, 11),
+		{ time: 112, seq: 112, status: 0, player: 0, tankStatus: 8,
+			tankDir: 0, subpackets: [{
+				type: "tank_position", x: 11, y: 10, pixelX: 0, pixelY: 0,
+				direction: 0, inBoat: false, hidden: false, dying: false,
+				speed: 0, motion: 0,
+			}] },
 	]);
-	check("LGM does not interpolate across tank entry", centre_x(tank_entry, 104), 10.5);
+	check("LGM interpolates to tank on entry", centre_x(tank_entry, 106), 11);
+	check("LGM disappears at tank entry",
+		BoloGame.lgm_position_at(tank_entry,
+			BoloGame.state_at(tank_entry, 111).state, 0, 112), null);
+
+	let delayed_entry = BoloGame.build([
+		{ time: 90, seq: 90, status: 0, player: 0, tankStatus: 8, tankDir: 0,
+			subpackets: [{
+				type: "tank_position", x: 11, y: 10, pixelX: 0, pixelY: 0,
+				direction: 0, inBoat: false, hidden: false, dying: false,
+				speed: 0, motion: 0,
+			}] },
+		position(100, 10),
+		{ time: 150, seq: 150, status: 0, player: 0, tankStatus: 0,
+			tankDir: 0, subpackets: [] },
+	]);
+	check("delayed tank entry caps final LGM interpolation",
+		BoloGame.lgm_position_at(delayed_entry,
+			BoloGame.state_at(delayed_entry, 126).state, 0, 126), null);
 
 	let touchdown = BoloGame.build([
 		position(100, 10, 0, true),
