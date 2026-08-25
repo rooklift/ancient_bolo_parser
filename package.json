@@ -1,7 +1,7 @@
 {
 	"name": "ancient_bolo_parser",
-	"version": "0.1.0",
-	"description": "Parser for classic Mac Bolo (0.99.x) game log files",
+	"version": "1.0.0",
+	"description": "Parser for classic Mac Bolo (0.99.7bv) game log files",
 	"type": "module",
 	"main": "src/parse.js",
 	"bin": {
