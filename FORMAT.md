@@ -191,7 +191,9 @@ Playback must re-implement fragments of game logic:
   streams of shells on a line through a pill's centre where some shells
   hit (the shooter itself sends the `9n`) while others are restated well
   beyond the pill and fly on — dozens of ray-consistent cases per log,
-  through hostile and neutral pills at full armour. The deciding factor is
+  through hostile and neutral pills at full armour; 29 across two logs
+  rest purely on absolute list-head coordinates, immune to any
+  offset-decoding concern. The deciding factor is
   not step parity or lateral offset (both measured as even splits), so the
   mechanism is unknown; a viewer drawing restated shell positions
   faithfully will show these pass-throughs because they are real.
