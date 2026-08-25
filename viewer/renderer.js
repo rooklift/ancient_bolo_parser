@@ -354,6 +354,7 @@ function chat_line(m) {
 	let who = pretty((m.name || cur.names[m.player] || `player ${m.player}`).split("@")[0]);
 	let color = NAME_COLORS[m.team !== undefined ? m.team : BoloGame.team_of(cur, m.player)];
 	if (m.join) return `<div class="msg sys"><span class="t">${fmt_time(m.time)}</span> ⚑ ${esc(pretty(m.text))}</div>`;
+	if (m.rename) return `<div class="msg sys"><span class="t">${fmt_time(m.time)}</span> ⇄ ${esc(pretty((m.from || "").split("@")[0]))} is now ${esc(pretty(m.text.split("@")[0]))}</div>`;
 	if (m.quit) return `<div class="msg sys"><span class="t">${fmt_time(m.time)}</span> ✝ ${esc(who)} left the game</div>`;
 	let scope = m.address === 0xffff ? "" : " (to some)";
 	return `<div class="msg"><span class="t">${fmt_time(m.time)}</span> ` +

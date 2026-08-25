@@ -147,7 +147,15 @@ function pill_dumpable(s, x, y) {
 }
 
 function dump_carried_pills(s, player, x, y) {
-	const carried = s.pills.filter(p => p.inTank === player);
+	let carried = s.pills.filter(p => p.inTank === player);
+	/* A man out of the tank carrying a pill (status C) has it in his
+	 * hands, not in the exploding tank: the lowest-index carried pill
+	 * (the one a plant would use) stays with him. Verified: every
+	 * engine no-op plant in the fixture followed a tank death with the
+	 * man out carrying — the man went on to plant that pill. */
+	if (s.men[player] && s.men[player].carryingPill && carried.length) {
+		carried = carried.slice(1);
+	}
 	const path = dump_path(); /* shared iterator: the search never backtracks */
 	for (const p of carried) {
 		let placed = false;
@@ -429,15 +437,24 @@ function apply_record(s, rec, effects, chat) {
 				}
 				break;
 			}
-			case "node_id":
+			case "node_id": {
+				/* F8 is join, rename, AND periodic re-identification (all
+				 * players restate their ids when someone joins): only a
+				 * genuinely new player is a join, only a changed name is a
+				 * rename, restatements are silent. Chat events snapshot
+				 * name/team as of the event, so seeking rebuilds an
+				 * identical history. */
+				const old = s.quit[pl] ? null : s.names[pl];
 				s.names[pl] = sub.name;
 				s.present[pl] = true;
 				s.quit[pl] = false;
-				/* chat events snapshot the sender's name and team as of the
-				 * event, so seeking rebuilds an identical history even
-				 * across renames and alliance changes */
-				if (chat) chat.push({ time: rec.time, player: pl, join: true, text: sub.name });
+				if (chat && old === null) {
+					chat.push({ time: rec.time, player: pl, join: true, text: sub.name });
+				} else if (chat && old !== sub.name) {
+					chat.push({ time: rec.time, player: pl, rename: true, from: old, text: sub.name, team: team_of(s, pl) });
+				}
 				break;
+			}
 			case "message":
 				if (chat) chat.push({ time: rec.time, player: pl, address: sub.address, text: sub.text, name: s.names[pl], team: team_of(s, pl) });
 				break;
@@ -518,7 +535,7 @@ function apply_record(s, rec, effects, chat) {
 				let heir = -1;
 				for (let i = 0; i < 16; i++) {
 					const mutual = i !== pl && !(s.alliances[pl] & (1 << i)) && !(s.alliances[i] & (1 << pl));
-					if (mutual && (s.present[i] || s.names[i] !== null)) { heir = i; break; }
+					if (mutual && !s.quit[i] && (s.present[i] || s.names[i] !== null)) { heir = i; break; }
 				}
 				if (heir >= 0) {
 					for (const p of s.pills) {
