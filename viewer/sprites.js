@@ -267,12 +267,49 @@ function load(on_ready, base = "sprites/") {
 	});
 }
 
+/* Non-integer device-pixel scales (e.g. zoom 24 on a 1× display = 1.5×)
+ * make nearest-neighbour art lumpy: pixels come out alternately 1 and 2
+ * screen pixels wide. The fix is "sharp bilinear": nearest-upscale the
+ * atlas to the next integer multiple once, then let the canvas bilinear-
+ * filter that down — the downscale is always in (0.5, 1], so pixels stay
+ * even with only slight softening. Prescaled atlases are cached per factor. */
+let scaled_atlases = new Map(); /* factor -> canvas */
+
+function atlas_at(factor) {
+	if (factor === 1) return atlas;
+	let big = scaled_atlases.get(factor);
+	if (!big) {
+		big = document.createElement("canvas");
+		big.width = atlas.width * factor;
+		big.height = atlas.height * factor;
+		let bctx = big.getContext("2d");
+		bctx.imageSmoothingEnabled = false;
+		bctx.drawImage(atlas, 0, 0, big.width, big.height);
+		scaled_atlases.set(factor, big);
+	}
+	return big;
+}
+
+/* Integer factor to nearest-prescale 16px art by before drawing it at the
+ * given zoom: 1 (draw the native art with smoothing off) when the art
+ * lands on whole device pixels, else the next integer above the scale. */
+function prescale_factor(z) {
+	let dpr = (typeof devicePixelRatio !== "undefined") ? devicePixelRatio : 1;
+	let scale = z * dpr / TILE;
+	return Number.isInteger(scale) ? 1 : Math.ceil(scale);
+}
+
 /* Draw sprites over every visible map tile. Destination rects are rounded
  * per-edge so adjacent tiles share edges exactly (no seams at any zoom).
  * Returns whether anything was drawn (false until the atlas is ready). */
 function draw_view(ctx, grid, view, w, h) {
 	if (!ready) return false;
 	let z = view.zoom;
+	let factor = prescale_factor(z);
+	let src = atlas_at(factor);
+	let st = TILE * factor;
+	let smooth_prev = ctx.imageSmoothingEnabled;
+	ctx.imageSmoothingEnabled = factor > 1;
 	let tx0 = Math.max(0, Math.floor(view.ox));
 	let ty0 = Math.max(0, Math.floor(view.oy));
 	let tx1 = Math.min(MAP_SIZE, Math.ceil(view.ox + w / z));
@@ -286,19 +323,20 @@ function draw_view(ctx, grid, view, w, h) {
 			let x1 = Math.round((tx + 1 - view.ox) * z);
 			let sx = atlas_x.get(name_for(grid, tx, ty));
 			if (sx !== undefined) {
-				ctx.drawImage(atlas, sx, 0, TILE, TILE, x0, y0, x1 - x0, y1 - y0);
+				ctx.drawImage(src, sx * factor, 0, st, st, x0, y0, x1 - x0, y1 - y0);
 			}
 			let t = grid[ty * MAP_SIZE + tx];
 			if (t >= 10 && t <= 15 && mine_x !== undefined) {
-				ctx.drawImage(atlas, mine_x, 0, TILE, TILE, x0, y0, x1 - x0, y1 - y0);
+				ctx.drawImage(src, mine_x * factor, 0, st, st, x0, y0, x1 - x0, y1 - y0);
 			}
 		}
 	}
+	ctx.imageSmoothingEnabled = smooth_prev;
 	return true;
 }
 
 const BoloSprites = {
-	MIN_ZOOM, NAMES, name_for, load, draw_view,
+	MIN_ZOOM, NAMES, name_for, load, draw_view, prescale_factor,
 	get ready() { return ready; },
 };
 
