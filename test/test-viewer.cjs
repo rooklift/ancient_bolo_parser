@@ -135,6 +135,80 @@ if (!fs.existsSync(log1)) {
 	check("chained shell offsets", st.shells[0].map(sh => sh.x), [100, 101, 102]);
 }
 
+// Tank positions interpolate between nearby restatements. A long lag, or a
+// discontinuity such as death, leaves the tank at its last known position.
+{
+	const position = (time, x, pixel_x = 0) => ({
+		time, seq: time, status: 0, player: 0, tankStatus: 8, tankDir: 4,
+		subpackets: [{
+			type: "tank_position", x, y: 10, pixelX: pixel_x, pixelY: 0,
+			direction: 4, inBoat: false, hidden: false, dying: false,
+			speed: 100, motion: 0,
+		}],
+	});
+	const centre_x = (game, tick) => {
+		const state = BoloGame.state_at(game, tick).state;
+		return BoloGame.tank_position_at(game, state, 0, tick).x;
+	};
+
+	let smooth = BoloGame.build([position(100, 10), position(112, 10, 12)]);
+	check("tank movement interpolates", centre_x(smooth, 106), 10.875);
+
+	let lag = BoloGame.build([
+		position(100, 10),
+		position(100 + BoloGame.MAX_POSITION_INTERPOLATION_TICKS + 1, 12),
+	]);
+	check("tank stops across lag", centre_x(lag, 110), 10.5);
+
+	let death = BoloGame.build([
+		position(100, 10),
+		{ time: 105, seq: 105, status: 0, player: 0, tankStatus: 7, tankDir: 4,
+			subpackets: [{ type: "tank_death", code: 1 }] },
+		position(112, 11),
+	]);
+	check("tank does not interpolate across death", centre_x(death, 104), 10.5);
+}
+
+// LGMs use the same conservative interpolation window, but walking and
+// parachuting are distinct paths and entering the tank ends a path.
+{
+	const position = (time, x, pixel_x = 0, parachute = false) => ({
+		time, seq: time, status: parachute ? 4 : 8, player: 0,
+		tankStatus: 0, tankDir: 0,
+		subpackets: [{
+			type: parachute ? "parachute_position" : "lgm_position",
+			x, y: 10, pixelX: pixel_x, pixelY: 0, carryingPill: false,
+		}],
+	});
+	const centre_x = (game, tick) => {
+		const state = BoloGame.state_at(game, tick).state;
+		return BoloGame.lgm_position_at(game, state, 0, tick).x;
+	};
+
+	let smooth = BoloGame.build([position(100, 10), position(112, 10, 12)]);
+	check("LGM movement interpolates", centre_x(smooth, 106), 10.875);
+
+	let lag = BoloGame.build([
+		position(100, 10),
+		position(100 + BoloGame.MAX_POSITION_INTERPOLATION_TICKS + 1, 12),
+	]);
+	check("LGM stops across lag", centre_x(lag, 110), 10.5);
+
+	let tank_entry = BoloGame.build([
+		position(100, 10),
+		{ time: 105, seq: 105, status: 0, player: 0, tankStatus: 0,
+			tankDir: 0, subpackets: [] },
+		position(112, 11),
+	]);
+	check("LGM does not interpolate across tank entry", centre_x(tank_entry, 104), 10.5);
+
+	let touchdown = BoloGame.build([
+		position(100, 10, 0, true),
+		position(112, 11),
+	]);
+	check("LGM does not interpolate across touchdown", centre_x(touchdown, 106), 10.5);
+}
+
 // Every pill_plant must find a carried pill: a tank death while the man is
 // out carrying (status C) must not dump the pill in the man's hands.
 if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
