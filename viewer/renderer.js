@@ -617,10 +617,14 @@ function draw_effects() {
 			}
 			case "superboom":
 			case "tank_death": {
+				/* a superboom craters the 2x2 block whose NW square is (x,y),
+				 * so its ring centres on the block's middle corner; a tank
+				 * death centres on its single square */
+				let off = e.type === "superboom" ? z / 2 : 0;
 				ctx.strokeStyle = `rgba(255,120,40,${1 - age})`;
 				ctx.lineWidth = Math.max(1.5, z * 0.2);
 				ctx.beginPath();
-				ctx.arc(cx + z / 2, cy + z / 2, (0.4 + age * 1.6) * z, 0, Math.PI * 2);
+				ctx.arc(cx + off, cy + off, (0.4 + age * 1.6) * z, 0, Math.PI * 2);
 				ctx.stroke();
 				break;
 			}

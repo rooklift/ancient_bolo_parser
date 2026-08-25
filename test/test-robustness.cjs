@@ -109,7 +109,8 @@ check("header-only file yields no records", [...BoloLog.records(header())].lengt
 (async () => {
 	const fsp = require("node:fs");
 	const { build } = await import("../tools/build-viewer-parser.mjs");
-	const committed = fsp.readFileSync(path.join(__dirname, "..", "viewer", "logparse.js"), "utf8");
+	// CRLF-normalize so a core.autocrlf checkout compares content, not line endings
+	const committed = fsp.readFileSync(path.join(__dirname, "..", "viewer", "logparse.js"), "utf8").replace(/\r\n/g, "\n");
 	check("viewer/logparse.js is freshly generated from src/parse.js", build() === committed, true);
 })();
 
