@@ -137,7 +137,9 @@ function pascalString(data, pos) {
 	return { str, next: pos + 1 + len };
 }
 
-// Map square + intra-square pixel offset (signed nibble style: 0x00 = centre).
+// Map square + intra-square pixel offset. The nibbles are unsigned 0-15:
+// 0 means the 16px-wide object is square-aligned (so its centre sits at
+// the square's centre), not that the offset is signed.
 function squarePos(x, y, pix) {
 	return { x, y, pixelY: pix >> 4, pixelX: pix & 0x0f };
 }
@@ -195,7 +197,7 @@ function parseIdSubpackets(rec, data, pos) {
 			} else if (hi === 0x0a) {      // 5 damage (one shell) to base #n
 				subs.push({ type: "base_damage", base: lo });
 				pos += 1;
-			} else if (hi >= 0x0b && hi <= 0x0e && byte !== 0xff) {
+			} else if (hi >= 0x0b && hi <= 0x0e) {
 				const what = { 0xb: "shells", 0xc: "mines", 0xd: "armor", 0xe: "missiles" }[hi];
 				subs.push({ type: "base_drain", base: lo, resource: what });
 				pos += 1;
@@ -441,6 +443,10 @@ function parseRecord(raw) {
 
 	if (rec.tankStatus === 0x0f) {
 		// BoloViewer "attached log" pseudo-record: F0 then a Pascal-string name.
+		if (data[pos] !== 0xf0) {
+			rec.warning = "attached-log record without F0 marker";
+			return rec;
+		}
 		try {
 			const { str } = pascalString(data, pos + 1);
 			rec.subpackets.push({ type: "attached_log", name: str });
