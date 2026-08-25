@@ -91,6 +91,21 @@ if (!fs.existsSync(log1)) {
 			(!(st.alliances[a] & (1 << b)) && !(st.alliances[b] & (1 << a))))), true);
 }
 
+// Quitting takes carried pills out of the game, and a new player reusing
+// the slot inherits neither the cargo nor the alliances.
+{
+	const st = BoloGame.initial_state();
+	for (let p = 0; p < 3; p++) { st.present[p] = true; st.names[p] = "p" + p; }
+	st.alliances[0] &= ~(1 << 1); st.alliances[1] &= ~(1 << 0); /* 0 and 1 allied */
+	st.pills = [{ x: 5, y: 5, owner: 0, armour: 0, speed: 50, inTank: 0 }];
+	const ev = subpackets => BoloGame.apply_record(st, { time: 0, seq: 0, status: 0, player: 0, tankStatus: 7, tankDir: 0, subpackets }, null, null);
+	ev([{ type: "quit", fields: [] }]);
+	check("carried pill leaves with quitter", st.pills[0].inTank < 0, true);
+	ev([{ type: "node_id", name: "newguy@somewhere" }]);
+	check("slot reuse resets alliances", (st.alliances[0] & (1 << 1)) !== 0 && (st.alliances[1] & (1 << 0)) !== 0, true);
+	check("slot reuse does not revive cargo", st.pills[0].inTank < 0, true);
+}
+
 // Shell-list offsets are CHAINED (each relative to the previous shell),
 // not relative to the list's first shell.
 {
