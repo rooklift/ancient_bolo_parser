@@ -91,4 +91,20 @@ if (!fs.existsSync(log1)) {
 			(!(st.alliances[a] & (1 << b)) && !(st.alliances[b] & (1 << a))))), true);
 }
 
+// A map run whose final nibble is a repeat code (its terrain nibble
+// truncated off) must stop without writing pad/undefined squares (which a
+// Uint8Array would store as 0 = building), and flag the run.
+{
+	const recs = [{
+		time: 0, player: 0, status: 0, tankStatus: 0, subpackets: [
+			{ type: "map_run", mapKnown: 0, run: [6, 50, 10, 20, 0x11, 0x19] },
+		],
+	}];
+	const seed = BoloGame.extract_initial_map(recs);
+	const row = [];
+	for (let x = 10; x < 20; x++) row.push(seed.grid[50 * 256 + x]);
+	check("truncated repeat writes only its complete pairs", row, [1, 1, 255, 255, 255, 255, 255, 255, 255, 255]);
+	check("truncated run flagged", seed.badRuns, 1);
+}
+
 process.exit(failures ? 1 : 0);

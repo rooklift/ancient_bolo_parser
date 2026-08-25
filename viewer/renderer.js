@@ -327,9 +327,15 @@ function update_players() {
 			`<span class="chip" style="background:${player_color(p)}"></span>` +
 			`<span>${esc(handle)}</span> <span class="host">${esc(host)}</span></div>`;
 	}
-	if (players_el.innerHTML !== html) players_el.innerHTML = html;
+	/* compare against our own last string, not innerHTML: the serializer
+	 * re-encodes entities (e.g. U+00A0 as &nbsp;) so innerHTML never
+	 * matches for some names and the panel would rebuild every frame */
+	if (last_players_html !== html) { last_players_html = html; players_el.innerHTML = html; }
 }
+let last_players_html = null;
 
+/* HTML-escape for text content. Quotes are NOT escaped — never interpolate
+ * the result into an attribute value. */
 function esc(s) {
 	return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
@@ -698,7 +704,7 @@ function load_log(bytes, name) {
 	let gi = game.final.gameInfo;
 	map_name_el.textContent = gi ? gi.mapName : (name || "Bolo log");
 	/* version hex "00990700" → "0.99.7" */
-	let v = `${parseInt(header.version.slice(0, 2), 16)}.${header.version.slice(2, 4)}.${parseInt(header.version.slice(4, 6), 10)}`;
+	let v = `${parseInt(header.version.slice(0, 2), 10)}.${header.version.slice(2, 4)}.${parseInt(header.version.slice(4, 6), 10)}`;
 	let bits = [`Bolo ${v}`,
 		`${recs.length.toLocaleString()} records`, `${fmt_time(game.t1)} long`];
 	if (gi) {

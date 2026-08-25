@@ -10,7 +10,10 @@ import { readFileSync } from "node:fs";
 import { parseHeader, rawRecords, records, TICKS_PER_SECOND } from "../src/parse.js";
 
 const args = process.argv.slice(2);
-const file = args.find(a => !a.startsWith("--"));
+/* the numeric token after --raw is its count, not the filename */
+const rawIdx = args.indexOf("--raw");
+const rawCountArg = rawIdx >= 0 && /^\d+$/.test(args[rawIdx + 1] ?? "") ? args[rawIdx + 1] : null;
+const file = args.find((a, i) => !a.startsWith("--") && !(i === rawIdx + 1 && rawCountArg !== null));
 if (!file) {
 	console.error("usage: dump.js <logfile> [--events | --json | --raw N]");
 	process.exit(1);
@@ -18,14 +21,20 @@ if (!file) {
 const buf = new Uint8Array(readFileSync(file));
 const header = parseHeader(buf);
 
+function warnTruncation(stats) {
+	if (stats.truncatedBytes) {
+		console.error(`NOTE: log truncated mid-record (${stats.truncatedBytes} trailing bytes dropped)`);
+	}
+}
+
 function clock(ticks, t0) {
 	const s = Math.max(0, ticks - t0) / TICKS_PER_SECOND;
 	const m = Math.floor(s / 60);
 	return `${String(m).padStart(3)}:${(s % 60).toFixed(1).padStart(4, "0")}`;
 }
 
-if (args.includes("--raw")) {
-	const n = parseInt(args[args.indexOf("--raw") + 1] || "10", 10);
+if (rawIdx >= 0) {
+	const n = rawCountArg !== null ? parseInt(rawCountArg, 10) : 10;
 	let i = 0;
 	for (const raw of rawRecords(buf)) {
 		const hex = Array.from(raw.data).map(b => b.toString(16).padStart(2, "0")).join(" ");
@@ -36,16 +45,19 @@ if (args.includes("--raw")) {
 }
 
 if (args.includes("--json")) {
-	for (const rec of records(buf)) {
+	const stats = {};
+	for (const rec of records(buf, stats)) {
 		console.log(JSON.stringify(rec));
 	}
+	warnTruncation(stats);
 	process.exit(0);
 }
 
 if (args.includes("--events")) {
 	let t0 = null;
 	const names = {};
-	for (const rec of records(buf)) {
+	const stats = {};
+	for (const rec of records(buf, stats)) {
 		if (t0 === null) t0 = rec.time;
 		const who = () => names[rec.player] ?? `player ${rec.player}`;
 		for (const sub of rec.subpackets) {
@@ -93,6 +105,7 @@ if (args.includes("--events")) {
 			console.log(`      ! offset ${rec.offset} p${rec.player} b=${rec.status.toString(16)} T=${rec.tankStatus.toString(16)}: ${rec.warning} [${rec.unparsed ?? ""}]`);
 		}
 	}
+	warnTruncation(stats);
 	process.exit(0);
 }
 

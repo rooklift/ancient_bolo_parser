@@ -366,6 +366,11 @@ function apply_record(s, rec, effects, chat) {
 				if (p) {
 					const add = { pill_repair_4: 4, pill_repair_8: 8, pill_repair_12: 12, pill_repair_full: 15 }[sub.type];
 					p.armour = Math.min(15, p.armour + add);
+					/* Ownership on repair is an ASSUMPTION, not measured:
+					 * across both sample logs every repair is of a friendly
+					 * or neutral pill (hostile captures all happen by
+					 * picking up dead pills), so no rule here has ever been
+					 * exercised against real data. */
 					if (sub.type !== "pill_repair_full" || p.owner === NEUTRAL) p.owner = pl;
 				}
 				break;
@@ -561,6 +566,9 @@ function extract_initial_map(records) {
 					while (x < endx && i < nibs.length) {
 						const code = nibs[i++];
 						if (code >= 8) {
+							if (i >= nibs.length) break; /* repeat code with its
+							    terrain nibble truncated off: stop rather than
+							    write pad/undefined (= building) squares */
 							const t = nibs[i++];
 							for (let k = 0; k < code - 6 && x < endx; k++) put(t);
 						} else {
