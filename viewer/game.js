@@ -277,11 +277,8 @@ function apply_record(s, rec, effects, chat) {
 					b.armour = Math.min(90, b.armour + 1);
 				}
 				break;
-			case "pillbox_fires": {
-				const p = s.pills[sub.pillbox];
-				if (p && effects) effects.push({ time: rec.time, type: "pill_fire", x: p.x, y: p.y });
-				break;
-			}
+			case "pillbox_fires":
+				break;		// no visual: a flash here reads as the pill being hit
 			case "pill_pickup": {
 				const p = s.pills[sub.pillbox];
 				if (p) p.inTank = pl;

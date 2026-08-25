@@ -624,7 +624,6 @@ function draw_effects() {
 				ctx.stroke();
 				break;
 			}
-			case "pill_fire":
 			case "muzzle": {
 				ctx.fillStyle = `rgba(255,255,180,${(1 - age) * 0.9})`;
 				ctx.beginPath();
