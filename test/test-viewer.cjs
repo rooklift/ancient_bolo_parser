@@ -91,6 +91,21 @@ if (!fs.existsSync(log1)) {
 			(!(st.alliances[a] & (1 << b)) && !(st.alliances[b] & (1 << a))))), true);
 }
 
+// Every pill_plant must find a carried pill: a tank death while the man is
+// out carrying (status C) must not dump the pill in the man's hands.
+if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
+	const recs = [...BoloLog.records(new Uint8Array(fs.readFileSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))))];
+	const st = BoloGame.initial_state(BoloGame.extract_initial_map(recs));
+	let noop = 0;
+	for (const r of recs) {
+		for (const sub of r.subpackets) {
+			if (sub.type === "pill_plant" && !st.pills.some(p => p.inTank === r.player)) noop++;
+		}
+		BoloGame.apply_record(st, r, null, null);
+	}
+	check("no pill_plant is a no-op (man keeps his pill through tank death)", noop, 0);
+}
+
 // Standalone map/node records carry no player state: they must not clear
 // the sender's man (nor shells), but any record still proves liveness.
 {
