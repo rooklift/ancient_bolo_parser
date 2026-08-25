@@ -116,6 +116,24 @@ let players_el = document.getElementById("players");
 let chat_el = document.getElementById("chat");
 let file_pick = document.getElementById("filePick");
 
+/* Terrain as drawn: like the real game (and unlike the map editor), a
+ * base square counts as road for tile-selection, so roads connect into
+ * bases instead of dead-ending. The base art covers its own square. */
+const ROAD = 4;
+let display_grid_cache = null;
+let display_grid_version = -1;
+
+function display_grid() {
+	if (display_grid_version !== cur.gridVersion || !display_grid_cache) {
+		display_grid_cache = cur.grid.slice();
+		for (const b of cur.bases) {
+			display_grid_cache[b.y * MAP_SIZE + b.x] = ROAD;
+		}
+		display_grid_version = cur.gridVersion;
+	}
+	return display_grid_cache;
+}
+
 /* offscreen 1px-per-tile terrain image */
 let off = document.createElement("canvas");
 off.width = off.height = MAP_SIZE;
@@ -125,8 +143,9 @@ let off_version = -1;
 
 function rebuild_offscreen() {
 	let d = off_img.data;
+	let grid = display_grid();
 	for (let i = 0; i < MAP_SIZE * MAP_SIZE; i++) {
-		let [r, g, b] = RGB[cur.grid[i]] || RGB[255];
+		let [r, g, b] = RGB[grid[i]] || RGB[255];
 		d[i * 4] = r; d[i * 4 + 1] = g; d[i * 4 + 2] = b; d[i * 4 + 3] = 255;
 	}
 	off_ctx.putImageData(off_img, 0, 0);
@@ -374,7 +393,7 @@ function draw() {
 
 	let sprites_drawn = false;
 	if (z >= BoloSprites.MIN_ZOOM) {
-		sprites_drawn = BoloSprites.draw_view(ctx, cur.grid, view, w, h);
+		sprites_drawn = BoloSprites.draw_view(ctx, display_grid(), view, w, h);
 	}
 
 	let tx0 = Math.max(0, Math.floor(view.ox));
