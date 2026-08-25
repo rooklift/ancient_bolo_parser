@@ -135,7 +135,7 @@ nibble.
 | `F6` | 1 | tank boards boat (boat consumed): the tank's centre square reverts from river-with-boat to plain river with **no** accompanying `6T` event — playback must apply the change itself (verified: all 38 sample boardings sit on terrain 9, none has a terrain event) |
 | `F7` | 1 | tank lays mine |
 | `F8` | 2+len | node id: Pascal string `player@node`; also sent on rename |
-| `F9` | 2 | tank death; code 1 = explosion, 2 = crater, 3 = sunk in deep sea (an F901 may be followed by F902 mid-animation). The respawn is the next tank position without the dying bit; measured gaps are 5.0–6.8 s (median 6.0) |
+| `F9` | 2 | tank death; code 1 = explosion, 2 = crater, 3 = sunk in deep sea (an F901 may be followed by F902 mid-animation). The respawn is the next tank position without the dying bit; measured gaps are 5.0–6.8 s (median 6.0). Any terminal cratering at the wreck's resting place is **evented** (`7T`/`7D`) and ammo-dependent: ~70% of deaths crater, ~30% leave the terrain untouched (verified via flooding: of 14 crater-less deaths ending beside water, none flooded — so no unlogged crater existed) |
 | `FA` | 4+len | chat message: 2-byte little-endian recipient bitmask (`FFFF` = all) + Pascal string (max 120 chars; longer messages split across records) |
 | `FB` | 4 | shell falls to ground at `XX YY yx` |
 | `FC dn` | 2 | shell (direction `d`) hits tank `n` |
