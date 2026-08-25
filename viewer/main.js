@@ -47,6 +47,7 @@ function build_menu() {
 				{ label: "Object graphics toggle", accelerator: "CmdOrCtrl+G", click: () => send("toggle-obj-sprites") },
 				{ label: "Simple LGM toggle", accelerator: "CmdOrCtrl+M", click: () => send("toggle-lgm-sprites") },
 				{ label: "Bigger shots toggle", accelerator: "CmdOrCtrl+B", click: () => send("toggle-big-shots") },
+				{ label: "Simple terrain toggle", accelerator: "CmdOrCtrl+T", click: () => send("toggle-simple-terrain") },
 				{ type: "separator" },
 				{ label: "Dev tools", role: "toggleDevTools" },
 			],
