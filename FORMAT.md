@@ -116,7 +116,7 @@ nibble.
 | `4d` | 4 | unused (missile in flight) |
 | `5d` | 1 | shot fired from tank |
 | `6T` | 3 | terrain change to type `T` at `XX YY` |
-| `7T` | 3 | explosion at `XX YY`; `T` = new terrain, or `B` = no terrain change, `C` = LGM plants mine, `D` = four-square superboom (craters the square and its E/S/SE neighbours) |
+| `7T` | 3 | explosion at `XX YY`; `T` = new terrain, or `B` = no terrain change, `C` = LGM plants mine, `D` = four-square superboom (craters the square and its E/S/SE neighbours, sparing water and bases). A superboom also deals 4 **eventless** damage to any pillbox in its four squares — no `9n` is sent (verified: a pill superboomed at armour 8 was picked up, which requires armour 0, after only four `9n`s; the blast's unlogged damage closes the gap). Crater *flooding*, by contrast, IS evented: water-adjacent craters become water via explicit terrain changes, typically within a second |
 | `8d` | 1 | unused |
 | `9n` | 1 | 1 damage to pillbox `n` |
 | `An` | 1 | 5 damage (one shell) to base `n` |
