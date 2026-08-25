@@ -7,6 +7,10 @@ const MAP_SIZE = 256;
 const DEEP_SEA = 255;
 const TICKS_PER_SECOND = 50;
 const KEYFRAME_EVERY = 2000; /* records between state snapshots, for seeking */
+/* Moving objects normally restate at about four packets per second. Beyond
+ * half a second the path between two positions is no longer trustworthy:
+ * hold the last known point instead of drawing a made-up line through lag. */
+const MAX_POSITION_INTERPOLATION_TICKS = TICKS_PER_SECOND / 2;
 
 const NEUTRAL = 16;
 const GONE = -2; /* inTank value: pill left the game with a quitting carrier */
@@ -63,9 +67,9 @@ function initial_state(seed) {
 		bases: seed ? seed.bases.map(b => ({ ...b })) : [],
 		starts: seed ? seed.starts.map(st => ({ x: st.x, y: st.y, direction: st.dir })) : [],
 		tanks: Array.from({ length: 16 }, () => null),
-			/* {x, y, px, py, dir, inBoat, hidden, dying, speed, lastSeen} */
+			/* {x, y, px, py, dir, inBoat, hidden, dying, speed, lastSeen, position_time} */
 		men: Array.from({ length: 16 }, () => null),
-			/* {x, y, px, py, parachute, carryingPill, lastSeen} */
+			/* {x, y, px, py, parachute, carryingPill, lastSeen, position_time} */
 		shells: Array.from({ length: 16 }, () => []),
 			/* [{x, y, px, py, direction}] — full restatement per record */
 		names: Array.from({ length: 16 }, () => null),
@@ -241,6 +245,7 @@ function apply_record(s, rec, effects, chat) {
 					x: sub.x, y: sub.y, px: sub.pixelX, py: sub.pixelY,
 					dir: sub.direction, inBoat: sub.inBoat, hidden: sub.hidden,
 					dying: sub.dying, speed: sub.speed, lastSeen: rec.time,
+					position_time: rec.time,
 					/* positions with the dying bit are death-animation flames,
 					 * not a live tank; only a normal position is a respawn */
 					dead: sub.dying ? (s.tanks[pl] ? s.tanks[pl].dead : false) : false,
@@ -271,6 +276,7 @@ function apply_record(s, rec, effects, chat) {
 					x: sub.x, y: sub.y, px: sub.pixelX, py: sub.pixelY,
 					parachute: sub.type === "parachute_position",
 					carryingPill: sub.carryingPill, lastSeen: rec.time,
+					position_time: rec.time,
 				};
 				break;
 			case "shells": {
@@ -729,12 +735,87 @@ function extract_initial_map(records) {
 	};
 }
 
+/* Build the position tracks used only for drawing. `continuous` describes
+ * the path from the preceding entry to this one. A death/join state, a tank
+ * death, or a quit makes the next position a new path; in particular this
+ * prevents interpolation towards the bogus far-away positions sometimes
+ * carried by ghost-split quit records. */
+function build_tank_positions(records) {
+	let tracks = Array.from({ length: 16 }, () => []);
+	let active = Array.from({ length: 16 }, () => false);
+
+	for (let rec of records) {
+		let pl = rec.player;
+		let map_node_only = rec.subpackets.length > 0 &&
+			rec.subpackets.every(sub => MAP_NODE_TYPES.has(sub.type));
+		let breaks_path = !map_node_only && (rec.tankStatus === 0x07 ||
+			rec.subpackets.some(sub => sub.type === "tank_death" || sub.type === "quit"));
+
+		for (let sub of rec.subpackets) {
+			if (sub.type !== "tank_position") continue;
+			tracks[pl].push({
+				time: rec.time,
+				pixel_x: sub.x * 16 + sub.pixelX,
+				pixel_y: sub.y * 16 + sub.pixelY,
+				continuous: active[pl] && !sub.dying && !breaks_path,
+			});
+			active[pl] = !sub.dying && !breaks_path;
+		}
+		if (breaks_path) active[pl] = false;
+	}
+
+	return tracks;
+}
+
+/* LGM paths end when the man enters the tank, dies, or quits. Parachuting
+ * and walking are separate paths: interpolating across touchdown would
+ * invent motion between two different object states. Unlike the anomalous
+ * tank position on a quit record, an LGM death position is trustworthy, so
+ * the final walking span may run right up to the death event. */
+function build_lgm_positions(records) {
+	let tracks = Array.from({ length: 16 }, () => []);
+	let active = Array.from({ length: 16 }, () => false);
+	let parachuting = Array.from({ length: 16 }, () => false);
+
+	for (let rec of records) {
+		let pl = rec.player;
+		let map_node_only = rec.subpackets.length > 0 &&
+			rec.subpackets.every(sub => MAP_NODE_TYPES.has(sub.type));
+		let enters_tank = rec.tankStatus !== 0x0f && !map_node_only &&
+			(rec.status & 0x0c) === 0;
+		let quits = rec.subpackets.some(sub => sub.type === "quit");
+		if (enters_tank) active[pl] = false;
+
+		for (let sub of rec.subpackets) {
+			if (sub.type !== "lgm_position" && sub.type !== "parachute_position") continue;
+			let is_parachute = sub.type === "parachute_position";
+			tracks[pl].push({
+				time: rec.time,
+				pixel_x: sub.x * 16 + sub.pixelX,
+				pixel_y: sub.y * 16 + sub.pixelY,
+				parachute: is_parachute,
+				continuous: active[pl] && parachuting[pl] === is_parachute && !quits,
+			});
+			active[pl] = !quits;
+			parachuting[pl] = is_parachute;
+		}
+
+		let dies = rec.subpackets.some(sub =>
+			sub.type === "lgm_death" || sub.type === "pill_dumped_by_dead_lgm");
+		if (enters_tank || dies || quits) active[pl] = false;
+	}
+
+	return tracks;
+}
+
 /* Build a seekable game from parsed records. */
 function build(records) {
 	const effects = [];
 	const chat = [];
 	const keyframes = []; /* {index, state} — state BEFORE records[index] */
 	const seed = extract_initial_map(records);
+	const tank_positions = build_tank_positions(records);
+	const lgm_positions = build_lgm_positions(records);
 	let s = initial_state(seed);
 
 	for (let i = 0; i < records.length; i++) {
@@ -749,11 +830,64 @@ function build(records) {
 		effects,
 		chat,
 		keyframes,
+		tank_positions,
+		lgm_positions,
 		badMapRuns: seed.badRuns,
 		final: s,
 		t0: records.length ? records[0].time : 0,
 		t1: records.length ? records[records.length - 1].time : 0,
 	};
+}
+
+/* Centre position of an object at a possibly fractional replay tick. State
+ * reconstruction deliberately remains packet-exact; only this rendering
+ * helper looks ahead to the next trustworthy restatement. */
+function interpolated_position(track, object, tick) {
+	if (!object) return null;
+
+	let pixel_x = object.x * 16 + object.px;
+	let pixel_y = object.y * 16 + object.py;
+	if (!track || object.position_time === undefined) {
+		return { x: pixel_x / 16 + 0.5, y: pixel_y / 16 + 0.5 };
+	}
+
+	let lo = 0, hi = track.length;
+	while (lo < hi) {
+		let mid = (lo + hi) >> 1;
+		if (track[mid].time <= tick) lo = mid + 1;
+		else hi = mid;
+	}
+	let index = lo - 1;
+	let current = track[index];
+	/* The state may have crossed a death/quit without receiving another
+	 * position, or may come from a caller-built game. In either case its
+	 * packet-exact position is the only safe answer. */
+	if (!current || current.time !== object.position_time ||
+		current.pixel_x !== pixel_x || current.pixel_y !== pixel_y ||
+		(current.parachute !== undefined && current.parachute !== object.parachute)) {
+		return { x: pixel_x / 16 + 0.5, y: pixel_y / 16 + 0.5 };
+	}
+
+	let next = track[index + 1];
+	let duration = next ? next.time - current.time : 0;
+	if (next && next.continuous && tick < next.time && duration > 0 &&
+		duration <= MAX_POSITION_INTERPOLATION_TICKS) {
+		let amount = (tick - current.time) / duration;
+		pixel_x += (next.pixel_x - current.pixel_x) * amount;
+		pixel_y += (next.pixel_y - current.pixel_y) * amount;
+	}
+
+	return { x: pixel_x / 16 + 0.5, y: pixel_y / 16 + 0.5 };
+}
+
+function tank_position_at(game, state, player, tick) {
+	let track = game.tank_positions && game.tank_positions[player];
+	return interpolated_position(track, state.tanks[player], tick);
+}
+
+function lgm_position_at(game, state, player, tick) {
+	let track = game.lgm_positions && game.lgm_positions[player];
+	return interpolated_position(track, state.men[player], tick);
 }
 
 /* State at a given tick: nearest keyframe at or before it, replayed forward.
@@ -785,7 +919,9 @@ function team_of(s, player) {
 
 const BoloGame = {
 	MAP_SIZE, DEEP_SEA, TICKS_PER_SECOND, NEUTRAL, KEYFRAME_EVERY,
+	MAX_POSITION_INTERPOLATION_TICKS,
 	initial_state, clone_state, apply_record, build, state_at, team_of,
+	tank_position_at, lgm_position_at,
 	extract_initial_map,
 };
 
