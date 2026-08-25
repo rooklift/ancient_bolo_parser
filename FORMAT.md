@@ -176,16 +176,22 @@ Playback must re-implement fragments of game logic:
   quits-while-carrying, the pills were later picked up within a tile of
   the quitter's last tank centre — in one case both at once, lying
   together).
-- **A burning wreck clears the forest beneath its centre square** as it
-  slides, with no terrain events — the dying-bit tank positions are the
-  only trace. Verified: shells later fly through such squares as if the
-  trees were gone (they are), and corpus cross-validation
-  (`tools/validate-wreck-forest.cjs`, 446 logs) pins the rule to the
-  centre square: clearing the whole 16px footprint produces 476
-  trees-destroyed-twice conflicts and 54 tanks later reported hidden in
-  supposedly cleared trees, while the centre rule produces 13 (twelve of
-  them sub-second event-ordering) and zero. WinBolo implements the same
-  rule.
+- **A dying tank clears forest in two stages**, with no terrain events —
+  the dying-bit tank positions are the only trace. The death blast (the
+  *first* dying position, regardless of whether the terminal explosion
+  turns out to be a superboom, a crater or nothing) fells the trees in
+  every square within 7 pixels, Chebyshev, of the tank's centre pixel —
+  the squares touched by the 15×15 box centre±7, which is the tank's
+  footprint minus any single-pixel sliver of overlap on the far side of
+  the centre. The sliding wreck then clears only the centre square
+  beneath each later dying position (the rule WinBolo implements).
+  This is the model best supported by the 446-log corpus's later
+  tree-related activity on the affected squares — explicit tree-fells
+  and hidden-in-trees tanks convict wider rules, while shells flying
+  through supposedly-standing forest and pill plants on it convict
+  narrower ones (`tools/falsify-death-footprint-3.cjs`; the two earlier
+  rounds that bracketed the rule are kept alongside it). The evented
+  terminal cratering (`7T`/`7D`, see `F9`) is separate and unaffected.
 - **The delayed second explosion of a dying tank is its cargo.** Corpus
   statistics (446 logs): 1,010 of 1,136 four-square superbooms occur
   mid-death-sequence, ~0.9 s after the initial `F9` — the ammunition
