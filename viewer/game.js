@@ -247,6 +247,10 @@ function apply_record(s, rec, effects, chat) {
 				};
 				s.present[pl] = true;
 				if (sub.dying) {
+					/* the dying-bit positions are the wreck's flames (the
+					 * notes call the C packets "flameage"): draw them, so
+					 * the sliding wreck is visible burning its way along */
+					if (effects) effects.push({ time: rec.time, type: "flame", x: sub.x, y: sub.y, px: sub.pixelX, py: sub.pixelY });
 					/* a burning wreck clears the forest beneath its CENTRE
 					 * square, with no terrain event (shells later fly
 					 * through such squares; WinBolo has the same rule).
