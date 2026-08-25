@@ -176,12 +176,16 @@ Playback must re-implement fragments of game logic:
   quits-while-carrying, the pills were later picked up within a tile of
   the quitter's last tank centre — in one case both at once, lying
   together).
-- **A burning wreck clears the forest beneath it** as it slides, with no
-  terrain events — the dying-bit tank positions are the only trace.
-  Verified: shells later fly through such squares as if the trees were
-  gone (they are); six of eight forest squares crossed by shells in one
-  test log lay under earlier wreck footprints. WinBolo implements the
-  same rule.
+- **A burning wreck clears the forest beneath its centre square** as it
+  slides, with no terrain events — the dying-bit tank positions are the
+  only trace. Verified: shells later fly through such squares as if the
+  trees were gone (they are), and corpus cross-validation
+  (`tools/validate-wreck-forest.cjs`, 446 logs) pins the rule to the
+  centre square: clearing the whole 16px footprint produces 476
+  trees-destroyed-twice conflicts and 54 tanks later reported hidden in
+  supposedly cleared trees, while the centre rule produces 13 (twelve of
+  them sub-second event-ordering) and zero. WinBolo implements the same
+  rule.
 - **The delayed second explosion of a dying tank is its cargo.** Corpus
   statistics (446 logs): 1,010 of 1,136 four-square superbooms occur
   mid-death-sequence, ~0.9 s after the initial `F9` — the ammunition
