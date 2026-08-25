@@ -188,10 +188,21 @@ function apply_record(s, rec, effects, chat) {
 	let sawShells = false;
 	let newShells = null;
 
+	/* Standalone map/node records carry no player state at all — they must
+	 * not clear the sender's man or shells, or feed status bits. */
+	const mapNodeOnly = rec.subpackets.length > 0 && rec.subpackets.every(sub => MAP_NODE_TYPES.has(sub.type));
+
+	/* ANY record from a player proves the player is alive — stationary
+	 * tanks restate their position much less often, so liveness must not
+	 * ride on position freshness alone. */
+	if (rec.tankStatus !== 0x0f && s.tanks[pl]) {
+		s.tanks[pl].lastSeen = rec.time;
+	}
+
 	/* Every record restates the sender's LGM state in the status nibble:
 	 * bits clear means the man is in the tank, so remove him from the
 	 * world (a man-position subpacket below re-adds him). */
-	if (rec.tankStatus !== 0x0f && (rec.status & 0x0c) === 0) {
+	if (rec.tankStatus !== 0x0f && !mapNodeOnly && (rec.status & 0x0c) === 0) {
 		s.men[pl] = null;
 	}
 
@@ -493,19 +504,34 @@ function apply_record(s, rec, effects, chat) {
 					}
 				}
 				break;
-			case "alliance_leave":
+			case "alliance_leave": {
+				/* Manual: "Any pillboxes he is carrying at the time are his,
+				 * but any active ones on the map remain with the members of
+				 * the alliance." Reassign planted pills to the lowest-index
+				 * remaining ally before severing the links. (Bases are not
+				 * mentioned and keep their owner.) */
+				let heir = -1;
+				for (let i = 0; i < 16; i++) {
+					const mutual = i !== pl && !(s.alliances[pl] & (1 << i)) && !(s.alliances[i] & (1 << pl));
+					if (mutual && (s.present[i] || s.names[i] !== null)) { heir = i; break; }
+				}
+				if (heir >= 0) {
+					for (const p of s.pills) {
+						if (p.owner === pl && p.inTank === null) p.owner = heir;
+					}
+				}
 				s.alliances[pl] = 0xffff & ~(1 << pl);
 				for (let i = 0; i < 16; i++) {
 					if (i !== pl) s.alliances[i] |= (1 << pl);
 				}
 				break;
+			}
 		}
 	}
 
 	if (sawShells) {
 		s.shells[pl] = newShells;
-	} else if (rec.tankStatus !== 0x0f &&
-			!(rec.subpackets.length && rec.subpackets.every(sub => MAP_NODE_TYPES.has(sub.type)))) {
+	} else if (rec.tankStatus !== 0x0f && !mapNodeOnly) {
 		/* EVERY record restates all shells its sender simulates, whatever
 		 * its shape — verified: of 743 in-flight shells crossing a
 		 * list-less record of any kind, zero reappear afterwards — so no

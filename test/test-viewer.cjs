@@ -91,6 +91,43 @@ if (!fs.existsSync(log1)) {
 			(!(st.alliances[a] & (1 << b)) && !(st.alliances[b] & (1 << a))))), true);
 }
 
+// Standalone map/node records carry no player state: they must not clear
+// the sender's man (nor shells), but any record still proves liveness.
+{
+	const st = BoloGame.initial_state();
+	st.tanks[0] = { x: 100, y: 100, px: 0, py: 0, dir: 0, inBoat: false, hidden: false, dying: false, speed: 0, lastSeen: 0, dead: false };
+	st.men[0] = { x: 101, y: 100, px: 0, py: 0, parachute: false, carryingPill: false, lastSeen: 0 };
+	BoloGame.apply_record(st, {
+		time: 500, seq: 0, status: 0, player: 0, tankStatus: 7, tankDir: 0,
+		subpackets: [{ type: "map_run", mapKnown: 0, run: [4, 0, 0, 0] }],
+	}, null, null);
+	check("map-run record leaves the man alone", st.men[0] !== null, true);
+	check("map-run record still proves liveness", st.tanks[0].lastSeen, 500);
+}
+
+// Leaving an alliance: planted pills remain with the alliance (manual:
+// "any active ones on the map remain with the members"), carried pills
+// leave with the player.
+{
+	const st = BoloGame.initial_state();
+	for (let p = 0; p < 3; p++) { st.present[p] = true; st.names[p] = "p" + p; }
+	/* allies: 1 and 2 (mutual zero bits) */
+	st.alliances[1] &= ~(1 << 2);
+	st.alliances[2] &= ~(1 << 1);
+	st.pills = [
+		{ x: 10, y: 10, owner: 1, armour: 15, speed: 50, inTank: null }, /* planted, leaver's */
+		{ x: 0, y: 0, owner: 1, armour: 15, speed: 50, inTank: 1 },      /* carried by leaver */
+		{ x: 20, y: 20, owner: 2, armour: 15, speed: 50, inTank: null }, /* the ally's own */
+	];
+	BoloGame.apply_record(st, {
+		time: 0, seq: 0, status: 0, player: 1, tankStatus: 0, tankDir: 0,
+		subpackets: [{ type: "alliance_leave" }],
+	}, null, null);
+	check("planted pill stays with the alliance", st.pills[0].owner, 2);
+	check("carried pill leaves with the player", st.pills[1].owner, 1);
+	check("ally's own pill untouched", st.pills[2].owner, 2);
+}
+
 // A map run whose final nibble is a repeat code (its terrain nibble
 // truncated off) must stop without writing pad/undefined squares (which a
 // Uint8Array would store as 0 = building), and flag the run.
