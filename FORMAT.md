@@ -176,6 +176,19 @@ Playback must re-implement fragments of game logic:
   quits-while-carrying, the pills were later picked up within a tile of
   the quitter's last tank centre — in one case both at once, lying
   together).
+- **A burning wreck clears the forest beneath it** as it slides, with no
+  terrain events — the dying-bit tank positions are the only trace.
+  Verified: shells later fly through such squares as if the trees were
+  gone (they are); six of eight forest squares crossed by shells in one
+  test log lay under earlier wreck footprints. WinBolo implements the
+  same rule.
+- **The delayed second explosion of a dying tank is its cargo.** Corpus
+  statistics (446 logs): 1,010 of 1,136 four-square superbooms occur
+  mid-death-sequence, ~0.9 s after the initial `F9` — the ammunition
+  cooking off. The trackable cases suggest the superboom requires
+  roughly shells + mines ≥ 60 aboard; below that the tank dies with the
+  small explosion only. (The `7D` events are logged, so playback needs
+  no rule here.)
 - **Pill-fire shell spawn position** is computed from the pill position and
   the direction nibble via Bolo's internal sine/cosine tables — but only if
   a player wants the shell visible from the instant of the `F4`: the shell
