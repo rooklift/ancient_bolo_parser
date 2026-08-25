@@ -674,6 +674,19 @@ function draw_effects() {
 				ctx.stroke();
 				break;
 			}
+			case "flame": {
+				/* burning wreck: small fireball at the flame position */
+				let r = Math.max(1.5, (0.38 - age * 0.15) * z);
+				ctx.fillStyle = `rgba(255,90,30,${0.8 * (1 - age)})`;
+				ctx.beginPath();
+				ctx.arc(cx, cy, r, 0, Math.PI * 2);
+				ctx.fill();
+				ctx.fillStyle = `rgba(255,220,90,${0.9 * (1 - age)})`;
+				ctx.beginPath();
+				ctx.arc(cx, cy, Math.max(1, r * 0.55), 0, Math.PI * 2);
+				ctx.fill();
+				break;
+			}
 			case "splash": {
 				ctx.strokeStyle = `rgba(150,200,255,${1 - age})`;
 				ctx.lineWidth = 1;
