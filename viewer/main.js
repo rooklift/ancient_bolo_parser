@@ -10,10 +10,49 @@ let win = null;
 const LOG_FILTERS = [
 	{ name: "Bolo logs", extensions: ["*"] },
 ];
+const SETTINGS_DIRECTORY = "viewer-settings";
+const SETTINGS_FILE = "settings.json";
 
 /* Logs are a few MB for a long game (a 12-hour 16-player marathon might
  * reach a few tens of MB); refuse absurdities before reading them. */
 const MAX_LOG_BYTES = 64 << 20;
+
+function settings_path() {
+	return path.join(app.getPath("userData"), SETTINGS_DIRECTORY, SETTINGS_FILE);
+}
+
+function read_settings() {
+	try {
+		let settings = JSON.parse(fs.readFileSync(settings_path(), "utf8"));
+		return settings && typeof settings === "object" && !Array.isArray(settings) ? settings : {};
+	} catch {
+		return {};
+	}
+}
+
+function write_settings(settings) {
+	try {
+		let file_path = settings_path();
+		fs.mkdirSync(path.dirname(file_path), { recursive: true });
+		fs.writeFileSync(file_path, JSON.stringify(settings, null, "\t") + "\n", "utf8");
+	} catch { /* preferences must never prevent opening a log */ }
+}
+
+function last_open_directory() {
+	let directory = read_settings().last_open_directory;
+	if (typeof directory !== "string") return undefined;
+	try {
+		return fs.statSync(directory).isDirectory() ? directory : undefined;
+	} catch {
+		return undefined;
+	}
+}
+
+function remember_open_directory(file_path) {
+	let settings = read_settings();
+	settings.last_open_directory = path.dirname(file_path);
+	write_settings(settings);
+}
 
 function send(cmd) {
 	if (win) win.webContents.send("menu-cmd", cmd);
@@ -95,10 +134,13 @@ function create_window() {
 }
 
 ipcMain.handle("open-log", async () => {
-	let res = await dialog.showOpenDialog(win, {
+	let options = {
 		filters: LOG_FILTERS,
 		properties: ["openFile"],
-	});
+	};
+	let directory = last_open_directory();
+	if (directory) options.defaultPath = directory;
+	let res = await dialog.showOpenDialog(win, options);
 	if (res.canceled || res.filePaths.length === 0) return { canceled: true };
 	let p = res.filePaths[0];
 	try {
@@ -106,7 +148,9 @@ ipcMain.handle("open-log", async () => {
 		if (size > MAX_LOG_BYTES) {
 			return { canceled: true, error: `${p} is ${size} bytes; not a Bolo log.` };
 		}
-		return { canceled: false, path: p, data: new Uint8Array(fs.readFileSync(p)) };
+		let data = new Uint8Array(fs.readFileSync(p));
+		remember_open_directory(p);
+		return { canceled: false, path: p, data };
 	} catch (err) {
 		return { canceled: true, error: String(err) };
 	}
