@@ -75,7 +75,10 @@ directions afloat and ashore; shells and walking men stay vector.
 
 Real logs from three different games (December 2001 – October 2002, four
 to six players, up to 2¼ hours and 120,840 records) parse with **zero
-warnings**: every record's subpackets consume its length exactly.
+warnings**: every record's subpackets consume its length exactly. A
+private corpus of 446 further logs (2001–2004, 13.4 million records,
+212 MiB, all Bolo 0.99.7) also parses with zero warnings, zero hard
+failures and zero truncations (`tools/corpus-scan.cjs`).
 `fixtures/n20021018.2` is one of them, **anonymized**: player names,
 hostnames, chat name-mentions and IP addresses were substituted with
 same-length dummies (IPs from the RFC 5737 documentation range), leaving

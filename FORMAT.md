@@ -127,7 +127,7 @@ nibble.
 | `F1 02` | 3+5n | pillbox list: `x y owner armour speed` each (map-file layout) |
 | `F1 03` | 3+6n | base list: `x y owner armour shells mines` each |
 | `F1 04` | 3+3n | start list: `x y direction` each |
-| `F1 8n`/`F1 Cn` | 42 | pill/base "history": two 2-byte bit fields + 36-byte block (purpose unknown; only `F1 C0` seen in logs) |
+| `F1 8n`/`F1 Cn` | 42 | pill/base "history": two 2-byte bit fields + 36-byte block, emitted in the start-of-log burst. `C0` appears once in every log, almost always as constant boilerplate (`ffffffff 0001` + zeros); `C1`/`C2`/`C6` were each seen only once or twice across a 446-log corpus, and `8n` never. Non-boilerplate blocks decode as a zero-padded Pascal `player@node` string — some player identity recorded per base — though whose, and what the bit fields mean, is still unknown (one observed block had a shifted layout) |
 | `F2` | 3 | map terrain request (2-byte `mapknown`) |
 | `F3` | 3+run | map terrain data: 2-byte `mapknown`, then one RLE run in `.bmap` format (run length byte includes the 4-byte run header) |
 | `F4 nd` | 2 | pillbox `n` fires, shell direction `d` (the shell itself then appears in the shell lists of the machine simulating the pill — normally its target; see `0d`–`3d`) |
@@ -145,7 +145,7 @@ nibble.
 | `FF 51` | 4 | pill dumped at `XX YY` by killed LGM (no F5 sent in this case) |
 | `FF 6n` | 2 | base `n` captured |
 | `FF 7n` / `FF 8n` | 2 / 4 | unused (base towing) |
-| `FF F0` | 3+3f | player quit: field-length byte, then three fields — confirmed to be 6-byte `IP:port` pairs, the quitter's upstream / self / downstream ring neighbours (decoded against known player addresses; game ports observed at 50000 and elsewhere) |
+| `FF F0` | 3+3f | player quit: field-length byte, then three fields — confirmed to be 6-byte `IP:port` pairs, the quitter's upstream / self / downstream ring neighbours (decoded against known player addresses; game ports observed at 50000 and elsewhere). Field length 4 (presumably bare IPv4) also occurs rarely: 5 of 955 quits in a 446-log corpus |
 | `FF F1` | 2 | map saved |
 | `FF F2` / `FF F3` | 4 | alliance request / accept: 2-byte little-endian tank bitfield of **set** bits (the opposite convention from the game-info alliance words, where **zero** bits mark allies). A request names every member of the group being joined; an accept names only the admitted player — and admits them to the acceptor's **whole alliance**, though no event links them to the other members. A viewer must therefore treat alliance links as transitive (verified on a 3v3 whose only accepts were A↔B and B↔C on each side) |
 | `FF F4` | 2 | leave alliance |
