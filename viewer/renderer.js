@@ -610,7 +610,10 @@ function draw_effects() {
 	for (let i = effect_lo; i < game.effects.length && game.effects[i].time <= clock; i++) {
 		let e = game.effects[i];
 		let age = (clock - e.time) / EFFECT_TICKS; /* 0..1 */
-		let cx = tile_to_screen_x(e.x) + z / 2, cy = tile_to_screen_y(e.y) + z / 2;
+		/* effects with pixel offsets position like any world object;
+		 * tile-only effects centre on their square */
+		let cx = e.px !== undefined ? tile_to_screen_x(world_x(e)) : tile_to_screen_x(e.x) + z / 2;
+		let cy = e.py !== undefined ? tile_to_screen_y(world_y(e)) : tile_to_screen_y(e.y) + z / 2;
 		switch (e.type) {
 			case "boom":
 			case "tank_hit": {
@@ -704,6 +707,7 @@ function load_log(bytes, name) {
 	const warned = recs.filter(r => r.warning).length;
 	if (warned) bits.push(`⚠ ${warned} records with parse warnings`);
 	if (stats.truncatedBytes) bits.push(`⚠ truncated (${stats.truncatedBytes} trailing bytes dropped)`);
+	if (game.badMapRuns) bits.push(`⚠ ${game.badMapRuns} short map runs (terrain may be incomplete)`);
 	game_meta_el.textContent = bits.filter(Boolean).join(" · ");
 
 	viewpoint_el.innerHTML = "";
