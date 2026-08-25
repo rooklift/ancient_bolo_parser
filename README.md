@@ -1,0 +1,102 @@
+# ancient_bolo_parser
+
+A parser for game log files ("replays") written by the classic Macintosh
+tank game **Bolo** (Stuart Cheshire, versions 0.99.5–0.99.7, 1995).
+
+Bolo could record games via "Log Events to File…" but never shipped a way to
+play them back. The log format — including its XOR obfuscation — was cracked
+around 2001–2003 by Carl Osterwald ("wharf rat") for his BoloViewer
+application, which was never open-sourced. This project builds on a
+surviving copy of his format notes, adds empirical findings of its own
+(notably the man/parachute position rule that the 2003 notes left
+unresolved), and documents everything in [FORMAT.md](FORMAT.md).
+
+The parser is dependency-free ES-module JavaScript (Node ≥ 18), intended to
+serve as the decode core of a future replay viewer (e.g. an Electron app —
+the map rendering side already exists in [lgm](https://github.com/rooklift/lgm)).
+
+## Usage
+
+```
+node bin/dump.js <logfile>            # summary
+node bin/dump.js <logfile> --events   # human-readable event stream
+node bin/dump.js <logfile> --json     # one JSON record per line
+node bin/dump.js <logfile> --raw 20   # hex of decrypted records
+```
+
+Library:
+
+```js
+import { records, parseHeader } from "./src/parse.js";
+for (const rec of records(new Uint8Array(fs.readFileSync(file)))) {
+	// rec.time (50 ticks/s), rec.player, rec.subpackets: tank_position,
+	// lgm_position, shells, terrain_change, message, tank_death, ...
+}
+```
+
+## Ancient Bolo Log Viewer
+
+`viewer/` is the Ancient Bolo Log Viewer — so named since WinBolo has its
+own, modern log format — an Electron app that plays logs back: terrain rendered with
+WinBolo's tile art, tanks/men/shells/pills/bases live, transient explosion
+effects, alliance team colours, a message-wire panel, seeking, speeds up to
+50×, and a viewpoint selector choosing whose side draws as friendly.
+
+![viewer screenshot](docs/viewer.png)
+
+```
+cd viewer
+npx electron .
+```
+
+(Requires `electron`; install globally or `npm install electron` in
+`viewer/`.) Open a log with File → Open or by dropping it onto the window;
+a log path can also be passed on the command line. The page also runs in a
+plain browser via its file picker, which is handy for headless testing and
+screenshots.
+
+The map codec (`format.js`), tile-selection rules and sprites
+(`sprites.js`, `sprites/` — WinBolo art, GPL v2), and the shell of
+`main.js`/`renderer.js` are duplicated from the
+[lgm](https://github.com/rooklift/lgm) map editor.
+
+Tanks, men, pills and bases draw with classic Bolo object art
+(`sprites/objects/`) by default; press **Cmd/Ctrl+G** (or View →
+Object sprites) to switch to vector markers. **Cmd/Ctrl+S** (File →
+Save initial map) exports the map's pristine pre-battle state as a
+standard BMAPBOLO file. The art is two-sided — "good" is the
+viewpoint player's team (the transport-bar selector; the first player by
+default), everything else including neutral pillboxes draws as hostile — so it suits the common
+two-team game; the vector markers remain better for free-for-alls.
+Pillbox sprites encode armour (state 0 = dead); tank sprites cover all 16
+directions afloat and ashore; shells and walking men stay vector.
+
+## Status
+
+Real logs from three different games (December 2001 – October 2002, four
+to six players, up to 2¼ hours and 120,840 records) parse with **zero
+warnings**: every record's subpackets consume its length exactly.
+`fixtures/n20021018.2` is one of them, **anonymized**: player names,
+hostnames, chat name-mentions and IP addresses were substituted with
+same-length dummies (IPs from the RFC 5737 documentation range), leaving
+every other byte of the replay identical — verified mechanically.
+`npm test` runs the full battery against it (parsing, replay-engine
+determinism, base-stock model, initial-map extraction) plus synthetic
+tests, and additional raw logs are used locally from the gitignored
+`samples/`. Please don't submit logs — anonymized or otherwise.
+
+Not yet handled: reconstructing full game state (map application, scoring),
+and the bits of game logic the log omits by design — see the end of
+FORMAT.md.
+
+## Provenance and credits
+
+- **Stuart Cheshire** — Bolo itself; `GAMEINFO` layout from his published
+  Brain development kit; map RLE from his `BoloMapFile.c` sample code.
+- **Carl Osterwald ("wharf rat")** — original reverse engineering of the
+  log encryption and packet formats (2001–2003), author of BoloViewer.
+- An anonymous 2003 collaborator whose notes, correspondence and
+  prototype Perl parser preserved that knowledge.
+- **[bolorama](https://github.com/astrospark/bolorama)** (Astrospark
+  Technologies) — independently reverse-engineered Bolo UDP wire protocol,
+  used to cross-check opcode layouts.

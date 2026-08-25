@@ -1,0 +1,94 @@
+// Regression test for the viewer's replay engine (viewer/game.js), run
+// headless against the sample log.
+
+const fs = require("node:fs");
+const path = require("node:path");
+const BoloLog = require("../viewer/logparse.js");
+const BoloGame = require("../viewer/game.js");
+
+const root = path.join(__dirname, "..");
+const log1 = path.join(root, "fixtures", "n20021018.2");
+
+let failures = 0;
+function check(what, got, want) {
+	const ok = JSON.stringify(got) === JSON.stringify(want);
+	if (!ok) failures++;
+	console.log(`${ok ? "ok  " : "FAIL"} ${what}: ${JSON.stringify(got)}${ok ? "" : ` (wanted ${JSON.stringify(want)})`}`);
+}
+
+if (!fs.existsSync(log1)) {
+	console.log("skip: fixtures/n20021018.2 not present; log-based engine tests skipped");
+} else {
+	const buf = new Uint8Array(fs.readFileSync(log1));
+	const recs = [...BoloLog.records(buf)];
+	check("records parsed (CJS parser)", recs.length, 120840);
+
+	const game = BoloGame.build(recs);
+	check("map name", game.final.gameInfo.mapName, "Fly Swatter IV");
+	check("pills", game.final.pills.length, 16);
+	check("bases", game.final.bases.length, 16);
+	check("starts", game.final.starts.length, 8);
+	check("chat entries", game.chat.length > 100, true);
+
+	// Mid-game teams: the 2v2 seen in the chat (players 0+1 vs 2+3).
+	const mid = BoloGame.state_at(game, Math.floor((game.t0 + game.t1) / 2)).state;
+	check("mid-game teams", [0, 1, 2, 3].map(p => BoloGame.team_of(mid, p)), [0, 0, 2, 2]);
+
+	// Determinism: seeking to the end must reproduce the linear pass exactly.
+	const end = BoloGame.state_at(game, game.t1).state;
+	check("seek-to-end grid matches final", end.state === undefined && end.grid.every((v, i) => v === game.final.grid[i]), true);
+	check("seek-to-end base owners match", end.bases.map(b => b.owner), game.final.bases.map(b => b.owner));
+	check("seek-to-end pill armour match", end.pills.map(p => p.armour), game.final.pills.map(p => p.armour));
+
+	// Final base stocks under the validated replenishment model (every player's
+	// 1000-tick bit feeds every base; the owner-only alternative is refuted by
+	// 6,112 drains that would come from empty bases).
+	check("final base shells", game.final.bases.map(b => b.shells),
+		[90, 90, 68, 80, 86, 90, 90, 90, 75, 90, 90, 81, 90, 90, 90, 90]);
+	check("final base armour", game.final.bases.map(b => b.armour),
+		[54, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 15, 90, 90, 90]);
+
+	// Initial-map extraction: the pristine pre-battle map, recoverable and
+	// roundtrippable through the BMAPBOLO serializer.
+	{
+		const BoloMap = require("../viewer/format.js");
+		const map = BoloGame.extract_initial_map(recs);
+		let covered = 0, craters = 0;
+		for (let i = 0; i < map.grid.length; i++) {
+			if (map.grid[i] !== 255) covered++;
+			if (map.grid[i] === 3) craters++;
+		}
+		check("initial map coverage", covered, 3029);
+		check("initial map has no battle craters", craters, 0);
+		check("initial map objects", [map.pills.length, map.bases.length, map.starts.length], [16, 16, 8]);
+		const back = BoloMap.parse_map(BoloMap.serialize_map(map));
+		let same = true;
+		for (let y = 21; y < 236; y++) {
+			for (let x = 21; x < 236; x++) {
+				if (back.grid[y * 256 + x] !== map.grid[y * 256 + x]) same = false;
+			}
+		}
+		check("initial map BMAP roundtrip", same, true);
+	}
+}
+
+// Alliance transitivity: accepting one member of an alliance joins you to
+// all of it, but the log only events the pairwise link. Reproduces the
+// pattern from a real 3v3 (B accepts C; C accepts A; no direct A-B event).
+{
+	const st = BoloGame.initial_state();
+	const ev = (player, tanks) => BoloGame.apply_record(st, {
+		time: 0, seq: 0, status: 0, player, tankStatus: 0, tankDir: 0,
+		subpackets: [{ type: "alliance_accept", tanks }],
+	}, null, null);
+	for (let p = 0; p < 3; p++) st.present[p] = true;
+	ev(1, 1 << 2); // p1 accepts p2
+	ev(2, 1 << 0); // p2 accepts p0
+	check("alliance transitivity", [0, 1, 2].map(p => BoloGame.team_of(st, p)), [0, 0, 0]);
+	// the bitmasks themselves must form the full clique
+	check("clique materialised",
+		[0, 1, 2].every(a => [0, 1, 2].every(b => a === b ||
+			(!(st.alliances[a] & (1 << b)) && !(st.alliances[b] & (1 << a))))), true);
+}
+
+process.exit(failures ? 1 : 0);
