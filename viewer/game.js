@@ -246,6 +246,23 @@ function apply_record(s, rec, effects, chat) {
 					dead: sub.dying ? (s.tanks[pl] ? s.tanks[pl].dead : false) : false,
 				};
 				s.present[pl] = true;
+				if (sub.dying) {
+					/* a burning wreck clears the forest beneath it, with no
+					 * terrain event (verified: shells later fly through such
+					 * squares — six of eight forest squares crossed by shells
+					 * in a test log lay under earlier wreck footprints;
+					 * WinBolo implements the same rule). Clear every square
+					 * the 16px wreck overlaps. */
+					const wx = sub.x * 16 + sub.pixelX, wy = sub.y * 16 + sub.pixelY;
+					for (const sx of new Set([wx >> 4, (wx + 15) >> 4])) {
+						for (const sy of new Set([wy >> 4, (wy + 15) >> 4])) {
+							if (sx >= MAP_SIZE || sy >= MAP_SIZE) continue;
+							const ter = s.grid[sy * MAP_SIZE + sx];
+							if (ter === 5) set_terrain(s, sx, sy, 7);
+							else if (ter === 13) set_terrain(s, sx, sy, 15);
+						}
+					}
+				}
 				break;
 			case "lgm_position":
 			case "parachute_position":
@@ -638,6 +655,15 @@ function extract_initial_map(records) {
 					break;
 				case "tank_position":
 					tanks[rec.player] = sub;
+					if (sub.dying) {
+						/* a wreck clears forest beneath it eventlessly */
+						const wx = sub.x * 16 + sub.pixelX, wy = sub.y * 16 + sub.pixelY;
+						for (const sx of new Set([wx >> 4, (wx + 15) >> 4])) {
+							for (const sy of new Set([wy >> 4, (wy + 15) >> 4])) {
+								taint(sx, sy);
+							}
+						}
+					}
 					break;
 				case "map_run": {
 					const bytes = sub.run;
