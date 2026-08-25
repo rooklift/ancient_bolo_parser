@@ -33,6 +33,14 @@ function initial_state(seed) {
 	let grid;
 	if (seed) {
 		grid = seed.grid.slice();
+		/* A mine under a square where a pillbox starts the game does not
+		 * exist in the game, even though the transferred map data carries
+		 * it (observed in real replays): demine those squares. The seed
+		 * itself is left untouched so "save initial map" keeps the mine. */
+		for (const p of seed.pills) {
+			const i = p.y * MAP_SIZE + p.x;
+			if (grid[i] >= 10 && grid[i] <= 15) grid[i] -= 8;
+		}
 	} else {
 		grid = new Uint8Array(MAP_SIZE * MAP_SIZE);
 		grid.fill(DEEP_SEA);
