@@ -48,9 +48,25 @@ function last_open_directory() {
 	}
 }
 
+function last_save_directory() {
+	let directory = read_settings().last_save_directory;
+	if (typeof directory !== "string") return undefined;
+	try {
+		return fs.statSync(directory).isDirectory() ? directory : undefined;
+	} catch {
+		return undefined;
+	}
+}
+
 function remember_open_directory(file_path) {
 	let settings = read_settings();
 	settings.last_open_directory = path.dirname(file_path);
+	write_settings(settings);
+}
+
+function remember_save_directory(file_path) {
+	let settings = read_settings();
+	settings.last_save_directory = path.dirname(file_path);
 	write_settings(settings);
 }
 
@@ -157,13 +173,15 @@ ipcMain.handle("open-log", async () => {
 });
 
 ipcMain.handle("save-map", async (e, defaultName, data) => {
+	let directory = last_save_directory();
 	let res = await dialog.showSaveDialog(win, {
-		defaultPath: defaultName,
+		defaultPath: directory ? path.join(directory, defaultName) : defaultName,
 		filters: [{ name: "Bolo maps", extensions: ["map", "bmap"] }],
 	});
 	if (res.canceled || !res.filePath) return { canceled: true };
 	try {
 		fs.writeFileSync(res.filePath, Buffer.from(data));
+		remember_save_directory(res.filePath);
 		return { canceled: false, path: res.filePath };
 	} catch (err) {
 		return { canceled: true, error: String(err) };
