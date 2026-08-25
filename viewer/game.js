@@ -250,10 +250,10 @@ function apply_record(s, rec, effects, chat) {
 						});
 					} else {
 						/* additional shells: signed pixel offsets from this
-						 * list's first shell */
+						 * list's first shell (already signed by the parser) */
 						const first = newShells[base];
-						const wx = first.x * 16 + first.px + ((sub.shells[i].offsetX << 24) >> 24);
-						const wy = first.y * 16 + first.py + ((sub.shells[i].offsetY << 24) >> 24);
+						const wx = first.x * 16 + first.px + sub.shells[i].offsetX;
+						const wy = first.y * 16 + first.py + sub.shells[i].offsetY;
 						newShells.push({
 							x: (wx >> 4) & 0xff, y: (wy >> 4) & 0xff, px: wx & 0x0f, py: wy & 0x0f,
 							direction: sh.direction ?? first.direction,
@@ -353,6 +353,9 @@ function apply_record(s, rec, effects, chat) {
 					p.y = sub.y;
 					p.armour = 0;
 				}
+				/* no F5 is sent in this case, so the man dies here */
+				if (s.men[pl] && !s.men[pl].parachute) s.men[pl] = null;
+				if (effects) effects.push({ time: rec.time, type: "lgm_death", x: sub.x, y: sub.y, player: pl });
 				break;
 			}
 			case "pill_repair_4":

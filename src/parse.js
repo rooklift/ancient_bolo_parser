@@ -140,9 +140,10 @@ function parseIdSubpackets(rec, data, pos) {
 					pixel: data[pos + 3],
 				}];
 				for (let i = 0; i < hi; i++) {
+					/* signed pixel offsets from this list's first shell */
 					shells.push({
-						offsetX: data[pos + 4 + i * 2],
-						offsetY: data[pos + 5 + i * 2],
+						offsetX: (data[pos + 4 + i * 2] << 24) >> 24,
+						offsetY: (data[pos + 5 + i * 2] << 24) >> 24,
 					});
 				}
 				subs.push({ type: "shells", count, shells });

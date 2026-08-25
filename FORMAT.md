@@ -172,7 +172,11 @@ Playback must re-implement fragments of game logic:
 - **Dropped pills on tank death** are placed by an algorithm (serpentine
   search outward from the death square), not by explicit events.
 - **Pill-fire shell spawn position** is computed from the pill position and
-  the direction nibble via Bolo's internal sine/cosine tables.
+  the direction nibble via Bolo's internal sine/cosine tables — but only if
+  a player wants the shell visible from the instant of the `F4`: the shell
+  appears in the simulating machine's shell lists from its next
+  restatement anyway, so reconstruction buys at most a fraction of a
+  second and a viewer may reasonably skip it.
 - **Ring splits are invisible**: a player who disconnects without a quit
   record simply stops sending and remains a ghost.
 - **A mine under a starting pillbox does not exist**: the transferred map
