@@ -7,17 +7,17 @@ const { MAP_SIZE, DEEP_SEA } = BoloMap;
 const TPS = BoloLog.TICKS_PER_SECOND;
 
 const TERRAIN_COLORS = {
-	0:  "#8a6b4a",  /* building */
-	1:  "#3f7fe0",  /* river */
-	2:  "#6b7d3f",  /* swamp */
-	3:  "#5a5a66",  /* crater */
+	0:  "#785e41",  /* building */
+	1:  "#008391",  /* river */
+	2:  "#003933",  /* swamp */
+	3:  "#292911",  /* crater */
 	4:  "#000000",  /* road */
 	5:  "#045311",  /* forest */
-	6:  "#857a6a",  /* rubble */
+	6:  "#303819",  /* rubble */
 	7:  "#002806",  /* grass */
-	8:  "#8c8c99",  /* shot building */
-	9:  "#a8c4ee",  /* boat on river */
-	255: "#123a6b", /* deep sea */
+	8:  "#56422c",  /* shot building */
+	9:  "#61848b",  /* boat on river */
+	255: "#008a9e", /* deep sea */
 };
 const RGB = {};
 for (let t = 0; t <= 9; t++) {
