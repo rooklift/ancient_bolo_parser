@@ -140,7 +140,7 @@ nibble.
 | `FB` | 4 | shell falls to ground at `XX YY yx` |
 | `FC dn` | 2 | shell (direction `d`) hits tank `n` |
 | `FD`, `FE` | 1 | unused |
-| `FF 0n`–`FF 4n` | 2 | pill `n`: pickup / repair 4 / repair 8 / repair 12 / full repair |
+| `FF 0n`–`FF 4n` | 2 | pill `n`: pickup / repair 4 / repair 8 / repair 12 / full repair. Repairs never change the pill's ownership, whoever performs them (per player testimony); capture is by picking a dead pill up — the planting player becomes its owner |
 | `FF 50` | 4 | pill planted at `XX YY` (which pill: lowest index carried) |
 | `FF 51` | 4 | pill dumped at `XX YY` by killed LGM (no F5 sent in this case) |
 | `FF 6n` | 2 | base `n` captured |
