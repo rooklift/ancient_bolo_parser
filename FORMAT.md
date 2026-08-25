@@ -178,6 +178,14 @@ Playback must re-implement fragments of game logic:
 - **A mine under a starting pillbox does not exist**: the transferred map
   data keeps the mined terrain code, but the game ignores the mine, so a
   player must clear it from squares occupied by initial pillboxes.
+- **Shells really can pass through live pillboxes.** The sample logs show
+  streams of shells on a line through a pill's centre where some shells
+  hit (the shooter itself sends the `9n`) while others are restated well
+  beyond the pill and fly on — dozens of ray-consistent cases per log,
+  through hostile and neutral pills at full armour. The deciding factor is
+  not step parity or lateral offset (both measured as even splits), so the
+  mechanism is unknown; a viewer drawing restated shell positions
+  faithfully will show these pass-throughs because they are real.
 - Shell flight, explosions and sounds are largely presentational: each
   sender re-states its in-flight shells every record, so drift does not
   accumulate.
