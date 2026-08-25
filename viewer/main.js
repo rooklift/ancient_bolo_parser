@@ -44,9 +44,11 @@ function build_menu() {
 				{ label: "Zoom out", accelerator: "CmdOrCtrl+-", click: () => send("zoom-out") },
 				{ label: "Fit map", accelerator: "CmdOrCtrl+0", click: () => send("zoom-fit") },
 				{ type: "separator" },
-				{ label: "Graphics toggle", accelerator: "CmdOrCtrl+G", click: () => send("toggle-obj-sprites") },
+				{ label: "Object graphics toggle", accelerator: "CmdOrCtrl+G", click: () => send("toggle-obj-sprites") },
+				{ label: "Simple LGM toggle", accelerator: "CmdOrCtrl+M", click: () => send("toggle-lgm-sprites") },
+				{ label: "Bigger shots toggle", accelerator: "CmdOrCtrl+B", click: () => send("toggle-big-shots") },
 				{ type: "separator" },
-				{ label: "Toggle dev tools", role: "toggleDevTools" },
+				{ label: "Dev tools", role: "toggleDevTools" },
 			],
 		},
 	];

@@ -38,6 +38,9 @@ const HOSTILE_COLOR = "#ff5d5d";
 const NEUTRAL_BASE = "#f0b429";
 
 const EFFECT_TICKS = 30; /* how long a transient effect stays on screen */
+const OBJ_NATIVE_TILE = 16;
+const LGM_ANIMATION_FPS = 20;
+const LGM_ANIMATION = ["lgm_frame0", "lgm_frame1", "lgm_frame0", "lgm_frame2"];
 
 /* ---------- object sprites (sprites/objects/) ----------
  * Classic Bolo object art, two-sided: "good" is the viewed player's team,
@@ -49,10 +52,13 @@ const EFFECT_TICKS = 30; /* how long a transient effect stays on screen */
  * terrain also draws with sprites — vector markers read better over the
  * flat-colour map. */
 let use_obj_sprites = true;
+let use_lgm_sprites = true;
+let use_big_shots = false;
 let obj_imgs = new Map();
 
 function load_obj_sprites() {
-	let names = ["base_good", "base_evil", "base_neutral", "lgm_helicopter"];
+	let names = ["base_good", "base_evil", "base_neutral", "lgm_helicopter",
+		"lgm_frame0", "lgm_frame1", "lgm_frame2"];
 	for (let i = 0; i < 16; i++) {
 		let n = String(i).padStart(2, "0");
 		names.push(`tank_good_${n}`, `tank_evil_${n}`, `tank_goodboat_${n}`, `tank_evilboat_${n}`,
@@ -72,15 +78,20 @@ function obj_sprite(name) {
 	return (use_obj_sprites && view.zoom >= BoloSprites.MIN_ZOOM) ? obj_imgs.get(name) : undefined;
 }
 
+function lgm_sprite() {
+	if (!use_lgm_sprites || view.zoom < BoloSprites.MIN_ZOOM) return undefined;
+	let frame = Math.floor(clock * LGM_ANIMATION_FPS / TPS) % LGM_ANIMATION.length;
+	return obj_imgs.get(LGM_ANIMATION[frame]);
+}
+
 /* Object sprites are the same 16px art as the terrain, so at non-integer
  * device-pixel scales (zoom 24 on a 1× display) they need the same
  * sharp-bilinear treatment as the terrain atlas: nearest-prescale to the
  * next integer multiple, cached per image, then draw with smoothing on. */
 let obj_scaled = new WeakMap(); /* img -> Map(factor -> prescaled canvas) */
 
-function draw_obj(img, x, y) {
-	let z = view.zoom;
-	let factor = BoloSprites.prescale_factor(z);
+function draw_obj_at_size(img, x, y, w, h) {
+	let factor = BoloSprites.prescale_factor(view.zoom);
 	let src = img;
 	if (factor > 1) {
 		let per = obj_scaled.get(img);
@@ -97,8 +108,20 @@ function draw_obj(img, x, y) {
 		}
 	}
 	ctx.imageSmoothingEnabled = factor > 1;
-	ctx.drawImage(src, x, y, z, z);
+	ctx.drawImage(src, x, y, w, h);
 	ctx.imageSmoothingEnabled = false;
+}
+
+function draw_obj(img, x, y) {
+	draw_obj_at_size(img, x, y, view.zoom, view.zoom);
+}
+
+/* LGM frames are tightly cropped 3x4 art rather than full 16x16 tiles.
+ * Draw each source pixel at the same scale as a pixel in the other art. */
+function draw_lgm(img, cx, cy) {
+	let scale = view.zoom / OBJ_NATIVE_TILE;
+	let w = img.width * scale, h = img.height * scale;
+	draw_obj_at_size(img, cx - w / 2, cy - h / 2, w, h);
 }
 
 /* The team drawn as "good": the viewpoint player's, else the first present. */
@@ -617,6 +640,11 @@ function draw_men() {
 			ctx.arc(cx, cy - z * 0.15, Math.max(2.5, z * 0.3), Math.PI, 0);
 			ctx.stroke();
 		}
+		let img = lgm_sprite();
+		if (img) {
+			draw_lgm(img, cx, cy);
+			continue;
+		}
 		/* men colour by allegiance to the viewpoint: friendly green, enemy red */
 		ctx.fillStyle = "#fff";
 		ctx.strokeStyle = side_color(p);
@@ -630,15 +658,21 @@ function draw_men() {
 
 function draw_shells() {
 	let z = view.zoom;
-	ctx.fillStyle = "#ffe678";
+	ctx.fillStyle = use_big_shots ? "#ffe678" : "#fff";
+	let radius = Math.max(1, z * 0.12);
+	let small_size = Math.max(1, z / 8);
 	for (let p = 0; p < 16; p++) {
 		for (const sh of cur.shells[p]) {
 			/* same half-tile centring as every other positioned object;
 			 * verified against 3k muzzle samples (shell vs firing tank) */
 			let cx = tile_to_screen_x(world_x(sh));
 			let cy = tile_to_screen_y(world_y(sh));
+			if (!use_big_shots) {
+				ctx.fillRect(cx - small_size / 2, cy - small_size / 2, small_size, small_size);
+				continue;
+			}
 			ctx.beginPath();
-			ctx.arc(cx, cy, Math.max(1, z * 0.12), 0, Math.PI * 2);
+			ctx.arc(cx, cy, radius, 0, Math.PI * 2);
 			ctx.fill();
 		}
 	}
@@ -796,6 +830,16 @@ function toggle_obj_sprites() {
 	request_draw();
 }
 
+function toggle_lgm_sprites() {
+	use_lgm_sprites = !use_lgm_sprites;
+	request_draw();
+}
+
+function toggle_big_shots() {
+	use_big_shots = !use_big_shots;
+	request_draw();
+}
+
 /* Controls give focus back to the window once used, so they don't sit
  * highlighted and don't capture the global playback keys (space, arrows). */
 play_btn.addEventListener("click", () => {
@@ -864,6 +908,12 @@ window.addEventListener("keydown", e => {
 	} else if (e.code === "KeyG" && (e.ctrlKey || e.metaKey)) {
 		e.preventDefault();
 		toggle_obj_sprites();
+	} else if (e.code === "KeyM" && (e.ctrlKey || e.metaKey)) {
+		e.preventDefault();
+		toggle_lgm_sprites();
+	} else if (e.code === "KeyB" && (e.ctrlKey || e.metaKey)) {
+		e.preventDefault();
+		toggle_big_shots();
 	}
 });
 
@@ -934,6 +984,8 @@ if (window.api) {
 			case "zoom-out": zoom_step(-1); break;
 			case "zoom-fit": zoom_to_action(); break;
 			case "toggle-obj-sprites": toggle_obj_sprites(); break;
+			case "toggle-lgm-sprites": toggle_lgm_sprites(); break;
+			case "toggle-big-shots": toggle_big_shots(); break;
 			case "save-map": save_initial_map(); break;
 		}
 	});
