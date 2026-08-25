@@ -95,8 +95,8 @@ FORMAT.md.
   Brain development kit; map RLE from his `BoloMapFile.c` sample code.
 - **Carl Osterwald ("wharf rat")** — original reverse engineering of the
   log encryption and packet formats (2001–2003), author of BoloViewer.
-- An anonymous 2003 collaborator whose notes, correspondence and
-  prototype Perl parser preserved that knowledge.
+- An anonymous 2003 collaborator whose working notes and prototype Perl
+  parser preserved that knowledge.
 - **[bolorama](https://github.com/astrospark/bolorama)** (Astrospark
   Technologies) — independently reverse-engineered Bolo UDP wire protocol,
   used to cross-check opcode layouts.
