@@ -5,8 +5,8 @@ version 0.99.5 (April 1995): "Log Events to File…" writes a record of
 everything that happens in a game. Cheshire never shipped a player for these
 files. The format was reverse engineered around 2001–2003 by Carl Osterwald
 ("wharf rat"), author of the commercial BoloViewer application, and this
-document is a synthesis of his notes, a 2003 collaborator's working notes and
-correspondence, cross-checks against the independently reverse-engineered
+document is a synthesis of his notes, a 2003 collaborator's working notes
+and questions, cross-checks against the independently reverse-engineered
 wire protocol in [bolorama](https://github.com/astrospark/bolorama), the
 structure definitions in Cheshire's published Brain development kit
 (`Brain.h`) and map-format sample code (`BoloMapFile.c`), and our own
