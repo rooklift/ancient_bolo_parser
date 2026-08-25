@@ -341,8 +341,13 @@ function apply_record(s, rec, effects, chat) {
 				break;
 			}
 			case "pill_pickup": {
+				/* Picking a pill up captures it THEN, not at the later
+				 * plant: verified in a real game where a dead pill was
+				 * picked up, dumped by the captor's dying tank, repaired
+				 * in place by the captor's ally, and then fired on its
+				 * former owner's team. */
 				const p = s.pills[sub.pillbox];
-				if (p) p.inTank = pl;
+				if (p) { p.inTank = pl; p.owner = pl; }
 				break;
 			}
 			case "pill_plant": {
@@ -377,10 +382,10 @@ function apply_record(s, rec, effects, chat) {
 				if (p) {
 					const add = { pill_repair_4: 4, pill_repair_8: 8, pill_repair_12: 12, pill_repair_full: 15 }[sub.type];
 					p.armour = Math.min(15, p.armour + add);
-					/* Repairs never change ownership (player testimony:
-					 * enemy pills stay enemy, neutral stay neutral —
-					 * anything else would break the game). Capture happens
-					 * by picking a dead pill up and replanting it. */
+					/* Repairs never change ownership — verified in a real
+					 * game: a player full-repaired a dead ENEMY pill and it
+					 * resumed firing at his own team. Capture happens at
+					 * pickup (see pill_pickup). */
 				}
 				break;
 			}
