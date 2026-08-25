@@ -10,6 +10,14 @@ const KEYFRAME_EVERY = 2000; /* records between state snapshots, for seeking */
 
 const NEUTRAL = 16;
 
+/* Subpacket types of map-transfer / node records, which appear alone and
+ * carry no player state (see the shell-clearing rule in apply_record). */
+const MAP_NODE_TYPES = new Set([
+	"node_id", "map_run", "map_terrain_request", "map_header_request",
+	"game_info", "pillbox_list", "base_list", "start_list", "history",
+	"attached_log",
+]);
+
 /* Serpentine search path used when a dying tank's carried pills are dumped
  * around the death square (from Carl Osterwald's notes; first ring exact,
  * outer rings continue the same clockwise pattern until the map is
@@ -290,6 +298,11 @@ function apply_record(s, rec, effects, chat) {
 				break;
 			case "pillbox_fires":
 				break;		// no visual: a flash here reads as the pill being hit
+			case "board_boat":
+				/* the sender's own T boat bit only catches up a few ticks
+				 * later; flip it now so pausing on the event looks right */
+				if (s.tanks[pl]) s.tanks[pl].inBoat = true;
+				break;
 			case "pill_pickup": {
 				const p = s.pills[sub.pillbox];
 				if (p) p.inTank = pl;
@@ -346,7 +359,8 @@ function apply_record(s, rec, effects, chat) {
 			}
 			case "tank_hit":
 				if (effects && s.tanks[sub.tank]) {
-					effects.push({ time: rec.time, type: "tank_hit", x: s.tanks[sub.tank].x, y: s.tanks[sub.tank].y, player: sub.tank });
+					const t = s.tanks[sub.tank];
+					effects.push({ time: rec.time, type: "tank_hit", x: t.x, y: t.y, px: t.px, py: t.py, player: sub.tank });
 				}
 				break;
 			case "lgm_death":
@@ -357,7 +371,7 @@ function apply_record(s, rec, effects, chat) {
 				if (effects) effects.push({ time: rec.time, type: "lgm_death", x: sub.x, y: sub.y, player: pl });
 				break;
 			case "shell_falls":
-				if (effects) effects.push({ time: rec.time, type: "splash", x: sub.x, y: sub.y });
+				if (effects) effects.push({ time: rec.time, type: "splash", x: sub.x, y: sub.y, px: sub.pixel & 0x0f, py: sub.pixel >> 4 });
 				break;
 			case "lay_mine": {
 				const t = s.tanks[pl];
@@ -458,9 +472,14 @@ function apply_record(s, rec, effects, chat) {
 
 	if (sawShells) {
 		s.shells[pl] = newShells;
-	} else if (rec.tankStatus & 0x08) {
-		/* A position record restates all of the sender's shells; none listed
-		 * means none in flight. */
+	} else if (rec.tankStatus !== 0x0f &&
+			!(rec.subpackets.length && rec.subpackets.every(sub => MAP_NODE_TYPES.has(sub.type)))) {
+		/* EVERY record restates all shells its sender simulates, whatever
+		 * its shape — verified: of 743 in-flight shells crossing a
+		 * list-less record of any kind, zero reappear afterwards — so no
+		 * list means none in flight. Map/node records are excepted: they
+		 * appear alone, never carry lists, and have never been seen while
+		 * their sender had shells in flight. */
 		s.shells[pl] = [];
 	}
 }
@@ -477,6 +496,7 @@ function extract_initial_map(records) {
 	const written = new Uint8Array(MAP_SIZE * MAP_SIZE);
 	const tainted = new Uint8Array(MAP_SIZE * MAP_SIZE);
 	let pills = null, bases = null, starts = null;
+	let badRuns = 0;
 	const tanks = {};
 
 	const taint = (x, y) => {
@@ -518,6 +538,9 @@ function extract_initial_map(records) {
 							for (let k = 0; k < code + 1 && i < nibs.length && x < endx; k++) put(nibs[i++]);
 						}
 					}
+					/* a run whose payload ran out before endx claimed tiles
+					 * it never supplied — count it rather than fail silently */
+					if (x < endx) badRuns++;
 					break;
 				}
 				case "terrain_change":
@@ -541,6 +564,7 @@ function extract_initial_map(records) {
 
 	return {
 		grid,
+		badRuns,
 		pills: (pills || []).map(p => ({
 			x: p.x, y: p.y,
 			owner: p.owner > 15 ? 16 : p.owner,
@@ -561,7 +585,8 @@ function build(records) {
 	const effects = [];
 	const chat = [];
 	const keyframes = []; /* {index, state} — state BEFORE records[index] */
-	let s = initial_state(extract_initial_map(records));
+	const seed = extract_initial_map(records);
+	let s = initial_state(seed);
 
 	for (let i = 0; i < records.length; i++) {
 		if (i % KEYFRAME_EVERY === 0) {
@@ -575,6 +600,7 @@ function build(records) {
 		effects,
 		chat,
 		keyframes,
+		badMapRuns: seed.badRuns,
 		final: s,
 		t0: records.length ? records[0].time : 0,
 		t1: records.length ? records[records.length - 1].time : 0,

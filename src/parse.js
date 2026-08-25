@@ -311,6 +311,10 @@ function parseF1(subs, data, pos) {
 		return pos + 3 + count * itemSize;
 	}
 	// F18x / F1Cx pill or base "history": 4 bytes of bit fields + 36-byte block.
+	// Any other subtype is unknown — warn rather than guess at its length.
+	if ((sub & 0xf0) !== 0x80 && (sub & 0xf0) !== 0xc0) {
+		throw new Error(`unknown F1 subtype 0x${sub.toString(16)}`);
+	}
 	ensure(data, pos, 42);
 	subs.push({ type: "history", sub, raw: hex(data, pos + 2, 40) });
 	return pos + 42;
