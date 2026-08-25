@@ -85,9 +85,11 @@ determinism, base-stock model, initial-map extraction) plus synthetic
 tests, and additional raw logs are used locally from the gitignored
 `samples/`. Please don't submit logs — anonymized or otherwise.
 
-Not yet handled: reconstructing full game state (map application, scoring),
-and the bits of game logic the log omits by design — see the end of
-FORMAT.md.
+The replay engine reconstructs full game state (terrain, pills, bases,
+tanks, men, shells, alliances), including the pieces of game logic the log
+omits by design — pill dumps on death, boat consumption, alliance
+semantics; see the end of FORMAT.md for that list and its caveats. Not
+attempted: scoring, sound, and motion interpolation between restatements.
 
 ## Provenance and credits
 
