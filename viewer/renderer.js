@@ -232,6 +232,9 @@ function set_clock(tick, hard) {
 		cur = r.state;
 		cursor = r.index;
 		off_version = -1;
+		display_grid_version = -1; /* gridVersion restarts per game: a fresh
+		    log's version 0 must not revive the previous log's cache */
+		display_grid_cache = null;
 		effect_lo = lower_bound_effect(tick - EFFECT_TICKS);
 		rebuild_chat(tick);
 	} else {
@@ -340,12 +343,15 @@ function pretty(s) {
 }
 
 function chat_line(m) {
-	let who = pretty((cur.names[m.player] || `player ${m.player}`).split("@")[0]);
+	/* events carry a snapshot of name/team as of the event, so a seek
+	 * rebuilds the same history a continuous watch produced */
+	let who = pretty((m.name || cur.names[m.player] || `player ${m.player}`).split("@")[0]);
+	let color = NAME_COLORS[m.team !== undefined ? m.team : BoloGame.team_of(cur, m.player)];
 	if (m.join) return `<div class="msg sys"><span class="t">${fmt_time(m.time)}</span> ⚑ ${esc(pretty(m.text))}</div>`;
 	if (m.quit) return `<div class="msg sys"><span class="t">${fmt_time(m.time)}</span> ✝ ${esc(who)} left the game</div>`;
 	let scope = m.address === 0xffff ? "" : " (to some)";
 	return `<div class="msg"><span class="t">${fmt_time(m.time)}</span> ` +
-		`<span class="who" style="color:${player_color(m.player)}">${esc(who)}</span>${scope}: ${esc(pretty(m.text))}</div>`;
+		`<span class="who" style="color:${color}">${esc(who)}</span>${scope}: ${esc(pretty(m.text))}</div>`;
 }
 
 function rebuild_chat(tick) {

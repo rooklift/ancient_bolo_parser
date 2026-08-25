@@ -371,10 +371,13 @@ function apply_record(s, rec, effects, chat) {
 				s.names[pl] = sub.name;
 				s.present[pl] = true;
 				s.quit[pl] = false;
+				/* chat events snapshot the sender's name and team as of the
+				 * event, so seeking rebuilds an identical history even
+				 * across renames and alliance changes */
 				if (chat) chat.push({ time: rec.time, player: pl, join: true, text: sub.name });
 				break;
 			case "message":
-				if (chat) chat.push({ time: rec.time, player: pl, address: sub.address, text: sub.text });
+				if (chat) chat.push({ time: rec.time, player: pl, address: sub.address, text: sub.text, name: s.names[pl], team: team_of(s, pl) });
 				break;
 			case "game_info":
 				s.gameInfo = sub;
@@ -411,7 +414,7 @@ function apply_record(s, rec, effects, chat) {
 				s.tanks[pl] = null;
 				s.men[pl] = null;
 				s.shells[pl] = [];
-				if (chat) chat.push({ time: rec.time, player: pl, quit: true });
+				if (chat) chat.push({ time: rec.time, player: pl, quit: true, name: s.names[pl], team: team_of(s, pl) });
 				break;
 			case "alliance_request":
 				break;
