@@ -247,6 +247,10 @@ function apply_record(s, rec, effects, chat) {
 					dir: sub.direction, inBoat: sub.inBoat, hidden: sub.hidden,
 					dying: sub.dying, speed: sub.speed, lastSeen: rec.time,
 					position_time: rec.time,
+					/* the POSITION's own dying bit, distinct from `dying`
+					 * which status nibbles keep live between positions —
+					 * needed to recognise the death moment below */
+					dyingPos: sub.dying,
 					/* positions with the dying bit are death-animation flames,
 					 * not a live tank; only a normal position is a respawn */
 					dead: sub.dying ? (s.tanks[pl] ? s.tanks[pl].dead : false) : false,
@@ -257,18 +261,28 @@ function apply_record(s, rec, effects, chat) {
 					 * notes call the C packets "flameage"): draw them, so
 					 * the sliding wreck is visible burning its way along */
 					if (effects) effects.push({ time: rec.time, type: "flame", x: sub.x, y: sub.y, px: sub.pixelX, py: sub.pixelY });
-					/* a burning wreck clears the forest beneath its CENTRE
-					 * square, with no terrain event (shells later fly
-					 * through such squares; WinBolo has the same rule).
-					 * Centre square only — corpus-validated by
-					 * tools/validate-wreck-forest.cjs: the centre rule
-					 * leaves 13 repeat-clear conflicts and 0 later
-					 * hidden-in-trees tanks across 446 logs, vs 476/54 for
-					 * clearing the whole 16px footprint. */
-					const sq = tank_square(s.tanks[pl]);
-					const ter = s.grid[sq.y * MAP_SIZE + sq.x];
-					if (ter === 5) set_terrain(s, sq.x, sq.y, 7);
-					else if (ter === 13) set_terrain(s, sq.x, sq.y, 15);
+					/* A dying tank clears forest, with no terrain events, in
+					 * two stages — the model best supported by the corpus's
+					 * later tree-related activity on the affected squares
+					 * (tools/falsify-death-footprint-3.cjs): the death blast
+					 * (the FIRST dying position, whatever the terminal-
+					 * explosion tier) fells trees in every square within 7px,
+					 * Chebyshev, of the tank's centre pixel — the 15×15 box
+					 * centre±7 — and the sliding wreck then burns only the
+					 * centre square beneath each later position. The death
+					 * moment is recognised by the previous POSITION not
+					 * being a dying one (dyingPos above). */
+					const cx = sub.x * 16 + sub.pixelX + 8;
+					const cy = sub.y * 16 + sub.pixelY + 8;
+					const r = (tankBefore && tankBefore.dyingPos) ? 0 : 7;
+					for (let sy = (cy - r) >> 4; sy <= (cy + r) >> 4; sy++) {
+						for (let sx = (cx - r) >> 4; sx <= (cx + r) >> 4; sx++) {
+							if (sx >= MAP_SIZE || sy >= MAP_SIZE) continue;
+							const ter = s.grid[sy * MAP_SIZE + sx];
+							if (ter === 5) set_terrain(s, sx, sy, 7);
+							else if (ter === 13) set_terrain(s, sx, sy, 15);
+						}
+					}
 				}
 				break;
 			case "lgm_position":
@@ -661,13 +675,23 @@ function extract_initial_map(records) {
 				case "start_list":
 					if (!starts) starts = sub.items;
 					break;
-				case "tank_position":
+				case "tank_position": {
+					const prev = tanks[rec.player];
 					tanks[rec.player] = sub;
 					if (sub.dying) {
-						/* a wreck clears forest at its centre square, eventlessly */
-						taint((sub.x * 16 + sub.pixelX + 8) >> 4, (sub.y * 16 + sub.pixelY + 8) >> 4);
+						/* eventless forest clearing at tank death (see
+						 * apply_record): the death blast covers the squares
+						 * within 7px of the tank centre, the sliding wreck
+						 * its centre square */
+						const cx = sub.x * 16 + sub.pixelX + 8;
+						const cy = sub.y * 16 + sub.pixelY + 8;
+						const r = (prev && prev.dying) ? 0 : 7;
+						for (let sy = (cy - r) >> 4; sy <= (cy + r) >> 4; sy++) {
+							for (let sx = (cx - r) >> 4; sx <= (cx + r) >> 4; sx++) taint(sx, sy);
+						}
 					}
 					break;
+				}
 				case "map_run": {
 					const bytes = sub.run;
 					const y = bytes[1], startx = bytes[2], endx = bytes[3];
