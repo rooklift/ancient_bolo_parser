@@ -175,6 +175,9 @@ Playback must re-implement fragments of game logic:
   the direction nibble via Bolo's internal sine/cosine tables.
 - **Ring splits are invisible**: a player who disconnects without a quit
   record simply stops sending and remains a ghost.
+- **A mine under a starting pillbox does not exist**: the transferred map
+  data keeps the mined terrain code, but the game ignores the mine, so a
+  player must clear it from squares occupied by initial pillboxes.
 - Shell flight, explosions and sounds are largely presentational: each
   sender re-states its in-flight shells every record, so drift does not
   accumulate.
