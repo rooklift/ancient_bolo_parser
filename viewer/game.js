@@ -11,6 +11,7 @@ const KEYFRAME_EVERY = 2000; /* records between state snapshots, for seeking */
  * half a second the path between two positions is no longer trustworthy:
  * hold the last known point instead of drawing a made-up line through lag. */
 const MAX_POSITION_INTERPOLATION_TICKS = TICKS_PER_SECOND / 2;
+const MAX_LGM_TANK_ENTRY_DISTANCE_PIXELS = 32;
 
 const NEUTRAL = 16;
 const GONE = -2; /* inTank value: pill left the game with a quitting carrier */
@@ -776,6 +777,7 @@ function build_lgm_positions(records) {
 	let tracks = Array.from({ length: 16 }, () => []);
 	let active = Array.from({ length: 16 }, () => false);
 	let parachuting = Array.from({ length: 16 }, () => false);
+	let tanks = Array.from({ length: 16 }, () => null);
 
 	for (let rec of records) {
 		let pl = rec.player;
@@ -784,6 +786,32 @@ function build_lgm_positions(records) {
 		let enters_tank = rec.tankStatus !== 0x0f && !map_node_only &&
 			(rec.status & 0x0c) === 0;
 		let quits = rec.subpackets.some(sub => sub.type === "quit");
+
+		for (let sub of rec.subpackets) {
+			if (sub.type !== "tank_position") continue;
+			tanks[pl] = {
+				pixel_x: sub.x * 16 + sub.pixelX,
+				pixel_y: sub.y * 16 + sub.pixelY,
+			};
+		}
+
+		/* A status change to "in tank" supplies the missing endpoint of the
+		 * walking path. Logs consistently put the last man position within two
+		 * squares of the tank, so animate to the tank instead of holding the man
+		 * at his last restatement. Delayed status packets are visually capped by
+		 * the normal half-second interpolation window below. */
+		if (enters_tank && active[pl] && !parachuting[pl] && tanks[pl]) {
+			let last = tracks[pl][tracks[pl].length - 1];
+			let dx = tanks[pl].pixel_x - last.pixel_x;
+			let dy = tanks[pl].pixel_y - last.pixel_y;
+			if (dx * dx + dy * dy <= MAX_LGM_TANK_ENTRY_DISTANCE_PIXELS ** 2) {
+				last.tank_entry = {
+					time: rec.time,
+					pixel_x: tanks[pl].pixel_x,
+					pixel_y: tanks[pl].pixel_y,
+				};
+			}
+		}
 		if (enters_tank) active[pl] = false;
 
 		for (let sub of rec.subpackets) {
@@ -869,6 +897,21 @@ function interpolated_position(track, object, tick) {
 	}
 
 	let next = track[index + 1];
+	/* A confirmed tank entry is the LGM path's true final position. Usually
+	 * it arrives within the ordinary interpolation window. If its status
+	 * packet was delayed, finish the approach within half a second and stop
+	 * drawing the already-boarded man instead of leaving him stalled. */
+	if (current.tank_entry) {
+		let terminal_time = Math.min(current.tank_entry.time,
+			current.time + MAX_POSITION_INTERPOLATION_TICKS);
+		if (tick >= terminal_time) return null;
+		next = {
+			time: terminal_time,
+			pixel_x: current.tank_entry.pixel_x,
+			pixel_y: current.tank_entry.pixel_y,
+			continuous: true,
+		};
+	}
 	let duration = next ? next.time - current.time : 0;
 	if (next && next.continuous && tick < next.time && duration > 0 &&
 		duration <= MAX_POSITION_INTERPOLATION_TICKS) {

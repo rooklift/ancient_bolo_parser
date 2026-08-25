@@ -600,6 +600,7 @@ function draw_men() {
 		if (!m || cur.quit[p]) continue;
 		if (clock - m.lastSeen > TPS * 3) continue;
 		let position = BoloGame.lgm_position_at(game, cur, p, clock);
+		if (!position) continue;
 		let cx = tile_to_screen_x(position.x);
 		let cy = tile_to_screen_y(position.y);
 		if (m.parachute) {
