@@ -201,6 +201,11 @@ function apply_record(s, rec, effects, chat) {
 	 * not clear the sender's man or shells, or feed status bits. */
 	const mapNodeOnly = rec.subpackets.length > 0 && rec.subpackets.every(sub => MAP_NODE_TYPES.has(sub.type));
 
+	/* The sender's tank as of the PREVIOUS record (tank_position replaces
+	 * the object, so this snapshot survives): a quit record can restate a
+	 * bogus far-away position, but its pills drop at the last genuine one. */
+	const tankBefore = s.tanks[pl];
+
 	/* ANY record from a player proves the player is alive — stationary
 	 * tanks restate their position much less often, so liveness must not
 	 * ride on position freshness alone. */
@@ -515,9 +520,15 @@ function apply_record(s, rec, effects, chat) {
 				 * the game (GONE). Planted pills and alliance links stay:
 				 * his pills keep their allegiance until the slot is
 				 * reused. */
-				if (s.tanks[pl]) {
-					const sq = tank_square(s.tanks[pl]);
-					dump_carried_pills(s, pl, sq.x, sq.y);
+				{
+					/* dump at the pre-record position: a ghost-split quit
+					 * record was seen restating a position 50 tiles from
+					 * where the pills verifiably dropped */
+					const t = tankBefore || s.tanks[pl];
+					if (t) {
+						const sq = tank_square(t);
+						dump_carried_pills(s, pl, sq.x, sq.y);
+					}
 				}
 				for (const p of s.pills) {
 					if (p.inTank === pl) p.inTank = GONE;
