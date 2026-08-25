@@ -50,7 +50,10 @@ npx electron .
 ```
 
 (Requires `electron`; install globally or `npm install electron` in
-`viewer/`.) Open a log with File → Open or by dropping it onto the window;
+`viewer/`.) To build standalone distributions, drop the official
+Electron release zips named in `viewer/builder.py` into
+`viewer/electron_zipped/` and run the script from `viewer/`.
+Open a log with File → Open or by dropping it onto the window;
 a log path can also be passed on the command line. The page also runs in a
 plain browser via its file picker, which is handy for headless testing and
 screenshots.

@@ -1,2 +1,4 @@
 samples/
 node_modules/
+viewer/dist/
+viewer/electron_zipped/
