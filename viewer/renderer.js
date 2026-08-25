@@ -548,8 +548,9 @@ function draw_tanks() {
 		if (!t || t.dead || cur.quit[p]) continue;
 		/* a tank not restated for a long while is a ghost (split) or dead */
 		let stale = clock - t.lastSeen > TPS * 5;
-		let cx = tile_to_screen_x(world_x(t));
-		let cy = tile_to_screen_y(world_y(t));
+		let position = BoloGame.tank_position_at(game, cur, p, clock);
+		let cx = tile_to_screen_x(position.x);
+		let cy = tile_to_screen_y(position.y);
 		ctx.save();
 		/* tanks hidden in trees draw normally — replay watchers see all;
 		 * only ghost tanks (ring splits, long unheard-from) fade */
@@ -598,8 +599,9 @@ function draw_men() {
 		let m = cur.men[p];
 		if (!m || cur.quit[p]) continue;
 		if (clock - m.lastSeen > TPS * 3) continue;
-		let cx = tile_to_screen_x(world_x(m));
-		let cy = tile_to_screen_y(world_y(m));
+		let position = BoloGame.lgm_position_at(game, cur, p, clock);
+		let cx = tile_to_screen_x(position.x);
+		let cy = tile_to_screen_y(position.y);
 		if (m.parachute) {
 			let img = obj_sprite("lgm_helicopter");
 			if (img) {
