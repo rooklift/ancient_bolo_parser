@@ -11,10 +11,10 @@ const TERRAIN_COLORS = {
 	1:  "#3f7fe0",  /* river */
 	2:  "#6b7d3f",  /* swamp */
 	3:  "#5a5a66",  /* crater */
-	4:  "#3a3a3a",  /* road */
-	5:  "#58a848",  /* forest */
+	4:  "#000000",  /* road */
+	5:  "#045311",  /* forest */
 	6:  "#857a6a",  /* rubble */
-	7:  "#1e5c2e",  /* grass */
+	7:  "#002806",  /* grass */
 	8:  "#8c8c99",  /* shot building */
 	9:  "#a8c4ee",  /* boat on river */
 	255: "#123a6b", /* deep sea */
@@ -54,6 +54,7 @@ const LGM_ANIMATION = ["lgm_frame0", "lgm_frame1", "lgm_frame0", "lgm_frame2"];
 let use_obj_sprites = true;
 let use_lgm_sprites = true;
 let use_big_shots = false;
+let use_simple_terrain = false;
 let obj_imgs = new Map();
 
 function load_obj_sprites() {
@@ -457,7 +458,7 @@ function draw() {
 	ctx.drawImage(off, view.ox, view.oy, w / z, h / z, 0, 0, w, h);
 
 	let sprites_drawn = false;
-	if (z >= BoloSprites.MIN_ZOOM) {
+	if (!use_simple_terrain && z >= BoloSprites.MIN_ZOOM) {
 		sprites_drawn = BoloSprites.draw_view(ctx, display_grid(), view, w, h);
 	}
 
@@ -840,6 +841,11 @@ function toggle_big_shots() {
 	request_draw();
 }
 
+function toggle_simple_terrain() {
+	use_simple_terrain = !use_simple_terrain;
+	request_draw();
+}
+
 /* Controls give focus back to the window once used, so they don't sit
  * highlighted and don't capture the global playback keys (space, arrows). */
 play_btn.addEventListener("click", () => {
@@ -914,6 +920,9 @@ window.addEventListener("keydown", e => {
 	} else if (e.code === "KeyB" && (e.ctrlKey || e.metaKey)) {
 		e.preventDefault();
 		toggle_big_shots();
+	} else if (e.code === "KeyT" && (e.ctrlKey || e.metaKey)) {
+		e.preventDefault();
+		toggle_simple_terrain();
 	}
 });
 
@@ -986,6 +995,7 @@ if (window.api) {
 			case "toggle-obj-sprites": toggle_obj_sprites(); break;
 			case "toggle-lgm-sprites": toggle_lgm_sprites(); break;
 			case "toggle-big-shots": toggle_big_shots(); break;
+			case "toggle-simple-terrain": toggle_simple_terrain(); break;
 			case "save-map": save_initial_map(); break;
 		}
 	});
