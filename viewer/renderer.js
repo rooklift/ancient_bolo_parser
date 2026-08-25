@@ -549,6 +549,8 @@ function draw_tanks() {
 		/* a tank not restated for a long while is a ghost (split) or dead */
 		let stale = clock - t.lastSeen > TPS * 5;
 		let position = BoloGame.tank_position_at(game, cur, p, clock);
+		if (!position) continue; /* can't happen for tank tracks today, but
+		    the helper's contract allows null (see the LGM tank-entry case) */
 		let cx = tile_to_screen_x(position.x);
 		let cy = tile_to_screen_y(position.y);
 		ctx.save();
