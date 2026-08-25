@@ -259,7 +259,6 @@ function apply_record(s, rec, effects, chat) {
 				 * to that list's own first shell. */
 				sawShells = true;
 				if (newShells === null) newShells = [];
-				const base = newShells.length;
 				for (let i = 0; i < sub.shells.length; i++) {
 					const sh = sub.shells[i];
 					if (i === 0) {
@@ -268,14 +267,20 @@ function apply_record(s, rec, effects, chat) {
 							direction: sh.direction,
 						});
 					} else {
-						/* additional shells: signed pixel offsets from this
-						 * list's first shell (already signed by the parser) */
-						const first = newShells[base];
-						const wx = first.x * 16 + first.px + sub.shells[i].offsetX;
-						const wy = first.y * 16 + first.py + sub.shells[i].offsetY;
+						/* additional shells: signed pixel offsets CHAINED
+						 * from the PREVIOUS shell in the list, not the
+						 * first (verified: when a pill's new shot becomes
+						 * the list head, first-relative decoding conjures
+						 * a phantom shell and loses the real one; chained
+						 * decoding reconstructs both to the pixel). The
+						 * direction nibble belongs to the first shell only
+						 * — shells of any direction ride one list. */
+						const prev = newShells[newShells.length - 1];
+						const wx = prev.x * 16 + prev.px + sub.shells[i].offsetX;
+						const wy = prev.y * 16 + prev.py + sub.shells[i].offsetY;
 						newShells.push({
 							x: (wx >> 4) & 0xff, y: (wy >> 4) & 0xff, px: wx & 0x0f, py: wy & 0x0f,
-							direction: sh.direction ?? first.direction,
+							direction: sh.direction ?? prev.direction,
 						});
 					}
 				}

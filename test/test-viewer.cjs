@@ -91,6 +91,21 @@ if (!fs.existsSync(log1)) {
 			(!(st.alliances[a] & (1 << b)) && !(st.alliances[b] & (1 << a))))), true);
 }
 
+// Shell-list offsets are CHAINED (each relative to the previous shell),
+// not relative to the list's first shell.
+{
+	const st = BoloGame.initial_state();
+	BoloGame.apply_record(st, {
+		time: 0, seq: 0, status: 0, player: 0, tankStatus: 0, tankDir: 0,
+		subpackets: [{ type: "shells", count: 3, shells: [
+			{ direction: 4, x: 100, y: 100, pixel: 0 },
+			{ offsetX: 16, offsetY: 0 },
+			{ offsetX: 16, offsetY: 0 },
+		] }],
+	}, null, null);
+	check("chained shell offsets", st.shells[0].map(sh => sh.x), [100, 101, 102]);
+}
+
 // Every pill_plant must find a carried pill: a tank death while the man is
 // out carrying (status C) must not dump the pill in the man's hands.
 if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
