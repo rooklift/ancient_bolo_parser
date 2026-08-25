@@ -457,30 +457,10 @@ function draw() {
 	ctx.imageSmoothingEnabled = false;
 	ctx.drawImage(off, view.ox, view.oy, w / z, h / z, 0, 0, w, h);
 
-	let sprites_drawn = false;
-	if (!use_simple_terrain && z >= BoloSprites.MIN_ZOOM) {
-		sprites_drawn = BoloSprites.draw_view(ctx, display_grid(), view, w, h);
-	}
-
-	let tx0 = Math.max(0, Math.floor(view.ox));
-	let ty0 = Math.max(0, Math.floor(view.oy));
-	let tx1 = Math.min(MAP_SIZE, Math.ceil(view.ox + w / z));
-	let ty1 = Math.min(MAP_SIZE, Math.ceil(view.oy + h / z));
-
-	/* mine dots at non-sprite zooms */
-	if (!sprites_drawn) {
-		let r = Math.max(0.5, z * 0.28);
-		ctx.fillStyle = "#ff3b30";
-		for (let ty = ty0; ty < ty1; ty++) {
-			for (let tx = tx0; tx < tx1; tx++) {
-				let t = cur.grid[ty * MAP_SIZE + tx];
-				if (t >= 10 && t <= 15) {
-					ctx.beginPath();
-					ctx.arc(tile_to_screen_x(tx) + z / 2, tile_to_screen_y(ty) + z / 2, r, 0, Math.PI * 2);
-					ctx.fill();
-				}
-			}
-		}
+	/* Mines are hidden with the other fine detail below the sprite threshold.
+	 * Above it, their atlas sprites draw even when simple terrain is forced. */
+	if (z >= BoloSprites.MIN_ZOOM) {
+		BoloSprites.draw_view(ctx, display_grid(), view, w, h, !use_simple_terrain);
 	}
 
 	draw_bases();
