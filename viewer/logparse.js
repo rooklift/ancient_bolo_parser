@@ -342,7 +342,17 @@ function parseF1(subs, data, pos) {
 		throw new Error(`unknown F1 subtype 0x${sub.toString(16)}`);
 	}
 	ensure(data, pos, 42);
-	subs.push({ type: "history", sub, raw: hex(data, pos + 2, 40) });
+	// Two little-endian bitmasks (SET bits = members), then a 36-byte
+	// history value shared by the marked pills/bases: a zero-padded Pascal
+	// player@node string, or the empty default (00 01 + zeros) as null.
+	const nameLen = data[pos + 6];
+	subs.push({
+		type: "history", sub,
+		pillMask: data[pos + 2] | (data[pos + 3] << 8),
+		baseMask: data[pos + 4] | (data[pos + 5] << 8),
+		name: nameLen >= 1 && nameLen <= 35 ? macRoman(data.subarray(pos + 7, pos + 7 + nameLen)) : null,
+		raw: hex(data, pos + 2, 40),
+	});
 	return pos + 42;
 }
 
@@ -448,8 +458,12 @@ function parseRecord(raw) {
 			return rec;
 		}
 		try {
-			const { str } = pascalString(data, pos + 1);
+			const { str, next } = pascalString(data, pos + 1);
 			rec.subpackets.push({ type: "attached_log", name: str });
+			if (next !== data.length) {
+				rec.warning = "attached-log record with trailing bytes";
+				rec.unparsed = hex(data, next, data.length - next);
+			}
 		} catch (err) {
 			rec.warning = String(err.message || err);
 		}

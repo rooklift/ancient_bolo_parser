@@ -140,11 +140,14 @@ function scanFile(file) {
 							if (!p) return;
 							S.oracleChecks++;
 							const listCarried = it.armour === 0xff;
-							const engCarried = p.inTank !== null;
+							const engCarried = typeof p.inTank === "number" && p.inTank >= 0;
 							const listOwner = it.owner > 15 ? 16 : it.owner;
-							const ok = listCarried === engCarried && (listCarried || listOwner === p.owner);
+							/* carried pills: the list's owner field is the carrier —
+							 * check carrier identity, not just carried-ness */
+							const ok = listCarried === engCarried &&
+								(listCarried ? listOwner === p.inTank : listOwner === p.owner);
 							if (!ok && S.oracleMismatches.length < SAMPLE_CAP * 2) {
-								S.oracleMismatches.push(`${rel} rec ${i} pill ${idx}: list owner=${listOwner}${listCarried ? " (carried)" : ""} vs engine owner=${p.owner}${engCarried ? ` (in tank ${p.inTank})` : ""}`);
+								S.oracleMismatches.push(`${rel} rec ${i} pill ${idx}: list owner=${listOwner}${listCarried ? " (carried)" : ""} vs engine owner=${p.owner}${engCarried ? ` (in tank ${p.inTank})` : p.inTank === -2 ? " (GONE with quitter)" : ""}`);
 							}
 						});
 					}

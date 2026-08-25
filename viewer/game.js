@@ -9,6 +9,7 @@ const TICKS_PER_SECOND = 50;
 const KEYFRAME_EVERY = 2000; /* records between state snapshots, for seeking */
 
 const NEUTRAL = 16;
+const GONE = -2; /* inTank value: pill left the game with a quitting carrier */
 
 /* Subpacket types of map-transfer / node records, which appear alone and
  * carry no player state (see the shell-clearing rule in apply_record). */
@@ -450,6 +451,14 @@ function apply_record(s, rec, effects, chat) {
 				 * name/team as of the event, so seeking rebuilds an
 				 * identical history. */
 				const old = s.quit[pl] ? null : s.names[pl];
+				if (s.quit[pl]) {
+					/* slot reused by a new (or returning) player: they do
+					 * not inherit the previous occupant's alliances */
+					s.alliances[pl] = 0xffff & ~(1 << pl);
+					for (let i = 0; i < 16; i++) {
+						if (i !== pl) s.alliances[i] |= (1 << pl);
+					}
+				}
 				s.names[pl] = sub.name;
 				s.present[pl] = true;
 				s.quit[pl] = false;
@@ -498,6 +507,16 @@ function apply_record(s, rec, effects, chat) {
 				s.tanks[pl] = null;
 				s.men[pl] = null;
 				s.shells[pl] = [];
+				/* pills in the quitter's tank leave the game with them
+				 * (inTank = GONE), so a later player reusing the slot
+				 * cannot inherit phantom cargo. (Real Bolo's behaviour is
+				 * unverified — the only quits-while-carrying in the corpus
+				 * end their logs — but a log event would revive the pill.)
+				 * Planted pills and alliance links stay: his pills keep
+				 * their allegiance until the slot is reused. */
+				for (const p of s.pills) {
+					if (p.inTank === pl) p.inTank = GONE;
+				}
 				if (chat) chat.push({ time: rec.time, player: pl, quit: true, name: s.names[pl], team: team_of(s, pl) });
 				break;
 			case "alliance_request":
