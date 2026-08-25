@@ -713,7 +713,7 @@ function load_log(bytes, name) {
 		if (game.final.names[p]) {
 			if (viewpoint < 0) viewpoint = p;
 			viewpoint_el.insertAdjacentHTML("beforeend",
-				`<option value="${p}">viewpoint: ${esc(pretty(game.final.names[p].split("@")[0]))}</option>`);
+				`<option value="${p}">${esc(pretty(game.final.names[p].split("@")[0]))}</option>`);
 		}
 	}
 	if (viewpoint >= 0) viewpoint_el.value = String(viewpoint);
