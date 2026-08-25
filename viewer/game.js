@@ -233,10 +233,7 @@ function apply_record(s, rec, effects, chat) {
 				break;
 			}
 			case "shot_fired":
-				if (effects && s.tanks[pl]) {
-					const sq = tank_square(s.tanks[pl]);
-					effects.push({ time: rec.time, type: "muzzle", x: sq.x, y: sq.y, player: pl });
-				}
+				/* no visual, same as pillbox_fires: the shell itself suffices */
 				break;
 			case "terrain_change":
 				set_terrain(s, sub.x, sub.y, sub.terrain);

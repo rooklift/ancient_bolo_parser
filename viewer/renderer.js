@@ -628,13 +628,6 @@ function draw_effects() {
 				ctx.stroke();
 				break;
 			}
-			case "muzzle": {
-				ctx.fillStyle = `rgba(255,255,180,${(1 - age) * 0.9})`;
-				ctx.beginPath();
-				ctx.arc(cx, cy, Math.max(1, (0.25 - age * 0.15) * z), 0, Math.PI * 2);
-				ctx.fill();
-				break;
-			}
 			case "splash": {
 				ctx.strokeStyle = `rgba(150,200,255,${1 - age})`;
 				ctx.lineWidth = 1;
