@@ -283,7 +283,10 @@ function apply_record(s, rec, effects, chat) {
 				break;
 			case "pillbox_damage": {
 				const p = s.pills[sub.pillbox];
-				if (p) p.armour = Math.max(0, p.armour - 1);
+				if (p) {
+					p.armour = Math.max(0, p.armour - 1);
+					if (effects && p.inTank === null) effects.push({ time: rec.time, type: "pill_hit", x: p.x, y: p.y });
+				}
 				break;
 			}
 			case "base_damage": {

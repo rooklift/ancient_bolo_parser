@@ -616,6 +616,7 @@ function draw_effects() {
 		let cy = e.py !== undefined ? tile_to_screen_y(world_y(e)) : tile_to_screen_y(e.y) + z / 2;
 		switch (e.type) {
 			case "boom":
+			case "pill_hit":
 			case "tank_hit": {
 				ctx.strokeStyle = `rgba(255,${180 - age * 120 | 0},60,${1 - age})`;
 				ctx.lineWidth = Math.max(1, z * 0.12);
