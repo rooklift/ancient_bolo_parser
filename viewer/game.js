@@ -504,19 +504,25 @@ function apply_record(s, rec, effects, chat) {
 				break;
 			case "quit":
 				s.quit[pl] = true;
-				s.tanks[pl] = null;
 				s.men[pl] = null;
 				s.shells[pl] = [];
-				/* pills in the quitter's tank leave the game with them
-				 * (inTank = GONE), so a later player reusing the slot
-				 * cannot inherit phantom cargo. (Real Bolo's behaviour is
-				 * unverified — the only quits-while-carrying in the corpus
-				 * end their logs — but a log event would revive the pill.)
-				 * Planted pills and alliance links stay: his pills keep
-				 * their allegiance until the slot is reused. */
+				/* Pills a quitter carries are dumped on the ground around
+				 * the last tank position, tank-death style, with no events
+				 * (verified: in two mid-game quits-while-carrying, the
+				 * pills were picked up later within a tile of the
+				 * quitter's last tank centre — in one case both at once,
+				 * lying together). With no known tank position they leave
+				 * the game (GONE). Planted pills and alliance links stay:
+				 * his pills keep their allegiance until the slot is
+				 * reused. */
+				if (s.tanks[pl]) {
+					const sq = tank_square(s.tanks[pl]);
+					dump_carried_pills(s, pl, sq.x, sq.y);
+				}
 				for (const p of s.pills) {
 					if (p.inTank === pl) p.inTank = GONE;
 				}
+				s.tanks[pl] = null;
 				if (chat) chat.push({ time: rec.time, player: pl, quit: true, name: s.names[pl], team: team_of(s, pl) });
 				break;
 			case "alliance_request":

@@ -100,10 +100,24 @@ if (!fs.existsSync(log1)) {
 	st.pills = [{ x: 5, y: 5, owner: 0, armour: 0, speed: 50, inTank: 0 }];
 	const ev = subpackets => BoloGame.apply_record(st, { time: 0, seq: 0, status: 0, player: 0, tankStatus: 7, tankDir: 0, subpackets }, null, null);
 	ev([{ type: "quit", fields: [] }]);
-	check("carried pill leaves with quitter", st.pills[0].inTank < 0, true);
+	check("carried pill leaves with tankless quitter", st.pills[0].inTank < 0, true);
 	ev([{ type: "node_id", name: "newguy@somewhere" }]);
 	check("slot reuse resets alliances", (st.alliances[0] & (1 << 1)) !== 0 && (st.alliances[1] & (1 << 0)) !== 0, true);
 	check("slot reuse does not revive cargo", st.pills[0].inTank < 0, true);
+}
+
+// A quitter WITH a known tank position dumps carried pills on the ground
+// around it, tank-death style.
+{
+	const st = BoloGame.initial_state();
+	st.present[0] = true; st.names[0] = "p0";
+	st.grid.fill(7, 0, 256 * 20); /* grass rows 0-19 */
+	st.tanks[0] = { x: 10, y: 10, px: 0, py: 0, dir: 0, inBoat: false, hidden: false, dying: false, speed: 0, lastSeen: 0, dead: false };
+	st.pills = [{ x: 0, y: 0, owner: 0, armour: 15, speed: 50, inTank: 0 }];
+	BoloGame.apply_record(st, { time: 0, seq: 0, status: 0, player: 0, tankStatus: 7, tankDir: 0, subpackets: [{ type: "quit", fields: [] }] }, null, null);
+	const p = st.pills[0];
+	check("quitter's pill dumped on the ground", p.inTank, null);
+	check("dumped dead near the tank", p.armour === 0 && Math.abs(p.x - 10) <= 1 && Math.abs(p.y - 10) <= 1, true);
 }
 
 // Shell-list offsets are CHAINED (each relative to the previous shell),
