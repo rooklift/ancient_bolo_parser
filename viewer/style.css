@@ -128,7 +128,7 @@ body {
 #chat {
 	flex: 1;
 	overflow-y: auto;
-	font-size: 12px;
+	font-size: 13px;
 	min-height: 0;
 }
 /* Slim dark scrollbar to match the panel */
