@@ -702,6 +702,10 @@ function load_log(bytes, name) {
 	set_clock(game.t0, true);
 
 	drop_hint.classList.add("hidden");
+	/* keep the source path/filename: shown in the window title and
+	 * available as ABV.filename in the dev console */
+	loaded_name = name || null;
+	document.title = (name ? name.split(/[\\/]/).pop() + " — " : "") + "Ancient Bolo Log Viewer";
 	let gi = game.final.gameInfo;
 	map_name_el.textContent = gi ? gi.mapName : (name || "Bolo log");
 	/* version hex "00990700" → "0.99.7" */
@@ -898,8 +902,11 @@ function resize() {
 new ResizeObserver(resize).observe(canvas);
 window.addEventListener("resize", resize);
 
+let loaded_name = null;
+
 /* tiny hooks for headless tests: centre the view on a tank or a square */
 window.ABV = {
+	get filename() { return loaded_name; },
 	centre_on(p) {
 		if (!cur || !cur.tanks[p]) return false;
 		return this.centre_at(world_x(cur.tanks[p]), world_y(cur.tanks[p]));
