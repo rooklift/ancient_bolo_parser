@@ -72,6 +72,35 @@ function obj_sprite(name) {
 	return (use_obj_sprites && view.zoom >= BoloSprites.MIN_ZOOM) ? obj_imgs.get(name) : undefined;
 }
 
+/* Object sprites are the same 16px art as the terrain, so at non-integer
+ * device-pixel scales (zoom 24 on a 1× display) they need the same
+ * sharp-bilinear treatment as the terrain atlas: nearest-prescale to the
+ * next integer multiple, cached per image, then draw with smoothing on. */
+let obj_scaled = new WeakMap(); /* img -> Map(factor -> prescaled canvas) */
+
+function draw_obj(img, x, y) {
+	let z = view.zoom;
+	let factor = BoloSprites.prescale_factor(z);
+	let src = img;
+	if (factor > 1) {
+		let per = obj_scaled.get(img);
+		if (!per) obj_scaled.set(img, per = new Map());
+		src = per.get(factor);
+		if (!src) {
+			src = document.createElement("canvas");
+			src.width = img.width * factor;
+			src.height = img.height * factor;
+			let sctx = src.getContext("2d");
+			sctx.imageSmoothingEnabled = false;
+			sctx.drawImage(img, 0, 0, src.width, src.height);
+			per.set(factor, src);
+		}
+	}
+	ctx.imageSmoothingEnabled = factor > 1;
+	ctx.drawImage(src, x, y, z, z);
+	ctx.imageSmoothingEnabled = false;
+}
+
 /* The team drawn as "good": the viewpoint player's, else the first present. */
 function good_team() {
 	if (viewpoint >= 0) return BoloGame.team_of(cur, viewpoint);
@@ -450,7 +479,7 @@ function draw_bases() {
 		let img = obj_sprite(b.owner === BoloGame.NEUTRAL ? "base_neutral"
 			: BoloGame.team_of(cur, b.owner) === good ? "base_good" : "base_evil");
 		if (img) {
-			ctx.drawImage(img, tile_to_screen_x(b.x), tile_to_screen_y(b.y), z, z);
+			draw_obj(img, tile_to_screen_x(b.x), tile_to_screen_y(b.y));
 			continue;
 		}
 		let cx = tile_to_screen_x(b.x) + z / 2, cy = tile_to_screen_y(b.y) + z / 2;
@@ -472,7 +501,7 @@ function draw_pills() {
 		let side = p.owner !== BoloGame.NEUTRAL && BoloGame.team_of(cur, p.owner) === good ? "good" : "evil";
 		let img = obj_sprite(`pillbox_${side}_${String(Math.min(15, p.armour)).padStart(2, "0")}`);
 		if (img) {
-			ctx.drawImage(img, tile_to_screen_x(p.x), tile_to_screen_y(p.y), z, z);
+			draw_obj(img, tile_to_screen_x(p.x), tile_to_screen_y(p.y));
 			continue;
 		}
 		let cx = tile_to_screen_x(p.x) + z / 2, cy = tile_to_screen_y(p.y) + z / 2;
@@ -528,7 +557,7 @@ function draw_tanks() {
 		/* sprite indices match the log: 0 = north, clockwise (4 = east) */
 		let img = obj_sprite(`tank_${side_of(p)}${t.inBoat ? "boat" : ""}_${String(t.dir).padStart(2, "0")}`);
 		if (img) {
-			ctx.drawImage(img, cx - z / 2, cy - z / 2, z, z);
+			draw_obj(img, cx - z / 2, cy - z / 2);
 			ctx.restore();
 			draw_tank_label(p, cx, cy, r);
 			continue;
@@ -574,7 +603,7 @@ function draw_men() {
 		if (m.parachute) {
 			let img = obj_sprite("lgm_helicopter");
 			if (img) {
-				ctx.drawImage(img, cx - z / 2, cy - z / 2, z, z);
+				draw_obj(img, cx - z / 2, cy - z / 2);
 				continue;
 			}
 			ctx.strokeStyle = "#fff";
