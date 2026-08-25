@@ -298,11 +298,20 @@ function apply_record(s, rec, effects, chat) {
 				break;
 			case "pillbox_fires":
 				break;		// no visual: a flash here reads as the pill being hit
-			case "board_boat":
+			case "board_boat": {
 				/* the sender's own T boat bit only catches up a few ticks
-				 * later; flip it now so pausing on the event looks right */
-				if (s.tanks[pl]) s.tanks[pl].inBoat = true;
+				 * later; flip it now so pausing on the event looks right.
+				 * The consumed boat's square reverts to plain river — the
+				 * log sends no terrain event for this (all 38 sample
+				 * boardings sit on terrain 9 with no accompanying 6T) */
+				const t = s.tanks[pl];
+				if (t) {
+					t.inBoat = true;
+					const sq = tank_square(t);
+					if (s.grid[sq.y * MAP_SIZE + sq.x] === 9) set_terrain(s, sq.x, sq.y, 1);
+				}
 				break;
+			}
 			case "pill_pickup": {
 				const p = s.pills[sub.pillbox];
 				if (p) p.inTank = pl;
@@ -553,7 +562,10 @@ function extract_initial_map(records) {
 						taint(sub.x, sub.y);
 					}
 					break;
-				case "lay_mine": {
+				case "lay_mine":
+				case "board_boat": {
+					/* both change the tank centre square's terrain without
+					 * a 6T event (mine laid / boat consumed) */
 					const t = tanks[rec.player];
 					if (t) taint((t.x * 16 + t.pixelX + 8) >> 4, (t.y * 16 + t.pixelY + 8) >> 4);
 					break;
