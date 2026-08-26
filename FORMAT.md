@@ -118,7 +118,7 @@ nibble.
 | `4d` | 4 | unused (missile in flight) |
 | `5d` | 1 | shot fired from tank. The shell's first restatement sits 6-9 px from the tank centre, still inside the firer's own square. That opening frame does not fell the tree under the firer — though a shot that goes on to cross the square can still fell it [E:muzzle] |
 | `6T` | 3 | terrain change to type `T` at `XX YY` |
-| `7T` | 3 | explosion at `XX YY`; `T` = new terrain, or `B` = no terrain change, `C` = LGM plants mine, `D` = four-square superboom (craters the square and its E/S/SE neighbours, sparing water and bases). A superboom also deals 4 **eventless** damage to any pillbox in its four squares — no `9n` is sent [E:superboom-pill]. Crater *flooding*, by contrast, IS evented: water-adjacent craters become water via explicit terrain changes, typically within a second |
+| `7T` | 3 | explosion at `XX YY`; `T` = new terrain, or `B` = no terrain change, `C` = LGM plants mine, `D` = four-square superboom (craters the square and its E/S/SE neighbours, sparing water and bases). A superboom also deals 4 **eventless** damage to any pillbox in its four squares — no `9n` is sent [E:superboom-pill]. A single crater (`T` = 3) spares open water in the same way: on river or deep sea it changes nothing, because the terminal crater of a dying tank is sent whatever lies under the wreck. A **boat** square is not spared — it craters, and then floods [E:crater-water]. Crater *flooding*, by contrast, IS evented: water-adjacent craters become water via explicit terrain changes, 25–37 ticks (0.50–0.74 s) later |
 | `8d` | 1 | unused |
 | `9n` | 1 | 1 damage to pillbox `n` |
 | `An` | 1 | 5 damage (one shell) to base `n` |
@@ -191,6 +191,13 @@ Playback must re-implement fragments of game logic:
   particular, an evented `7D` superboom still craters beneath and damages a
   pillbox. The evented terminal cratering (`7T`/`7D`, see `F9`) is separate
   and unaffected [E:forest-circle].
+- **A crater event on open water is a no-op.** The terminal `7 3` of a
+  dying tank is emitted whatever lies under the wreck, and Bolo's
+  cratering primitive spares river and deep sea, so playback must drop
+  it — otherwise a crater appears mid-river and, nothing being left to
+  flood it back, stays there for the rest of the replay. A boat square is
+  the exception: it does crater (destroying the boat) and then floods
+  back to river, evented like any other flood [E:crater-water].
 - **The delayed second explosion of a dying tank is its cargo** — the
   ammunition cooking off, ~0.9 s after the initial `F9`. The `7D` events
   are logged, so playback needs no rule here [E:superboom-cargo].
@@ -241,6 +248,9 @@ Playback must re-implement fragments of game logic:
   are from the 446-log set unless stated.
 - **Manual observation of original Bolo in an emulator**, for behaviour no
   log records directly.
+- **[WinBolo](https://github.com/kippandrew/winbolo) source** (John
+  Morrison) — an independent GPL reimplementation, not Bolo itself: used
+  only to explain behaviour the logs already demonstrate.
 
 ## Evidence
 
@@ -386,6 +396,24 @@ tools that read the raw coordinate.
 **[E:superboom-pill]** — a pill superboomed at armour 8 was picked up,
 which requires armour 0, after only four `9n`s; the blast's unlogged
 damage closes the gap.
+
+**[E:crater-water]** — in the sample log every crater-making event was
+classified by the terrain under it and checked for a following flood.
+Craters the game really made beside water flooded 5 of 5, always as an
+explicit `6 1` 25–37 ticks later; the 4 that landed on a **boat** square
+flooded 4 of 4 the same way. The 12 single `7 3`s that landed on river or
+deep sea flooded 0 of 12 — and all 12 are terminal death craters,
+arriving 0.74–1.50 s after the dying player's own `F9`, never in any
+other context. Three of those squares later receive a `6T` **boat**
+event, which requires river underneath: had the crater applied, a man
+there would have built a road instead. All 9 floods in the log are
+accounted for by the two flooding rows, so nothing floods silently.
+WinBolo agrees and supplies the mechanism: its small tank explosion
+craters only `if (currentPos != RIVER && currentPos != DEEP_SEA)` and
+then queues a flood check (`tankexp.c`), its big explosion excludes
+`BOAT` as well (matching `7D`'s water sparing), and `floodCheckFill`
+fills on any orthogonal `RIVER`/`BOAT`/`DEEP_SEA` after
+`FLOOD_FILL_WAIT`, chaining into neighbouring craters (`floodfill.c`).
 
 **[E:ammo-clamp]** — reconstructing tank ammo across 12,583 lives that
 begin at an observed respawn (see [E:death-tiers]), every out-of-range
