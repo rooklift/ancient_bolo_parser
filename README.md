@@ -73,6 +73,9 @@ default), everything else including neutral pillboxes draws as hostile — so it
 two-team game; the vector markers remain better for free-for-alls.
 Pillbox sprites encode armour (state 0 = dead); tank sprites cover all 16
 directions afloat and ashore; shells and walking men stay vector.
+For map debugging, **Cmd/Ctrl+D** (or View → Toggle coordinate debug
+mode) shows the hovered tile (0–255) and world-pixel (0–4095) coordinates
+whenever no mouse button is held.
 
 ## Status
 
