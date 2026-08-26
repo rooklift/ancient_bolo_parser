@@ -437,6 +437,25 @@ floods. Against the same event on bare ground:
 | dead pill, mined | `7 3` | 13 | 5 (38%) |
 
 Median flood delay is 0.56–0.58 s throughout, the [E:crater-water] figure.
+
+One `7D` in the corpus (md5 `42977edf2c2630e2cabb1ca43a1b214d`, at
+25:23.66, origin 127,135) demonstrates every part of the rule at once,
+which is worth having in one place:
+
+| square | terrain | occupant |
+|---|---|---|
+| 127,135 | grass → grass | live pill, armour 9 → 5 |
+| 128,135 | grass → grass | dead pill, armour 0 |
+| 127,136 | river → river | — |
+| 128,136 | grass → **river** | — |
+
+The bare square craters and floods; the water square is untouched; both
+pill squares keep their grass while the live pill takes its 4 eventless
+damage in the same event — the damage of [E:superboom-pill] and the
+cratering coming apart in a single boom. The dead pill's square is
+orthogonally adjacent to the one that just flooded, so had it cratered the
+flood would have chained into it; it stayed grass. This is also the only
+live-pill observation in the corpus, which is why that row is n=1.
 Waiting for the pill to be picked up rescues none of the null cases: in a
 separate pass each square was followed to the end of its log (the tool
 checks only the 3 s window), and the only late floods — 198 s, 556 s,
