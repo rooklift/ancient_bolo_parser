@@ -132,7 +132,7 @@ nibble.
 | `F1 8n`/`F1 Cn` | 42 | pill/base "history" **group**: a 2-byte little-endian pills bitmask, a 2-byte little-endian bases bitmask (**set** bits = members), then a 36-byte history value shared by every marked object — a zero-padded Pascal `player@node` string, or the empty/default value `00 01` + zeros. One record is emitted per distinct value in the start-of-log burst; together they partition all 16 pills and 16 bases exactly, and `n` is the lowest marked base. The string names a player tied to the group, but the exact rule remains murky. `F1 8n` itself is never emitted, but the pill masks ride the `Cn` records [E:history] |
 | `F2` | 3 | map terrain request (2-byte `mapknown`, see `F3`) |
 | `F3` | 3+run | map terrain data: 2-byte `mapknown`, then one RLE run in `.bmap` format (run length byte includes the 4-byte run header). `mapknown` is a map position `YY XX` — the transfer frontier: the previous run's row and end-column (`00 00` before the first run), everything before it in reading order being already known [E:mapknown] |
-| `F4 nd` | 2 | pillbox `n` fires, shell direction `d` (the shell itself then appears in the shell lists of the machine simulating the pill — normally its target; see `0d`–`3d`) |
+| `F4 nd` | 2 | pillbox `n` fires, shell direction `d` (the shell itself then appears in the shell lists of the machine simulating the pill — normally its target; see `0d`–`3d`). **When `d` reads 0 the index is unreliable**: about a quarter of those name the pill one above the one that really fired, so the true firer is `n-1`. Every other direction is right ~99% of the time. Nothing in playback depends on it — the shell is restated in the lists, damage arrives as `9n`, capture at pickup — so treat `F4` as a cue for effects only [E:pill-fire-index] |
 | `F5` | 3 | LGM death at `XX YY` |
 | `F6` | 1 | tank boards boat (boat consumed): the tank's centre square reverts from river-with-boat to plain river with **no** accompanying `6T` event — playback must apply the change itself [E:boat] |
 | `F7` | 1 | tank lays mine |
@@ -546,6 +546,43 @@ outside the match window) — it does not ramp with ammo, so it is not a
 physical effect. Superboom deaths carry a median of 40 mines, so in
 practice the threshold means a full mine load plus about 21 shells.
 `node tools/measure-death-ammo.cjs`.
+
+**[E:pill-fire-index]** — the pill index in an `F4` is wrong often enough
+to matter to anyone auditing it, and only when the direction nibble reads
+0. Two independent measurements agree.
+
+The first identifies a shot without using its position to find it: take an
+`F4` from a sender that was simulating no shells at its previous
+restatement, whose next restatement carries exactly one, with nothing in
+between that could spawn another. That shell is the pill's by elimination.
+Then ask which pill it sits on:
+
+| direction | n | on the named pill | on pill `n-1` |
+|---|---|---|---|
+| 1–15 | 6,136–7,451 each | 98.0–99.1% | 0.7–1.7% |
+| **0** | **6,786** | **76.0%** | **23.7%** |
+
+The 0.7–1.7% on the other rows is the method's own noise floor, so
+direction 0 misfires at roughly twenty times the background rate.
+
+The second needs no shells at all. A pill inside a tank cannot fire, so an
+`F4` naming a carried pill is impossible on its face. There are 2,156 of
+them in the corpus; **2,148 read direction 0**, and in **all 2,148** the
+pill one index lower was on the ground and available to be the real firer.
+The remaining 8 are scattered across other directions.
+
+The cause is not established. The signature — index too high by exactly
+one, only ever on direction 0 — is what a packing overflow would look
+like, since `F4` packs the byte as `(pill << 4) | d` and a `d` of 16 rather
+than 0 would carry into the pill nibble, making `(n << 4) | 16` identical
+to `((n+1) << 4) | 0`. That is inference from the shape of the error, not
+something we have verified in Bolo's code, and the rate does not obviously
+follow from it: a simple angle-wrap would be expected to spoil about half
+of the north shots rather than a quarter. Whatever the mechanism, the
+consequences are confined to which pill a viewer credits with a shot: no
+terrain, armour, ownership or position depends on the field, and pickups
+(`FF 0n`) and damage (`9n`) carry their own indices and are unaffected.
+`node tools/measure-pill-fire-index.cjs`.
 
 **[E:pill-capture]** — a dead pill picked up, dumped by the captor's dying
 tank, and repaired in place by the captor's ally then fired on its former
