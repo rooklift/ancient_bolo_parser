@@ -468,22 +468,39 @@ for (let [name, s] of Object.entries(totals)) {
 	console.log("  " + row.map((v, i) => String(v).padStart(COLUMNS[i][1])).join(""));
 }
 
-console.log(`
-Reading the table: "centre" is far too small — it leaves 53 impossible
-pill plants.  Widening drives that to zero by radius 8.  But box_7
-dominates radius_8: every square the circle clears has dx, dy <= 7, so
-the box is a strict superset, and it clears ~500 more squares with the
-same delayed contradictions, the same hidden-tank hits and the same zero
-plants.  box_8 fixes the size by over-clearing catastrophically.  So the
-boundary is Chebyshev at 7.  box_7_pm is the shipped rule; sparing forest
-under a grounded pillbox takes the delayed contradictions from 14 to
-zero.
+const rule_entries = Object.entries(totals);
+const no_under_clear_evidence = rule_entries.filter(([, stats]) =>
+	stats.plants_on_forest === 0 && stats.regrowth_anomalies === 0);
+const format_rules = entries => entries.length ? entries.map(([name]) => name).join(", ") : "none";
+const signed = value => value > 0 ? `+${value}` : String(value);
 
-The "regrown" column is the independent confirmation of the corners.
-Every one of the circle's anomalies is a square the box would have
-cleared and the circle did not; the box drives the column to zero
-without any appeal to shells or geometry.
+console.log(`
+Reading this corpus:
+  rules with zero plants-on-forest AND zero regrowth anomalies:
+    ${format_rules(no_under_clear_evidence)}
 `);
+
+if (no_under_clear_evidence.length) {
+	console.log("  over-clearing evidence for those rules:");
+	for (let [name, stats] of no_under_clear_evidence) {
+		console.log(`    ${name.padEnd(16)} delayed=${stats.contradictions_gt_1s}  ` +
+			`hidden=${stats.hidden_tank_evidence}  cleared=${stats.clearances}`);
+	}
+	console.log();
+}
+
+const box_7 = totals.box_7;
+const box_7_pm = totals.box_7_pm;
+console.log("  effect of masking grounded pillbox squares in box_7:");
+console.log(`    cleared ${signed(box_7_pm.clearances - box_7.clearances)}, ` +
+	`delayed ${signed(box_7_pm.contradictions_gt_1s - box_7.contradictions_gt_1s)}, ` +
+	`hidden ${signed(box_7_pm.hidden_tank_evidence - box_7.hidden_tank_evidence)}, ` +
+	`plants ${signed(box_7_pm.plants_on_forest - box_7.plants_on_forest)}, ` +
+	`regrown ${signed(box_7_pm.regrowth_anomalies - box_7.regrowth_anomalies)}`);
+console.log();
+console.log("box_7_pm is the rule used by the viewer. The tool deliberately does");
+console.log("not select a winning geometry: the supplied corpus must support that");
+console.log("conclusion through the under- and over-clearing columns above.");
 
 if (SAMPLES) {
 	for (let [name, s] of Object.entries(totals)) {
