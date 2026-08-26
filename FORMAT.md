@@ -235,6 +235,42 @@ Playback must re-implement fragments of game logic:
   sender re-states its in-flight shells every record, so drift does not
   accumulate.
 
+## Bolo bugs discovered
+
+Almost everything that looks wrong in a log turns out to be a rule we had
+not worked out yet, so the bar for this section is high: the game itself
+has to be at fault, and playback should not reproduce the fault faithfully.
+Two entries qualify, and only the first is ours.
+
+- **The pill index in an `F4` is corrupt whenever the direction reads 0.**
+  About a quarter of those name the pill one above the one that actually
+  fired, so the true firer is `n-1`; every other direction is right about
+  99% of the time. The rate is uniform across the corpus — 22–27% in every
+  year from 2001 to 2005, and 23–25% for every player slot — so it is what
+  Bolo 0.99.7 does, not one bad build or one machine. It survived twenty
+  years unnoticed because nothing depends on it: which pillbox is credited
+  with a shot changes no game state, the shell is restated in the shell
+  lists regardless, damage arrives as `9n` and capture at pickup, both
+  carrying their own indices. The worst it can cost a viewer is a muzzle
+  flash on the wrong pillbox [E:pill-fire-index].
+- **`F1 8n` is never emitted**, so the pill half of the history grouping has
+  to be recovered from the pill masks that ride the `Cn` records. This one
+  is not our find: the 2003 notes attribute it to a flaw in Bolo's
+  `log_bootinfo` [E:history].
+
+A third candidate does not make the list. A log started while the map is
+still downloading from the ring is defective, but that is a limitation of
+where logging can begin rather than a fault in the game, and the game plays
+on correctly either way.
+
+Two things that might look like bugs are not. A dying tank's terminal
+crater is sent whatever lies under the wreck, including open water and
+pillbox squares where it can have no effect [E:crater-water],
+[E:crater-pill] — but every machine applies the same terrain rule to it, so
+the game stays consistent and only a viewer that applies the event blindly
+goes wrong. And a base drained into a full tank is logged although the
+round is wasted [E:ammo-clamp], which is behaviour, not malfunction.
+
 ## Sources
 
 - **Carl Osterwald ("wharf rat")**, author of the commercial BoloViewer:
@@ -563,7 +599,12 @@ Then ask which pill it sits on:
 | **0** | **6,786** | **76.0%** | **23.7%** |
 
 The 0.7–1.7% on the other rows is the method's own noise floor, so
-direction 0 misfires at roughly twenty times the background rate.
+direction 0 misfires at roughly twenty times the background rate. The
+rate is not concentrated anywhere: across the 372 logs carrying at least
+five identifiable north shots the median is 20% (p25 13%, p75 36%, a
+spread consistent with binomial noise at 5–50 shots per log), and the
+aggregate holds at 22–27% for every year from 2001 to 2005 and 23–25%
+for every player slot.
 
 The second needs no shells at all. A pill inside a tank cannot fire, so an
 `F4` naming a carried pill is impossible on its face. There are 2,156 of
