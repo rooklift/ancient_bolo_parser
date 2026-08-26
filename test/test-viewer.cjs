@@ -160,6 +160,24 @@ if (!fs.existsSync(log1)) {
 		[{ time: 123, type: "pill_fire", x: 11, y: 12 }]);
 }
 
+// Tree growth incorrectly reports plain forest when it grows on mined grass.
+// Preserve the mine only for that transition; other forest changes are used
+// exactly as reported.
+{
+	const st = BoloGame.initial_state();
+	const change_to_forest = (x, old_terrain) => {
+		st.grid[10 * 256 + x] = old_terrain;
+		BoloGame.apply_record(st, {
+			time: 123, seq: x, status: 0, player: 0, tankStatus: 0, tankDir: 0,
+			subpackets: [{ type: "terrain_change", terrain: 5, x, y: 10 }],
+		}, null, null);
+		return st.grid[10 * 256 + x];
+	};
+	check("tree growth preserves a mine under grass", change_to_forest(10, 15), 13);
+	check("tree growth on grass remains plain forest", change_to_forest(11, 7), 5);
+	check("other transitions to forest remain authoritative", change_to_forest(12, 11), 5);
+}
+
 // Alliance transitivity: accepting one member of an alliance joins you to
 // all of it, but the log only events the pairwise link. Reproduces the
 // pattern from a real 3v3 (B accepts C; C accepts A; no direct A-B event).
