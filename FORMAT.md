@@ -123,7 +123,7 @@ nibble.
 | `Bn`/`Cn`/`Dn` | 1 | base `n` drained of 1 shell / mine / armour |
 | `En` | 1 | unused (missile drained) |
 | `F0` | 2 | rejoin / map-header request |
-| `F1 01` | 90 | game info: the 56-byte `GAMEINFO` struct from `Brain.h` (36-byte Pascal map name; 8-byte game id = host IPv4 + Mac-epoch start time; game type; mines flag; allow/assist AI; little-endian start delay and time limit in ticks) plus 16 little-endian words of per-player alliance bitmaps (0 bit = allied) |
+| `F1 01` | 90 | game info: the 56-byte `GAMEINFO` struct from `Brain.h` (36-byte Pascal map name; 8-byte game id = host IPv4 + Mac-epoch start time; 1-byte game type (1 open, 2 tournament, 3 strict); 1-byte hidden mines flag (0x80 hidden OK, 0xC0 all visible); 1-byte allow-AI; 1-byte assist-AI; 4-byte little-endian start delay; 4-byte time limit in ticks) plus 16 little-endian words of per-player alliance bitmaps (0 bit = allied) |
 | `F1 02` | 3+5n | pillbox list: `x y owner armour speed` each (map-file layout) |
 | `F1 03` | 3+6n | base list: `x y owner armour shells mines` each |
 | `F1 04` | 3+3n | start list: `x y direction` each |
