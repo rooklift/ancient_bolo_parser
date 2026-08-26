@@ -55,15 +55,6 @@ function initial_state(seed) {
 			const i = p.y * MAP_SIZE + p.x;
 			if (grid[i] >= 10 && grid[i] <= 15) grid[i] -= 8;
 		}
-		/* A refuelling base is road as far as the game is concerned,
-		 * whatever the map data says beneath it. 5% of corpus bases sit on
-		 * forest in the map bytes and another 19% on mined crater; the game
-		 * sees none of it. Shells fly over, there is no tree to fell, and
-		 * no mine to hit. Same treatment as above: the seed keeps its
-		 * original bytes so "save initial map" is unaffected. */
-		for (const b of seed.bases) {
-			grid[b.y * MAP_SIZE + b.x] = 4;
-		}
 	} else {
 		grid = new Uint8Array(MAP_SIZE * MAP_SIZE);
 		grid.fill(DEEP_SEA);
