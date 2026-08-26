@@ -209,11 +209,11 @@ Playback must re-implement fragments of game logic:
   it. The transferred map carries real terrain under every base — across
   the corpus 33% crater, 33% road, 19% mined crater, 10% grass and 5%
   forest — and the game consults none of it: shells fly over, there is no
-  tree to fell and no mine to strike. There is no need to *rewrite* the
-  terrain, and a player is better off keeping what the map holds, since
-  the base sprite covers it and the real ground stays recoverable. What
-  matters is not to consult it: nothing at a base square should be
-  treated as forest, mined, or an obstacle [E:base-road].
+  tree to fell and no mine to strike. Playback may preserve the underlying
+  value or rewrite it as road (and eventless terrain logic may mutate it):
+  none of those choices affects gameplay while the base occupies the
+  square. What matters is that nothing at a base square is ever *treated*
+  as forest, mined, or an obstacle [E:base-road].
 - **Shells appear to pass through live pillboxes — probably an artifact.**
   Current belief is that live pills do stop shells and that appearances to
   the contrary were the result of mistaken identity with regard to shells.
@@ -264,11 +264,13 @@ Bases account for six sevenths of it. The last 1.2% is not noise but the
 muzzle case of [E:muzzle], so every frame in the table is accounted for
 and nothing is left over.
 
-The engine deliberately does **not** rewrite base squares: it keeps the
-map's real terrain, which the base sprite hides anyway. Rewriting them
-changes nothing in the clearance sweep except ~45 fewer squares counted as
-"cleared", which were never forest to begin with — so the figures in
-[E:forest-circle] hold either way.
+The original engine does **not** rewrite base squares: it keeps the map's
+real terrain, which the base sprite hides anyway. A player need not preserve
+that implementation detail, because base occupancy overrides the value for
+every gameplay purpose. Rewriting or mutating it changes nothing in the
+clearance sweep except ~45 fewer squares counted as "cleared", which were
+never gameplay forest to begin with — so the figures in [E:forest-circle]
+hold either way.
 
 The 97 pillbox frames are **not** the same phenomenon. A pillbox does not
 alter the ground it stands on, and it can be captured and carried away, at
