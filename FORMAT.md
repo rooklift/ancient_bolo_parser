@@ -344,23 +344,39 @@ case both at once, lying together.
 
 **[E:forest-circle]** — manual observation of original Bolo in an emulator
 shows a wreck moving in a cardinal direction can remove trees in two
-adjacent rows, which a centre-only trail cannot reproduce. The corpus
-strongly favours extending the circle along the whole dying path: the
-former viewer rule (a 15×15 first-position box plus centre-only trail)
-inferred 8,895 forest clearances and left 38 pill plants on modelled
-forest, while the pill-masked circle infers 16,692 and leaves zero.
+adjacent rows, which a centre-only trail cannot reproduce.
+
+Sweeping the clearance radius over the corpus brackets the size from both
+sides. Too small a rule leaves phantom trees, showing up as pillboxes
+planted on modelled forest (impossible) and as shells flying through it;
+too large a rule fells trees that provably still stood, showing up as
+delayed repeat-clear events and as live tanks reporting the
+hidden-in-trees bit. Over 15,406 dying sequences:
+
+| rule | cleared | contra >1s | contra ≤1s | hidden | plants | phantoms |
+|---|---|---|---|---|---|---|
+| centre only | 6984 | 1 | 12 | 0 | 53 | 1146 |
+| radius 6 | 14082 | 14 | 51 | 6 | 17 | 775 |
+| radius 7 | 15362 | 14 | 57 | 6 | 7 | 722 |
+| radius 8 | 16730 | 14 | 62 | 7 | 0 | 670 |
+| radius 8, pill-masked | 16692 | 0 | 62 | 2 | 0 | 670 |
+| radius 8 closed | 17488 | 318 | 122 | 60 | 0 | 668 |
+| full footprint | 18001 | 353 | 125 | 54 | 0 | 647 |
+
+Radius 8 open is the smallest rule that eliminates pill plants entirely,
+and the closed circle one ring wider is the first that over-clears
+badly — so the boundary sits exactly between `dx² + dy² < 64` and
+`≤ 64`. The residual 62 repeat-clears are all within one second, where
+redundant reports and event ordering are common.
 
 The pill exception rests on unusually specific evidence: all nine later
 LGM farming events on circle-cleared forest occur exactly on pill dump
 squares, as do all five delayed repeat-clear explosions and five of the
-seven hidden-tank conflicts. With the exception applied the corpus has 62
-repeat-clear reports, all within one second (where redundant reports and
-event ordering are common), and two hidden-tank conflicts. The rule
-remains deliberately provisional, but the obvious wider alternatives
-over-clear far more: a closed radius-8 circle produces 440 repeat-clear
-and 60 hidden-tank conflicts, and the full footprint at every position
-produces 478 and 54. Reproduce with
-`node tools/falsify-death-footprint-3.cjs --fast --summary`.
+seven hidden-tank conflicts. Applying it is what takes the delayed
+contradictions from 14 to zero and the hidden-tank conflicts from 7 to 2,
+at a cost of 38 clearances. The rule remains deliberately provisional.
+Reproduce with `node tools/measure-tree-clearance.cjs` (the phantom column
+needs the shell-crossing pass, so not `--fast`).
 
 **[E:superboom-cargo]** — 1,010 of 1,136 four-square superbooms occur
 mid-death-sequence, ~0.9 s after the initial `F9`. For what determines
