@@ -103,7 +103,7 @@ nibble.
 
 | id | size | meaning |
 |------|------|---------|
-| `0d`–`3d` | 4/6/8/10 | a shell list: 1–4 shells in flight, 3 bytes `XX YY yx` for the first, 2 signed bytes of pixel offset for each additional — **chained**: each offset is relative to the *previous* shell in the list, not the first [E:shell-chained]. The direction nibble `d` belongs to the first shell only; shells of any direction may ride one list. A record may carry **several** shell lists concatenated (up to 12 seen in the wild): the sender's own shells plus those of any pillboxes it is currently simulating. Bolo migrates a firing pillbox's simulation to the machine it is shooting at, so pill shells ride in the *target's* restatements [E:pill-shell-migration]. Every record re-states *all* shells the sender is simulating, whatever the record's shape — a record with no shell lists means the sender simulates none [E:shell-restate]. The standalone map/node records carry no such implication; none has been seen while its sender had shells in flight |
+| `0d`–`3d` | 4/6/8/10 | a shell list: 1–4 shells in flight, 3 bytes `XX YY yx` for the first, 2 signed bytes of pixel offset for each additional — **chained**: each offset is relative to the *previous* shell in the list, not the first [E:shell-chained]. The direction nibble `d` belongs to the first shell only; shells of any direction may ride one list. A record may carry **several** shell lists concatenated (up to 12 seen in the wild): the sender's own shells plus those of any pillboxes it is currently simulating. Bolo migrates a firing pillbox's simulation to the machine it is shooting at, so pill shells ride in the *target's* restatements [E:pill-shell-migration]. Every record re-states *all* shells the sender is simulating, whatever the record's shape — a record with no shell lists means the sender simulates none [E:shell-restate]. The standalone map/node records carry no such implication; none has been seen while its sender had shells in flight. A shell's `XX YY yx` is a **top-left**, exactly like a tank's: the shell's game position is half a tile further on in both axes, `(X*16 + px + 8, Y*16 + py + 8)`. Reading it uncentred puts every shell half a tile up and left of where it really is [E:shell-centre] |
 | `4d` | 4 | unused (missile in flight) |
 | `5d` | 1 | shot fired from tank |
 | `6T` | 3 | terrain change to type `T` at `XX YY` |
@@ -255,6 +255,27 @@ reporting player's tank sits within the pill's 8-square range (median 6.7).
 list-less record from their sender, whether that record carries a tank
 position, only events, or a dead tank's `T=7`.
 
+**[E:shell-centre]** — fitted against the terrain the corpus says a shell
+cannot be inside. Reading 9,838,080 shell restatements at a range of
+pixel offsets and counting how many land inside a standing tree gives a
+sharp V with its floor at exactly +8:
+
+| offset | inside standing forest | |
+|---|---|---|
+| +6 px | 20740 | 0.21% |
+| +7 px | 13586 | 0.14% |
+| **+8 px** | **7055** | **0.07%** |
+| +9 px | 12233 | 0.12% |
+| +10 px | 18045 | 0.18% |
+| +16 px | 76887 | 0.78% |
+
+Uncentred (+0) it is 83,626, twelve times the minimum. The 0.07% residual
+is consistent with ordinary frames captured just before impact — a shell's
+last restatement can fall inside the tile it is about to strike. The
+viewer already had this right (`world_x` in `viewer/renderer.js` adds half
+a tile, verified there against 3,000 muzzle samples); it was the analysis
+tools that read the raw coordinate.
+
 **[E:superboom-pill]** — a pill superboomed at armour 8 was picked up,
 which requires armour 0, after only four `9n`s; the blast's unlogged
 damage closes the gap.
@@ -348,20 +369,20 @@ adjacent rows, which a centre-only trail cannot reproduce.
 
 Sweeping the clearance radius over the corpus brackets the size from both
 sides. Too small a rule leaves phantom trees, showing up as pillboxes
-planted on modelled forest (impossible) and as shells flying through it;
-too large a rule fells trees that provably still stood, showing up as
-delayed repeat-clear events and as live tanks reporting the
+planted on modelled forest — impossible, so a single one convicts the
+rule; too large a rule fells trees that provably still stood, showing up
+as delayed repeat-clear events and as live tanks reporting the
 hidden-in-trees bit. Over 15,406 dying sequences:
 
-| rule | cleared | contra >1s | contra ≤1s | hidden | plants | phantoms |
-|---|---|---|---|---|---|---|
-| centre only | 6984 | 1 | 12 | 0 | 53 | 1146 |
-| radius 6 | 14082 | 14 | 51 | 6 | 17 | 775 |
-| radius 7 | 15362 | 14 | 57 | 6 | 7 | 722 |
-| radius 8 | 16730 | 14 | 62 | 7 | 0 | 670 |
-| radius 8, pill-masked | 16692 | 0 | 62 | 2 | 0 | 670 |
-| radius 8 closed | 17488 | 318 | 122 | 60 | 0 | 668 |
-| full footprint | 18001 | 353 | 125 | 54 | 0 | 647 |
+| rule | cleared | contra >1s | contra ≤1s | hidden | plants |
+|---|---|---|---|---|---|
+| centre only | 6984 | 1 | 12 | 0 | 53 |
+| radius 6 | 14082 | 14 | 51 | 6 | 17 |
+| radius 7 | 15362 | 14 | 57 | 6 | 7 |
+| radius 8 | 16730 | 14 | 62 | 7 | 0 |
+| radius 8, pill-masked | 16692 | 0 | 62 | 2 | 0 |
+| radius 8 closed | 17488 | 318 | 122 | 60 | 0 |
+| full footprint | 18001 | 353 | 125 | 54 | 0 |
 
 Radius 8 open is the smallest rule that eliminates pill plants entirely,
 and the closed circle one ring wider is the first that over-clears
@@ -375,8 +396,13 @@ squares, as do all five delayed repeat-clear explosions and five of the
 seven hidden-tank conflicts. Applying it is what takes the delayed
 contradictions from 14 to zero and the hidden-tank conflicts from 7 to 2,
 at a cost of 38 clearances. The rule remains deliberately provisional.
-Reproduce with `node tools/measure-tree-clearance.cjs` (the phantom column
-needs the shell-crossing pass, so not `--fast`).
+Reproduce with `node tools/measure-tree-clearance.cjs`.
+
+Earlier rounds carried a further under-clearing column, counting shells
+seen inside modelled forest on the reasoning that forest stops shells.
+It has been withdrawn: it read a shell's position without centring it
+(see [E:shell-centre]), and the "phantom tree" population it appeared to
+find was an off-by-half-a-tile. Nothing above depended on it.
 
 **[E:superboom-cargo]** — 1,010 of 1,136 four-square superbooms occur
 mid-death-sequence, ~0.9 s after the initial `F9`. For what determines
