@@ -11,8 +11,19 @@ claim comes from.
 
 All multi-byte values are big-endian unless noted. Coordinates are map
 squares 0–255, with a packed pixel byte `yx` giving the position within the
-square (high nibble y, low nibble x, `0x00` = centred). Bolo time runs at
-exactly 50 ticks per second.
+square (high nibble y, low nibble x).
+
+**Every pixel-precision coordinate names the top-left of a 16px cell**, so
+the object itself sits half a tile further on in both axes:
+`(X*16 + px + 8, Y*16 + py + 8)`. Equivalently, a pixel byte of `0x00`
+places the object centred on its square rather than at its corner. This is
+uniform across tanks, shells and LGMs; reading a coordinate uncentred puts
+the object half a tile up and to the left, which is a subtle enough error
+to survive a long time [E:centring]. Objects without a pixel byte —
+pillboxes, bases, terrain events — are named by square outright and need
+no adjustment.
+
+Bolo time runs at exactly 50 ticks per second.
 
 ## File header (72 bytes, not encrypted)
 
@@ -103,7 +114,7 @@ nibble.
 
 | id | size | meaning |
 |------|------|---------|
-| `0d`–`3d` | 4/6/8/10 | a shell list: 1–4 shells in flight, 3 bytes `XX YY yx` for the first, 2 signed bytes of pixel offset for each additional — **chained**: each offset is relative to the *previous* shell in the list, not the first [E:shell-chained]. The direction nibble `d` belongs to the first shell only; shells of any direction may ride one list. A record may carry **several** shell lists concatenated (up to 12 seen in the wild): the sender's own shells plus those of any pillboxes it is currently simulating. Bolo migrates a firing pillbox's simulation to the machine it is shooting at, so pill shells ride in the *target's* restatements [E:pill-shell-migration]. Every record re-states *all* shells the sender is simulating, whatever the record's shape — a record with no shell lists means the sender simulates none [E:shell-restate]. The standalone map/node records carry no such implication; none has been seen while its sender had shells in flight. A shell's `XX YY yx` is a **top-left**, exactly like a tank's: the shell's game position is half a tile further on in both axes, `(X*16 + px + 8, Y*16 + py + 8)`. Reading it uncentred puts every shell half a tile up and left of where it really is [E:shell-centre] |
+| `0d`–`3d` | 4/6/8/10 | a shell list: 1–4 shells in flight, 3 bytes `XX YY yx` for the first, 2 signed bytes of pixel offset for each additional — **chained**: each offset is relative to the *previous* shell in the list, not the first [E:shell-chained]. The direction nibble `d` belongs to the first shell only; shells of any direction may ride one list. A record may carry **several** shell lists concatenated (up to 12 seen in the wild): the sender's own shells plus those of any pillboxes it is currently simulating. Bolo migrates a firing pillbox's simulation to the machine it is shooting at, so pill shells ride in the *target's* restatements [E:pill-shell-migration]. Every record re-states *all* shells the sender is simulating, whatever the record's shape — a record with no shell lists means the sender simulates none [E:shell-restate]. The standalone map/node records carry no such implication; none has been seen while its sender had shells in flight. A shell's `XX YY yx` needs the usual half-tile centring [E:shell-centre] |
 | `4d` | 4 | unused (missile in flight) |
 | `5d` | 1 | shot fired from tank |
 | `6T` | 3 | terrain change to type `T` at `XX YY` |
@@ -254,6 +265,31 @@ reporting player's tank sits within the pill's 8-square range (median 6.7).
 **[E:shell-restate]** — zero of 743 in-flight shells reappear after a
 list-less record from their sender, whether that record carries a tank
 position, only events, or a dead tank's `T=7`.
+
+**[E:centring]** — the rule is established separately for each kind of
+object that carries a pixel byte, by three independent methods: tanks in
+[E:centre-square], shells in [E:shell-centre], and LGMs here.
+
+An LGM's square shows up in events it causes — `FF 50` pill plant,
+`FF 51` pill dump, `F5` LGM death — which name a square outright. Testing
+its last reported position against those, over the corpus:
+
+| offset | plants on the named square | LGM deaths |
+|---|---|---|
+| +0 px | 28.2% | 27.3% |
+| +4 px | 75.2% | 68.4% |
+| **+8 px** | **88.4%** | **81.3%** |
+| +12 px | 73.9% | 68.0% |
+
+(28,264 plants and 6,444 deaths). Neither peak reaches 100% because the
+LGM keeps walking between its last position restatement and the event.
+Parachutes ride the same subpacket as LGMs, so presumably share the
+convention, but no square-addressed event is caused by one, so it is
+untested. `FB` (shell falls) carries a pixel byte too and is **not**
+settled: matching it against the sender's in-flight shells fails because
+the shell travels on after its last restatement, and matching it against
+a co-occurring explosion fails because the two are not causally paired
+(best fit 2.7%).
 
 **[E:shell-centre]** — fitted against the terrain the corpus says a shell
 cannot be inside. Reading 9,838,080 shell restatements at a range of
