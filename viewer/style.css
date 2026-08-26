@@ -30,6 +30,28 @@ body {
 	background: #0a0e16;
 }
 
+#coordinateDebug {
+	position: absolute;
+	top: 10px;
+	left: 10px;
+	padding: 5px 8px;
+	background: rgba(10, 14, 22, 0.88);
+	border: 1px solid #53617b;
+	border-radius: 4px;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+	color: #cfd6e4;
+	font: 12px/1.4 ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
+	font-variant-numeric: tabular-nums;
+	pointer-events: none;
+	z-index: 1;
+}
+
+#coordinateDebug span {
+	display: inline-block;
+	min-width: 9ch;
+	text-align: right;
+}
+
 #dropHint {
 	position: absolute;
 	inset: 0 0 40px 0;

@@ -55,6 +55,7 @@ let use_obj_sprites = true;
 let use_lgm_sprites = true;
 let use_big_shots = false;
 let use_simple_terrain = false;
+let coordinate_debug_enabled = false;
 let obj_imgs = new Map();
 
 function load_obj_sprites() {
@@ -163,6 +164,9 @@ let seek_el = document.getElementById("seek");
 let speed_el = document.getElementById("speed");
 let viewpoint_el = document.getElementById("viewpoint");
 let zoom_label = document.getElementById("zoomLabel");
+let coordinate_debug_el = document.getElementById("coordinateDebug");
+let coordinate_tile_el = document.getElementById("coordinateTile");
+let coordinate_pixel_el = document.getElementById("coordinatePixel");
 let drop_hint = document.getElementById("dropHint");
 let map_name_el = document.getElementById("mapName");
 let game_meta_el = document.getElementById("gameMeta");
@@ -212,6 +216,32 @@ function css_size() {
 }
 function tile_to_screen_x(tx) { return (tx - view.ox) * view.zoom; }
 function tile_to_screen_y(ty) { return (ty - view.oy) * view.zoom; }
+
+let hover_point = null;
+let pointer_buttons = 0;
+
+function hover_point_from_event(e) {
+	if (e.offsetX < 0 || e.offsetY < 0 ||
+		e.offsetX >= canvas.clientWidth || e.offsetY >= canvas.clientHeight) return null;
+	return { x: e.offsetX, y: e.offsetY };
+}
+
+function update_coordinate_debug() {
+	if (!coordinate_debug_enabled || !cur || !hover_point || pointer_buttons !== 0) {
+		coordinate_debug_el.hidden = true;
+		return;
+	}
+	let pixel_x = Math.floor((view.ox + hover_point.x / view.zoom) * OBJ_NATIVE_TILE);
+	let pixel_y = Math.floor((view.oy + hover_point.y / view.zoom) * OBJ_NATIVE_TILE);
+	let max_pixel = MAP_SIZE * OBJ_NATIVE_TILE;
+	if (pixel_x < 0 || pixel_y < 0 || pixel_x >= max_pixel || pixel_y >= max_pixel) {
+		coordinate_debug_el.hidden = true;
+		return;
+	}
+	coordinate_tile_el.textContent = `${Math.floor(pixel_x / OBJ_NATIVE_TILE)}, ${Math.floor(pixel_y / OBJ_NATIVE_TILE)}`;
+	coordinate_pixel_el.textContent = `${pixel_x}, ${pixel_y}`;
+	coordinate_debug_el.hidden = false;
+}
 
 function centre_locked_player() {
 	if (!player_locked || !game || !cur || viewpoint < 0) return false;
@@ -481,6 +511,7 @@ function draw() {
 	draw_shells();
 	draw_men();
 	draw_tanks();
+	update_coordinate_debug();
 }
 
 function side_color(player) {
@@ -839,6 +870,11 @@ function toggle_simple_terrain() {
 	request_draw();
 }
 
+function toggle_coordinate_debug() {
+	coordinate_debug_enabled = !coordinate_debug_enabled;
+	update_coordinate_debug();
+}
+
 function toggle_player_lock() {
 	if (!game || viewpoint < 0) return;
 	player_locked = !player_locked;
@@ -899,6 +935,11 @@ function save_initial_map() {
 }
 
 window.addEventListener("keydown", e => {
+	if (e.code === "KeyD" && (e.ctrlKey || e.metaKey)) {
+		e.preventDefault();
+		toggle_coordinate_debug();
+		return;
+	}
 	if (!game) return;
 	if (e.code === "KeyS" && (e.ctrlKey || e.metaKey)) {
 		e.preventDefault(); /* it's our save now, not the browser's */
@@ -932,12 +973,17 @@ window.addEventListener("keydown", e => {
 
 let panning = false, pan_start = null;
 canvas.addEventListener("pointerdown", e => {
+	pointer_buttons = e.buttons;
+	hover_point = hover_point_from_event(e);
+	update_coordinate_debug();
 	panning = true;
 	pan_start = { mx: e.offsetX, my: e.offsetY, ox: view.ox, oy: view.oy };
 	canvas.setPointerCapture(e.pointerId);
 	canvas.style.cursor = "grabbing";
 });
 canvas.addEventListener("pointermove", e => {
+	pointer_buttons = e.buttons;
+	hover_point = hover_point_from_event(e);
 	if (panning && pan_start) {
 		if (e.offsetX !== pan_start.mx || e.offsetY !== pan_start.my) player_locked = false;
 		view.ox = pan_start.ox - (e.offsetX - pan_start.mx) / view.zoom;
@@ -945,14 +991,28 @@ canvas.addEventListener("pointermove", e => {
 		clamp_view();
 		request_draw();
 	}
+	update_coordinate_debug();
 });
-function end_pan() {
+function end_pan(e) {
 	panning = false;
 	pan_start = null;
+	pointer_buttons = e.buttons;
+	if (e.type === "pointercancel") hover_point = null;
+	else hover_point = hover_point_from_event(e);
 	canvas.style.cursor = "grab";
+	update_coordinate_debug();
 }
 canvas.addEventListener("pointerup", end_pan);
 canvas.addEventListener("pointercancel", end_pan);
+canvas.addEventListener("pointerleave", () => {
+	hover_point = null;
+	update_coordinate_debug();
+});
+canvas.addEventListener("pointerenter", e => {
+	pointer_buttons = e.buttons;
+	hover_point = hover_point_from_event(e);
+	update_coordinate_debug();
+});
 
 canvas.addEventListener("wheel", e => {
 	e.preventDefault();
@@ -1002,6 +1062,7 @@ if (window.api) {
 			case "toggle-lgm-sprites": toggle_lgm_sprites(); break;
 			case "toggle-big-shots": toggle_big_shots(); break;
 			case "toggle-simple-terrain": toggle_simple_terrain(); break;
+			case "toggle-coordinate-debug": toggle_coordinate_debug(); break;
 			case "save-map": save_initial_map(); break;
 		}
 	});
