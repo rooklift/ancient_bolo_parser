@@ -49,7 +49,14 @@
  * 2. UNDER-CLEARING — a phantom tree the rule failed to fell:
  *      - a pillbox PLANTED on a square the rule still believes is forest.
  *        Plants on forest are impossible, so this is categorical: a single
- *        occurrence convicts the rule.
+ *        occurrence convicts the rule;
+ *      - a tree GROWING on a square the rule still believes is forest.
+ *        Forest regrows with an explicit terrain event, and a tree cannot
+ *        grow where one already stands, so the square was really grass —
+ *        and since the rule never cleared it and no event ever cleared it,
+ *        nothing innocent is left.  This is the sharpest evidence in the
+ *        table: it convicts a rule using the game's own events, with no
+ *        appeal to shells or geometry.
  *
  * A rule that is too small accumulates plants; one that is too large
  * accumulates contradictions and hidden-tank hits.  The right size is the
@@ -221,6 +228,7 @@ function new_stats() {
 		hidden_tank_evidence: 0,
 		other_mutations: 0,
 		plants_on_forest: 0,
+		regrowth_anomalies: 0,
 		contradiction_samples: [],
 		hidden_tank_samples: [],
 		plant_samples: [],
@@ -244,6 +252,8 @@ function set_terrain(model, x, y, terrain, evidence) {
 	if (x < 0 || y < 0 || x >= MAP_SIZE || y >= MAP_SIZE)
 		return;
 	let key = square_key(x, y);
+	if (evidence && is_forest(terrain) && is_forest(model.grid[key]))
+		model.stats.regrowth_anomalies++;
 	let pending = model.pending.get(key);
 	if (pending && evidence) {
 		if (is_forest(terrain)) {
@@ -428,9 +438,10 @@ root: ${ROOT}
 dying sequences: ${totals.centre.dying_sequences}
 
 Over-clearing is measured by contradictions (a tree provably still
-standing) and hidden-tank hits.  Under-clearing is measured by pillbox
-plants on model-forest, which is categorical: planting on forest is
-impossible, so a single one convicts the rule.  The right size holds
+standing) and hidden-tank hits.  Under-clearing is measured two ways,
+both categorical: pillboxes PLANTED on model-forest, and trees GROWING
+on model-forest.  Neither is possible if the tree is really there, so a
+single occurrence of either convicts the rule.  The right size holds
 both sides down at once.
 `);
 
@@ -441,6 +452,7 @@ const COLUMNS = [
 	["contra<=1s", 11],
 	["hidden", 7],
 	["plants", 7],
+	["regrown", 8],
 ];
 console.log("  " + COLUMNS.map(([h, w]) => h.padStart(w)).join(""));
 for (let [name, s] of Object.entries(totals)) {
@@ -451,6 +463,7 @@ for (let [name, s] of Object.entries(totals)) {
 		s.contradictions_le_1s,
 		s.hidden_tank_evidence,
 		s.plants_on_forest,
+		s.regrowth_anomalies,
 	];
 	console.log("  " + row.map((v, i) => String(v).padStart(COLUMNS[i][1])).join(""));
 }
@@ -464,8 +477,12 @@ same delayed contradictions, the same hidden-tank hits and the same zero
 plants.  box_8 fixes the size by over-clearing catastrophically.  So the
 boundary is Chebyshev at 7.  box_7_pm is the shipped rule; sparing forest
 under a grounded pillbox takes the delayed contradictions from 14 to
-zero.  The corners are confirmed independently by tree regrowth — see
-FORMAT.md [E:forest-circle].
+zero.
+
+The "regrown" column is the independent confirmation of the corners.
+Every one of the circle's anomalies is a square the box would have
+cleared and the circle did not; the box drives the column to zero
+without any appeal to shells or geometry.
 `);
 
 if (SAMPLES) {
