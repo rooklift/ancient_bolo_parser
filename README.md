@@ -46,7 +46,7 @@ Bolo's tile art, tanks/men/shells/pills/bases live, transient explosion
 effects, alliance team colours, a message-wire panel, seeking, speeds up to
 50×, and a viewpoint selector choosing whose side draws as friendly.
 
-![viewer screenshot](docs/viewer.png)
+<img width="1280" height="860" alt="viewer screenshot" src="https://github.com/user-attachments/assets/cd56620e-6c36-4640-b351-3a3b964524eb" />
 
 ```
 cd viewer
