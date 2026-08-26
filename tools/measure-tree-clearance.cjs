@@ -44,28 +44,32 @@
  *        centre on a square the rule had already cleared.
  *
  * 2. UNDER-CLEARING — a phantom tree the rule failed to fell:
- *      - a pillbox PLANTED on a square the rule still believes is forest
- *        (plants on forest are impossible);
- *      - shells restated in flight THROUGH a model-forest square (forest
- *        blocks shells).  Squares crossed >= 3 times are near-certain
- *        phantoms; one or two crossings can be offset-decode noise.
+ *      - a pillbox PLANTED on a square the rule still believes is forest.
+ *        Plants on forest are impossible, so this is categorical: a single
+ *        occurrence convicts the rule.
  *
- * A rule that is too small accumulates phantoms and plants; one that is
- * too large accumulates contradictions and hidden-tank hits.  The right
- * size is the one that holds both down at once.
+ * A rule that is too small accumulates plants; one that is too large
+ * accumulates contradictions and hidden-tank hits.  The right size is the
+ * one that holds both down at once.
  *
  * Shell falls (`FB`) onto forest are NOT counted either way: an
  * end-of-range shell lands harmlessly on a forest square without felling
  * the tree.
  *
- * Note the corpus also holds a large population of phantom squares that
- * survive even the widest rule here — they come from some other eventless
- * mechanism entirely.  Compare the models to each other, never to zero.
+ * REMOVED DETECTOR, and why.  Earlier rounds also counted shells seen in
+ * a model-forest square, reasoning that forest stops shells.  That count
+ * was junk: it read a shell's position as `x * 16 + px`, but a shell's
+ * stored coordinate is a top-left like a tank's, and the game point is
+ * half a tile further on (see FORMAT.md, `0d`-`3d`).  Centring the shell
+ * collapses shells-inside-forest from 83,626 to 7,055 across the corpus,
+ * a sharp minimum at exactly +8px, and what remains is consistent with
+ * ordinary frames just before impact.  There is no phantom-tree
+ * population; there was an off-by-half-a-tile.  Any future attempt at
+ * this detector must centre the shell first.
  *
  * Usage:
- *   node tools/measure-tree-clearance.cjs [corpus-dir] [--fast] [--samples]
+ *   node tools/measure-tree-clearance.cjs [corpus-dir] [--samples]
  *
- * --fast skips the shell-crossing analysis (the expensive part).
  * --samples prints example sites for each kind of evidence.
  */
 "use strict";
@@ -76,7 +80,6 @@ const BoloLog = require(path.join(__dirname, "..", "viewer", "logparse.js"));
 const BoloGame = require(path.join(__dirname, "..", "viewer", "game.js"));
 
 const args = process.argv.slice(2).filter(a => !a.startsWith("--"));
-const FAST = process.argv.includes("--fast");
 const SAMPLES = process.argv.includes("--samples");
 const ROOT = args[0] || "C:/Users/Owner/__DOCS/Bolo Archives/Nemokrad's Bolo logs";
 
@@ -87,7 +90,6 @@ const GRASS = 7;
 const MINED_FOREST = 13;
 const MINED_GRASS = 15;
 const SAMPLE_CAP = 25;
-const CROSSING_PHANTOM_THRESHOLD = 3;
 
 function is_forest(terrain) {
 	return terrain === FOREST || terrain === MINED_FOREST;
@@ -194,12 +196,9 @@ function new_stats() {
 		hidden_tank_evidence: 0,
 		other_mutations: 0,
 		plants_on_forest: 0,
-		crossings: 0,
-		phantom_squares: 0,
 		contradiction_samples: [],
 		hidden_tank_samples: [],
 		plant_samples: [],
-		phantom_samples: [],
 	};
 }
 
@@ -212,7 +211,6 @@ function new_model(seed) {
 	return {
 		grid: BoloGame.initial_state(seed).grid,
 		pending: new Map(),
-		cross_counts: new Map(),
 		stats: new_stats(),
 	};
 }
@@ -278,53 +276,6 @@ function apply_explicit_event(model, seed, sub, evidence) {
 	set_terrain(model, sub.x, sub.y, sub.code, evidence);
 }
 
-/* Shells jump between restatements, so walk the segment between a shell
- * and its predecessor; an intermediate model-forest square means the shell
- * flew through a tree the model still believes in. */
-function check_crossings(model, file, time, prev, now) {
-	for (let sh of now) {
-		let px = sh.x * 16 + sh.px;
-		let py = sh.y * 16 + sh.py;
-		let best = null;
-		let best_distance = Infinity;
-		for (let p of prev) {
-			if (p.direction !== sh.direction)
-				continue;
-			let qx = p.x * 16 + p.px;
-			let qy = p.y * 16 + p.py;
-			let distance = Math.hypot(px - qx, py - qy);
-			if (distance > 0 && distance < 128 && distance < best_distance) {
-				best = {qx, qy};
-				best_distance = distance;
-			}
-		}
-		if (!best)
-			continue;
-		let steps = Math.ceil(best_distance / 4);
-		for (let i = 1; i < steps; i++) {
-			let ix = Math.round(best.qx + (px - best.qx) * i / steps);
-			let iy = Math.round(best.qy + (py - best.qy) * i / steps);
-			let sx = ix >> 4;
-			let sy = iy >> 4;
-			if ((sx === (px >> 4) && sy === (py >> 4)) ||
-					(sx === (best.qx >> 4) && sy === (best.qy >> 4)))
-				continue;
-			if (is_forest(model.grid[square_key(sx, sy)])) {
-				model.stats.crossings++;
-				let key = `${sx},${sy}`;
-				let count = (model.cross_counts.get(key) || 0) + 1;
-				model.cross_counts.set(key, count);
-				if (count === CROSSING_PHANTOM_THRESHOLD) {
-					model.stats.phantom_squares++;
-					add_sample(model.stats.phantom_samples,
-						`${file} ~${format_time(time)} (${key}) crossed x${CROSSING_PHANTOM_THRESHOLD}+`);
-				}
-				break;
-			}
-		}
-	}
-}
-
 function scan_file(file, totals) {
 	let bytes = new Uint8Array(fs.readFileSync(file));
 	if (!is_log(bytes))
@@ -339,7 +290,6 @@ function scan_file(file, totals) {
 	 * shell lists and locate grounded pills; terrain truth lives in the
 	 * per-model grids. */
 	let engine = BoloGame.initial_state(seed);
-	let previous_shells = Array.from({length: 16}, () => []);
 	let in_death_sequence = Array.from({length: 16}, () => false);
 
 	for (let record of records) {
@@ -420,15 +370,6 @@ function scan_file(file, totals) {
 		}
 
 		BoloGame.apply_record(engine, record, null, null);
-		if (!FAST) {
-			let now = engine.shells[record.player] || [];
-			let prev = previous_shells[record.player];
-			if (now.length && prev.length) {
-				for (let model of Object.values(models))
-					check_crossings(model, relative_file, record.time, prev, now);
-			}
-			previous_shells[record.player] = now;
-		}
 	}
 
 	for (let [name, model] of Object.entries(models)) {
@@ -457,14 +398,15 @@ for (let file of walk(ROOT)) {
 
 console.log(`
 ================ forest clearance around a dying tank ================
-logs: ${files}${FAST ? "   (--fast: shell crossings skipped)" : ""}
+logs: ${files}
 root: ${ROOT}
 dying sequences: ${totals.centre.dying_sequences}
 
 Over-clearing is measured by contradictions (a tree provably still
-standing) and hidden-tank hits.  Under-clearing is measured by pill
-plants on model-forest and by phantom squares shells fly through.
-The right size holds both columns down at once.
+standing) and hidden-tank hits.  Under-clearing is measured by pillbox
+plants on model-forest, which is categorical: planting on forest is
+impossible, so a single one convicts the rule.  The right size holds
+both sides down at once.
 `);
 
 const COLUMNS = [
@@ -474,7 +416,6 @@ const COLUMNS = [
 	["contra<=1s", 11],
 	["hidden", 7],
 	["plants", 7],
-	["phantoms", 9],
 ];
 console.log("  " + COLUMNS.map(([h, w]) => h.padStart(w)).join(""));
 for (let [name, s] of Object.entries(totals)) {
@@ -485,17 +426,18 @@ for (let [name, s] of Object.entries(totals)) {
 		s.contradictions_le_1s,
 		s.hidden_tank_evidence,
 		s.plants_on_forest,
-		FAST ? "-" : s.phantom_squares,
 	];
 	console.log("  " + row.map((v, i) => String(v).padStart(COLUMNS[i][1])).join(""));
 }
 
 console.log(`
-Reading the table: "centre" is far too small — it leaves the most
-phantoms and pill plants.  The two widest rules over-clear, showing up as
-inflated contradiction and hidden-tank counts.  The pill-masked radius-8
-circle is the shipped rule; sparing forest under a grounded pillbox is
-what separates it from plain radius_8.
+Reading the table: "centre" is far too small — it leaves 53 impossible
+pill plants.  Widening drives that to zero at radius 8.  The two rules
+wider still over-clear, showing an order-of-magnitude jump in delayed
+contradictions and hidden-tank hits.  So the boundary sits between an
+open and a closed radius-8 circle.  The pill-masked variant is the
+shipped rule; sparing forest under a grounded pillbox takes the delayed
+contradictions from 14 to zero.
 `);
 
 if (SAMPLES) {
@@ -505,7 +447,6 @@ if (SAMPLES) {
 			["contradictions", s.contradiction_samples],
 			["hidden-tank", s.hidden_tank_samples],
 			["plants on forest", s.plant_samples],
-			["phantom squares", s.phantom_samples],
 		]) {
 			if (!list.length)
 				continue;
