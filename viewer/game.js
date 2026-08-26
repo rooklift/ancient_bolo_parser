@@ -1002,6 +1002,22 @@ function state_at(game, tick) {
 	return { state: s, index: i };
 }
 
+/* Find the adjacent moment at which records arrived. Multiple records with
+ * the same timestamp form one change, rather than separate playback steps. */
+function adjacent_change_time(records, tick, direction) {
+	if (records.length === 0) return tick;
+	let lo = 0, hi = records.length;
+	while (lo < hi) {
+		let mid = (lo + hi) >> 1;
+		let before_boundary = direction < 0 ?
+			records[mid].time < tick : records[mid].time <= tick;
+		if (before_boundary) lo = mid + 1;
+		else hi = mid;
+	}
+	if (direction < 0) return lo > 0 ? records[lo - 1].time : records[0].time;
+	return lo < records.length ? records[lo].time : records[records.length - 1].time;
+}
+
 /* Alliance team id for colouring: lowest player index in the mutual group. */
 function team_of(s, player) {
 	for (let i = 0; i < 16; i++) {
@@ -1016,6 +1032,7 @@ const BoloGame = {
 	MAP_SIZE, DEEP_SEA, TICKS_PER_SECOND, NEUTRAL, KEYFRAME_EVERY,
 	MAX_POSITION_INTERPOLATION_TICKS,
 	initial_state, clone_state, apply_record, build, state_at, team_of,
+	adjacent_change_time,
 	tank_position_at, lgm_position_at,
 	extract_initial_map,
 };
