@@ -146,6 +146,20 @@ if (!fs.existsSync(log1)) {
 	check("pill masks its ground from a single crater", st.grid[10 * 256 + 11], 13);
 }
 
+// Pill-fire events are always retained so the renderer can toggle their
+// flashes without rebuilding an already-loaded replay.
+{
+	let st = BoloGame.initial_state();
+	let effects = [];
+	st.pills = [{ x: 11, y: 12, owner: 0, armour: 8, speed: 50, inTank: null }];
+	BoloGame.apply_record(st, {
+		time: 123, seq: 0, status: 0, player: 0, tankStatus: 0, tankDir: 0,
+		subpackets: [{ type: "pillbox_fires", pillbox: 0, direction: 3 }],
+	}, effects, null);
+	check("pill fire creates a toggleable flash effect", effects,
+		[{ time: 123, type: "pill_fire", x: 11, y: 12 }]);
+}
+
 // Alliance transitivity: accepting one member of an alliance joins you to
 // all of it, but the log only events the pairwise link. Reproduces the
 // pattern from a real 3v3 (B accepts C; C accepts A; no direct A-B event).

@@ -84,6 +84,8 @@ For map debugging, **Cmd/Ctrl+D** (or View → Toggle coordinate debug
 mode) shows the hovered tile (0–255) and world-pixel (0–4095) coordinates
 whenever no mouse button is held. **Cmd/Ctrl+I** (or View → Toggle
 pillbox IDs) labels every planted pillbox with its zero-based ID.
+**Cmd/Ctrl+F** (or View → Toggle pill-fire flashes) shows a brief flash
+whenever a pillbox fires; these flashes are off by default.
 
 ## Status
 
