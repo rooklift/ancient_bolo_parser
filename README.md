@@ -1,4 +1,8 @@
-# ancient_bolo_parser
+Preamble: although this is entirely AI-coded, you (dear reader) have no idea the
+lengths Claude, Sol, and myself have gone through getting everything to work just
+right. The amount of science we did on Bolo replays is quite absurd.
+
+# Ancient Bolo Parser
 
 A parser for log files written by the classic Macintosh
 tank game **Bolo** (Stuart Cheshire, version 0.99.7bv).
@@ -34,7 +38,7 @@ for (const rec of records(new Uint8Array(fs.readFileSync(file)))) {
 }
 ```
 
-## Ancient Bolo Log Viewer
+# Ancient Bolo Log Viewer
 
 `viewer/` is the Ancient Bolo Log Viewer — so named since WinBolo has its
 own, modern log format — an Electron app that plays logs back: terrain rendered with
