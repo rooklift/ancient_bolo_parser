@@ -132,9 +132,11 @@ function tank_square(t) {
 	return { x: (t.x * 16 + t.px + 8) >> 4, y: (t.y * 16 + t.py + 8) >> 4 };
 }
 
-/* Each dying-position update clears forest squares touched by an open
- * radius-8 circle around the tank centre. This is deliberately integer
- * geometry: a square is touched when its nearest pixel has d^2 < 8^2. */
+/* Each dying-position update clears forest squares touched by a
+ * 15x15 pixel box around the tank centre: a square is touched when its
+ * nearest pixel lies within 7 pixels on BOTH axes. Chebyshev, not
+ * Euclidean — the corners are cleared too, and they matter. Integer
+ * comparisons only, no multiplication. See FORMAT.md [E:forest-circle]. */
 function* death_clearance_squares(t) {
 	const cx = t.x * 16 + t.pixelX + 8;
 	const cy = t.y * 16 + t.pixelY + 8;
@@ -142,7 +144,7 @@ function* death_clearance_squares(t) {
 		for (let sx = (cx - 7) >> 4; sx <= (cx + 7) >> 4; sx++) {
 			const dx = Math.max(sx * 16 - cx, cx - (sx * 16 + 15), 0);
 			const dy = Math.max(sy * 16 - cy, cy - (sy * 16 + 15), 0);
-			if (dx * dx + dy * dy < 64) yield [sx, sy];
+			if (dx <= 7 && dy <= 7) yield [sx, sy];
 		}
 	}
 }
@@ -277,7 +279,7 @@ function apply_record(s, rec, effects, chat) {
 					 * the sliding wreck is visible burning its way along */
 					if (effects) effects.push({ time: rec.time, type: "flame", x: sub.x, y: sub.y, px: sub.pixelX, py: sub.pixelY });
 					/* Forest clearing has no terrain event. Apply the same
-					 * strict integer circle at every wreck/flame position. */
+					 * strict integer box at every wreck/flame position. */
 					for (const [sx, sy] of death_clearance_squares(sub)) {
 						if (sx < 0 || sy < 0 || sx >= MAP_SIZE || sy >= MAP_SIZE) continue;
 						/* Bolo's terrain lookup appears to see the pillbox
@@ -686,7 +688,7 @@ function extract_initial_map_pass(records, death_pill_squares) {
 					if (sub.dying) {
 						/* eventless forest clearing at tank death (see
 						 * apply_record): every wreck position uses the same
-						 * strict radius-8 integer circle, except where a pill
+						 * strict 15x15 integer box, except where a pill
 						 * masks the underlying terrain */
 						const masked = death_pill_squares && death_pill_squares.get(sub);
 						for (const [sx, sy] of death_clearance_squares(sub)) {
