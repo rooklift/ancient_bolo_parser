@@ -118,7 +118,7 @@ nibble.
 | `4d` | 4 | unused (missile in flight) |
 | `5d` | 1 | shot fired from tank. The shell's first restatement sits 6-9 px from the tank centre, still inside the firer's own square. That opening frame does not fell the tree under the firer — though a shot that goes on to cross the square can still fell it [E:muzzle] |
 | `6T` | 3 | terrain change to type `T` at `XX YY` |
-| `7T` | 3 | explosion at `XX YY`; `T` = new terrain, or `B` = no terrain change, `C` = LGM plants mine, `D` = four-square superboom (craters the square and its E/S/SE neighbours, sparing water and bases). A superboom also deals 4 **eventless** damage to any pillbox in its four squares — no `9n` is sent [E:superboom-pill]. A single crater (`T` = 3) spares open water in the same way: on river or deep sea it changes nothing, because the terminal crater of a dying tank is sent whatever lies under the wreck. A **boat** square is not spared — it craters, and then floods [E:crater-water]. Crater *flooding*, by contrast, IS evented: water-adjacent craters become water via explicit terrain changes, 25–37 ticks (0.50–0.74 s) later |
+| `7T` | 3 | explosion at `XX YY`; `T` = new terrain, or `B` = no terrain change, `C` = LGM plants mine, `D` = four-square superboom (craters the square and its E/S/SE neighbours, sparing water, bases and pillbox squares). A superboom also deals 4 **eventless** damage to any pillbox in its four squares — no `9n` is sent [E:superboom-pill]. The pillbox's **ground**, though, is spared: a crater — single `7 3` or superboom — is dropped on any square holding a grounded pillbox, dead or alive, while the damage still lands [E:crater-pill]. A single crater (`T` = 3) spares open water in the same way: on river or deep sea it changes nothing, because the terminal crater of a dying tank is sent whatever lies under the wreck. A **boat** square is not spared — it craters, and then floods [E:crater-water]. Crater *flooding*, by contrast, IS evented: water-adjacent craters become water via explicit terrain changes, 25–37 ticks (0.50–0.74 s) later |
 | `8d` | 1 | unused |
 | `9n` | 1 | 1 damage to pillbox `n` |
 | `An` | 1 | 5 damage (one shell) to base `n` |
@@ -187,17 +187,22 @@ Playback must re-implement fragments of game logic:
   root — which is also what the corpus says. A grounded pillbox masks
   the terrain beneath it from this eventless clearance: if the box
   touches a pill-occupied forest square, leave the forest alone. This
-  exemption does not apply to explicit terrain changes or explosions; in
-  particular, an evented `7D` superboom still craters beneath and damages a
-  pillbox. The evented terminal cratering (`7T`/`7D`, see `F9`) is separate
-  and unaffected [E:forest-circle].
-- **A crater event on open water is a no-op.** The terminal `7 3` of a
+  exemption does not apply to explicit terrain changes in general — but
+  craters are masked by a pillbox in their own right, so an evented `7D`
+  superboom damages a pillbox without cratering the ground beneath it
+  [E:crater-pill]. The evented terminal cratering (`7T`/`7D`, see `F9`) is
+  otherwise separate from this clearance rule and unaffected
+  [E:forest-circle].
+- **A crater event on open water or a pillbox square is a no-op.** The terminal `7 3` of a
   dying tank is emitted whatever lies under the wreck, and Bolo's
   cratering primitive spares river and deep sea, so playback must drop
   it — otherwise a crater appears mid-river and, nothing being left to
   flood it back, stays there for the rest of the replay. A boat square is
   the exception: it does crater (destroying the boat) and then floods
-  back to river, evented like any other flood [E:crater-water].
+  back to river, evented like any other flood [E:crater-water]. A square
+  holding a grounded pillbox, dead or alive, is spared the same way, by
+  both crater paths — a superboom over one still deals its 4 damage, but
+  leaves the ground alone [E:crater-pill].
 - **The delayed second explosion of a dying tank is its cargo** — the
   ammunition cooking off, ~0.9 s after the initial `F9`. The `7D` events
   are logged, so playback needs no rule here [E:superboom-cargo].
@@ -414,6 +419,47 @@ then queues a flood check (`tankexp.c`), its big explosion excludes
 `BOAT` as well (matching `7D`'s water sparing), and `floodCheckFill`
 fills on any orthogonal `RIVER`/`BOAT`/`DEEP_SEA` after
 `FLOOD_FILL_WAIT`, chaining into neighbouring craters (`floodfill.c`).
+
+**[E:crater-pill]** — the same flood read-out as [E:crater-water], applied
+to pillbox squares. Across the corpus 2,456 crater events land on a square
+holding a grounded pill; 43 of those squares have an orthogonal water
+neighbour, so whether the ground changed can be read back from whether it
+floods. Against the same event on bare ground:
+
+| square | kind | n | flooded within 3 s |
+|---|---|---|---|
+| no pill, plain | `7 3` | 303 | 300 (99%) |
+| no pill, mined | `7 3` | 304 | 299 (98%) |
+| no pill, plain | `7D` | 94 | 92 (98%) |
+| **dead pill, plain** | `7 3` | 24 | **0** |
+| **dead pill, plain** | `7D` | 5 | **0** |
+| **live pill, plain** | `7D` | 1 | **0** |
+| dead pill, mined | `7 3` | 13 | 5 (38%) |
+
+Median flood delay is 0.56–0.58 s throughout, the [E:crater-water] figure.
+Waiting for the pill to be picked up rescues none of the null cases: in a
+separate pass each square was followed to the end of its log (the tool
+checks only the 3 s window), and the only late floods — 198 s, 556 s,
+2,556 s — arrive 0.5–0.7 s after a *fresh* crater on that square once the
+pill had gone, the ordinary rule rather than a deferred one. This is what
+corrects the older claim that a `7D` craters beneath a pillbox; the
+eventless damage of [E:superboom-pill] is untouched, since both readings
+damage the pill and only the ground distinguishes them.
+
+The **mined** row is unresolved and deliberately left so. All thirteen rest
+on pill positions our own serpentine death-dump model placed rather than on
+events (41 of the 43 do), and near-water dumps are exactly where that model
+would diverge. Two of the five floods carry proof the pill was not there at
+all: a man later builds a **boat** on the square while the model still shows
+a pill on it, which Bolo forbids. Corpus-wide only 3 of 97,139 build events
+land on a believed-pill square — 0 of 28,855 evented placements against 3 of
+5,710 modelled ones — and **two of those three** land on squares in this
+43-square set, where chance would put 0.02 of them. The alternative
+reading, that a mine detonating under a pill craters regardless, cannot be
+separated from it: both reach the log as a bare `7 3`. Playback therefore
+spares the pill square in every case, which is wrong only if that second
+reading is the true one.
+`node tools/measure-crater-pill.cjs`.
 
 **[E:ammo-clamp]** — reconstructing tank ammo across 12,583 lives that
 begin at an observed respawn (see [E:death-tiers]), every out-of-range
