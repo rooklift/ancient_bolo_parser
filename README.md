@@ -1,6 +1,6 @@
 # ancient_bolo_parser
 
-A parser for game log files ("replays") written by the classic Macintosh
+A parser for log files written by the classic Macintosh
 tank game **Bolo** (Stuart Cheshire, version 0.99.7bv).
 
 Bolo could record games via "Log Events to File…" but never shipped a way to
