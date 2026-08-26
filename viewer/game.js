@@ -344,9 +344,15 @@ function apply_record(s, rec, effects, chat) {
 			case "shot_fired":
 				/* no visual, same as pillbox_fires: the shell itself suffices */
 				break;
-			case "terrain_change":
-				set_terrain(s, sub.x, sub.y, sub.terrain);
+			case "terrain_change": {
+				/* Tree-growth events report plain forest even when the grass
+				 * already contains a mine. Preserve that mine in this one
+				 * transition; all other terrain changes remain authoritative. */
+				let old_terrain = s.grid[sub.y * MAP_SIZE + sub.x];
+				let terrain = old_terrain === 15 && sub.terrain === 5 ? 13 : sub.terrain;
+				set_terrain(s, sub.x, sub.y, terrain);
 				break;
+			}
 			case "explosion":
 				if (sub.code === 0x0b) {
 					if (effects) effects.push({ time: rec.time, type: "boom", x: sub.x, y: sub.y });
