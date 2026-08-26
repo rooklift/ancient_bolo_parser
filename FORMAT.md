@@ -411,18 +411,18 @@ rule; too large a rule fells trees that provably still stood, showing up
 as delayed repeat-clear events and as live tanks reporting the
 hidden-in-trees bit. Over 15,406 dying sequences:
 
-| rule | cleared | contra >1s | contra ≤1s | hidden | plants |
-|---|---|---|---|---|---|
-| centre only | 6984 | 1 | 12 | 0 | 53 |
-| circle radius 6 | 14082 | 14 | 51 | 6 | 17 |
-| circle radius 7 | 15362 | 14 | 57 | 6 | 7 |
-| circle radius 8 | 16730 | 14 | 62 | 7 | 0 |
-| circle radius 8, pill-masked | 16692 | 0 | 62 | 2 | 0 |
-| circle radius 8 closed | 17488 | 318 | 122 | 60 | 0 |
-| **box 7** | 17228 | 14 | 64 | 7 | 0 |
-| **box 7, pill-masked** | **17191** | **0** | **64** | **2** | **0** |
-| box 8 | 18860 | 725 | 193 | 112 | 0 |
-| full footprint | 18001 | 353 | 125 | 54 | 0 |
+| rule | cleared | contra >1s | contra ≤1s | hidden | plants | regrown |
+|---|---|---|---|---|---|---|
+| centre only | 6984 | 1 | 12 | 0 | 53 | 1774 |
+| circle radius 6 | 14082 | 14 | 51 | 6 | 17 | 645 |
+| circle radius 7 | 15362 | 14 | 57 | 6 | 7 | 409 |
+| circle radius 8 | 16730 | 14 | 62 | 7 | 0 | 116 |
+| circle radius 8, pill-masked | 16692 | 0 | 62 | 2 | 0 | 116 |
+| circle radius 8 closed | 17488 | 318 | 122 | 60 | 0 | 109 |
+| **box 7** | 17228 | 14 | 64 | 7 | 0 | **0** |
+| **box 7, pill-masked** | **17191** | **0** | **64** | **2** | **0** | **0** |
+| box 8 | 18860 | 725 | 193 | 112 | 0 | 0 |
+| full footprint | 18001 | 353 | 125 | 54 | 0 | 0 |
 
 Radius 8 is the smallest *circle* that eliminates pill plants, but the box
 of half-width 7 dominates it: every square the circle clears has
@@ -434,16 +434,20 @@ boundary is Chebyshev at 7, and the corners the circle was cutting off were
 real. The residual 64 repeat-clears are all within one second, where
 redundant reports and event ordering are common.
 
-The corners are confirmed independently, by regrowth. Forest grows back with
-an explicit terrain event, and a tree cannot grow where one already stands —
-so a growth event landing on a tile the *circle* model still believes is
-forest proves that tile was really grass. Such a tile has by construction
-never been cleared by an event and never fallen inside any death's circle,
-which leaves no innocent explanation. Across the corpus there are 116 such
-anomalies against 61,152 ordinary growth events, and **all 116 fall in the
-corner squares the box adds and the circle omits** — none anywhere else.
-The empty "elsewhere" bucket was the falsifier, and it also shows Bolo never
-restates growth on an already-forested tile.
+The `regrown` column settles it, and it is the sharpest evidence here
+because it uses nothing but the game's own events. Forest grows back with an
+explicit terrain change, and a tree cannot grow where one already stands — so
+a growth event on a tile a rule still believes is forest proves that tile was
+really grass. Such a tile has by construction never been cleared by an event
+and never fallen inside that rule's clearance, so nothing innocent is left.
+
+The column falls monotonically with coverage and reaches exactly zero at
+box 7, staying there for everything wider. So box 7 is the **smallest** rule
+that leaves no impossible regrowth, while box 8 is the first to over-clear
+badly: the two detectors close on the same answer from opposite sides. The
+circle's 116 residual anomalies all sit in the corners the box adds, against
+61,152 ordinary growth events elsewhere — and that Bolo never restates growth
+on an already-forested tile is what makes the count meaningful.
 
 The pill exception rests on unusually specific evidence: all nine later
 LGM farming events on cleared forest occur exactly on pill dump
