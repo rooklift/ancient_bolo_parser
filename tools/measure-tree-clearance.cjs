@@ -24,7 +24,10 @@
  *   radius_7      open pixel circle, dx^2 + dy^2 < 49
  *   radius_8      open pixel circle, dx^2 + dy^2 < 64
  *   radius_8_pm   radius_8, but forest under a grounded pillbox is spared
- *                 — the shipped rule
+ *   box_7         Chebyshev box, dx <= 7 && dy <= 7 — a strict superset
+ *                 of radius_8, adding only the corners
+ *   box_7_pm      box_7 with the pillbox exemption — the shipped rule
+ *   box_8         one pixel wider; a control
  *   radius_8_closed   dx^2 + dy^2 <= 64, one ring wider; a control
  *   footprint     every square the 16px character overlaps; a control
  *
@@ -123,6 +126,25 @@ function disc_squares(sub, limit, closed) {
 	return squares;
 }
 
+/* Squares within a bounding box of the given half-width -- Chebyshev
+ * rather than Euclidean.  Cheaper than the circle (no multiplies), which
+ * is the sort of thing 1990s code does, and it reaches `half` on the axes
+ * but half*sqrt(2) into the corners. */
+function box_squares(sub, half) {
+	let cx = sub.x * 16 + sub.pixelX + 8;
+	let cy = sub.y * 16 + sub.pixelY + 8;
+	let squares = [];
+	for (let y = (cy - half) >> 4; y <= (cy + half) >> 4; y++) {
+		for (let x = (cx - half) >> 4; x <= (cx + half) >> 4; x++) {
+			let dx = Math.max(x * 16 - cx, cx - (x * 16 + 15), 0);
+			let dy = Math.max(y * 16 - cy, cy - (y * 16 + 15), 0);
+			if (dx <= half && dy <= half)
+				squares.push([x, y]);
+		}
+	}
+	return squares;
+}
+
 /* Every square the tank's 16x16 character overlaps (up to 4). */
 function footprint_squares(sub) {
 	let wx = sub.x * 16 + sub.pixelX;
@@ -144,11 +166,14 @@ const RULES = {
 	radius_8: sub => disc_squares(sub, 64, false),
 	radius_8_pm: sub => disc_squares(sub, 64, false),
 	radius_8_closed: sub => disc_squares(sub, 64, true),
+	box_7: sub => box_squares(sub, 7),
+	box_7_pm: sub => box_squares(sub, 7),
+	box_8: sub => box_squares(sub, 8),
 	footprint: sub => footprint_squares(sub),
 };
 
 /* Only this rule spares forest beneath a grounded pillbox. */
-const PILL_MASKED = "radius_8_pm";
+const PILL_MASKED = new Set(["radius_8_pm", "box_7_pm"]);
 
 function* walk(dir) {
 	let entries;
@@ -306,7 +331,7 @@ function scan_file(file, totals) {
 						for (let [x, y] of rule(sub)) {
 							if (x < 0 || y < 0 || x >= MAP_SIZE || y >= MAP_SIZE)
 								continue;
-							if (name === PILL_MASKED && engine.pills.some(pill =>
+							if (PILL_MASKED.has(name) && engine.pills.some(pill =>
 								pill.inTank === null && pill.x === x && pill.y === y))
 								continue;
 							let key = square_key(x, y);
@@ -432,12 +457,15 @@ for (let [name, s] of Object.entries(totals)) {
 
 console.log(`
 Reading the table: "centre" is far too small — it leaves 53 impossible
-pill plants.  Widening drives that to zero at radius 8.  The two rules
-wider still over-clear, showing an order-of-magnitude jump in delayed
-contradictions and hidden-tank hits.  So the boundary sits between an
-open and a closed radius-8 circle.  The pill-masked variant is the
-shipped rule; sparing forest under a grounded pillbox takes the delayed
-contradictions from 14 to zero.
+pill plants.  Widening drives that to zero by radius 8.  But box_7
+dominates radius_8: every square the circle clears has dx, dy <= 7, so
+the box is a strict superset, and it clears ~500 more squares with the
+same delayed contradictions, the same hidden-tank hits and the same zero
+plants.  box_8 fixes the size by over-clearing catastrophically.  So the
+boundary is Chebyshev at 7.  box_7_pm is the shipped rule; sparing forest
+under a grounded pillbox takes the delayed contradictions from 14 to
+zero.  The corners are confirmed independently by tree regrowth — see
+FORMAT.md [E:forest-circle].
 `);
 
 if (SAMPLES) {

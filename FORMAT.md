@@ -177,14 +177,15 @@ Playback must re-implement fragments of game logic:
   last tank position, with no events [E:quit-pills].
 - **Every dying tank position clears nearby forest**, with no terrain
   events — the dying-bit positions are the only trace, and later sliding
-  wreck/flame positions use the same clearance as the first. The rule is an
-  *open radius-8 pixel circle* centred on the tank. For a terrain square,
-  let `dx` and `dy` be the horizontal and vertical distances from the
-  tank-centre pixel to the square's nearest pixel; fell its forest when
-  `dx² + dy² < 64`. Thus axial distance 7 and offset `(1,7)` are included,
-  `(7,7)` and axial distance 8 are not. The test uses squared integers only
-  — no square root or floating-point arithmetic. A grounded pillbox masks
-  the terrain beneath it from this eventless clearance: if the circle
+  wreck/flame positions use the same clearance as the first. The rule is a
+  **15×15 pixel box** centred on the tank. For a terrain square, let `dx`
+  and `dy` be the horizontal and vertical distances from the tank-centre
+  pixel to the square's nearest pixel; fell its forest when
+  `dx <= 7 && dy <= 7`. The boundary is Chebyshev, not Euclidean: the
+  `(7,7)` diagonal is cleared along with everything closer, while axial
+  distance 8 is not. Two integer comparisons, no multiplication, no square
+  root — which is also what the corpus says. A grounded pillbox masks
+  the terrain beneath it from this eventless clearance: if the box
   touches a pill-occupied forest square, leave the forest alone. This
   exemption does not apply to explicit terrain changes or explosions; in
   particular, an evented `7D` superboom still craters beneath and damages a
@@ -403,8 +404,8 @@ case both at once, lying together.
 shows a wreck moving in a cardinal direction can remove trees in two
 adjacent rows, which a centre-only trail cannot reproduce.
 
-Sweeping the clearance radius over the corpus brackets the size from both
-sides. Too small a rule leaves phantom trees, showing up as pillboxes
+Sweeping the clearance size and shape over the corpus brackets it from
+both sides. Too small a rule leaves phantom trees, showing up as pillboxes
 planted on modelled forest — impossible, so a single one convicts the
 rule; too large a rule fells trees that provably still stood, showing up
 as delayed repeat-clear events and as live tanks reporting the
@@ -413,25 +414,43 @@ hidden-in-trees bit. Over 15,406 dying sequences:
 | rule | cleared | contra >1s | contra ≤1s | hidden | plants |
 |---|---|---|---|---|---|
 | centre only | 6984 | 1 | 12 | 0 | 53 |
-| radius 6 | 14082 | 14 | 51 | 6 | 17 |
-| radius 7 | 15362 | 14 | 57 | 6 | 7 |
-| radius 8 | 16730 | 14 | 62 | 7 | 0 |
-| radius 8, pill-masked | 16692 | 0 | 62 | 2 | 0 |
-| radius 8 closed | 17488 | 318 | 122 | 60 | 0 |
+| circle radius 6 | 14082 | 14 | 51 | 6 | 17 |
+| circle radius 7 | 15362 | 14 | 57 | 6 | 7 |
+| circle radius 8 | 16730 | 14 | 62 | 7 | 0 |
+| circle radius 8, pill-masked | 16692 | 0 | 62 | 2 | 0 |
+| circle radius 8 closed | 17488 | 318 | 122 | 60 | 0 |
+| **box 7** | 17228 | 14 | 64 | 7 | 0 |
+| **box 7, pill-masked** | **17191** | **0** | **64** | **2** | **0** |
+| box 8 | 18860 | 725 | 193 | 112 | 0 |
 | full footprint | 18001 | 353 | 125 | 54 | 0 |
 
-Radius 8 open is the smallest rule that eliminates pill plants entirely,
-and the closed circle one ring wider is the first that over-clears
-badly — so the boundary sits exactly between `dx² + dy² < 64` and
-`≤ 64`. The residual 62 repeat-clears are all within one second, where
+Radius 8 is the smallest *circle* that eliminates pill plants, but the box
+of half-width 7 dominates it: every square the circle clears has
+`dx, dy <= 7`, so the box is a strict superset, and it clears 499 more
+squares at no cost whatever — the same 0 delayed contradictions, the same
+2 hidden-tank hits, the same 0 plants. Box 8 settles the size, over-clearing
+catastrophically at 725 delayed contradictions and 112 hidden hits. So the
+boundary is Chebyshev at 7, and the corners the circle was cutting off were
+real. The residual 64 repeat-clears are all within one second, where
 redundant reports and event ordering are common.
 
+The corners are confirmed independently, by regrowth. Forest grows back with
+an explicit terrain event, and a tree cannot grow where one already stands —
+so a growth event landing on a tile the *circle* model still believes is
+forest proves that tile was really grass. Such a tile has by construction
+never been cleared by an event and never fallen inside any death's circle,
+which leaves no innocent explanation. Across the corpus there are 116 such
+anomalies against 61,152 ordinary growth events, and **all 116 fall in the
+corner squares the box adds and the circle omits** — none anywhere else.
+The empty "elsewhere" bucket was the falsifier, and it also shows Bolo never
+restates growth on an already-forested tile.
+
 The pill exception rests on unusually specific evidence: all nine later
-LGM farming events on circle-cleared forest occur exactly on pill dump
+LGM farming events on cleared forest occur exactly on pill dump
 squares, as do all five delayed repeat-clear explosions and five of the
 seven hidden-tank conflicts. Applying it is what takes the delayed
 contradictions from 14 to zero and the hidden-tank conflicts from 7 to 2,
-at a cost of 38 clearances. The rule remains deliberately provisional.
+at a cost of 37 clearances.
 Reproduce with `node tools/measure-tree-clearance.cjs`.
 
 Earlier rounds carried a further under-clearing column, counting shells

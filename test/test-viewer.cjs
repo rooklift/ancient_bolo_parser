@@ -90,11 +90,15 @@ if (!fs.existsSync(log1)) {
 	st.grid[11 * 256 + 10] = 13;
 	st.grid[11 * 256 + 11] = 5;
 	die_at(100, 1); /* centre (169,169): nearest distances 7, 7 and (7,7) */
-	check("death circle includes axial radius 7",
+	check("death box includes axial radius 7",
 		[terrain(10, 10), terrain(11, 10), terrain(10, 11)], [7, 7, 15]);
-	check("death circle excludes diagonal (7,7)", terrain(11, 11), 5);
-	die_at(101, 7); /* centre (175,169): the remaining tree is now at (1,7) */
-	check("later wreck position reapplies death circle", terrain(11, 11), 7);
+	/* the clearance is Chebyshev, so the (7,7) diagonal goes too: the
+	 * corpus finds tree regrowth on exactly these corner squares, which
+	 * can only happen if they were cleared (FORMAT.md [E:forest-circle]) */
+	check("death box includes diagonal (7,7)", terrain(11, 11), 7);
+	st.grid[11 * 256 + 11] = 5; /* a tree grows back on that corner */
+	die_at(101, 7);
+	check("later wreck position reapplies the death box", terrain(11, 11), 7);
 }
 
 // A pillbox masks the forest beneath it from eventless wreck clearing, but
@@ -110,7 +114,7 @@ if (!fs.existsSync(log1)) {
 			direction: 0, inBoat: false, hidden: false, dying: true, speed: 0,
 		}],
 	}, null, null);
-	check("pill masks forest from death circle", st.grid[10 * 256 + 11], 13);
+	check("pill masks forest from death box", st.grid[10 * 256 + 11], 13);
 	BoloGame.apply_record(st, {
 		time: 101, seq: 1, status: 0, player: 0, tankStatus: 0, tankDir: 0,
 		subpackets: [{ type: "explosion", code: 0x0d, x: 11, y: 10 }],
