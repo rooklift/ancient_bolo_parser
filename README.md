@@ -38,7 +38,7 @@ for (const rec of records(new Uint8Array(fs.readFileSync(file)))) {
 
 `viewer/` is the Ancient Bolo Log Viewer — so named since WinBolo has its
 own, modern log format — an Electron app that plays logs back: terrain rendered with
-WinBolo's tile art, tanks/men/shells/pills/bases live, transient explosion
+Bolo's tile art, tanks/men/shells/pills/bases live, transient explosion
 effects, alliance team colours, a message-wire panel, seeking, speeds up to
 50×, and a viewpoint selector choosing whose side draws as friendly.
 
