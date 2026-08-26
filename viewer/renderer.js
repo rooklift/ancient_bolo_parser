@@ -57,6 +57,7 @@ let use_big_shots = false;
 let use_simple_terrain = false;
 let coordinate_debug_enabled = false;
 let pillbox_ids_enabled = false;
+let pill_fire_flashes_enabled = false;
 let obj_imgs = new Map();
 
 function load_obj_sprites() {
@@ -783,6 +784,14 @@ function draw_effects() {
 				ctx.fill();
 				break;
 			}
+			case "pill_fire": {
+				if (!pill_fire_flashes_enabled) break;
+				ctx.fillStyle = `rgba(255,255,180,${(1 - age) * 0.9})`;
+				ctx.beginPath();
+				ctx.arc(cx, cy, Math.max(1, (0.25 - age * 0.15) * z), 0, Math.PI * 2);
+				ctx.fill();
+				break;
+			}
 			case "splash": {
 				ctx.strokeStyle = `rgba(150,200,255,${1 - age})`;
 				ctx.lineWidth = 1;
@@ -904,6 +913,11 @@ function toggle_pillbox_ids() {
 	request_draw();
 }
 
+function toggle_pill_fire_flashes() {
+	pill_fire_flashes_enabled = !pill_fire_flashes_enabled;
+	request_draw();
+}
+
 function toggle_player_lock() {
 	if (!game || viewpoint < 0) return;
 	player_locked = !player_locked;
@@ -972,6 +986,11 @@ window.addEventListener("keydown", e => {
 	if (e.code === "KeyI" && (e.ctrlKey || e.metaKey)) {
 		e.preventDefault();
 		toggle_pillbox_ids();
+		return;
+	}
+	if (e.code === "KeyF" && (e.ctrlKey || e.metaKey)) {
+		e.preventDefault();
+		toggle_pill_fire_flashes();
 		return;
 	}
 	if (!game) return;
@@ -1118,6 +1137,7 @@ if (window.api) {
 			case "toggle-simple-terrain": toggle_simple_terrain(); break;
 			case "toggle-coordinate-debug": toggle_coordinate_debug(); break;
 			case "toggle-pillbox-ids": toggle_pillbox_ids(); break;
+			case "toggle-pill-fire-flashes": toggle_pill_fire_flashes(); break;
 			case "save-map": save_initial_map(); break;
 		}
 	});
