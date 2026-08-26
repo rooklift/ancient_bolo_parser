@@ -117,7 +117,7 @@ nibble.
 | `0d`–`3d` | 4/6/8/10 | a shell list: 1–4 shells in flight, 3 bytes `XX YY yx` for the first, 2 signed bytes of pixel offset for each additional — **chained**: each offset is relative to the *previous* shell in the list, not the first [E:shell-chained]. The direction nibble `d` belongs to the first shell only; shells of any direction may ride one list. A record may carry **several** shell lists concatenated (up to 12 seen in the wild): the sender's own shells plus those of any pillboxes it is currently simulating. Bolo migrates a firing pillbox's simulation to the machine it is shooting at, so pill shells ride in the *target's* restatements [E:pill-shell-migration]. Every record re-states *all* shells the sender is simulating, whatever the record's shape — a record with no shell lists means the sender simulates none [E:shell-restate]. The standalone map/node records carry no such implication; none has been seen while its sender had shells in flight. A shell's `XX YY yx` needs the usual half-tile centring [E:shell-centre] |
 | `4d` | 4 | unused (missile in flight) |
 | `5d` | 1 | shot fired from tank. The shell's first restatement sits 6-9 px from the tank centre, still inside the firer's own square. That opening frame does not fell the tree under the firer — though a shot that goes on to cross the square can still fell it [E:muzzle] |
-| `6T` | 3 | terrain change to type `T` at `XX YY` |
+| `6T` | 3 | terrain change to type `T` at `XX YY`. `T` names the **base** terrain and never a mined code, so the event cannot state a mine either way. Where forest grows back over mined grass the mine survives and playback must carry it across; other transitions are left as sent [E:mine-persists] |
 | `7T` | 3 | explosion at `XX YY`; `T` = new terrain, or `B` = no terrain change, `C` = LGM plants mine, `D` = four-square superboom (craters the square and its E/S/SE neighbours, sparing water, bases and pillbox squares). A superboom also deals 4 **eventless** damage to any pillbox in its four squares — no `9n` is sent [E:superboom-pill]. The pillbox's **ground**, though, is spared: a crater — single `7 3` or superboom — is dropped on any square holding a grounded pillbox, dead or alive, while the superboom's damage still lands [E:crater-pill]. A single `7 3` reaches a pill's square only when that pill is **dead** — a live one blocks the tank whose death makes the crater — and there it changes nothing: not the ground, not the pill [E:superboom-pill]. A single crater (`T` = 3) spares open water in the same way: on river or deep sea it changes nothing, because the terminal crater of a dying tank is sent whatever lies under the wreck. A **boat** square is not spared — it craters, and then floods [E:crater-water]. Crater *flooding*, by contrast, IS evented: water-adjacent craters become water via explicit terrain changes, 25–37 ticks (0.50–0.74 s) later |
 | `8d` | 1 | unused |
 | `9n` | 1 | 1 damage to pillbox `n` |
@@ -193,6 +193,11 @@ Playback must re-implement fragments of game logic:
   [E:crater-pill]. The evented terminal cratering (`7T`/`7D`, see `F9`) is
   otherwise separate from this clearance rule and unaffected
   [E:forest-circle].
+- **A mine survives a terrain change, and the event does not say so.**
+  When forest grows back on mined grass the log carries a plain `6 5`,
+  leaving a viewer that applies it literally showing clean forest over a
+  live mine. Playback must preserve the mine bit across the change
+  [E:mine-persists].
 - **A crater event on open water or a pillbox square is a no-op.** The terminal `7 3` of a
   dying tank is emitted whatever lies under the wreck, and Bolo's
   cratering primitive spares river and deep sea, so playback must drop
@@ -485,6 +490,38 @@ method, and about two thirds of it is cross-sender ordering — a pill's last
 shot logged by its simulator a fraction after the killing hit was logged by
 the shooter — rather than any error in the arithmetic.
 `node tools/measure-pill-damage.cjs`.
+
+**[E:mine-persists]** — observed in playback and confirmed twice over by
+the game itself: a square where forest had grown back over mined grass
+exploded later, though the viewer had been showing clean forest since the
+`6 5` arrived, and players could be seen steering around the square while
+nothing was drawn there to avoid. Both tells say the mine was still
+present and that every client knew it.
+
+The corpus explains why the event cannot say so. Across 13.4 million records
+the codes a `6T` actually carries are grass (102,302), forest (61,268),
+building (14,852), road (13,299), boat (7,720), river (1,479) and shot
+building (1). **No mined code is ever sent.** One record appears to break
+that and does not survive inspection: an empty `FA` message followed by
+three stray bytes parsing as `6 F` at 230,209, a deep-sea square at the far
+edge of the map with the fighting twenty tiles away, and in the wrong
+subpacket order besides, since messages come last. The lengths happen to
+add up, so the parser raises nothing, but it is not an event. So `T` is the
+base terrain by convention rather than by accident, and the mine is simply
+left implicit. Forest growing over a mine is the case that
+catches a viewer out, 48 times in the corpus, and it is the only one this
+project applies: `viewer/game.js` rewrites mined grass + `6 5` to mined
+forest and leaves every other terrain change as sent. Generalising further
+would be guesswork in the wrong direction, because some changes onto a
+mined square plausibly clear the mine rather than preserve it — a mine
+detonating leaves a crater, and WinBolo's LGM road build on a mined square
+signals a mine explosion as it lays the road. Nothing in the corpus
+separates those cases, so they are left alone.
+
+This is not a Bolo bug and does not belong in that section: the clients
+agreed with each other about what the square held, and the game played on
+correctly. It is a piece of state the log declines to restate, like the
+boat consumed in [E:boat].
 
 **[E:crater-water]** — in the sample log every crater-making event was
 classified by the terrain under it and checked for a following flood.
