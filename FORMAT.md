@@ -205,6 +205,12 @@ Playback must re-implement fragments of game logic:
 - **A mine under a starting pillbox does not exist**: the transferred map
   data keeps the mined terrain code, but the game ignores the mine, so a
   player must clear it from squares occupied by initial pillboxes.
+- **A base's square is road**, whatever the map data says beneath it. The
+  transferred map carries real terrain under every base — across the
+  corpus 33% crater, 33% road, 19% mined crater, 10% grass and 5% forest —
+  and the game sees none of it. Shells fly over, there is no tree to fell
+  and no mine to strike. A player must override the terrain at every base
+  square [E:base-road].
 - **Shells really can pass through live pillboxes.** A viewer drawing
   restated shell positions faithfully will show these pass-throughs because
   they are real. The deciding factor is not step parity or lateral offset
@@ -236,6 +242,20 @@ Playback must re-implement fragments of game logic:
 ## Evidence
 
 Each entry backs the tagged claim in the body above.
+
+**[E:base-road]** — from gameplay knowledge, and corroborated by shells.
+Counting shell frames whose centred position falls at least 2 px inside a
+tile the model calls forest — deep enough that boundary rounding cannot
+explain them — gives 2,341 across the corpus. Of those, 2,009 (85.8%) are
+on tiles holding a base, against 28 (1.2%) on plain forest with nothing on
+it. Treating base squares as road removes every one of the 2,009 and drops
+the total to 332. The clearance sweep is unmoved by the change apart from
+~45 fewer squares "cleared", which were never forest to begin with.
+
+The same measurement leaves 97 frames (29.2% of the remainder) on grounded
+pillbox squares, which points the same way for pills — and would make the
+pillbox exemption in [E:forest-circle] a consequence of the terrain
+override rather than a rule of its own. That is not yet established here.
 
 **[E:base-tick]** — under the every-player-increments-every-base model,
 none of a sample log's 16,801 base-drain events comes from an empty base
