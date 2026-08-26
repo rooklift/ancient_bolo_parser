@@ -104,6 +104,7 @@ function build_menu() {
 				{ type: "separator" },
 				{ label: "Toggle player lock", accelerator: "CmdOrCtrl+L", click: () => send("toggle-player-lock") },
 				{ label: "Toggle debug coordinates", accelerator: "CmdOrCtrl+D", click: () => send("toggle-coordinate-debug") },
+				{ label: "Toggle pillbox IDs", accelerator: "CmdOrCtrl+I", click: () => send("toggle-pillbox-ids") },
 				{ type: "separator" },
 				{ label: "Toggle object graphics", accelerator: "CmdOrCtrl+G", click: () => send("toggle-obj-sprites") },
 				{ label: "Toggle simple terrain", accelerator: "CmdOrCtrl+T", click: () => send("toggle-simple-terrain") },

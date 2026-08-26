@@ -56,6 +56,7 @@ let use_lgm_sprites = true;
 let use_big_shots = false;
 let use_simple_terrain = false;
 let coordinate_debug_enabled = false;
+let pillbox_ids_enabled = false;
 let obj_imgs = new Map();
 
 function load_obj_sprites() {
@@ -520,6 +521,7 @@ function draw() {
 
 	draw_bases();
 	draw_pills();
+	draw_pillbox_labels();
 	draw_effects();
 	draw_shells();
 	draw_men();
@@ -555,8 +557,10 @@ function draw_pills() {
 	let z = view.zoom;
 	let r = Math.max(2, z * 0.36);
 	let good = good_team();
-	for (const p of cur.pills) {
+	for (let p of cur.pills) {
 		if (p.inTank !== null) continue;
+		let cx = tile_to_screen_x(p.x) + z / 2;
+		let cy = tile_to_screen_y(p.y) + z / 2;
 		/* the art shows neutral pills as hostile; armour state 0 is the dead look */
 		let side = p.owner !== BoloGame.NEUTRAL && BoloGame.team_of(cur, p.owner) === good ? "good" : "evil";
 		let img = obj_sprite(`pillbox_${side}_${String(Math.min(15, p.armour)).padStart(2, "0")}`);
@@ -564,7 +568,6 @@ function draw_pills() {
 			draw_obj(img, tile_to_screen_x(p.x), tile_to_screen_y(p.y));
 			continue;
 		}
-		let cx = tile_to_screen_x(p.x) + z / 2, cy = tile_to_screen_y(p.y) + z / 2;
 		let dead = p.armour === 0;
 		ctx.fillStyle = dead ? "#555c6a"
 			: p.owner === BoloGame.NEUTRAL ? HOSTILE_COLOR : side_color(p.owner);
@@ -588,6 +591,19 @@ function draw_pills() {
 				}
 			}
 		}
+	}
+}
+
+function draw_pillbox_labels() {
+	if (!pillbox_ids_enabled) return;
+	let z = view.zoom;
+	let r = Math.max(3, z * 0.45);
+	for (let pillbox = 0; pillbox < cur.pills.length; pillbox++) {
+		let p = cur.pills[pillbox];
+		if (p.inTank !== null) continue;
+		let cx = tile_to_screen_x(p.x) + z / 2;
+		let cy = tile_to_screen_y(p.y) + z / 2;
+		draw_object_label(`#${pillbox}`, cx, cy, r);
 	}
 }
 
@@ -643,16 +659,20 @@ function draw_tanks() {
 }
 
 function draw_tank_label(p, cx, cy, r) {
+	let name = pretty((cur.names[p] || `p${p}`).split("@")[0]);
+	draw_object_label(name, cx, cy, r);
+}
+
+function draw_object_label(label, cx, cy, r) {
 	let z = view.zoom;
 	if (z < 8) return;
-	let name = pretty((cur.names[p] || `p${p}`).split("@")[0]);
 	ctx.font = `${Math.max(9, z * 0.55)}px system-ui`;
 	ctx.textAlign = "center";
 	ctx.textBaseline = "bottom";
 	ctx.fillStyle = "rgba(0,0,0,0.7)";
-	ctx.fillText(name, cx + 1, cy - r - 2);
+	ctx.fillText(label, cx + 1, cy - r - 2);
 	ctx.fillStyle = "#fff";
-	ctx.fillText(name, cx, cy - r - 3);
+	ctx.fillText(label, cx, cy - r - 3);
 }
 
 function draw_men() {
@@ -879,6 +899,11 @@ function toggle_coordinate_debug() {
 	update_coordinate_debug();
 }
 
+function toggle_pillbox_ids() {
+	pillbox_ids_enabled = !pillbox_ids_enabled;
+	request_draw();
+}
+
 function toggle_player_lock() {
 	if (!game || viewpoint < 0) return;
 	player_locked = !player_locked;
@@ -942,6 +967,11 @@ window.addEventListener("keydown", e => {
 	if (e.code === "KeyD" && (e.ctrlKey || e.metaKey)) {
 		e.preventDefault();
 		toggle_coordinate_debug();
+		return;
+	}
+	if (e.code === "KeyI" && (e.ctrlKey || e.metaKey)) {
+		e.preventDefault();
+		toggle_pillbox_ids();
 		return;
 	}
 	if (!game) return;
@@ -1087,6 +1117,7 @@ if (window.api) {
 			case "toggle-big-shots": toggle_big_shots(); break;
 			case "toggle-simple-terrain": toggle_simple_terrain(); break;
 			case "toggle-coordinate-debug": toggle_coordinate_debug(); break;
+			case "toggle-pillbox-ids": toggle_pillbox_ids(); break;
 			case "save-map": save_initial_map(); break;
 		}
 	});
