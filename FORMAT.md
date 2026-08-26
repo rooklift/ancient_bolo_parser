@@ -214,11 +214,14 @@ Playback must re-implement fragments of game logic:
   the base sprite covers it and the real ground stays recoverable. What
   matters is not to consult it: nothing at a base square should be
   treated as forest, mined, or an obstacle [E:base-road].
-- **Shells really can pass through live pillboxes.** A viewer drawing
-  restated shell positions faithfully will show these pass-throughs because
-  they are real. The deciding factor is not step parity or lateral offset
-  (both measured as even splits), so the mechanism is unknown
-  [E:shell-passthrough].
+- **Shells appear to pass through live pillboxes — probably an artifact.**
+  A viewer drawing restated positions faithfully will show shells beyond a
+  pill that ought to have stopped them. Current belief is that live pills
+  do stop shells and that these are an artifact of restatement sampling:
+  shells jump between updates rather than being drawn along their path, and
+  a pill firing a steady stream down a fixed line produces shells that are
+  positionally interchangeable. Dead pills are a separate matter and are
+  not claimed to stop anything [E:shell-passthrough].
 - Shell flight, explosions and sounds are largely presentational: each
   sender re-states its in-flight shells every record, so drift does not
   accumulate.
@@ -538,9 +541,28 @@ find was an off-by-half-a-tile. Nothing above depended on it.
 mid-death-sequence, ~0.9 s after the initial `F9`. For what determines
 whether one happens at all, see [E:death-tiers].
 
-**[E:shell-passthrough]** — the sample logs show streams of shells on a
-line through a pill's centre where some shells hit (the shooter itself
-sends the `9n`) while others are restated well beyond the pill and fly on
-— dozens of ray-consistent cases per log, through hostile and neutral
-pills at full armour. 29 cases across two logs rest purely on absolute
-list-head coordinates, immune to any offset-decoding concern.
+**[E:shell-passthrough]** — the original observation: the sample logs show
+streams of shells on a line through a pill's centre where some hit (the
+shooter itself sends the `9n`) while others are restated well beyond the
+pill and fly on — dozens of ray-consistent cases per log, through hostile
+and neutral pills at full armour. 29 cases across two logs rest purely on
+absolute list-head coordinates.
+
+That last point defends against *offset decoding*, which is a different
+problem from **shell identity**, and identity is where this breaks down. A
+re-examination found the apparent pass-throughs concentrated exactly where
+identity is unrecoverable. In `2001\april\040201 redsluggo vs dsmega`
+at 8:15, one player's list carries a direction-8 stream in which
+`(2081,2235)` and `(2083,2275)` appear singly in consecutive restatements
+— and then **together** at 8:15.98, proving they are two shells and not
+one that moved 40 px. The same position `(2081,2235)` also recurs 0.54 s
+apart, which no moving shell can do: successive shells from a fixed
+emitter pass through the same points at the same phase, so a stream cannot
+be tracked by position at all.
+
+Two pillboxes firing on one line at different cadences is the ordinary
+case for this, and it is also the case that generates most apparent
+pass-throughs. A corner-graze filter alone removes 80% of naive hits, and
+of what survives, 839 of 1,126 are pills at armour 0. The live-pill
+residue has not been shown to survive proper identity tracking, and the
+working assumption is that it does not.
