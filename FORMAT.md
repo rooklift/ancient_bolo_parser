@@ -245,7 +245,9 @@ Two entries qualify, and only the first is ours.
 - **The pill index in an `F4` is corrupt whenever the direction reads 0.**
   About a quarter of those name the pill one above the one that actually
   fired, so the true firer is `n-1`; every other direction is right about
-  99% of the time. The rate is uniform across the corpus — 22–27% in every
+  99% of the time. Inside direction 0 the fault is one-sided: shots angled
+  west of due north are hit about half the time, shots due north or east of
+  it are not. The rate is uniform across the corpus — 22–27% in every
   year from 2001 to 2005, and 23–25% for every player slot — so it is what
   Bolo 0.99.7 does, not one bad build or one machine. It survived twenty
   years unnoticed because nothing depends on it: which pillbox is credited
@@ -612,14 +614,28 @@ them in the corpus; **2,148 read direction 0**, and in **all 2,148** the
 pill one index lower was on the ground and available to be the real firer.
 The remaining 8 are scattered across other directions.
 
+Within direction 0 the fault is confined to one side of north. Taking the
+shot's true angle from the shell's offset out of the firing pill — the
+spawn is only ~10 px, so the resolution is coarse — shots pointing **west**
+of due north are misattributed 47% of the time (1,573 of 3,333), shots due
+north 0.2% (2 of 1,286), and shots east of north 1.6% (35 of 2,151), the
+last being the method's own noise floor. Inspecting those 35 individually
+shows what they are: pairs of adjacent pillboxes where both candidates lie
+inside the matching threshold and the wrong one is a few pixels nearer, so
+the honest reading is that east of north is unaffected and the boundary
+sits strictly west of vertical. The firer's map position carries no signal
+at all: median X 127 for the misattributed against 128 for the rest.
+
 The cause is not established. The signature — index too high by exactly
-one, only ever on direction 0 — is what a packing overflow would look
+one, only on direction 0, and only for shots angled west of north — is
+what a packing overflow would look
 like, since `F4` packs the byte as `(pill << 4) | d` and a `d` of 16 rather
 than 0 would carry into the pill nibble, making `(n << 4) | 16` identical
 to `((n+1) << 4) | 0`. That is inference from the shape of the error, not
-something we have verified in Bolo's code, and the rate does not obviously
-follow from it: a simple angle-wrap would be expected to spoil about half
-of the north shots rather than a quarter. Whatever the mechanism, the
+something we have verified in Bolo's code. It does sit well with the
+west-of-north split — half of one side of the boundary is what a threshold
+just west of vertical would produce, and it is why the overall direction-0
+rate lands near a quarter rather than a half. Whatever the mechanism, the
 consequences are confined to which pill a viewer credits with a shot: no
 terrain, armour, ownership or position depends on the field, and pickups
 (`FF 0n`) and damage (`9n`) carry their own indices and are unaffected.
