@@ -215,13 +215,10 @@ Playback must re-implement fragments of game logic:
   matters is not to consult it: nothing at a base square should be
   treated as forest, mined, or an obstacle [E:base-road].
 - **Shells appear to pass through live pillboxes — probably an artifact.**
-  A viewer drawing restated positions faithfully will show shells beyond a
-  pill that ought to have stopped them. Current belief is that live pills
-  do stop shells and that these are an artifact of restatement sampling:
-  shells jump between updates rather than being drawn along their path, and
-  a pill firing a steady stream down a fixed line produces shells that are
-  positionally interchangeable. Dead pills are a separate matter and are
-  not claimed to stop anything [E:shell-passthrough].
+  Current belief is that live pills do stop shells and that appearances to
+  the contrary were the result of mistaken identity with regard to shells.
+  Dead pills are a separate matter and are not claimed to stop anything
+  [E:shell-passthrough].
 - Shell flight, explosions and sounds are largely presentational: each
   sender re-states its in-flight shells every record, so drift does not
   accumulate.
