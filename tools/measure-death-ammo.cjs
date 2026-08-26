@@ -2,12 +2,12 @@
 /* Measure how much ammo a tank is carrying when it dies, and cross-tabulate
  * that against the terminal-explosion tier.
  *
- * FORMAT.md (F9) asserts the three tiers are "ammo-gated", with the
- * superboom at "roughly shells + mines >= 60 aboard".  That number was
- * never measured: the logs carry no ammo-aboard field, so round 2 (which
- * introduced the tiers) classified deaths purely by which explosion event
- * fired and never looked at ammo at all.  This script reconstructs the
- * missing quantity instead of assuming it.
+ * The three tiers -- no explosion, a single crater, a four-square
+ * superboom -- were long described as "ammo-gated", with the superboom at
+ * "roughly shells + mines >= 60 aboard".  That number was never measured:
+ * the logs carry no ammo-aboard field, so earlier work classified deaths
+ * purely by which explosion event fired and never looked at ammo at all.
+ * This script reconstructs the missing quantity instead of assuming it.
  *
  * RECONSTRUCTION.  In a strict game (`gametype` 3, 442 of the 446-log
  * corpus) a tank respawns with NO ammo, so a life that begins at an
@@ -115,9 +115,9 @@ function centre_square(sub) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Pass 1: every death, with its terminal-explosion tier.  Deliberately
- * the same rule as falsify-death-footprint-2.cjs so the tiers here are
- * the tiers that script reported. */
+/* Pass 1: every death, with its terminal-explosion tier.  A tier is read
+ * off the evented 73/7D from the dying player near the wreck, within a
+ * short window either side of the death record. */
 
 function find_deaths(records) {
 	let deaths = [];
