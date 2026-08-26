@@ -118,7 +118,7 @@ nibble.
 | `4d` | 4 | unused (missile in flight) |
 | `5d` | 1 | shot fired from tank. The shell's first restatement sits 6-9 px from the tank centre, still inside the firer's own square. That opening frame does not fell the tree under the firer — though a shot that goes on to cross the square can still fell it [E:muzzle] |
 | `6T` | 3 | terrain change to type `T` at `XX YY` |
-| `7T` | 3 | explosion at `XX YY`; `T` = new terrain, or `B` = no terrain change, `C` = LGM plants mine, `D` = four-square superboom (craters the square and its E/S/SE neighbours, sparing water, bases and pillbox squares). A superboom also deals 4 **eventless** damage to any pillbox in its four squares — no `9n` is sent [E:superboom-pill]. The pillbox's **ground**, though, is spared: a crater — single `7 3` or superboom — is dropped on any square holding a grounded pillbox, dead or alive, while the damage still lands [E:crater-pill]. A single crater (`T` = 3) spares open water in the same way: on river or deep sea it changes nothing, because the terminal crater of a dying tank is sent whatever lies under the wreck. A **boat** square is not spared — it craters, and then floods [E:crater-water]. Crater *flooding*, by contrast, IS evented: water-adjacent craters become water via explicit terrain changes, 25–37 ticks (0.50–0.74 s) later |
+| `7T` | 3 | explosion at `XX YY`; `T` = new terrain, or `B` = no terrain change, `C` = LGM plants mine, `D` = four-square superboom (craters the square and its E/S/SE neighbours, sparing water, bases and pillbox squares). A superboom also deals 4 **eventless** damage to any pillbox in its four squares — no `9n` is sent [E:superboom-pill]. The pillbox's **ground**, though, is spared: a crater — single `7 3` or superboom — is dropped on any square holding a grounded pillbox, dead or alive, while the superboom's damage still lands [E:crater-pill]. A single `7 3` reaches a pill's square only when that pill is **dead** — a live one blocks the tank whose death makes the crater — and there it changes nothing: not the ground, not the pill [E:superboom-pill]. A single crater (`T` = 3) spares open water in the same way: on river or deep sea it changes nothing, because the terminal crater of a dying tank is sent whatever lies under the wreck. A **boat** square is not spared — it craters, and then floods [E:crater-water]. Crater *flooding*, by contrast, IS evented: water-adjacent craters become water via explicit terrain changes, 25–37 ticks (0.50–0.74 s) later |
 | `8d` | 1 | unused |
 | `9n` | 1 | 1 damage to pillbox `n` |
 | `An` | 1 | 5 damage (one shell) to base `n` |
@@ -143,7 +143,7 @@ nibble.
 | `FC dn` | 2 | shell (direction `d`) hits tank `n` |
 | `FD`, `FE` | 1 | unused |
 | `FF 0n`–`FF 4n` | 2 | pill `n`: pickup / repair 4 / repair 8 / repair 12 / full repair. **Pickup captures the pill immediately** — not at the later plant. Repairs never change ownership, whoever performs them [E:pill-capture] |
-| `FF 50` | 4 | pill planted at `XX YY` (which pill: lowest index carried) |
+| `FF 50` | 4 | pill planted at `XX YY` (which pill: lowest index carried). The pill comes up at **full armour**, which the log does not state — playback must apply it [E:superboom-pill] |
 | `FF 51` | 4 | pill dumped at `XX YY` by killed LGM (no F5 sent in this case) |
 | `FF 6n` | 2 | base `n` captured |
 | `FF 7n` / `FF 8n` | 2 / 4 | unused (base towing) |
@@ -436,9 +436,55 @@ viewer already had this right (`world_x` in `viewer/renderer.js` adds half
 a tile, verified there against 3,000 muzzle samples); it was the analysis
 tools that read the raw coordinate.
 
-**[E:superboom-pill]** — a pill superboomed at armour 8 was picked up,
-which requires armour 0, after only four `9n`s; the blast's unlogged
-damage closes the gap.
+**[E:superboom-pill]** — the superboom's damage to a pillbox is eventless,
+so the figure has to be recovered rather than read. **It is 4**, confirmed
+directly in an emulator: superboom a pill at full armour and it takes
+eleven further shells to kill, each shell being 1 damage.
+
+The corpus agrees, and did so before the emulator was tried. Pill armour is
+reconstructible from events (`F1 02` for the starting value, -1 per `9n`,
++4/+8/+12 or full per `FF 1n`-`4n`), and the log then contradicts itself if
+the damage figure is wrong, in two opposite directions: a **pickup** of a
+pill we still credit with armour means the figure is too small, and a pill
+**firing** while we think it dead means it is too large. Sweeping the value
+over 3,038 constraint events in intervals containing a superboom and no
+single crater:
+
+| damage | impossible pickups | impossible fires | total |
+|---|---|---|---|
+| 0–3 | 55 | 15 | 70 |
+| **4** | **0** | **31** | **31** |
+| 5 | 0 | 176 | 176 |
+| 6 | 0 | 318 | 318 |
+
+The pickup side collapses to zero at exactly 4 — a hard lower bound — and
+the firing side then rises 5.7x between 4 and 5 and climbs from there. At 4
+the residual is 1.0%, level with the reconstruction's 0.7% noise floor; at 5
+it is eight times that. This is worth stating because the older evidence
+here — one pill superboomed at armour 8 and picked up after only four `9n`s
+— established only that the blast did *at least* 4, and WinBolo's
+`TK_DAMAGE` is 5, so the two plausible values had never been separated.
+They are separated now, and Bolo is not WinBolo.
+
+Two neighbouring quantities fall out of the same sweep. A **single crater**
+`7 3` on a pill's square does **no** damage: across 2,039 constraint events
+no pickup anywhere in the corpus requires it to have done anything, and the
+firing side is minimised at zero — matching WinBolo, whose small explosion
+never touches pills. Note what that population can be, though. A `7 3` on a
+pill square is a dying tank's terminal crater, and a tank cannot die on a
+live pillbox because a live one blocks it; only a dead pill lies flat enough
+to drive over, which is how one is collected in the first place. So every
+case in the corpus is a pill already at armour 0, and what is shown is that
+the crater leaves a dead pill undisturbed. Whether a single crater would
+damage a **live** pill is not decidable from logs, because the situation
+cannot arise in one. And a **planted pill comes up at full
+armour**: swept as a nuisance parameter over the 1,198,455 constraint events
+in blast-free intervals, contradictions fall monotonically from 494,111 at
+armour 0 to 8,437 at 15. That last figure is the noise floor of the whole
+method, and about two thirds of it is cross-sender ordering — a pill's last
+shot logged by its simulator a fraction after the killing hit was logged by
+the shooter — rather than any error in the arithmetic.
+`node tools/measure-pill-damage.cjs`.
 
 **[E:crater-water]** — in the sample log every crater-making event was
 classified by the terrain under it and checked for a following flood.
