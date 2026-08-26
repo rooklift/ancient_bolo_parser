@@ -176,26 +176,34 @@ Playback must re-implement fragments of game logic:
   quits-while-carrying, the pills were later picked up within a tile of
   the quitter's last tank centre — in one case both at once, lying
   together).
-- **A dying tank clears forest in two stages**, with no terrain events —
-  the dying-bit tank positions are the only trace. The death blast (the
-  *first* dying position, regardless of whether the terminal explosion
-  turns out to be a superboom, a crater or nothing) fells the trees in
-  every square within 7 pixels, Chebyshev, of the tank's centre pixel —
-  the squares touched by the 15×15 box centre±7, which is the tank's
-  footprint minus any single-pixel sliver of overlap on the far side of
-  the centre. The sliding wreck then clears only the centre square
-  beneath each later dying position. WinBolo independently implements
-  this sliding-wreck centre-square behaviour; it does not implement the
-  initial 7-pixel blast rule. This is the model best supported by the
-  446-log corpus's later tree-related activity on the affected squares:
-  it produces 24 raw repeat-clear conflicts, 23 of them within one second
-  (consistent with event ordering), just one longer-lived conflict, and
-  no later hidden-in-trees tanks on inferred-cleared squares. Explicit
-  tree-fells and hidden tanks strongly convict wider rules, while shells
-  flying through supposedly-standing forest and pill plants on it convict
-  narrower ones (`tools/falsify-death-footprint-3.cjs`; the two earlier
-  rounds that bracketed the rule are kept alongside it). The evented
-  terminal cratering (`7T`/`7D`, see `F9`) is separate and unaffected.
+- **Every dying tank position clears nearby forest**, with no terrain
+  events — the dying-bit positions are the only trace, and later sliding
+  wreck/flame positions use the same clearance as the first. The current
+  best rule is an *open radius-8 pixel circle* centred on the tank. For a
+  terrain square, let `dx` and `dy` be the horizontal and vertical
+  distances from the tank-centre pixel to the square's nearest pixel; fell
+  its forest when `dx² + dy² < 64`. Thus axial distance 7 and offset
+  `(1,7)` are included, `(7,7)` and axial distance 8 are not. The test uses
+  squared integers only — no square root or floating-point arithmetic.
+  This is neither the former 15×15 first-position box plus centre-only
+  trail nor the tank's full 16×16 footprint.
+
+  Manual observation of original Bolo in an emulator shows a wreck moving
+  in a cardinal direction can remove trees in two adjacent rows, which a
+  centre-only trail cannot reproduce. The 446-log corpus also strongly
+  favours extending the circle along the whole dying path: the former
+  viewer rule inferred 8,895 forest clearances and left 38 pill plants on
+  modeled forest, while the circle infers 16,730 and leaves zero such
+  plants. The circle has 76 later repeat-clear reports (62 within one
+  second, where redundant reports/event ordering are common), 14 delayed
+  reports and 7 later hidden-tank conflicts. It remains deliberately
+  provisional, but the obvious wider alternatives over-clear far more: a
+  closed radius-8 circle produces 440 repeat-clear and 60 hidden-tank
+  conflicts, and the full footprint at every position produces 478 and
+  54. Reproduce the explicit-event, hidden-tank and pill-plant scan with
+  `node tools/falsify-death-footprint-3.cjs --fast --summary`. The
+  evented terminal cratering (`7T`/`7D`, see `F9`) is separate and
+  unaffected.
 - **The delayed second explosion of a dying tank is its cargo.** Corpus
   statistics (446 logs): 1,010 of 1,136 four-square superbooms occur
   mid-death-sequence, ~0.9 s after the initial `F9` — the ammunition

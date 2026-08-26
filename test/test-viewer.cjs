@@ -72,6 +72,31 @@ if (!fs.existsSync(log1)) {
 	}
 }
 
+// Dying positions clear an open radius-8 circle around the tank centre.
+// Axial distance 7 is included, the (7,7) corner is not, and a later wreck
+// position applies the full circle again rather than only its centre square.
+{
+	const st = BoloGame.initial_state();
+	const terrain = (x, y) => st.grid[y * 256 + x];
+	const die_at = (time, pixel_x) => BoloGame.apply_record(st, {
+		time, seq: 0, status: 0, player: 0, tankStatus: 0x0c, tankDir: 0,
+		subpackets: [{
+			type: "tank_position", x: 10, y: 10, pixelX: pixel_x, pixelY: 1,
+			direction: 0, inBoat: false, hidden: false, dying: true, speed: 0,
+		}],
+	}, null, null);
+	st.grid[10 * 256 + 10] = 5;
+	st.grid[10 * 256 + 11] = 5;
+	st.grid[11 * 256 + 10] = 13;
+	st.grid[11 * 256 + 11] = 5;
+	die_at(100, 1); /* centre (169,169): nearest distances 7, 7 and (7,7) */
+	check("death circle includes axial radius 7",
+		[terrain(10, 10), terrain(11, 10), terrain(10, 11)], [7, 7, 15]);
+	check("death circle excludes diagonal (7,7)", terrain(11, 11), 5);
+	die_at(101, 7); /* centre (175,169): the remaining tree is now at (1,7) */
+	check("later wreck position reapplies death circle", terrain(11, 11), 7);
+}
+
 // Alliance transitivity: accepting one member of an alliance joins you to
 // all of it, but the log only events the pairwise link. Reproduces the
 // pattern from a real 3v3 (B accepts C; C accepts A; no direct A-B event).

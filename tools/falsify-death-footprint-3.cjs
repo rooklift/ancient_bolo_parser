@@ -44,9 +44,11 @@
  * and phantoms mixed across the same pixel values — the radius story is
  * falsified too and the discriminator is something else entirely.
  *
- * Models: centre (baseline), candidate (full footprint, instrumented),
- * control (footprint at every dying position — positive control; if the
- * corpus does not convict it, the detectors are broken).
+ * Models: centre (baseline), shipped (the viewer's former 15x15 first
+ * position plus centre-only trail), candidate (first-position footprint),
+ * control (footprint at every dying position), circle (the later winning
+ * candidate: an open radius-8 integer circle at every position), and
+ * closed_circle (a control showing why the radius boundary is strict).
  *
  * Shell falls (FB) on forest are NOT counted (an end-of-range shell falls
  * harmlessly without felling the tree).  Phantom squares outside any death
@@ -54,9 +56,11 @@
  * under the control) — compare models relatively, not against zero.
  *
  * Usage:
- *   node tools/falsify-death-footprint-3.cjs [corpus-dir] [--fast]
+ *   node tools/falsify-death-footprint-3.cjs [corpus-dir] [--fast] [--summary]
  *
- * --fast skips the shell-crossing analysis (the expensive part).
+ * --fast skips the historical interpolated shell-path analysis. Shells
+ * jump between updates, so that analysis is exploratory rather than part
+ * of the authoritative corpus verdict.
  */
 "use strict";
 
@@ -65,8 +69,9 @@ const path = require("path");
 const BoloLog = require(path.join(__dirname, "..", "viewer", "logparse.js"));
 const BoloGame = require(path.join(__dirname, "..", "viewer", "game.js"));
 
-const args = process.argv.slice(2).filter(a => a !== "--fast");
+const args = process.argv.slice(2).filter(a => a !== "--fast" && a !== "--summary");
 const FAST = process.argv.includes("--fast");
+const SUMMARY = process.argv.includes("--summary");
 const ROOT = args[0] || "C:/Users/Owner/__DOCS/Bolo Archives/Nemokrad's Bolo logs";
 
 const MAP_SIZE = 256;
@@ -114,15 +119,60 @@ function footprint_squares(sub) {
 	return squares;
 }
 
+/* Squares touched by an open radius-8 circle centred on the tank. Reuse the
+ * footprint's diagnostic measures, but decide membership with squared
+ * nearest-pixel distance so the rule needs no floating-point arithmetic. */
+function circle_squares(sub) {
+	let cx = sub.x * 16 + sub.pixelX + 8;
+	let cy = sub.y * 16 + sub.pixelY + 8;
+	return footprint_squares(sub).filter(([x, y]) => {
+		let dx = Math.max(x * 16 - cx, cx - (x * 16 + 15), 0);
+		let dy = Math.max(y * 16 - cy, cy - (y * 16 + 15), 0);
+		return dx * dx + dy * dy < 64;
+	});
+}
+
+function closed_circle_squares(sub) {
+	let cx = sub.x * 16 + sub.pixelX + 8;
+	let cy = sub.y * 16 + sub.pixelY + 8;
+	let squares = [];
+	for (let y = (cy - 8) >> 4; y <= (cy + 8) >> 4; y++) {
+		for (let x = (cx - 8) >> 4; x <= (cx + 8) >> 4; x++) {
+			let dx = Math.max(x * 16 - cx, cx - (x * 16 + 15), 0);
+			let dy = Math.max(y * 16 - cy, cy - (y * 16 + 15), 0);
+			if (dx * dx + dy * dy <= 64)
+				squares.push([x, y]);
+		}
+	}
+	return squares;
+}
+
+function box_7_squares(sub) {
+	let cx = sub.x * 16 + sub.pixelX + 8;
+	let cy = sub.y * 16 + sub.pixelY + 8;
+	return footprint_squares(sub).filter(([x, y]) => {
+		let dx = Math.max(x * 16 - cx, cx - (x * 16 + 15), 0);
+		let dy = Math.max(y * 16 - cy, cy - (y * 16 + 15), 0);
+		return dx <= 7 && dy <= 7;
+	});
+}
+
 /* rule(sub, is_death_moment) -> [origin, squares] lists. */
 const RULES = {
 	centre: (sub, death_moment) =>
+		[["slide-centre", centre_squares(sub)]],
+	shipped: (sub, death_moment) => death_moment ?
+		[["death-box-7", box_7_squares(sub)]] :
 		[["slide-centre", centre_squares(sub)]],
 	candidate: (sub, death_moment) => death_moment ?
 		[["death-footprint", footprint_squares(sub)]] :
 		[["slide-centre", centre_squares(sub)]],
 	control: (sub, death_moment) =>
 		[["footprint-every", footprint_squares(sub)]],
+	circle: (sub, death_moment) =>
+		[["circle-every", circle_squares(sub)]],
+	closed_circle: (sub, death_moment) =>
+		[["closed-circle-every", closed_circle_squares(sub)]],
 };
 
 function* walk(dir) {
@@ -164,6 +214,7 @@ function format_time(ticks) {
 
 function new_stats() {
 	return {
+		dying_sequences: 0,
 		clearances: 0,
 		clearances_by_origin: {},
 		clearances_by_overlap: {},
@@ -396,6 +447,8 @@ function scan_file(file, totals) {
 					in_death_sequence[record.player] = true;
 					for (let [name, rule] of Object.entries(RULES)) {
 						let model = models[name];
+						if (death_moment)
+							model.stats.dying_sequences++;
 						for (let [origin, squares] of rule(sub, death_moment)) {
 							for (let [x, y, measures] of squares) {
 								if (x < 0 || y < 0 || x >= MAP_SIZE || y >= MAP_SIZE)
@@ -478,7 +531,6 @@ function scan_file(file, totals) {
 		}
 
 		BoloGame.apply_record(engine, record, null, null);
-
 		if (!FAST) {
 			let now = engine.shells[record.player] || [];
 			let prev = previous_shells[record.player];
@@ -541,6 +593,7 @@ console.log(`Death blast-boundary falsification scan (round 3): ${files} log fil
 console.log(`Root: ${ROOT}${FAST ? "  (--fast: shell crossings skipped)" : ""}`);
 for (let [name, stats] of Object.entries(totals)) {
 	console.log(`\n${name}:`);
+	console.log(`  dying-position sequences: ${stats.dying_sequences}`);
 	console.log(`  forest clearances: ${stats.clearances}  ${JSON.stringify(stats.clearances_by_origin)}`);
 	console.log(`  regrowth on cleared squares: ${stats.regrowth}`);
 	console.log(`  OVER-CLEARING`);
@@ -557,7 +610,7 @@ for (let [name, stats] of Object.entries(totals)) {
 			`of which in a death footprint: ${stats.phantom_at_death_fp})`);
 	}
 	console.log(`  other legitimate mutations on cleared squares: ${stats.other_mutations}`);
-	if (name === "candidate") {
+	if (name === "candidate" && !SUMMARY) {
 		console.log(`  death-footprint clearances by overlap: ${sorted_table(stats.clearances_by_overlap)}`);
 		console.log(`  death-footprint clearances by distance: ${sorted_table(stats.clearances_by_distance)}`);
 		boundary_table("min-axis OVERLAP", stats.clearances_by_overlap,
@@ -567,7 +620,7 @@ for (let [name, stats] of Object.entries(totals)) {
 			stats.contradictions_by_distance, stats.hidden_by_distance,
 			totals.centre.phantom_fp_by_distance);
 	}
-	for (let [label, list] of [
+	for (let [label, list] of SUMMARY ? [] : [
 			["contradiction samples", stats.contradiction_samples],
 			["hidden-tank samples", stats.hidden_tank_samples],
 			["plant-on-forest samples", stats.plant_samples],
@@ -580,7 +633,7 @@ for (let [name, stats] of Object.entries(totals)) {
 	}
 }
 
-console.log(`
+if (!SUMMARY) console.log(`
 Reading the verdict (the two "boundary by" tables under "candidate"):
   - "wrong" counts squares whose tree provably still stood after clearing
     (contradictions + hidden tanks); "missed-real" counts baseline phantom
