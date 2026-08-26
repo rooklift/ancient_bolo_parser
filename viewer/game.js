@@ -154,7 +154,9 @@ function superboom(s, x, y) {
 		const sx = x + dx, sy = y + dy;
 		if (sx >= MAP_SIZE || sy >= MAP_SIZE) continue;
 		const t = s.grid[sy * MAP_SIZE + sx];
-		if (t !== DEEP_SEA && t !== 1 && t !== 9 && !base_at(s, sx, sy)) {
+		/* Water, bases and pillbox squares keep their terrain; the pill
+		 * damage below still lands. See FORMAT.md [E:crater-pill]. */
+		if (t !== DEEP_SEA && t !== 1 && t !== 9 && !base_at(s, sx, sy) && !pill_at(s, sx, sy)) {
 			set_terrain(s, sx, sy, 3); /* crater */
 		}
 		for (const p of s.pills) {
@@ -358,9 +360,12 @@ function apply_record(s, rec, effects, chat) {
 					 * river or deep sea changes nothing, though a boat square does
 					 * crater (and then floods). A dying tank's terminal crater is
 					 * sent whatever lies under the wreck, so playback must apply
-					 * the rule itself. See FORMAT.md [E:crater-water]. */
+					 * the rule itself. See FORMAT.md [E:crater-water]. It spares a
+					 * square holding a grounded pillbox too, dead or alive, exactly
+					 * as the superboom does [E:crater-pill]. */
 					const under = s.grid[sub.y * MAP_SIZE + sub.x];
-					if (sub.code !== 3 || (under !== 1 && under !== DEEP_SEA)) {
+					const spared = under === 1 || under === DEEP_SEA || pill_at(s, sub.x, sub.y);
+					if (sub.code !== 3 || !spared) {
 						set_terrain(s, sub.x, sub.y, sub.code);
 					}
 					if (effects) effects.push({ time: rec.time, type: "boom", x: sub.x, y: sub.y });
