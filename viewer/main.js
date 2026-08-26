@@ -89,8 +89,8 @@ function build_menu() {
 			label: "&Playback",
 			submenu: [
 				{ label: "Play / Pause", accelerator: "Space", click: () => send("play-pause") },
-				{ label: "Previous Change", accelerator: "Down", click: () => send("previous-change") },
-				{ label: "Next Change", accelerator: "Up", click: () => send("next-change") },
+				{ label: "Previous Change", accelerator: "Up", click: () => send("previous-change") },
+				{ label: "Next Change", accelerator: "Down", click: () => send("next-change") },
 				{ label: "Go to Beginning", accelerator: "Home", click: () => send("go-to-beginning") },
 				{ label: "Go to End", accelerator: "End", click: () => send("go-to-end") },
 			],
