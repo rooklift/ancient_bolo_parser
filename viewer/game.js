@@ -354,7 +354,15 @@ function apply_record(s, rec, effects, chat) {
 					superboom(s, sub.x, sub.y);
 					if (effects) effects.push({ time: rec.time, type: "superboom", x: sub.x, y: sub.y });
 				} else {
-					set_terrain(s, sub.x, sub.y, sub.code);
+					/* Bolo's single-crater primitive spares open water: a 7 3 on
+					 * river or deep sea changes nothing, though a boat square does
+					 * crater (and then floods). A dying tank's terminal crater is
+					 * sent whatever lies under the wreck, so playback must apply
+					 * the rule itself. See FORMAT.md [E:crater-water]. */
+					const under = s.grid[sub.y * MAP_SIZE + sub.x];
+					if (sub.code !== 3 || (under !== 1 && under !== DEEP_SEA)) {
+						set_terrain(s, sub.x, sub.y, sub.code);
+					}
 					if (effects) effects.push({ time: rec.time, type: "boom", x: sub.x, y: sub.y });
 				}
 				break;
