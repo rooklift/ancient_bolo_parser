@@ -247,26 +247,35 @@ Playback must re-implement fragments of game logic:
 Each entry backs the tagged claim in the body above.
 
 **[E:base-road]** — from gameplay knowledge, and corroborated by shells.
-Counting shell frames whose centred position falls at least 2 px inside a
-tile the model calls forest — deep enough that boundary rounding cannot
-explain them — gives 2,341 across the corpus. Of those, 2,009 (85.8%) are
-on tiles holding a base, against 28 (1.2%) on plain forest with nothing on
-it. Discounting base squares removes every one of the 2,009 and drops the
-total to 332.
+A shell cannot be inside a standing tree, so any shell restated inside a
+tile the model calls forest marks a square the model has wrong. Taking
+only frames at least 2 px inside their tile — deep enough that boundary
+rounding cannot explain them — gives 2,341 across the corpus, and they
+divide up completely:
 
-The engine deliberately does **not** rewrite those squares: it keeps the
+| what is on that tile | frames | |
+|---|---|---|
+| a base | 2009 | 85.8% |
+| the tile is felled within 1.5 s (an ordinary hit) | 207 | 8.8% |
+| a grounded pillbox | 97 | 4.1% |
+| nothing — plain forest | 28 | 1.2% |
+
+Bases account for six sevenths of it, and plain forest for 1.2%, which is
+the residual noise floor of the whole question: 28 frames in 446 logs.
+
+The engine deliberately does **not** rewrite base squares: it keeps the
 map's real terrain, which the base sprite hides anyway. Rewriting them
 changes nothing in the clearance sweep except ~45 fewer squares counted as
 "cleared", which were never forest to begin with — so the figures in
-[E:forest-circle] are unaffected either way.
+[E:forest-circle] hold either way.
 
-Pillboxes are **not** the same case, despite 97 of the remaining frames
-sitting on grounded pillbox squares. A pillbox does not alter the ground
-it stands on, and it can be captured and carried away, at which point the
-terrain underneath matters again — so that terrain has to be kept and
-consulted, unlike a base's. Those 97 frames are explained by the pillbox
-itself: a shell there is being absorbed as `9n` damage, or is one of the
-pass-throughs noted above. Neither says anything about the ground.
+The 97 pillbox frames are **not** the same phenomenon. A pillbox does not
+alter the ground it stands on, and it can be captured and carried away, at
+which point that ground matters again — so unlike a base's, the terrain
+under a pill has to be kept *and* consulted. Those frames are explained by
+the pillbox itself: the shell is being absorbed as `9n` damage, or is one
+of the pass-throughs in [E:shell-passthrough]. Neither says anything about
+the ground beneath.
 
 **[E:base-tick]** — under the every-player-increments-every-base model,
 none of a sample log's 16,801 base-drain events comes from an empty base
