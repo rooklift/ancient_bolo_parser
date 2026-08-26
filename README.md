@@ -1,5 +1,5 @@
 Preamble: although this is entirely AI-coded, you (dear reader) have no idea the
-lengths Claude, Sol, and myself have gone through getting everything to work just
+lengths Claude, Sol, and myself have gone through, getting everything to work just
 right. The amount of science we did on Bolo replays is quite absurd.
 
 # Ancient Bolo Parser
