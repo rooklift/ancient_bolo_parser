@@ -260,10 +260,13 @@ changes nothing in the clearance sweep except ~45 fewer squares counted as
 "cleared", which were never forest to begin with — so the figures in
 [E:forest-circle] are unaffected either way.
 
-The same measurement leaves 97 frames (29.2% of the remainder) on grounded
-pillbox squares, which points the same way for pills — and would make the
-pillbox exemption in [E:forest-circle] a consequence of the terrain
-override rather than a rule of its own. That is not yet established here.
+Pillboxes are **not** the same case, despite 97 of the remaining frames
+sitting on grounded pillbox squares. A pillbox does not alter the ground
+it stands on, and it can be captured and carried away, at which point the
+terrain underneath matters again — so that terrain has to be kept and
+consulted, unlike a base's. Those 97 frames are explained by the pillbox
+itself: a shell there is being absorbed as `9n` damage, or is one of the
+pass-throughs noted above. Neither says anything about the ground.
 
 **[E:base-tick]** — under the every-player-increments-every-base model,
 none of a sample log's 16,801 base-drain events comes from an empty base
@@ -482,7 +485,10 @@ LGM farming events on cleared forest occur exactly on pill dump
 squares, as do all five delayed repeat-clear explosions and five of the
 seven hidden-tank conflicts. Applying it is what takes the delayed
 contradictions from 14 to zero and the hidden-tank conflicts from 7 to 2,
-at a cost of 37 clearances.
+at a cost of 37 clearances. The exemption is not arbitrary: a pillbox
+shields the ground it stands on without replacing it, which is also why
+the terrain beneath one must be preserved rather than overwritten (see
+[E:base-road], where a base differs precisely in that respect).
 Reproduce with `node tools/measure-tree-clearance.cjs`.
 
 Earlier rounds carried a further under-clearing column, counting shells
