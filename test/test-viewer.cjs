@@ -97,6 +97,28 @@ if (!fs.existsSync(log1)) {
 	check("later wreck position reapplies death circle", terrain(11, 11), 7);
 }
 
+// A pillbox masks the forest beneath it from eventless wreck clearing, but
+// does not protect the underlying terrain from an explicit superboom.
+{
+	const st = BoloGame.initial_state();
+	st.grid[10 * 256 + 11] = 13;
+	st.pills = [{ x: 11, y: 10, owner: 0, armour: 8, speed: 50, inTank: null }];
+	BoloGame.apply_record(st, {
+		time: 100, seq: 0, status: 0, player: 0, tankStatus: 0x0c, tankDir: 0,
+		subpackets: [{
+			type: "tank_position", x: 10, y: 10, pixelX: 1, pixelY: 1,
+			direction: 0, inBoat: false, hidden: false, dying: true, speed: 0,
+		}],
+	}, null, null);
+	check("pill masks forest from death circle", st.grid[10 * 256 + 11], 13);
+	BoloGame.apply_record(st, {
+		time: 101, seq: 1, status: 0, player: 0, tankStatus: 0, tankDir: 0,
+		subpackets: [{ type: "explosion", code: 0x0d, x: 11, y: 10 }],
+	}, null, null);
+	check("explicit superboom craters beneath pill", st.grid[10 * 256 + 11], 3);
+	check("explicit superboom damages pill", st.pills[0].armour, 4);
+}
+
 // Alliance transitivity: accepting one member of an alliance joins you to
 // all of it, but the log only events the pairwise link. Reproduces the
 // pattern from a real 3v3 (B accepts C; C accepts A; no direct A-B event).
