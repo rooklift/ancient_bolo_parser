@@ -950,7 +950,12 @@ window.addEventListener("keydown", e => {
 		save_initial_map();
 		return;
 	}
-	if (e.code === "Space") {
+	if (/^F[1-8]$/.test(e.code)) {
+		e.preventDefault();
+		speed_el.selectedIndex = parseInt(e.code.slice(1), 10) - 1;
+		speed = parseFloat(speed_el.value);
+		speed_el.blur();
+	} else if (e.code === "Space") {
 		e.preventDefault();
 		set_playing(!playing);
 	} else if (e.code === "ArrowDown") {
