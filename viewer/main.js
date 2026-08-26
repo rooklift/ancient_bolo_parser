@@ -103,7 +103,7 @@ function build_menu() {
 				{ label: "Fit map", accelerator: "CmdOrCtrl+0", click: () => send("zoom-fit") },
 				{ type: "separator" },
 				{ label: "Toggle player lock", accelerator: "CmdOrCtrl+L", click: () => send("toggle-player-lock") },
-				{ label: "Toggle coordinate debug mode", accelerator: "CmdOrCtrl+D", click: () => send("toggle-coordinate-debug") },
+				{ label: "Toggle debug coordinates", accelerator: "CmdOrCtrl+D", click: () => send("toggle-coordinate-debug") },
 				{ type: "separator" },
 				{ label: "Toggle object graphics", accelerator: "CmdOrCtrl+G", click: () => send("toggle-obj-sprites") },
 				{ label: "Toggle simple terrain", accelerator: "CmdOrCtrl+T", click: () => send("toggle-simple-terrain") },
