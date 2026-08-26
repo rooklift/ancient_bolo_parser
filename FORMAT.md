@@ -504,7 +504,12 @@ then queues a flood check (`tankexp.c`), its big explosion excludes
 fills on any orthogonal `RIVER`/`BOAT`/`DEEP_SEA` after
 `FLOOD_FILL_WAIT`, chaining into neighbouring craters (`floodfill.c`).
 
-**[E:crater-pill]** — the same flood read-out as [E:crater-water], applied
+**[E:crater-pill]** — **confirmed directly in an emulator**: a dead pillbox
+protects the ground beneath it from a superboom. The corpus reached the same
+answer first, and covers the cases the emulator test does not, so the
+measurement is kept below.
+
+It uses the same flood read-out as [E:crater-water], applied
 to pillbox squares. Across the corpus 2,456 crater events land on a square
 holding a grounded pill; 43 of those squares have an orthogonal water
 neighbour, so whether the ground changed can be read back from whether it
@@ -521,6 +526,10 @@ floods. Against the same event on bare ground:
 | dead pill, mined | `7 3` | 13 | 5 (38%) |
 
 Median flood delay is 0.56–0.58 s throughout, the [E:crater-water] figure.
+The dead-pill rows are what the emulator run confirms. The live-pill row is
+a single observation, and rests otherwise on WinBolo, whose `pillsExistPos`
+makes no distinction between a live pill and a dead one; one emulator shot
+at a live pillbox would settle it outright.
 
 One `7D` in the corpus (md5 `42977edf2c2630e2cabb1ca43a1b214d`, at
 25:23.66, origin 127,135) demonstrates every part of the rule at once,
