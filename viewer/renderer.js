@@ -964,10 +964,10 @@ window.addEventListener("keydown", e => {
 		set_playing(!playing);
 	} else if (e.code === "ArrowDown") {
 		e.preventDefault();
-		step_change(-1);
+		step_change(1);
 	} else if (e.code === "ArrowUp") {
 		e.preventDefault();
-		step_change(1);
+		step_change(-1);
 	} else if (e.code === "Home") {
 		e.preventDefault();
 		go_to_boundary(false);
