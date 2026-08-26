@@ -186,24 +186,31 @@ Playback must re-implement fragments of game logic:
   `(1,7)` are included, `(7,7)` and axial distance 8 are not. The test uses
   squared integers only — no square root or floating-point arithmetic.
   This is neither the former 15×15 first-position box plus centre-only
-  trail nor the tank's full 16×16 footprint.
+  trail nor the tank's full 16×16 footprint. A grounded pillbox masks the
+  terrain beneath it from this eventless clearance: if the circle touches
+  a pill-occupied forest square, leave the forest alone. This exemption
+  does not apply to explicit terrain changes or explosions; in particular,
+  an evented `7D` superboom still craters beneath and damages a pillbox.
 
   Manual observation of original Bolo in an emulator shows a wreck moving
   in a cardinal direction can remove trees in two adjacent rows, which a
   centre-only trail cannot reproduce. The 446-log corpus also strongly
   favours extending the circle along the whole dying path: the former
   viewer rule inferred 8,895 forest clearances and left 38 pill plants on
-  modeled forest, while the circle infers 16,730 and leaves zero such
-  plants. The circle has 76 later repeat-clear reports (62 within one
-  second, where redundant reports/event ordering are common), 14 delayed
-  reports and 7 later hidden-tank conflicts. It remains deliberately
-  provisional, but the obvious wider alternatives over-clear far more: a
-  closed radius-8 circle produces 440 repeat-clear and 60 hidden-tank
-  conflicts, and the full footprint at every position produces 478 and
-  54. Reproduce the explicit-event, hidden-tank and pill-plant scan with
-  `node tools/falsify-death-footprint-3.cjs --fast --summary`. The
-  evented terminal cratering (`7T`/`7D`, see `F9`) is separate and
-  unaffected.
+  modeled forest, while the pill-masked circle infers 16,692 and leaves
+  zero such plants. The pill exception is unusually specific evidence:
+  all nine later LGM farming events on circle-cleared forest occur exactly
+  on pill dump squares, as do all five delayed repeat-clear explosions and
+  five of the seven hidden-tank conflicts. With the exception applied, the
+  corpus has 62 repeat-clear reports, all within one second (where redundant
+  reports/event ordering are common), and two hidden-tank conflicts. It
+  remains deliberately provisional, but the obvious wider alternatives
+  over-clear far more: a closed radius-8 circle produces 440 repeat-clear
+  and 60 hidden-tank conflicts, and the full footprint at every position
+  produces 478 and 54. Reproduce the explicit-event, hidden-tank and
+  pill-plant scan with
+  `node tools/falsify-death-footprint-3.cjs --fast --summary`. The evented
+  terminal cratering (`7T`/`7D`, see `F9`) is separate and unaffected.
 - **The delayed second explosion of a dying tank is its cargo.** Corpus
   statistics (446 logs): 1,010 of 1,136 four-square superbooms occur
   mid-death-sequence, ~0.9 s after the initial `F9` — the ammunition

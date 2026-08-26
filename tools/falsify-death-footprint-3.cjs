@@ -46,9 +46,10 @@
  *
  * Models: centre (baseline), shipped (the viewer's former 15x15 first
  * position plus centre-only trail), candidate (first-position footprint),
- * control (footprint at every dying position), circle (the later winning
- * candidate: an open radius-8 integer circle at every position), and
- * closed_circle (a control showing why the radius boundary is strict).
+ * control (footprint at every dying position), circle (an open radius-8
+ * integer circle at every position), pill_masked_circle (the refined rule,
+ * which leaves forest beneath grounded pills alone), and closed_circle (a
+ * control showing why the radius boundary is strict).
  *
  * Shell falls (FB) on forest are NOT counted (an end-of-range shell falls
  * harmlessly without felling the tree).  Phantom squares outside any death
@@ -171,6 +172,8 @@ const RULES = {
 		[["footprint-every", footprint_squares(sub)]],
 	circle: (sub, death_moment) =>
 		[["circle-every", circle_squares(sub)]],
+	pill_masked_circle: (sub, death_moment) =>
+		[["pill-masked-circle-every", circle_squares(sub)]],
 	closed_circle: (sub, death_moment) =>
 		[["closed-circle-every", closed_circle_squares(sub)]],
 };
@@ -452,6 +455,9 @@ function scan_file(file, totals) {
 						for (let [origin, squares] of rule(sub, death_moment)) {
 							for (let [x, y, measures] of squares) {
 								if (x < 0 || y < 0 || x >= MAP_SIZE || y >= MAP_SIZE)
+									continue;
+								if (name === "pill_masked_circle" && engine.pills.some(pill =>
+									pill.inTank === null && pill.x === x && pill.y === y))
 									continue;
 								let key = square_key(x, y);
 								let terrain = model.grid[key];

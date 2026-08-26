@@ -119,6 +119,10 @@ function base_at(s, x, y) {
 	return s.bases.some(b => b.x === x && b.y === y);
 }
 
+function pill_at(s, x, y) {
+	return s.pills.some(p => p.inTank === null && p.x === x && p.y === y);
+}
+
 /* The square a tank occupies for game purposes (laying mines, dumping
  * pills) is the one containing its centre — the record's (X, Y) is the
  * 16px character's top-left square, half a square away ~75% of the time.
@@ -164,7 +168,7 @@ function pill_dumpable(s, x, y) {
 	if (x < 0 || y < 0 || x >= MAP_SIZE || y >= MAP_SIZE) return false;
 	const t = s.grid[y * MAP_SIZE + x];
 	if (t === DEEP_SEA || t === 0 || t === 1 || t === 8 || t === 9) return false;
-	return !s.pills.some(p => p.inTank === null && p.x === x && p.y === y) && !base_at(s, x, y);
+	return !pill_at(s, x, y) && !base_at(s, x, y);
 }
 
 function dump_carried_pills(s, player, x, y) {
@@ -276,6 +280,11 @@ function apply_record(s, rec, effects, chat) {
 					 * strict integer circle at every wreck/flame position. */
 					for (const [sx, sy] of death_clearance_squares(sub)) {
 						if (sx < 0 || sy < 0 || sx >= MAP_SIZE || sy >= MAP_SIZE) continue;
+						/* Bolo's terrain lookup appears to see the pillbox
+						 * overlay rather than forest beneath it. This exception
+						 * is only for the inferred, eventless wreck clearance;
+						 * explicit terrain events still affect pill squares. */
+						if (pill_at(s, sx, sy)) continue;
 						const ter = s.grid[sy * MAP_SIZE + sx];
 						if (ter === 5) set_terrain(s, sx, sy, 7);
 						else if (ter === 13) set_terrain(s, sx, sy, 15);
@@ -647,7 +656,7 @@ function apply_record(s, rec, effects, chat) {
  * later runs only fill squares never seen and never touched). Object
  * lists come from the first F102/F103/F104. Returns the shape
  * BoloMap.serialize_map expects. */
-function extract_initial_map(records) {
+function extract_initial_map_pass(records, death_pill_squares) {
 	const grid = new Uint8Array(MAP_SIZE * MAP_SIZE);
 	grid.fill(DEEP_SEA);
 	const written = new Uint8Array(MAP_SIZE * MAP_SIZE);
@@ -677,8 +686,12 @@ function extract_initial_map(records) {
 					if (sub.dying) {
 						/* eventless forest clearing at tank death (see
 						 * apply_record): every wreck position uses the same
-						 * strict radius-8 integer circle */
-						for (const [sx, sy] of death_clearance_squares(sub)) taint(sx, sy);
+						 * strict radius-8 integer circle, except where a pill
+						 * masks the underlying terrain */
+						const masked = death_pill_squares && death_pill_squares.get(sub);
+						for (const [sx, sy] of death_clearance_squares(sub)) {
+							if (!masked || !masked.has(sy * MAP_SIZE + sx)) taint(sx, sy);
+						}
 					}
 					break;
 				}
@@ -748,6 +761,29 @@ function extract_initial_map(records) {
 		})),
 		starts: (starts || []).map(st => ({ x: st.x, y: st.y, dir: st.direction & 0x0f })),
 	};
+}
+
+/* Pill dumps are eventless too, so reconstruct them once against a
+ * provisional map and use their positions to refine the death-clearance
+ * taint mask. Tank positions precede events within a record: pills dumped
+ * by that record's F9 begin masking the following dying position. */
+function extract_initial_map(records) {
+	const provisional = extract_initial_map_pass(records, null);
+	const state = initial_state(provisional);
+	const death_pill_squares = new WeakMap();
+	for (const rec of records) {
+		for (const sub of rec.subpackets) {
+			if (sub.type === "tank_position" && sub.dying) {
+				const occupied = new Set();
+				for (const pill of state.pills) {
+					if (pill.inTank === null) occupied.add(pill.y * MAP_SIZE + pill.x);
+				}
+				death_pill_squares.set(sub, occupied);
+			}
+		}
+		apply_record(state, rec, null, null);
+	}
+	return extract_initial_map_pass(records, death_pill_squares);
 }
 
 /* Build the position tracks used only for drawing. `continuous` describes
