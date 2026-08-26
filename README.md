@@ -56,7 +56,10 @@ Electron release zips named in `viewer/builder.py` into
 Open a log with File → Open or by dropping it onto the window;
 a log path can also be passed on the command line. The page also runs in a
 plain browser via its file picker, which is handy for headless testing and
-screenshots.
+screenshots. Playback → Previous Change and Next Change jump between the
+distinct moments when new game information arrived; their shortcuts are
+Down Arrow and Up Arrow. Home and End jump to the beginning and end of the
+replay.
 
 The map codec (`format.js`), tile-selection rules and sprites
 (`sprites.js`, `sprites/` — WinBolo art, GPL v2), and the shell of

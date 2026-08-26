@@ -379,6 +379,19 @@ function set_playing(p) {
 	}
 }
 
+function step_change(direction) {
+	if (!game) return;
+	set_playing(false);
+	let tick = BoloGame.adjacent_change_time(game.records, clock, direction);
+	set_clock(tick, direction < 0);
+}
+
+function go_to_boundary(at_end) {
+	if (!game) return;
+	set_playing(false);
+	set_clock(at_end ? game.t1 : game.t0, !at_end);
+}
+
 function fmt_time(ticks) {
 	let s = Math.max(0, Math.round((ticks - game.t0) / TPS));
 	return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -949,6 +962,18 @@ window.addEventListener("keydown", e => {
 	if (e.code === "Space") {
 		e.preventDefault();
 		set_playing(!playing);
+	} else if (e.code === "ArrowDown") {
+		e.preventDefault();
+		step_change(-1);
+	} else if (e.code === "ArrowUp") {
+		e.preventDefault();
+		step_change(1);
+	} else if (e.code === "Home") {
+		e.preventDefault();
+		go_to_boundary(false);
+	} else if (e.code === "End") {
+		e.preventDefault();
+		go_to_boundary(true);
 	} else if (e.code === "ArrowLeft") {
 		set_clock(clock - TPS * (e.shiftKey ? 60 : 10), true);
 	} else if (e.code === "ArrowRight") {
@@ -1053,7 +1078,10 @@ if (window.api) {
 				else if (res.error) show_error("Could not open log", res.error);
 			}); break;
 			case "play-pause": set_playing(!playing); break;
-			case "restart": if (game) { set_clock(game.t0, true); } break;
+			case "previous-change": step_change(-1); break;
+			case "next-change": step_change(1); break;
+			case "go-to-beginning": go_to_boundary(false); break;
+			case "go-to-end": go_to_boundary(true); break;
 			case "zoom-in": zoom_step(1); break;
 			case "zoom-out": zoom_step(-1); break;
 			case "zoom-fit": zoom_to_action(); break;

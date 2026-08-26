@@ -16,6 +16,18 @@ function check(what, got, want) {
 	console.log(`${ok ? "ok  " : "FAIL"} ${what}: ${JSON.stringify(got)}${ok ? "" : ` (wanted ${JSON.stringify(want)})`}`);
 }
 
+// Change stepping skips duplicate record times and chooses the adjacent
+// timestamp on either side of the playback clock.
+{
+	let records = [{ time: 100 }, { time: 110 }, { time: 110 }, { time: 125 }];
+	check("next change from exact timestamp", BoloGame.adjacent_change_time(records, 100, 1), 110);
+	check("previous change from exact timestamp", BoloGame.adjacent_change_time(records, 110, -1), 100);
+	check("next change between timestamps", BoloGame.adjacent_change_time(records, 111, 1), 125);
+	check("previous change between timestamps", BoloGame.adjacent_change_time(records, 111, -1), 110);
+	check("next change clamps at end", BoloGame.adjacent_change_time(records, 125, 1), 125);
+	check("previous change clamps at start", BoloGame.adjacent_change_time(records, 100, -1), 100);
+}
+
 if (!fs.existsSync(log1)) {
 	console.log("skip: fixtures/n20021018.2 not present; log-based engine tests skipped");
 } else {

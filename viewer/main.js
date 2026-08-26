@@ -89,7 +89,10 @@ function build_menu() {
 			label: "&Playback",
 			submenu: [
 				{ label: "Play / Pause", accelerator: "Space", click: () => send("play-pause") },
-				{ label: "Restart", accelerator: "CmdOrCtrl+R", click: () => send("restart") },
+				{ label: "Previous Change", accelerator: "Down", click: () => send("previous-change") },
+				{ label: "Next Change", accelerator: "Up", click: () => send("next-change") },
+				{ label: "Go to Beginning", accelerator: "Home", click: () => send("go-to-beginning") },
+				{ label: "Go to End", accelerator: "End", click: () => send("go-to-end") },
 			],
 		},
 		{
