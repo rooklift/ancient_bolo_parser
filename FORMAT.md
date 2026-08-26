@@ -116,7 +116,7 @@ nibble.
 |------|------|---------|
 | `0d`–`3d` | 4/6/8/10 | a shell list: 1–4 shells in flight, 3 bytes `XX YY yx` for the first, 2 signed bytes of pixel offset for each additional — **chained**: each offset is relative to the *previous* shell in the list, not the first [E:shell-chained]. The direction nibble `d` belongs to the first shell only; shells of any direction may ride one list. A record may carry **several** shell lists concatenated (up to 12 seen in the wild): the sender's own shells plus those of any pillboxes it is currently simulating. Bolo migrates a firing pillbox's simulation to the machine it is shooting at, so pill shells ride in the *target's* restatements [E:pill-shell-migration]. Every record re-states *all* shells the sender is simulating, whatever the record's shape — a record with no shell lists means the sender simulates none [E:shell-restate]. The standalone map/node records carry no such implication; none has been seen while its sender had shells in flight. A shell's `XX YY yx` needs the usual half-tile centring [E:shell-centre] |
 | `4d` | 4 | unused (missile in flight) |
-| `5d` | 1 | shot fired from tank |
+| `5d` | 1 | shot fired from tank. The shell's first restatement sits 6-9 px from the tank centre, still inside the firer's own square, and does **not** interact with the terrain there: a tank shooting from inside forest never fells its own tree [E:muzzle] |
 | `6T` | 3 | terrain change to type `T` at `XX YY` |
 | `7T` | 3 | explosion at `XX YY`; `T` = new terrain, or `B` = no terrain change, `C` = LGM plants mine, `D` = four-square superboom (craters the square and its E/S/SE neighbours, sparing water and bases). A superboom also deals 4 **eventless** damage to any pillbox in its four squares — no `9n` is sent [E:superboom-pill]. Crater *flooding*, by contrast, IS evented: water-adjacent craters become water via explicit terrain changes, typically within a second |
 | `8d` | 1 | unused |
@@ -258,10 +258,11 @@ divide up completely:
 | a base | 2009 | 85.8% |
 | the tile is felled within 1.5 s (an ordinary hit) | 207 | 8.8% |
 | a grounded pillbox | 97 | 4.1% |
-| nothing — plain forest | 28 | 1.2% |
+| a muzzle frame, fired that same record | 28 | 1.2% |
 
-Bases account for six sevenths of it, and plain forest for 1.2%, which is
-the residual noise floor of the whole question: 28 frames in 446 logs.
+Bases account for six sevenths of it. The last 1.2% is not noise but the
+muzzle case of [E:muzzle], so every frame in the table is accounted for
+and nothing is left over.
 
 The engine deliberately does **not** rewrite base squares: it keeps the
 map's real terrain, which the base sprite hides anyway. Rewriting them
@@ -298,6 +299,22 @@ lands on the centre square, never the character square.
 for 2-shell lists. Verified on 3-shell lists where a new shot becomes the
 list head: first-relative decoding conjures a phantom shell and loses a
 real one, chained decoding reconstructs every position to the pixel.
+
+**[E:muzzle]** — of the 28 frames in [E:base-road] that sit inside forest
+with no base or pillbox on the tile, **all 28** were fired in that very
+record: the sender's last `5d` is 0.00 s old in every case. 23 of the 28
+have the firing tank in the same tile as the shell, 14 of those with the
+tank's hidden-in-trees bit set, and in 26 the shell is 6-9 px from the
+tank centre — the muzzle offset, a shell that has barely cleared the
+barrel.
+
+So these are not shells crossing forest. A tank firing from inside a tree
+does not fell it, whether because the shell is not collision-tested on its
+first tick or because it is exempt while still within the firer's square;
+the log cannot separate those. This matters only to code that models
+shell-terrain interaction, since the felling itself is evented — but such
+a model will otherwise clear the firer's own tile every time anyone shoots
+from cover.
 
 **[E:pill-shell-migration]** — 91% of `F4` fires are followed by a
 direction-matching shell near the pill in some player's list, and the
