@@ -790,15 +790,14 @@ const MAX_RECORDS = 2_000_000;    /* ~16x the 2h sample; caps memory */
 function load_log(bytes, name) {
 	/* Parse fully before touching viewer state, so a malformed file leaves
 	 * any currently loaded replay running. */
-	let header, recs, newGame;
-	const stats = {};
+	let recs, newGame;
 	try {
 		if (bytes.length > MAX_LOG_BYTES) {
 			throw new Error(`${bytes.length} bytes; not a Bolo log`);
 		}
-		header = BoloLog.parseHeader(bytes);
+		BoloLog.parseHeader(bytes);
 		recs = [];
-		for (const rec of BoloLog.records(bytes, stats)) {
+		for (const rec of BoloLog.records(bytes)) {
 			if (recs.length >= MAX_RECORDS) {
 				throw new Error(`more than ${MAX_RECORDS} records; refusing`);
 			}
@@ -827,18 +826,10 @@ function load_log(bytes, name) {
 	document.title = (name ? name.split(/[\\/]/).pop() + " — " : "") + "Ancient Bolo Log Viewer";
 	let gi = game.final.gameInfo;
 	map_name_el.textContent = gi ? gi.mapName : (name || "Bolo log");
-	/* version hex "00990700" → "0.99.7" */
-	let v = `${parseInt(header.version.slice(0, 2), 10)}.${header.version.slice(2, 4)}.${parseInt(header.version.slice(4, 6), 10)}`;
-	let bits = [`Bolo ${v}`,
-		`${recs.length.toLocaleString()} records`, `${fmt_time(game.t1)} long`];
+	let bits = [`${recs.length.toLocaleString()} records`];
 	if (gi) {
-		bits.push(`host ${gi.hostIp}`);
 		bits.push(["", "open game", "tournament", "strict tournament"][gi.gameType] || `type ${gi.gameType}`);
 	}
-	const warned = recs.filter(r => r.warning).length;
-	if (warned) bits.push(`⚠ ${warned} records with parse warnings`);
-	if (stats.truncatedBytes) bits.push(`⚠ truncated (${stats.truncatedBytes} trailing bytes dropped)`);
-	if (game.badMapRuns) bits.push(`⚠ ${game.badMapRuns} short map runs (terrain may be incomplete)`);
 	game_meta_el.textContent = bits.filter(Boolean).join(" · ");
 
 	viewpoint_el.innerHTML = "";
