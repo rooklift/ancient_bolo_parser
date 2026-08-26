@@ -527,9 +527,12 @@ floods. Against the same event on bare ground:
 
 Median flood delay is 0.56–0.58 s throughout, the [E:crater-water] figure.
 The dead-pill rows are what the emulator run confirms. The live-pill row is
-a single observation, and rests otherwise on WinBolo, whose `pillsExistPos`
-makes no distinction between a live pill and a dead one; one emulator shot
-at a live pillbox would settle it outright.
+a single observation — but nothing points the other way. That case did not
+flood either, WinBolo's `pillsExistPos` returns true for any grounded pill
+whatever its armour, and the sparing happens in the cratering step, which
+asks only whether a pill occupies the square; armour enters one step later,
+in the damage. A live pill is expected to behave exactly as a dead one here,
+and one emulator shot would put it beyond doubt.
 
 One `7D` in the corpus (md5 `42977edf2c2630e2cabb1ca43a1b214d`, at
 25:23.66, origin 127,135) demonstrates every part of the rule at once,
