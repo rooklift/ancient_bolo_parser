@@ -41,6 +41,9 @@ if (!fs.existsSync(log1)) {
 	check("bases", game.final.bases.length, 16);
 	check("starts", game.final.starts.length, 8);
 	check("chat entries", game.chat.length > 100, true);
+	check("network conditions rating", game.network.rating, "good");
+	check("network conditions loss %", game.network.loss.toFixed(2), "7.13");
+	check("network conditions stall %", game.network.stall.toFixed(2), "0.25");
 
 	// Mid-game teams: the 2v2 seen in the chat (players 0+1 vs 2+3).
 	const mid = BoloGame.state_at(game, Math.floor((game.t0 + game.t1) / 2)).state;
@@ -409,6 +412,58 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	for (let x = 10; x < 20; x++) row.push(seed.grid[50 * 256 + x]);
 	check("truncated repeat writes only its complete pairs", row, [1, 1, 255, 255, 255, 255, 255, 255, 255, 255]);
 	check("truncated run flagged", seed.badRuns, 1);
+}
+
+// Network conditions: a sequence step of n leaves n-1 packets unaccounted
+// for, gaps over half a second count as freezes, and the verdict is the
+// worse of the two readings.
+{
+	// A clean ring: every step 1, every gap 2 ticks.
+	let clean = [];
+	for (let i = 0; i < 500; i++) clean.push({ time: 1000 + i * 2, seq: i & 0x7f });
+	let net = BoloGame.network_conditions(clean);
+	check("clean ring loses nothing", net.loss, 0);
+	check("clean ring never freezes", net.stall, 0);
+	check("clean ring rates good", net.rating, "good");
+
+	// Every other packet missed: half the ring's slots are holes.
+	let lossy = [];
+	for (let i = 0; i < 500; i++) lossy.push({ time: 1000 + i * 4, seq: (i * 2) & 0x7f });
+	check("every other packet missed reads as 50% loss",
+		Math.round(BoloGame.network_conditions(lossy).loss), 50);
+	check("50% loss rates awful", BoloGame.network_conditions(lossy).rating, "awful");
+
+	// Loss alone can damn a log the freeze reading would pass: these arrive
+	// steadily, 2 ticks apart, so nothing is ever silent for half a second.
+	check("steady choppiness never stalls", BoloGame.network_conditions(lossy).stall, 0);
+
+	// Freezes alone can damn one the loss reading would pass. Steps stay at
+	// 1 throughout; a third of the time is spent waiting.
+	let frozen = [];
+	for (let i = 0, t = 1000; i < 300; i++) {
+		frozen.push({ time: t, seq: i & 0x7f });
+		t += i % 10 === 9 ? 60 : 2;   /* a 1.2 s freeze every tenth packet */
+	}
+	let net2 = BoloGame.network_conditions(frozen);
+	check("freezes with no loss still lose nothing", net2.loss, 0);
+	check("freezes are counted as lost time", net2.stall > 25, true);
+	check("freezes alone can rate awful", net2.rating, "awful");
+
+	// A duplicate (step 0) is not a loss, and a step across a long silence
+	// is a rejoin whose 7-bit counter may have wrapped: neither is charged.
+	check("a duplicate is not a loss", BoloGame.network_conditions([
+		{ time: 1000, seq: 5 }, { time: 1002, seq: 5 }, { time: 1004, seq: 6 },
+	]).loss, 0);
+	check("a step across a long silence is not a loss", BoloGame.network_conditions([
+		{ time: 1000, seq: 5 }, { time: 9000, seq: 40 }, { time: 9002, seq: 41 },
+	]).loss, 0);
+
+	// Too little to say anything about.
+	check("no records, no verdict", BoloGame.network_conditions([]), null);
+	check("one record, no verdict", BoloGame.network_conditions([{ time: 1, seq: 0 }]), null);
+	check("no elapsed time, no verdict", BoloGame.network_conditions([
+		{ time: 5, seq: 0 }, { time: 5, seq: 1 },
+	]), null);
 }
 
 process.exit(failures ? 1 : 0);

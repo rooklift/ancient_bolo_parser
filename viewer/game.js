@@ -935,6 +935,7 @@ function build(records) {
 		tank_positions,
 		lgm_positions,
 		badMapRuns: seed.badRuns,
+		network: network_conditions(records),
 		final: s,
 		t0: records.length ? records[0].time : 0,
 		t1: records.length ? records[records.length - 1].time : 0,
@@ -1040,6 +1041,77 @@ function adjacent_change_time(records, tick, direction) {
 	return lo < records.length ? records[lo].time : records[records.length - 1].time;
 }
 
+/* ---------- network conditions ---------- */
+
+/* One verdict on how the game's networking held up, for the header.
+ *
+ * Two readings of the record stream, taken from what the log cannot help
+ * recording -- when packets arrived, and how many the machine never saw:
+ *
+ *   LOSS. The payload's sequence number is bumped by every node a packet
+ *   passes, so consecutive records normally step by 1. A step of n means
+ *   n-1 packets never reached the logging machine; a step of 0 is a
+ *   duplicate, not a loss. Over the 445-log Nemokrad corpus this runs from
+ *   2.7% in the cleanest games to over 50% in the worst, falls year on year
+ *   from 2001 to 2005 as dial-up gave way to broadband, and rises with
+ *   player count, the ring having more hops to lose a packet on
+ *   [E:seq-loss].
+ *
+ *   STALL. The share of the game's elapsed time spent in gaps where nothing
+ *   at all arrived for over half a second -- a freeze the viewer shows
+ *   whatever the player count, since no ring cycles that slowly.
+ *
+ * They agree closely (r = 0.89 across the corpus) but not perfectly: a game
+ * can be steadily choppy without ever freezing outright, so the verdict is
+ * the worse of the two. Scoring interleaved half-minute blocks of each log
+ * as if they were separate games gives r = 0.955 on loss and 0.928 on
+ * stall, so this is a stable property of a session rather than of the
+ * moment sampled, and fair to state once for the whole game. The thresholds
+ * below place the corpus at roughly 30% good, 47% fair, 16% bad, 7% awful.
+ * All of it reproduces with tools/measure-network-conditions.cjs. */
+
+const STALL_GAP_TICKS = TICKS_PER_SECOND / 2;  /* silence that reads as a freeze */
+const SEQ_TRUST_TICKS = 250;    /* 5s: past this a step is a rejoin, not loss */
+const ABSENCE_TICKS = 1500;     /* 30s: nobody home, not a stalled network */
+const LOSS_BANDS = [10, 20, 36];        /* percent of ring slots missing */
+const STALL_BANDS = [3, 12, 26];        /* percent of elapsed time frozen */
+const CONDITION_NAMES = ["good", "fair", "bad", "awful"];
+
+function band_of(value, bands) {
+	let band = 0;
+	while (band < bands.length && value >= bands[band]) band++;
+	return band;
+}
+
+function network_conditions(records) {
+	if (records.length < 2) return null;
+	let elapsed = records[records.length - 1].time - records[0].time;
+	if (elapsed <= 0) return null;
+
+	let missing = 0;     /* ring slots whose packet never arrived */
+	let slots = 0;       /* ring slots accounted for either way */
+	let frozen = 0;      /* ticks spent hearing nothing at all */
+
+	for (let i = 1; i < records.length; i++) {
+		let gap = records[i].time - records[i - 1].time;
+		let step = (records[i].seq - records[i - 1].seq) & 0x7f;
+		if (gap > STALL_GAP_TICKS && gap <= ABSENCE_TICKS) frozen += gap;
+		if (step === 0 || gap > SEQ_TRUST_TICKS) {
+			/* a duplicate, or a hole long enough that the 7-bit counter may
+			 * have wrapped right round it -- one slot, no loss claimed */
+			slots++;
+			continue;
+		}
+		missing += step - 1;
+		slots += step;
+	}
+
+	let loss = 100 * missing / Math.max(1, slots);
+	let stall = 100 * frozen / elapsed;
+	let band = Math.max(band_of(loss, LOSS_BANDS), band_of(stall, STALL_BANDS));
+	return { rating: CONDITION_NAMES[band], loss, stall };
+}
+
 /* Alliance team id for colouring: lowest player index in the mutual group. */
 function team_of(s, player) {
 	for (let i = 0; i < 16; i++) {
@@ -1054,7 +1126,7 @@ const BoloGame = {
 	MAP_SIZE, DEEP_SEA, TICKS_PER_SECOND, NEUTRAL, KEYFRAME_EVERY,
 	MAX_POSITION_INTERPOLATION_TICKS,
 	initial_state, clone_state, apply_record, build, state_at, team_of,
-	adjacent_change_time,
+	adjacent_change_time, network_conditions,
 	tank_position_at, lgm_position_at,
 	extract_initial_map,
 };
