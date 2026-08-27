@@ -2,3 +2,4 @@ samples/
 node_modules/
 viewer/dist/
 viewer/electron_zipped/
+test/expected/n20021018.2-interpolation.tsv
