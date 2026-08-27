@@ -239,6 +239,7 @@ if (!fs.existsSync(log1)) {
 		] }],
 	}, null, null);
 	check("chained shell offsets", st.shells[0].map(sh => sh.x), [100, 101, 102]);
+	check("shell-list direction applies to every shell", st.shells[0].map(sh => sh.direction), [4, 4, 4]);
 }
 
 // Tank positions interpolate between nearby restatements. A long lag, or a

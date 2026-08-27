@@ -66,7 +66,7 @@ function load_obj_sprites() {
 	for (let i = 0; i < 16; i++) {
 		let n = String(i).padStart(2, "0");
 		names.push(`tank_good_${n}`, `tank_evil_${n}`, `tank_goodboat_${n}`, `tank_evilboat_${n}`,
-			`pillbox_good_${n}`, `pillbox_evil_${n}`);
+			`pillbox_good_${n}`, `pillbox_evil_${n}`, `shell_${n}`);
 	}
 	for (let name of names) {
 		let img = new Image();
@@ -120,9 +120,10 @@ function draw_obj(img, x, y) {
 	draw_obj_at_size(img, x, y, view.zoom, view.zoom);
 }
 
-/* LGM frames are tightly cropped 3x4 art rather than full 16x16 tiles.
- * Draw each source pixel at the same scale as a pixel in the other art. */
-function draw_lgm(img, cx, cy) {
+/* LGM and shell sprites are tightly cropped art rather than full 16x16
+ * tiles. Draw each source pixel at the same scale as a pixel in the other
+ * object art. */
+function draw_cropped_obj(img, cx, cy) {
 	let scale = view.zoom / OBJ_NATIVE_TILE;
 	let w = img.width * scale, h = img.height * scale;
 	draw_obj_at_size(img, cx - w / 2, cy - h / 2, w, h);
@@ -709,7 +710,7 @@ function draw_men() {
 		}
 		let img = lgm_sprite();
 		if (img) {
-			draw_lgm(img, cx, cy);
+			draw_cropped_obj(img, cx, cy);
 			continue;
 		}
 		/* men colour by allegiance to the viewpoint: friendly green, enemy red */
@@ -734,6 +735,16 @@ function draw_shells() {
 			 * verified against 3k muzzle samples (shell vs firing tank) */
 			let cx = tile_to_screen_x(world_x(sh));
 			let cy = tile_to_screen_y(world_y(sh));
+			/* Big shots deliberately override the classic direction sprites.
+			 * obj_sprite adds the other two gates: object graphics on and zoom
+			 * at or above the shared sprite threshold. */
+			let img = !use_big_shots
+				? obj_sprite(`shell_${String(sh.direction).padStart(2, "0")}`)
+				: undefined;
+			if (img) {
+				draw_cropped_obj(img, cx, cy);
+				continue;
+			}
 			if (!use_big_shots) {
 				ctx.fillRect(cx - small_size / 2, cy - small_size / 2, small_size, small_size);
 				continue;

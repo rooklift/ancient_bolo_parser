@@ -155,11 +155,12 @@ function parseIdSubpackets(rec, data, pos) {
 		const hi = byte >> 4;
 		const lo = byte & 0x0f;
 		try {
-			if (hi <= 0x03) {              // 1-4 shells in flight from this player
+			if (hi <= 0x03) {              // 1-4 shells travelling in direction lo
 				ensure(data, pos, 4 + hi * 2);
 				const count = hi + 1;
+				const direction = lo;
 				const shells = [{
-					direction: lo,
+					direction,
 					x: data[pos + 1],
 					y: data[pos + 2],
 					pixel: data[pos + 3],
@@ -167,11 +168,12 @@ function parseIdSubpackets(rec, data, pos) {
 				for (let i = 0; i < hi; i++) {
 					/* signed pixel offsets chained from the previous shell */
 					shells.push({
+						direction,
 						offsetX: (data[pos + 4 + i * 2] << 24) >> 24,
 						offsetY: (data[pos + 5 + i * 2] << 24) >> 24,
 					});
 				}
-				subs.push({ type: "shells", count, shells });
+				subs.push({ type: "shells", count, direction, shells });
 				pos += 4 + hi * 2;
 			} else if (hi === 0x04) {      // unused (missile in flight)
 				ensure(data, pos, 4);

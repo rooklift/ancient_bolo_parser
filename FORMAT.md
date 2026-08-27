@@ -119,7 +119,7 @@ nibble.
 
 | id | size | meaning |
 |------|------|---------|
-| `0d`–`3d` | 4/6/8/10 | a shell list: 1–4 shells in flight, 3 bytes `XX YY yx` for the first, 2 signed bytes of pixel offset for each additional — **chained**: each offset is relative to the *previous* shell in the list, not the first [E:shell-chained]. The direction nibble `d` belongs to the first shell only; shells of any direction may ride one list. A record may carry **several** shell lists concatenated (up to 12 seen in the wild): the sender's own shells plus those of any pillboxes it is currently simulating. Bolo migrates a firing pillbox's simulation to the machine it is shooting at, so pill shells ride in the *target's* restatements [E:pill-shell-migration]. Every record re-states *all* shells the sender is simulating, whatever the record's shape — a record with no shell lists means the sender simulates none [E:shell-restate]. The standalone map/node records carry no such implication; none has been seen while its sender had shells in flight. A shell's `XX YY yx` needs the usual half-tile centring [E:shell-centre] |
+| `0d`–`3d` | 4/6/8/10 | a shell list: 1–4 shells in flight, all travelling in direction `d`, with 3 bytes `XX YY yx` for the first and 2 signed bytes of pixel offset for each additional. The offsets are **chained**: each is relative to the *previous* shell in the list, not the first [E:shell-chained]. The direction nibble applies to **every** shell in its list; shells travelling in different directions occupy different lists, while shells from different firing sources may share a list when their directions agree [E:shell-direction]. A direction may occupy several lists in one record. A record may carry **several** shell lists concatenated (up to 12 seen in the wild): the sender's own shells plus those of any pillboxes it is currently simulating. Bolo migrates a firing pillbox's simulation to the machine it is shooting at, so pill shells ride in the *target's* restatements [E:pill-shell-migration]. Every record re-states *all* shells the sender is simulating, whatever the record's shape — a record with no shell lists means the sender simulates none [E:shell-restate]. The standalone map/node records carry no such implication; none has been seen while its sender had shells in flight. A shell's `XX YY yx` needs the usual half-tile centring [E:shell-centre] |
 | `4d` | 4 | unused (missile in flight) |
 | `5d` | 1 | shot fired from tank. The shell's first restatement sits 6-9 px from the tank centre, still inside the firer's own square. That opening frame does not fell the tree under the firer — though a shot that goes on to cross the square can still fell it [E:muzzle] |
 | `6T` | 3 | terrain change to type `T` at `XX YY`. `T` names the **base** terrain and never a mined code, so the event cannot state a mine either way. Where forest grows back over mined grass the mine survives and playback must carry it across; other transitions are left as sent [E:mine-persists] |
@@ -364,6 +364,25 @@ lands on the centre square, never the character square.
 for 2-shell lists. Verified on 3-shell lists where a new shot becomes the
 list head: first-relative decoding conjures a phantom shell and loses a
 real one, chained decoding reconstructs every position to the pixel.
+
+**[E:shell-direction]** — quiet reciprocal exchanges isolate the direction
+semantics without tracking shell identity between restatements. Across the
+446-log corpus, 2,607 records follow a sender restatement containing no
+shells with exactly one tank fire, one approximately reciprocal pill fire,
+and exactly two new shells. Every one encodes them as two 1-shell lists;
+none uses one 2-shell list. Of these, 2,587 also pass a strict source-and-ray
+geometry check, again with no mixed list. As a control, 349 geometrically
+clean quiet records have two different pillboxes fire in the same direction:
+all 349 combine the two shells into one 2-shell list, proving that the split
+is by direction rather than firing source.
+
+The sample log supplies the within-one-emitter case. From 21:24.24, pillbox
+8 changes its aim from direction 5 to direction 4 while its older shells are
+still airborne. The directions coexist in separate lists through 21:25.22;
+at 21:24.98, a restatement with no new fire has direction-5 shells travelling
+southeast from the pill and direction-4 shells travelling east. The newer
+direction-4 lists remain after the last direction-5 shell expires. Thus the
+header direction describes every shell in its list.
 
 **[E:muzzle]** — of the 28 frames in [E:base-road] that sit inside forest
 with no base or pillbox on the tile, **all 28** were fired in that very
