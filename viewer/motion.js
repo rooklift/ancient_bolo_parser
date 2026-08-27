@@ -20,6 +20,7 @@ const MAX_LGM_TANK_ENTRY_DISTANCE_PIXELS = 32;
  * by a few pixels; matching remains deliberately conservative. */
 const SHELL_SPEED_PIXELS_PER_TICK = 2;
 const SHELL_MATCH_ERROR_PIXELS = 8;
+const SHELL_BOX_GRAZE_TOLERANCE_PIXELS = 1;
 const SHELL_DIRECTION_TOLERANCE = Math.PI / 8;
 const SHELL_MATCH_MARGIN = 3;
 const SHELL_EQUIVALENT_ENDPOINT_PIXELS = 2;
@@ -273,23 +274,31 @@ function shell_match_cost(previous, next, duration) {
 }
 
 /* Intersect the shell centre's learned ray with a tile/object box, returning
- * a shell top-left coordinate. If the final restatement is already inside
- * the box, use the forward exit rather than manufacturing a zero-length
+ * a shell top-left coordinate. Quantised restatements can put an inferred
+ * ray fractionally outside a corner which the authoritative event says it
+ * hit, so accept a closest approach of at most one pixel without enlarging
+ * the rendered box itself. If the final restatement is already inside the
+ * box, use the forward exit rather than manufacturing a zero-length
  * terminal segment. */
 function shell_ray_box_endpoint(shell, box) {
 	if (shell.heading_x === undefined) return null;
 	let origin_x = shell.pixel_x + 8;
 	let origin_y = shell.pixel_y + 8;
+	let heading_x = shell.heading_x;
+	let heading_y = shell.heading_y;
+	let heading_length_squared = heading_x * heading_x + heading_y * heading_y;
+	if (heading_length_squared <= 1e-18) return null;
 	let starts_inside = origin_x > box.min_x && origin_x < box.max_x &&
 		origin_y > box.min_y && origin_y < box.max_y;
 	let near = -Infinity, far = Infinity;
+	let intersects = true;
 	for (let axis of [
-		[origin_x, shell.heading_x, box.min_x, box.max_x],
-		[origin_y, shell.heading_y, box.min_y, box.max_y],
+		[origin_x, heading_x, box.min_x, box.max_x],
+		[origin_y, heading_y, box.min_y, box.max_y],
 	]) {
 		let [origin, heading, minimum, maximum] = axis;
 		if (Math.abs(heading) < 1e-9) {
-			if (origin < minimum || origin > maximum) return null;
+			if (origin < minimum || origin > maximum) intersects = false;
 			continue;
 		}
 		let first = (minimum - origin) / heading;
@@ -297,16 +306,61 @@ function shell_ray_box_endpoint(shell, box) {
 		if (first > second) [first, second] = [second, first];
 		near = Math.max(near, first);
 		far = Math.min(far, second);
-		if (far < near) return null;
+		if (far < near) intersects = false;
 	}
-	let distance = starts_inside ? far : near;
-	if (distance < -1e-9) return null;
-	distance = Math.max(0, distance);
-	return {
-		pixel_x: origin_x + shell.heading_x * distance - 8,
-		pixel_y: origin_y + shell.heading_y * distance - 8,
-		distance,
-	};
+	if (intersects) {
+		let distance = starts_inside ? far : near;
+		if (distance < -1e-9) return null;
+		distance = Math.max(0, distance);
+		return {
+			pixel_x: origin_x + heading_x * distance - 8,
+			pixel_y: origin_y + heading_y * distance - 8,
+			distance, graze_distance: 0,
+		};
+	}
+
+	/* A miss is closest either at the ray origin, at a box-boundary crossing,
+	 * or at the perpendicular projection of a corner onto the ray. Evaluate
+	 * that small complete set and retain the real ray point, rather than an
+	 * early intersection with an artificially padded box. */
+	let distances = [0];
+	for (let [origin, heading, minimum, maximum] of [
+		[origin_x, heading_x, box.min_x, box.max_x],
+		[origin_y, heading_y, box.min_y, box.max_y],
+	]) {
+		if (Math.abs(heading) < 1e-9) continue;
+		for (let boundary of [minimum, maximum]) {
+			let distance = (boundary - origin) / heading;
+			if (distance > 0) distances.push(distance);
+		}
+	}
+	for (let corner_x of [box.min_x, box.max_x]) {
+		for (let corner_y of [box.min_y, box.max_y]) {
+			let distance = (corner_x - origin_x) * heading_x +
+				(corner_y - origin_y) * heading_y;
+			distance /= heading_length_squared;
+			if (distance > 0) distances.push(distance);
+		}
+	}
+
+	let closest = null;
+	for (let distance of distances) {
+		let centre_x = origin_x + heading_x * distance;
+		let centre_y = origin_y + heading_y * distance;
+		let box_x = Math.max(box.min_x, Math.min(box.max_x, centre_x));
+		let box_y = Math.max(box.min_y, Math.min(box.max_y, centre_y));
+		let graze_distance = Math.hypot(centre_x - box_x, centre_y - box_y);
+		if (!closest || graze_distance < closest.graze_distance) {
+			closest = {
+				pixel_x: centre_x - 8, pixel_y: centre_y - 8,
+				distance: distance * Math.sqrt(heading_length_squared),
+				graze_distance,
+			};
+		}
+	}
+	if (!closest || closest.graze_distance >
+		SHELL_BOX_GRAZE_TOLERANCE_PIXELS + 1e-9) return null;
+	return closest;
 }
 
 function shell_terminal_match(previous, terminal, duration) {
@@ -343,10 +397,11 @@ function shell_terminal_match(previous, terminal, duration) {
 	if (endpoint.distance > expected_distance + SHELL_MATCH_ERROR_PIXELS) return null;
 	return {
 		cost: Math.abs(endpoint.distance - expected_distance) +
-			angle_error * expected_distance,
+			angle_error * expected_distance + (endpoint.graze_distance || 0),
 		pixel_x: endpoint.pixel_x,
 		pixel_y: endpoint.pixel_y,
 		distance: endpoint.distance,
+		graze_distance: endpoint.graze_distance || 0,
 	};
 }
 
@@ -644,6 +699,31 @@ function match_shell_snapshots(previous, next) {
 			let candidate = { previous_index, next_index, target, ...match };
 			by_previous[previous_index].push(candidate);
 			by_next[next_index].push(candidate);
+		}
+	}
+	/* Grazes are a fallback for quantisation-sized gaps, never competitors
+	 * with geometry the existing matcher already considers exact. This keeps
+	 * a newly plausible corner from stealing a real successor or impact in a
+	 * dense anonymous stream. */
+	let rejected_grazes = new Set();
+	for (let choices of by_previous) {
+		for (let candidate of choices) {
+			if (!(candidate.graze_distance > 0)) continue;
+			let previous_has_exact = choices.some(alternative =>
+				!(alternative.graze_distance > 0));
+			let target_has_exact = by_next[candidate.next_index].some(alternative =>
+				!(alternative.graze_distance > 0));
+			if (previous_has_exact || target_has_exact) rejected_grazes.add(candidate);
+		}
+	}
+	if (rejected_grazes.size) {
+		for (let i = 0; i < by_previous.length; i++) {
+			by_previous[i] = by_previous[i].filter(candidate =>
+				!rejected_grazes.has(candidate));
+		}
+		for (let i = 0; i < by_next.length; i++) {
+			by_next[i] = by_next[i].filter(candidate =>
+				!rejected_grazes.has(candidate));
 		}
 	}
 	for (let choices of by_previous) choices.sort((a, b) => a.cost - b.cost);
