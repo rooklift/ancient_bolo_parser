@@ -108,8 +108,9 @@ The replay engine reconstructs full game state (terrain, pills, bases,
 tanks, men, shells, alliances), including the pieces of game logic the log
 omits by design — pill dumps on death, boat consumption, alliance
 semantics; see the end of FORMAT.md for that list and its caveats. Not
-attempted: scoring and sound. Tank and LGM movement is interpolated between
-nearby restatements; across lag gaps each stops at its last known position.
+attempted: scoring and sound. Tank, LGM and conservatively matched shell
+movement is interpolated between nearby restatements; across lag gaps each
+stops at its last known position.
 
 ## Provenance and credits
 
