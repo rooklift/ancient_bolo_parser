@@ -41,7 +41,7 @@ npx electron .
 
 ## Status
 
-The viewer reconstructs full game state (terrain, pills, bases, tanks, men, shells, alliances), including the pieces of game logic the log omits by design — pill dumps on death, boat consumption, alliance semantics; see the end of FORMAT.md for that list and its caveats. Not attempted: scoring and sound. Tank, LGM and conservatively matched shell movement is interpolated between nearby restatements.
+The viewer reconstructs full game state (terrain, pills, bases, tanks, men, shells, alliances), including the pieces of game logic the log omits by design — pill dumps on death, boat consumption, alliance semantics; see the end of FORMAT.md for that list and its caveats. Tank, LGM and conservatively matched shell movement is interpolated between nearby restatements.
 
 ## Provenance and credits
 
