@@ -306,6 +306,49 @@ if (!fs.existsSync(log1)) {
 	]);
 	check("shell stops across lag", rounded(position(lag, 112).x), 10.5);
 
+	let precise_impact = BoloGame.build([
+		record(100, [shell_list(4, [[160, 160]])]),
+		record(112, [shell_list(4, [[184, 166]])]),
+		record(124, [{ type: "shell_falls", x: 13, y: 10, pixel: 0xc0 }]),
+	]);
+	check("shell interpolates to precise ground impact",
+		[rounded(position(precise_impact, 118).x),
+			rounded(position(precise_impact, 118).y)], [12.75, 11.0625]);
+
+	let tile_impact = BoloGame.build([
+		record(100, [shell_list(4, [[160, 160]])]),
+		record(112, [shell_list(4, [[184, 166]])]),
+		record(124, [{ type: "explosion", code: 0, x: 13, y: 11 }]),
+	]);
+	check("tile impact follows learned ray to tile boundary",
+		[rounded(position(tile_impact, 118).x),
+			rounded(position(tile_impact, 118).y)], [12.5, 11]);
+
+	let object_impact = BoloGame.build([
+		{
+			time: 90, seq: 90, status: 0, player: 1, tankStatus: 8, tankDir: 0,
+			subpackets: [{
+				type: "tank_position", x: 13, y: 11, pixelX: 0, pixelY: 0,
+				direction: 0, inBoat: false, hidden: false, dying: false,
+				speed: 0, motion: 0,
+			}],
+		},
+		record(100, [shell_list(4, [[160, 160]])]),
+		record(112, [shell_list(4, [[184, 166]])]),
+		record(124, [{ type: "tank_hit", direction: 4, tank: 1 }]),
+	]);
+	check("object impact follows learned ray to object boundary",
+		[rounded(position(object_impact, 118).x),
+			rounded(position(object_impact, 118).y)], [12.5, 11]);
+
+	let coarse_only_impact = BoloGame.build([
+		record(112, [shell_list(4, [[184, 166]])]),
+		record(124, [{ type: "explosion", code: 0, x: 13, y: 11 }]),
+	]);
+	check("tile impact without fine heading stays at final frame",
+		[rounded(position(coarse_only_impact, 118).x),
+			rounded(position(coarse_only_impact, 118).y)], [12, 10.875]);
+
 	let separate_clients = BoloGame.build([
 		record(100, [shell_list(4, [[160, 160]])], 0),
 		record(112, [shell_list(4, [[184, 160]])], 1),
