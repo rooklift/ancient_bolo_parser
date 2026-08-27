@@ -260,6 +260,54 @@ if (!fs.existsSync(log1)) {
 			(!(st.alliances[a] & (1 << b)) && !(st.alliances[b] & (1 << a))))), true);
 }
 
+// A T=7 F8 followed by established players restating their unchanged ids is
+// a slot admission. It resets alliances even when an invisible ring split
+// prevented the old occupant's quit from reaching the logger.
+{
+	let node_record = (time, player, tank_status, name) => ({
+		time, seq: time & 0x7f, status: 0, player, tankStatus: tank_status, tankDir: 0,
+		subpackets: [{ type: "node_id", name }],
+	});
+	let records = [
+		node_record(0, 0, 0, "player0@node0"),
+		node_record(1, 1, 0, "player1@node1"),
+		node_record(2, 2, 0, "player2@node2"),
+		node_record(3, 3, 0, "player3@node3"),
+		node_record(4, 4, 0, "player3@node3"),
+		node_record(100, 4, 7, "player4@node4"),
+		node_record(120, 0, 0, "player0@node0"),
+		node_record(130, 1, 0, "player1@node1"),
+	];
+	let joins = BoloGame.classify_node_joins(records);
+	check("T=7 roster burst identifies a slot admission", joins.has(records[5]), true);
+
+	let isolated = node_record(200, 4, 7, "renamed@node4");
+	check("isolated T=7 rename is not a slot admission",
+		BoloGame.classify_node_joins(records.slice(0, 5).concat(isolated)).has(isolated), false);
+
+	let st = BoloGame.initial_state();
+	for (let i = 0; i < 5; i++) BoloGame.apply_record(st, records[i], null, null);
+	let ally = (a, b) => {
+		st.alliances[a] &= ~(1 << b);
+		st.alliances[b] &= ~(1 << a);
+	};
+	ally(0, 3);
+	ally(0, 4);
+	ally(3, 4);
+	ally(1, 2);
+	BoloGame.apply_record(st, records[5], null, null, null, joins);
+	BoloGame.apply_record(st, {
+		time: 200, seq: 0, status: 0, player: 0, tankStatus: 0, tankDir: 0,
+		subpackets: [{ type: "alliance_accept", tanks: 1 << 3 }],
+	}, null, null);
+	BoloGame.apply_record(st, {
+		time: 201, seq: 1, status: 0, player: 2, tankStatus: 0, tankDir: 0,
+		subpackets: [{ type: "alliance_accept", tanks: 1 << 4 }],
+	}, null, null);
+	check("admitted slot does not merge its old and new teams",
+		[0, 1, 2, 3, 4].map(player => BoloGame.team_of(st, player)), [0, 1, 1, 0, 1]);
+}
+
 // Quitting takes carried pills out of the game, and a new player reusing
 // the slot inherits neither the cargo nor the alliances.
 {

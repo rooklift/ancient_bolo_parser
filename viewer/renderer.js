@@ -338,7 +338,7 @@ function set_clock(tick, hard) {
 		rebuild_chat(tick);
 	} else {
 		while (cursor < game.records.length && game.records[cursor].time <= tick) {
-			BoloGame.apply_record(cur, game.records[cursor], null, null);
+			BoloGame.apply_record(cur, game.records[cursor], null, null, null, game.node_joins);
 			cursor++;
 		}
 	}
