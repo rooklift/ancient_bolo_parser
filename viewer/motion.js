@@ -114,6 +114,45 @@ function build_tank_positions(records) {
 	return tracks;
 }
 
+/* Tank direction is live on records which do not contain a position too, so
+ * it needs a track of its own. `continuous` has the same meaning as it does
+ * for position tracks: it describes the span ending at this entry. */
+function build_tank_directions(records) {
+	let tracks = Array.from({ length: 16 }, () => []);
+	let active = Array.from({ length: 16 }, () => false);
+
+	for (let rec of records) {
+		let player = rec.player;
+		let map_node_only = rec.subpackets.length > 0 &&
+			rec.subpackets.every(sub => MAP_NODE_TYPES.has(sub.type));
+		let breaks_path = !map_node_only && (rec.tankStatus === 0x07 ||
+			rec.subpackets.some(sub => sub.type === "tank_death" || sub.type === "quit"));
+		let position = rec.subpackets.find(sub => sub.type === "tank_position");
+		let direction = null;
+		let dying = false;
+
+		if (position) {
+			direction = position.direction;
+			dying = position.dying;
+		} else if (active[player] && rec.tankStatus !== 0x0f &&
+			rec.tankStatus !== 0x07 && !(rec.tankStatus & 0x08)) {
+			direction = rec.tankDir;
+		}
+
+		if (direction !== null) {
+			tracks[player].push({
+				time: rec.time,
+				direction,
+				continuous: active[player] && !dying && !breaks_path,
+			});
+			active[player] = !dying && !breaks_path;
+		}
+		if (breaks_path) active[player] = false;
+	}
+
+	return tracks;
+}
+
 /* LGM paths end when the man enters the tank, dies, or quits. Parachuting
  * and walking are separate paths: interpolating across touchdown would
  * invent motion between two different object states. Unlike the anomalous
@@ -795,7 +834,39 @@ function interpolated_position(track, object, tick) {
 
 function tank_position_at(game, state, player, tick) {
 	let track = game.tank_positions && game.tank_positions[player];
-	return interpolated_position(track, state.tanks[player], tick);
+	let position = interpolated_position(track, state.tanks[player], tick);
+	if (!position) return null;
+	position.direction = tank_direction_at(game, state, player, tick);
+	return position;
+}
+
+function tank_direction_at(game, state, player, tick) {
+	let tank = state.tanks[player];
+	if (!tank) return null;
+	let fallback = tank.dir;
+	let tracks = game.tank_directions;
+	let track = tracks && tracks[player];
+	if (!track || tank.direction_time === undefined) return fallback;
+
+	let lo = 0, hi = track.length;
+	while (lo < hi) {
+		let mid = (lo + hi) >> 1;
+		if (track[mid].time <= tick) lo = mid + 1;
+		else hi = mid;
+	}
+	let current = track[lo - 1];
+	if (!current || current.time !== tank.direction_time ||
+		current.direction !== tank.dir) return fallback;
+
+	let next = track[lo];
+	let duration = next ? next.time - current.time : 0;
+	if (!next || !next.continuous || tick >= next.time || duration <= 0 ||
+		duration > MAX_POSITION_INTERPOLATION_TICKS) return fallback;
+
+	let amount = (tick - current.time) / duration;
+	let delta = (next.direction - current.direction + 24) % 16 - 8;
+	let step = Math.sign(delta) * Math.round(Math.abs(delta) * amount);
+	return (current.direction + step + 16) % 16;
 }
 
 function lgm_position_at(game, state, player, tick) {
@@ -862,9 +933,9 @@ function shell_birth_positions_at(game, player, tick) {
 const BoloMotion = {
 	TICKS_PER_SECOND, MAX_POSITION_INTERPOLATION_TICKS,
 	append_shell_list, add_shell_point_terminal, add_shell_box_terminal,
-	build_tank_positions, build_lgm_positions, track_pixel_at,
+	build_tank_positions, build_tank_directions, build_lgm_positions, track_pixel_at,
 	build_shell_positions, build_shell_births,
-	tank_position_at, lgm_position_at, shell_position_at,
+	tank_position_at, tank_direction_at, lgm_position_at, shell_position_at,
 	shell_birth_positions_at,
 };
 

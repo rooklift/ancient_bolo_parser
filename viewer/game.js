@@ -68,7 +68,8 @@ function initial_state(seed) {
 		bases: seed ? seed.bases.map(b => ({ ...b })) : [],
 		starts: seed ? seed.starts.map(st => ({ x: st.x, y: st.y, direction: st.dir })) : [],
 		tanks: Array.from({ length: 16 }, () => null),
-			/* {x, y, px, py, dir, inBoat, hidden, dying, speed, lastSeen, position_time} */
+			/* {x, y, px, py, dir, inBoat, hidden, dying, speed, lastSeen,
+			 * position_time, direction_time} */
 		men: Array.from({ length: 16 }, () => null),
 			/* {x, y, px, py, parachute, carryingPill, lastSeen, position_time} */
 		shells: Array.from({ length: 16 }, () => []),
@@ -260,6 +261,7 @@ function apply_record(s, rec, effects, chat, shell_terminals) {
 		t.hidden = !!(rec.tankStatus & 0x02);
 		t.dying = !!(rec.tankStatus & 0x04);
 		t.dir = rec.tankDir;
+		t.direction_time = rec.time;
 	}
 
 	for (const sub of rec.subpackets) {
@@ -269,7 +271,7 @@ function apply_record(s, rec, effects, chat, shell_terminals) {
 					x: sub.x, y: sub.y, px: sub.pixelX, py: sub.pixelY,
 					dir: sub.direction, inBoat: sub.inBoat, hidden: sub.hidden,
 					dying: sub.dying, speed: sub.speed, lastSeen: rec.time,
-					position_time: rec.time,
+					position_time: rec.time, direction_time: rec.time,
 					/* positions with the dying bit are death-animation flames,
 					 * not a live tank; only a normal position is a respawn */
 					dead: sub.dying ? (s.tanks[pl] ? s.tanks[pl].dead : false) : false,
@@ -840,6 +842,7 @@ function build(records) {
 	const keyframes = []; /* {index, state} — state BEFORE records[index] */
 	const seed = extract_initial_map(records);
 	const tank_positions = BoloMotion.build_tank_positions(records);
+	let tank_directions = BoloMotion.build_tank_directions(records);
 	const lgm_positions = BoloMotion.build_lgm_positions(records);
 	let shell_terminals = [];
 	let pillbox_sources_by_record = new Map();
@@ -900,6 +903,7 @@ function build(records) {
 		chat,
 		keyframes,
 		tank_positions,
+		tank_directions,
 		lgm_positions,
 		shell_positions,
 		shell_births,
@@ -960,6 +964,7 @@ const BoloGame = {
 	initial_state, clone_state, apply_record, build, state_at, team_of,
 	adjacent_change_time,
 	tank_position_at: BoloMotion.tank_position_at,
+	tank_direction_at: BoloMotion.tank_direction_at,
 	lgm_position_at: BoloMotion.lgm_position_at,
 	shell_position_at: BoloMotion.shell_position_at,
 	shell_birth_positions_at: BoloMotion.shell_birth_positions_at,
