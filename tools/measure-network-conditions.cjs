@@ -45,7 +45,7 @@
 const fs = require("fs");
 const path = require("path");
 const BoloLog = require(path.join(__dirname, "..", "viewer", "logparse.js"));
-const BoloGame = require(path.join(__dirname, "..", "viewer", "game.js"));
+const BoloNetwork = require(path.join(__dirname, "..", "viewer", "network.js"));
 
 const args = process.argv.slice(2).filter(a => !a.startsWith("--"));
 const ROOT = args[0] || "C:/Users/Owner/__DOCS/Bolo Archives/Nemokrad's Bolo logs";
@@ -131,7 +131,7 @@ for (let file of walk(ROOT)) {
 	if (recs.length < MIN_RECORDS) continue;
 	if (recs[recs.length - 1].time - recs[0].time < MIN_TICKS) continue;
 
-	let whole = BoloGame.network_conditions(recs);
+	let whole = BoloNetwork.network_conditions(recs);
 	if (!whole) continue;
 
 	/* Interleaved blocks, so a game that merely got worse as it went is not
@@ -243,8 +243,8 @@ let counts = new Map(NAMES.map(n => [n, 0]));
 let same = 0;
 for (let row of rows) {
 	counts.set(row.whole.rating, counts.get(row.whole.rating) + 1);
-	if (BoloGame.network_rating(row.a.loss, row.a.stall) ===
-		BoloGame.network_rating(row.b.loss, row.b.stall)) same++;
+	if (BoloNetwork.network_rating(row.a.loss, row.a.stall) ===
+		BoloNetwork.network_rating(row.b.loss, row.b.stall)) same++;
 }
 for (let name of NAMES) {
 	let c = counts.get(name);
