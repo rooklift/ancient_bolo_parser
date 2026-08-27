@@ -15,6 +15,7 @@ const TICKS_PER_SECOND = BoloMotion.TICKS_PER_SECOND;
 const KEYFRAME_EVERY = 2000; /* records between state snapshots, for seeking */
 const NEUTRAL = 16;
 const GONE = -2; /* inTank value: pill left the game with a quitting carrier */
+const NODE_JOIN_RESTATEMENT_TICKS = TICKS_PER_SECOND * 5;
 
 /* Subpacket types of map-transfer / node records, which appear alone and
  * carry no player state (see the shell-clearing rule in apply_record). */
@@ -23,6 +24,55 @@ const MAP_NODE_TYPES = new Set([
 	"game_info", "pillbox_list", "base_list", "start_list", "history",
 	"attached_log",
 ]);
+
+/* F8 identifies a node but does not distinguish a rename from a join. A
+ * joining node does, however, send F8 with T=7 and cause the established
+ * ring members to restate their unchanged ids. Require two such
+ * restatements when that many other live players are known (one in a
+ * two-player ring), so a dead player's isolated rename does not look like
+ * a join. This recovers admissions whose old slot occupant vanished in an
+ * invisible ring split and therefore emitted no quit record. */
+function classify_node_joins(records) {
+	let joins = new WeakSet();
+	let names = Array.from({ length: 16 }, () => null);
+	let active = Array.from({ length: 16 }, () => false);
+
+	for (let i = 0; i < records.length; i++) {
+		let rec = records[i];
+		let node = rec.subpackets.find(sub => sub.type === "node_id");
+		if (node && rec.tankStatus === 0x07) {
+			let expected = names.slice();
+			let available = 0;
+			for (let player = 0; player < 16; player++) {
+				if (player !== rec.player && active[player] && expected[player] !== null) available++;
+			}
+			let needed = Math.min(2, available);
+			let restated = new Set();
+			for (let j = i + 1; needed > 0 && j < records.length; j++) {
+				let other = records[j];
+				if (other.time - rec.time > NODE_JOIN_RESTATEMENT_TICKS) break;
+				if (other.player === rec.player || other.tankStatus === 0x07) continue;
+				let other_node = other.subpackets.find(sub => sub.type === "node_id");
+				if (other_node && active[other.player] &&
+					other_node.name === expected[other.player]) {
+					restated.add(other.player);
+				}
+			}
+			if (needed > 0 && restated.size >= needed) joins.add(rec);
+		}
+
+		for (const sub of rec.subpackets) {
+			if (sub.type === "node_id") {
+				names[rec.player] = sub.name;
+				active[rec.player] = true;
+			} else if (sub.type === "quit") {
+				active[rec.player] = false;
+			}
+		}
+	}
+
+	return joins;
+}
 
 /* Serpentine search path used when a dying tank's carried pills are dumped
  * around the death square (from Carl Osterwald's notes; first ring exact,
@@ -221,7 +271,7 @@ function lowest_carried(s, player) {
 
 /* Apply one parsed record to the state. `effects` and `chat`, when given,
  * collect transient events (for rendering) and messages. */
-function apply_record(s, rec, effects, chat, shell_terminals) {
+function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 	const pl = rec.player;
 	let sawShells = false;
 	let newShells = null;
@@ -543,14 +593,15 @@ function apply_record(s, rec, effects, chat, shell_terminals) {
 				break;
 			}
 			case "node_id": {
-				/* F8 is join, rename, AND periodic re-identification (all
-				 * players restate their ids when someone joins): only a
-				 * genuinely new player is a join, only a changed name is a
-				 * rename, restatements are silent. Chat events snapshot
+				/* F8 is join, rename, AND periodic re-identification. Join
+				 * handshakes were classified from their T=7 roster bursts;
+				 * other changed names are renames and restatements are
+				 * silent. Chat events snapshot
 				 * name/team as of the event, so seeking rebuilds an
 				 * identical history. */
-				const old = s.quit[pl] ? null : s.names[pl];
-				if (s.quit[pl]) {
+				let joining = s.quit[pl] || (node_joins && node_joins.has(rec));
+				let old = joining ? null : s.names[pl];
+				if (joining) {
 					/* slot reused by a new (or returning) player: they do
 					 * not inherit the previous occupant's alliances */
 					s.alliances[pl] = 0xffff & ~(1 << pl);
@@ -816,7 +867,7 @@ function extract_initial_map_pass(records, death_pill_squares) {
  * provisional map and use their positions to refine the death-clearance
  * taint mask. Tank positions precede events within a record: pills dumped
  * by that record's F9 begin masking the following dying position. */
-function extract_initial_map(records) {
+function extract_initial_map(records, node_joins) {
 	const provisional = extract_initial_map_pass(records, null);
 	const state = initial_state(provisional);
 	const death_pill_squares = new WeakMap();
@@ -830,7 +881,7 @@ function extract_initial_map(records) {
 				death_pill_squares.set(sub, occupied);
 			}
 		}
-		apply_record(state, rec, null, null);
+		apply_record(state, rec, null, null, null, node_joins);
 	}
 	return extract_initial_map_pass(records, death_pill_squares);
 }
@@ -840,7 +891,8 @@ function build(records) {
 	const effects = [];
 	const chat = [];
 	const keyframes = []; /* {index, state} — state BEFORE records[index] */
-	const seed = extract_initial_map(records);
+	let node_joins = classify_node_joins(records);
+	const seed = extract_initial_map(records, node_joins);
 	const tank_positions = BoloMotion.build_tank_positions(records);
 	let tank_directions = BoloMotion.build_tank_directions(records);
 	const lgm_positions = BoloMotion.build_lgm_positions(records);
@@ -890,7 +942,7 @@ function build(records) {
 			pillbox_sources_by_record.set(rec, pillbox_sources);
 		}
 		if (tank_sources.length) tank_sources_by_record.set(rec, tank_sources);
-		apply_record(s, rec, effects, chat, shell_terminals);
+		apply_record(s, rec, effects, chat, shell_terminals, node_joins);
 	}
 	let shell_positions = BoloMotion.build_shell_positions(records, shell_terminals,
 		pillbox_sources_by_record, tank_sources_by_record);
@@ -902,6 +954,7 @@ function build(records) {
 		effects,
 		chat,
 		keyframes,
+		node_joins,
 		tank_positions,
 		tank_directions,
 		lgm_positions,
@@ -926,7 +979,7 @@ function state_at(game, tick) {
 	const s = clone_state(kf.state);
 	let i = kf.index;
 	while (i < game.records.length && game.records[i].time <= tick) {
-		apply_record(s, game.records[i], null, null);
+		apply_record(s, game.records[i], null, null, null, game.node_joins);
 		i++;
 	}
 	return { state: s, index: i };
@@ -962,6 +1015,7 @@ const BoloGame = {
 	MAP_SIZE, DEEP_SEA, TICKS_PER_SECOND, NEUTRAL, KEYFRAME_EVERY,
 	MAX_POSITION_INTERPOLATION_TICKS: BoloMotion.MAX_POSITION_INTERPOLATION_TICKS,
 	initial_state, clone_state, apply_record, build, state_at, team_of,
+	classify_node_joins,
 	adjacent_change_time,
 	tank_position_at: BoloMotion.tank_position_at,
 	tank_direction_at: BoloMotion.tank_direction_at,

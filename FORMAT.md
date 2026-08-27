@@ -141,7 +141,7 @@ nibble.
 | `F5` | 3 | LGM death at `XX YY` |
 | `F6` | 1 | tank boards boat (boat consumed): the tank's centre square reverts from river-with-boat to plain river with **no** accompanying `6T` event — playback must apply the change itself [E:boat] |
 | `F7` | 1 | tank lays mine |
-| `F8` | 2+len | node id: Pascal string `player@node`; also sent on rename |
+| `F8` | 2+len | node id: Pascal string `player@node`; also sent on rename. A joining player's F8 has tank status `T=7` and is followed by established ring members restating their unchanged F8 ids; together those distinguish a slot admission from an isolated rename even when the former occupant's quit was lost |
 | `F9` | 2 | tank death; code 1 = explosion, 2 = crater, 3 = sunk in deep sea (an F901 may be followed by F902 mid-animation). The respawn is the next tank position without the dying bit [E:respawn-gap]. Terminal cratering at the wreck's resting place is **evented** (`7T`/`7D`) and is gated on the ammo aboard: a 4-square superboom above 60 shells + mines, a single crater from 1 to 60, and no explosion at all when the tank dies empty [E:death-tiers] |
 | `FA` | 4+len | chat message: 2-byte little-endian recipient bitmask (`FFFF` = all) + Pascal string (max 120 chars; longer messages split across records) |
 | `FB` | 4 | shell falls to ground at `XX YY yx`; the pixel position is the shell's terminal point [E:shell-fall-terminal] |
@@ -223,7 +223,10 @@ Playback must re-implement fragments of game logic:
   restatement anyway, so reconstruction buys at most a fraction of a
   second and a viewer may reasonably skip it.
 - **Ring splits are invisible**: a player who disconnects without a quit
-  record simply stops sending and remains a ghost.
+  record simply stops sending and remains a ghost. A later slot admission
+  remains inferable from its `T=7` F8 and the following burst of unchanged
+  F8 restatements, at which point the admitted slot's old alliances must be
+  cleared.
 - **A mine under a starting pillbox does not exist**: the transferred map
   data keeps the mined terrain code, but the game ignores the mine, so a
   player must clear it from squares occupied by initial pillboxes.
