@@ -672,31 +672,54 @@ terrain event.
 **[E:seq-loss]** — a step above 1 is really loss, but only where the ring is
 settled, and getting that qualifier wrong ruins the measurement.
 
-**The join ramp.** While a game is still gathering — the map being handed to
-joiners, nodes arriving — the ring turns at full speed while the logging
-machine records only a fraction of what goes round it. The sequence number
-races ahead of the log, and every slot it skips is charged as a lost packet.
-A join ramp therefore reads as catastrophic loss without a single packet
-having gone astray: in one 19-minute 4-player log the first three minutes
-score 89%, 83% and 63% while the settled middle sits between 2% and 8%. The
-ramp is short — a median 50 s, about 4% of a log — but extreme enough to
-dominate any average that includes it. Across the corpus, the share of a log
-spent ramping predicts its untrimmed loss figure at **r = 0.71**; measured
-over settled play only, that relationship disappears entirely (**r = −0.04**).
+**The gathering phase.** While a game is still gathering — the map being
+handed to joiners, nodes arriving — the ring turns at full speed while the
+logging machine records only a fraction of what goes round it. The sequence
+number races ahead of the log, and every slot it skips is charged as a lost
+packet. Gathering therefore reads as catastrophic loss without a single
+packet having gone astray: in one 19-minute 4-player log the first three
+minutes score 89%, 83% and 63% while the settled middle sits between 2% and
+8%. It is short — a median 56 s, a few percent of a log — but extreme enough
+to dominate any average that includes it. Across the corpus, the share of a
+log spent gathering predicts its untrimmed loss figure at **r = 0.83**;
+measured over settled play only, that relationship disappears entirely
+(**r = −0.03**).
+
+**Where settled play begins is best asked of the game, not the log.** The
+marker used is the **first base capture**: somebody drove a man into a base
+and took it, which cannot happen until the map has been distributed and
+everyone is playing. Every one of the 445 logs has one, a median 56 s in.
+The obvious alternative — inferring the moment from where the log's record
+rate reaches its plateau — reads the log rather than the game, and misfires
+on a minority of them, declaring the plateau reached in the very first block
+of a game that had not begun; those logs keep their artefact and land among
+the worst in the corpus. Against the capture marker the rate rule scores a
+worst case of 69.8% loss versus 49.5%, and a 99th percentile of 46.9% versus
+28.5%. The capture marker is also the more consistent of the two, though
+this needs care to see: its raw split-half correlation is *lower* (0.88
+against 0.95) purely because it deletes a large artefactual spread that both
+halves of a log shared, and correlation grows with the spread of what is
+correlated. On measures that do not scale that way it wins — half-to-half
+disagreement in loss falls (p90 of |A−B| from 3.13 to 2.76 points), band
+agreement rises from 74.6% to 75.5%, and among the 421 logs both rules put
+under 20% loss, where no artefactual tail can flatter either, the split-half
+correlation is higher for the capture marker (0.808 against 0.772). Rate
+inference is kept only as a fallback for a game in which no base was ever
+captured; no such log exists in this corpus.
 
 **What the steps track, once the ramp is excluded.** Loss rises with player
 count, a ring gaining a hop per player and each hop another chance to drop a
-packet: medians 5.2% at two players, 6.6% at four, 8.0% at six. It also
-agrees at r = 0.79 with an entirely separate reading of the same stream —
+packet: medians 5.2% at two players, 6.6% at four, 7.4% at six. It also
+agrees at r = 0.69 with an entirely separate reading of the same stream —
 the share of elapsed time in gaps over half a second, during which nothing
 arrived at all. Over settled play the corpus runs from 1.3% in the cleanest
-games to about 70% in the worst, median 6.4%.
+games to 49.5% in the worst, median 6.3%.
 
 **A correction.** Read end to end, these logs appear to improve year on year
 as dial-up gave way to broadband — medians 13.1% in 2001 falling to 9.1% in
 2005. Almost all of that is the ramp: faster links transferred the map
 faster, so later logs waste less of themselves gathering. In settled play the
-medians are 6.7%, 6.2%, 6.2%, 6.3%, 6.0% — essentially flat. What improved
+medians are 6.6%, 6.2%, 5.9%, 6.2%, 5.7% — essentially flat. What improved
 between 2001 and 2005 was how quickly a game could be *started*, not how
 well it ran once it had.
 
@@ -707,7 +730,7 @@ is excluded on the same grounds as the ramp, though it costs far less: the
 ring is dissolving there, not failing.
 
 Scoring interleaved half-minute blocks of the settled span as though they
-were two separate games gives r = 0.95 on loss and 0.90 on stall, so this is
+were two separate games gives r = 0.88 on loss and 0.94 on stall, so this is
 a property of a session rather than of whichever minute was sampled, and
 fair to state once for a whole game — which is what the viewer's header
 does, via `network_conditions` in `viewer/game.js`. All of the above

@@ -470,19 +470,40 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 		{ time: 5, seq: 0, subpackets: [] }, { time: 5, seq: 1, subpackets: [] },
 	]), null);
 
-	// The join ramp -- the ring at full speed while the logger catches only
-	// a fraction of it -- must not be charged as loss. Two minutes of
-	// one-in-five recorded, then eight of a clean ring.
-	let ramped = [];
-	for (let i = 0, t = 1000, seq = 0; i < 1200; i++, seq += 5)
-		ramped.push({ time: t + i * 5, seq: seq & 0x7f, subpackets: [] });
-	let after = ramped[ramped.length - 1].time;
-	for (let i = 1; i <= 12000; i++)
-		ramped.push({ time: after + i * 2, seq: i & 0x7f, subpackets: [] });
-	let ramp = BoloGame.network_conditions(ramped);
-	check("the join ramp is not charged as loss", ramp.loss, 0);
-	check("the join ramp is left outside the measured span", ramp.from > ramped[0].time, true);
-	check("a ramped log still rates on its settled play", ramp.rating, "good");
+	// The gathering phase -- the ring at full speed while the logger catches
+	// only a fraction of it -- must not be charged as loss. Two minutes of
+	// one-in-five recorded, then a clean ring; the first base capture marks
+	// where the game proper begins.
+	function gathering(mark_capture) {
+		let recs = [];
+		for (let i = 0, seq = 0; i < 1200; i++, seq += 5)
+			recs.push({ time: 1000 + i * 5, seq: seq & 0x7f, subpackets: [] });
+		let after = recs[recs.length - 1].time;
+		for (let i = 1; i <= 12000; i++)
+			recs.push({ time: after + i * 2, seq: i & 0x7f, subpackets: [] });
+		if (mark_capture) recs[1200].subpackets = [{ type: "base_capture" }];
+		return recs;
+	}
+	let capped = gathering(true);
+	let ramp = BoloGame.network_conditions(capped);
+	check("gathering is not charged as loss", ramp.loss, 0);
+	check("the span starts at the first base capture", ramp.from, capped[1200].time);
+	check("a slow-starting log still rates on its settled play", ramp.rating, "good");
+
+	// With no base capture anywhere, the record rate has to stand in for it.
+	let uncapped = BoloGame.network_conditions(gathering(false));
+	check("no capture: the rate plateau stands in", uncapped.loss, 0);
+	check("no capture: gathering still left outside the span",
+		uncapped.from > gathering(false)[0].time, true);
+
+	// A capture is only a start marker -- it must not shorten the span of a
+	// game that was already up and running when the log begins.
+	let running = [];
+	for (let i = 0; i < 3000; i++)
+		running.push({ time: 1000 + i * 2, seq: i & 0x7f, subpackets: [] });
+	running[2000].subpackets = [{ type: "base_capture" }];
+	check("a late capture still marks the start",
+		BoloGame.network_conditions(running).from, running[2000].time);
 
 	// The first quit ends the measured span: the ring is dissolving after
 	// it, not failing.
