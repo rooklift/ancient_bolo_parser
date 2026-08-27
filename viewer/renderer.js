@@ -735,6 +735,7 @@ function draw_shells() {
 			/* same half-tile centring as every other positioned object;
 			 * verified against 3k muzzle samples (shell vs firing tank) */
 			let position = BoloGame.shell_position_at(game, p, sh, i, clock);
+			if (!position) continue;
 			let cx = tile_to_screen_x(position.x);
 			let cy = tile_to_screen_y(position.y);
 			/* Big shots deliberately override the classic direction sprites.

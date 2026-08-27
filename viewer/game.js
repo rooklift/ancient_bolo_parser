@@ -1053,6 +1053,7 @@ function shell_terminal_match(previous, terminal, duration) {
 			angle_error * expected_distance,
 		pixel_x: endpoint.pixel_x,
 		pixel_y: endpoint.pixel_y,
+		distance: endpoint.distance,
 	};
 }
 
@@ -1102,7 +1103,10 @@ function match_shell_snapshots(previous, next) {
 		if (previous_margin < SHELL_MATCH_MARGIN || next_margin < SHELL_MATCH_MARGIN) continue;
 
 		let old_shell = previous.shells[previous_index];
-		old_shell.next_time = next.time;
+		old_shell.next_time = best.target.terminal
+			? Math.min(next.time,
+				previous.time + best.distance / SHELL_SPEED_PIXELS_PER_TICK)
+			: next.time;
 		old_shell.next_pixel_x = best.pixel_x;
 		old_shell.next_pixel_y = best.pixel_y;
 		old_shell.next_terminal = best.target.terminal;
@@ -1282,8 +1286,12 @@ function shell_position_at(game, player, shell, index, tick) {
 	let position = snapshot && snapshot.shells[index];
 	if (!position || snapshot.time !== shell.position_time ||
 		position.pixel_x !== pixel_x || position.pixel_y !== pixel_y ||
-		position.direction !== shell.direction || position.next_time === undefined ||
-		tick >= position.next_time) return fallback();
+		position.direction !== shell.direction || position.next_time === undefined) {
+		return fallback();
+	}
+	if (tick >= position.next_time) {
+		return position.next_terminal ? null : fallback();
+	}
 
 	let amount = (tick - snapshot.time) / (position.next_time - snapshot.time);
 	pixel_x += (position.next_pixel_x - position.pixel_x) * amount;
