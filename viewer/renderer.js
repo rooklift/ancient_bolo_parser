@@ -729,6 +729,28 @@ function draw_shells() {
 	ctx.fillStyle = use_big_shots ? "#ffe678" : "#fff";
 	let radius = Math.max(1, z * 0.12);
 	let small_size = Math.max(1, z / 8);
+	let draw_shell = (position, direction) => {
+		let cx = tile_to_screen_x(position.x);
+		let cy = tile_to_screen_y(position.y);
+		/* Big shots deliberately override the classic direction sprites.
+		 * obj_sprite adds the other two gates: object graphics on and zoom
+		 * at or above the shared sprite threshold. */
+		let img = !use_big_shots
+			? obj_sprite(`shell_${String(direction).padStart(2, "0")}`)
+			: undefined;
+		if (img) {
+			draw_cropped_obj(img, cx, cy);
+			return;
+		}
+		if (!use_big_shots) {
+			ctx.fillRect(cx - small_size / 2, cy - small_size / 2,
+				small_size, small_size);
+			return;
+		}
+		ctx.beginPath();
+		ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+		ctx.fill();
+	};
 	for (let p = 0; p < 16; p++) {
 		for (let i = 0; i < cur.shells[p].length; i++) {
 			let sh = cur.shells[p][i];
@@ -736,25 +758,10 @@ function draw_shells() {
 			 * verified against 3k muzzle samples (shell vs firing tank) */
 			let position = BoloGame.shell_position_at(game, p, sh, i, clock);
 			if (!position) continue;
-			let cx = tile_to_screen_x(position.x);
-			let cy = tile_to_screen_y(position.y);
-			/* Big shots deliberately override the classic direction sprites.
-			 * obj_sprite adds the other two gates: object graphics on and zoom
-			 * at or above the shared sprite threshold. */
-			let img = !use_big_shots
-				? obj_sprite(`shell_${String(sh.direction).padStart(2, "0")}`)
-				: undefined;
-			if (img) {
-				draw_cropped_obj(img, cx, cy);
-				continue;
-			}
-			if (!use_big_shots) {
-				ctx.fillRect(cx - small_size / 2, cy - small_size / 2, small_size, small_size);
-				continue;
-			}
-			ctx.beginPath();
-			ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-			ctx.fill();
+			draw_shell(position, sh.direction);
+		}
+		for (let birth of BoloGame.shell_birth_positions_at(game, p, clock)) {
+			draw_shell(birth, birth.direction);
 		}
 	}
 }
