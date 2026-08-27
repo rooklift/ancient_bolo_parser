@@ -25,6 +25,11 @@ no adjustment.
 
 Bolo time runs at exactly 50 ticks per second.
 
+## Terrain
+
+0: building, 1: river, 2: swamp, 3: crater, 4: road, 5: forest, 6: rubble, 7: grass 8: shot building, 9: boat,
+10: mined swamp, 11: mined crater, 12: mined road, 13: mined forest, 14: mined rubble, 15: mined grass
+
 ## File header (72 bytes, not encrypted)
 
 | offset | size | contents |
