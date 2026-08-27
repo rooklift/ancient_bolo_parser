@@ -581,6 +581,47 @@ if (!fs.existsSync(log1)) {
 	check("tank does not interpolate across death", centre_x(death, 104), 10.5);
 }
 
+// Tank headings interpolate through the 16 actual sprite directions. The
+// direction track includes position-less updates and wraps by the short arc.
+{
+	let position = (time, direction) => ({
+		time, seq: time, status: 0, player: 0, tankStatus: 8, tankDir: direction,
+		subpackets: [{
+			type: "tank_position", x: 10, y: 10, pixelX: 0, pixelY: 0,
+			direction, inBoat: false, hidden: false, dying: false,
+			speed: 0, motion: 0,
+		}],
+	});
+	let direction_at = (game, tick) => {
+		let state = BoloGame.state_at(game, tick).state;
+		return BoloGame.tank_position_at(game, state, 0, tick).direction;
+	};
+
+	let turning = BoloGame.build([
+		position(100, 0),
+		{ time: 112, seq: 112, status: 0, player: 0, tankStatus: 0,
+			tankDir: 4, subpackets: [] },
+	]);
+	check("tank direction interpolates position-less updates",
+		[direction_at(turning, 103), direction_at(turning, 106),
+			direction_at(turning, 109), direction_at(turning, 112)],
+		[1, 2, 3, 4]);
+
+	let clockwise_wrap = BoloGame.build([position(100, 15), position(112, 1)]);
+	check("tank direction interpolates clockwise across north",
+		direction_at(clockwise_wrap, 106), 0);
+
+	let anticlockwise_wrap = BoloGame.build([position(100, 1), position(112, 15)]);
+	check("tank direction interpolates anticlockwise across north",
+		direction_at(anticlockwise_wrap, 106), 0);
+
+	let lag = BoloGame.build([
+		position(100, 0),
+		position(100 + BoloGame.MAX_POSITION_INTERPOLATION_TICKS + 1, 4),
+	]);
+	check("tank direction stops across lag", direction_at(lag, 110), 0);
+}
+
 // LGMs use the same conservative interpolation window, but walking and
 // parachuting are distinct paths and entering the tank ends a path.
 {

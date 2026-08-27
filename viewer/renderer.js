@@ -668,7 +668,8 @@ function draw_tanks() {
 		 * only ghost tanks (ring splits, long unheard-from) fade */
 		ctx.globalAlpha = stale ? 0.25 : 1;
 		/* sprite indices match the log: 0 = north, clockwise (4 = east) */
-		let img = obj_sprite(`tank_${side_of(p)}${t.inBoat ? "boat" : ""}_${String(t.dir).padStart(2, "0")}`);
+		let direction = position.direction;
+		let img = obj_sprite(`tank_${side_of(p)}${t.inBoat ? "boat" : ""}_${String(direction).padStart(2, "0")}`);
 		if (img) {
 			draw_obj(img, cx - z / 2, cy - z / 2);
 			ctx.restore();
@@ -676,7 +677,7 @@ function draw_tanks() {
 			continue;
 		}
 		ctx.translate(cx, cy);
-		ctx.rotate((t.dir / 16) * Math.PI * 2); /* 0 = north, clockwise */
+		ctx.rotate((direction / 16) * Math.PI * 2); /* 0 = north, clockwise */
 		ctx.fillStyle = side_color(p);
 		ctx.strokeStyle = "rgba(0,0,0,0.7)";
 		ctx.lineWidth = 1.5;
