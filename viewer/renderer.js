@@ -173,6 +173,7 @@ let coordinate_pixel_el = document.getElementById("coordinatePixel");
 let drop_hint = document.getElementById("dropHint");
 let map_name_el = document.getElementById("mapName");
 let game_meta_el = document.getElementById("gameMeta");
+let network_meta_el = document.getElementById("networkMeta");
 let players_el = document.getElementById("players");
 let chat_el = document.getElementById("chat");
 let file_pick = document.getElementById("filePick");
@@ -875,6 +876,15 @@ function load_log(bytes, name) {
 	document.title = (name ? name.split(/[\\/]/).pop() + " — " : "") + "Ancient Bolo Log Viewer";
 	let gi = game.final.gameInfo;
 	map_name_el.textContent = gi ? gi.mapName : (name || "Bolo log");
+
+	/* One verdict for the whole log, so it is set here and not in
+	 * update_transport: the network was what it was, and a figure that
+	 * crept about as the clock moved would only invite reading it as live. */
+	let net = game.network;
+	network_meta_el.textContent = net ? `Network conditions: ${net.rating}` : "";
+	network_meta_el.title = net ?
+		`${net.loss.toFixed(1)}% of packets lost, ` +
+		`${net.stall.toFixed(1)}% of the game spent frozen` : "";
 
 	viewpoint_el.innerHTML = "";
 	viewpoint = -1;

@@ -44,7 +44,10 @@ for (const rec of records(new Uint8Array(fs.readFileSync(file)))) {
 own, modern log format — an Electron app that plays logs back: terrain rendered with
 Bolo's tile art, tanks/men/shells/pills/bases live, transient explosion
 effects, alliance team colours, a message-wire panel, seeking, speeds up to
-64×, and a viewpoint selector choosing whose side draws as friendly.
+64×, and a viewpoint selector choosing whose side draws as friendly. The
+header also rates the network the game was played on — good, fair, bad or
+awful — read off the packets that never arrived and the moments everything
+froze ([E:seq-loss](FORMAT.md)).
 
 <img width="1280" height="860" alt="viewer screenshot" src="https://github.com/user-attachments/assets/cd56620e-6c36-4640-b351-3a3b964524eb" />
 

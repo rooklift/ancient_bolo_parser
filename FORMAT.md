@@ -58,7 +58,7 @@ are at most 127 bytes, the mask never wraps.
 
 | size | contents |
 |------|----------|
-| 1    | sequence number, 0–0x7F, incremented by each node in the ring |
+| 1    | sequence number, 0–0x7F, incremented by each node in the ring. Consecutive records therefore step by 1 when nothing goes missing; a step of *n* accounts for *n*−1 packets that never reached the logging machine, and a step of 0 is a duplicate. A log is thus self-reporting about the network it was recorded on [E:seq-loss] |
 | 1    | high nibble: status bits `b`; low nibble: sending player number |
 | 1    | high nibble: tank status bits `T`; low nibble: tank direction |
 | …    | position subpackets, then ID-coded subpackets |
@@ -668,6 +668,29 @@ per the 2003 notes.
 
 **[E:boat]** — all 38 sample boardings sit on terrain 9, none has a
 terrain event.
+
+**[E:seq-loss]** — that a step above 1 is really loss, rather than some
+rhythm of the protocol, shows in what the steps track. Over 445 logs of the
+Nemokrad corpus the missing-slot share runs from 2.7% in the cleanest games
+to over 60% in the worst, and it moves with the two facts outside the log
+that ought to move it. It rises with player count — medians 7.7% at two
+players, 12.9% at four, 17.6% at five, 36.1% at eight — a ring gaining a hop
+per player, each hop another chance to drop a packet. And it falls year on
+year as dial-up gave way to broadband: medians 13.1% in 2001, 12.6% in 2002,
+11.9% in 2003, 9.9% in 2004, 9.1% in 2005. It also agrees at r = 0.89 with
+an entirely separate reading of the same stream — the share of elapsed time
+spent in gaps over half a second, during which nothing arrived at all.
+
+Steps are only trusted across gaps under 5 s. A node rejoining after a
+longer silence can advance the 7-bit counter right round, and a wrapped step
+understates the hole rather than measuring it.
+
+Scoring interleaved half-minute blocks of each log as though they were two
+separate games gives r = 0.955 on loss and 0.928 on stall, so this is a
+property of a session rather than of whichever minute was sampled, and fair
+to state once for a whole game — which is what the viewer's header does, via
+`network_conditions` in `viewer/game.js`. All of the above reproduces with
+`tools/measure-network-conditions.cjs`.
 
 **[E:respawn-gap]** — measured gaps are 5.0–6.8 s (median 6.0).
 
