@@ -49,6 +49,52 @@ if (!fs.existsSync(log1)) {
 	// outside the measured span.
 	check("network conditions skips the join ramp", game.network.from > game.t0, true);
 
+	let shell_metrics = { total: 0, matched: 0, falls: 0 };
+	let matched_effect_terminals = new Set();
+	for (let snapshots of game.shell_positions) {
+		for (let snapshot of snapshots) {
+			for (let terminal of snapshot.terminals) {
+				if (terminal.match_time !== undefined && terminal.effect) {
+					matched_effect_terminals.add(terminal);
+				}
+			}
+			for (let shell of snapshot.shells) {
+				shell_metrics.total++;
+				if (shell.next_time !== undefined) shell_metrics.matched++;
+				if (shell.next_terminal_type === "point") shell_metrics.falls++;
+			}
+		}
+	}
+	let tank_births = game.shell_births.reduce((count, births) =>
+		count + births.length, 0);
+	check("fixture shell interpolation remains broadly effective", [
+		shell_metrics.total,
+		shell_metrics.matched >= 67000,
+		shell_metrics.falls >= 8000,
+		tank_births >= 8500,
+	], [73753, true, true, true]);
+	check("fixture impact effects follow matched shell arrival", [
+		matched_effect_terminals.size >= 18000,
+		[...matched_effect_terminals].every(terminal =>
+			terminal.effect.time === terminal.match_time),
+		[...matched_effect_terminals].some(terminal =>
+			terminal.effect.time < terminal.record.time),
+		game.effects.every((effect, i) => i === 0 ||
+			game.effects[i - 1].time <= effect.time),
+	], [true, true, true, true]);
+	let pill_burst = { total: 0, matched: 0 };
+	for (let snapshot of game.shell_positions[1]) {
+		let seconds = (snapshot.time - game.t0) / BoloLog.TICKS_PER_SECOND;
+		if (seconds < 1627.8 || seconds > 1629.7) continue;
+		for (let shell of snapshot.shells) {
+			if (shell.direction !== 5) continue;
+			pill_burst.total++;
+			if (shell.next_time !== undefined) pill_burst.matched++;
+		}
+	}
+	check("fixture pillbox burst stays fully interpolated",
+		[pill_burst.total, pill_burst.matched], [25, 25]);
+
 	// Mid-game teams: the 2v2 seen in the chat (players 0+1 vs 2+3).
 	const mid = BoloGame.state_at(game, Math.floor((game.t0 + game.t1) / 2)).state;
 	check("mid-game teams", [0, 1, 2, 3].map(p => BoloGame.team_of(mid, p)), [0, 0, 2, 2]);
@@ -408,6 +454,22 @@ if (!fs.existsSync(log1)) {
 		[rounded(position(pillbox_burst, 106, 0, 0).x),
 			rounded(position(pillbox_burst, 106, 0, 1).x)], [12.75, 12.25]);
 
+	let pillbox_direction_zero = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [
+			{ x: 10, y: 10, owner: 1, armour: 15, speed: 100 },
+			{ x: 30, y: 30, owner: 1, armour: 15, speed: 100 },
+		] }]),
+		record(90, []),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 1, direction: 0 },
+			shell_list(0, [[160, 152]]),
+		]),
+	]);
+	let direction_zero_shell = pillbox_direction_zero.shell_positions[0][1].shells[0];
+	check("direction-zero pill fire falls back to the preceding pill",
+		[direction_zero_shell.pillbox_source_x,
+			direction_zero_shell.pillbox_source_y], [160, 160]);
+
 	let tank_muzzle = BoloGame.build([
 		record(90, [{
 			type: "tank_position", x: 10, y: 10, pixelX: 0, pixelY: 0,
@@ -425,6 +487,39 @@ if (!fs.existsSync(log1)) {
 		[[10.75, 10.5, 4]]);
 	check("synthetic muzzle segment hands off at the real restatement",
 		BoloGame.shell_birth_positions_at(tank_muzzle, 0, 100), []);
+
+	let moving_tank_muzzle = BoloGame.build([
+		record(90, [{
+			type: "tank_position", x: 10, y: 8, pixelX: 0, pixelY: 12,
+			direction: 4, inBoat: false, hidden: false, dying: false,
+			speed: 0, motion: 0,
+		}]),
+		record(100, [{
+			type: "tank_position", x: 10, y: 10, pixelX: 0, pixelY: 0,
+			direction: 4, inBoat: false, hidden: false, dying: false,
+			speed: 0, motion: 0,
+		}, {
+			type: "shot_fired", direction: 4,
+		}, shell_list(4, [[168, 160]])]),
+	]);
+	let refined_shell = moving_tank_muzzle.shell_positions[0][1].shells[0];
+	check("moving-tank muzzle refinement stays inside its direction sector",
+		[rounded(refined_shell.heading_x), rounded(refined_shell.heading_y)], [1, 0]);
+
+	let early_tank_hit = BoloGame.build([
+		record(90, [shell_list(4, [[120, 160]])], 0),
+		record(100, [{
+			type: "tank_position", x: 10, y: 10, pixelX: 0, pixelY: 0,
+			direction: 4, inBoat: false, hidden: false, dying: false,
+			speed: 0, motion: 0,
+		}], 1),
+		record(100, [shell_list(4, [[144, 160]])], 0),
+		record(110, [{ type: "tank_hit", direction: 4, tank: 1 }], 0),
+	]);
+	let hit_effect = early_tank_hit.effects.find(effect =>
+		effect.type === "tank_hit");
+	check("matched impact effect starts at shell arrival",
+		hit_effect.time, 104);
 
 	let coarse_only_impact = BoloGame.build([
 		record(112, [shell_list(4, [[184, 166]])]),
