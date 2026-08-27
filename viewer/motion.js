@@ -423,6 +423,8 @@ function mark_new_pillbox_shells(previous, next) {
 		candidate.shell.pillbox_source_x = candidate.pixel_x;
 		candidate.shell.pillbox_source_y = candidate.pixel_y;
 		candidate.shell.pillbox_source_distance = candidate.distance;
+		candidate.shell.heading_origin_x = candidate.pixel_x;
+		candidate.shell.heading_origin_y = candidate.pixel_y;
 		if (candidate.distance > 0) {
 			candidate.shell.heading_x = candidate.delta_x / candidate.distance;
 			candidate.shell.heading_y = candidate.delta_y / candidate.distance;
@@ -507,6 +509,44 @@ function mark_new_tank_shells(previous, next) {
 		candidate.shell.birth_time = birth_time;
 		candidate.shell.birth_pixel_x = birth_pixel_x;
 		candidate.shell.birth_pixel_y = birth_pixel_y;
+		candidate.shell.heading_origin_x = birth_pixel_x;
+		candidate.shell.heading_origin_y = birth_pixel_y;
+	}
+}
+
+/* Refine a shell's fine heading over its whole trusted track instead of
+ * preserving the noise in its first, often short, displacement. Known
+ * weapon sources are the best origins; otherwise the first matched track
+ * point becomes the fixed origin for every later restatement. */
+function refine_shell_heading(previous, next) {
+	let origin_x = previous.heading_origin_x;
+	let origin_y = previous.heading_origin_y;
+	if (origin_x === undefined) {
+		if (previous.pillbox_source_x !== undefined) {
+			origin_x = previous.pillbox_source_x;
+			origin_y = previous.pillbox_source_y;
+		} else if (previous.birth_pixel_x !== undefined) {
+			origin_x = previous.birth_pixel_x;
+			origin_y = previous.birth_pixel_y;
+		} else {
+			origin_x = previous.pixel_x;
+			origin_y = previous.pixel_y;
+		}
+		previous.heading_origin_x = origin_x;
+		previous.heading_origin_y = origin_y;
+	}
+	next.heading_origin_x = origin_x;
+	next.heading_origin_y = origin_y;
+
+	let delta_x = next.pixel_x - origin_x;
+	let delta_y = next.pixel_y - origin_y;
+	let distance = Math.hypot(delta_x, delta_y);
+	if (distance > 0) {
+		next.heading_x = delta_x / distance;
+		next.heading_y = delta_y / distance;
+	} else if (previous.heading_x !== undefined) {
+		next.heading_x = previous.heading_x;
+		next.heading_y = previous.heading_y;
 	}
 }
 
@@ -572,8 +612,8 @@ function equivalent_shell_candidates(first, second) {
  * margin over its alternatives. Shell lists carry no IDs and may gain or
  * lose entries at any restatement, so an unmatched pop is safer than a
  * smooth but invented path. Exact direction and client ownership are hard
- * constraints; the first accepted displacement recovers a finer heading
- * inside the shell's 4-bit direction sector for subsequent matches. */
+ * constraints; accepted displacements continuously refine a finer heading
+ * from the track's first trusted point or weapon source. */
 function match_shell_snapshots(previous, next) {
 	let duration = next.time - previous.time;
 	if (duration <= 0 || duration > MAX_SHELL_INTERPOLATION_TICKS) return;
@@ -695,16 +735,6 @@ function match_shell_snapshots(previous, next) {
 
 			let new_shell = best.target;
 			new_shell.matched_from_previous = true;
-			if (old_shell.heading_x !== undefined) {
-				new_shell.heading_x = old_shell.heading_x;
-				new_shell.heading_y = old_shell.heading_y;
-			} else {
-				let delta_x = new_shell.pixel_x - old_shell.pixel_x;
-				let delta_y = new_shell.pixel_y - old_shell.pixel_y;
-				let distance = Math.hypot(delta_x, delta_y);
-				new_shell.heading_x = delta_x / distance;
-				new_shell.heading_y = delta_y / distance;
-			}
 			if (old_shell.pillbox_source_x !== undefined) {
 				new_shell.pillbox_source_x = old_shell.pillbox_source_x;
 				new_shell.pillbox_source_y = old_shell.pillbox_source_y;
@@ -712,6 +742,12 @@ function match_shell_snapshots(previous, next) {
 					new_shell.pixel_x - old_shell.pillbox_source_x,
 					new_shell.pixel_y - old_shell.pillbox_source_y);
 			}
+			if (old_shell.birth_pixel_x !== undefined) {
+				new_shell.birth_time = old_shell.birth_time;
+				new_shell.birth_pixel_x = old_shell.birth_pixel_x;
+				new_shell.birth_pixel_y = old_shell.birth_pixel_y;
+			}
+			refine_shell_heading(old_shell, new_shell);
 		}
 	}
 }

@@ -388,6 +388,18 @@ if (!fs.existsSync(log1)) {
 		[rounded(position(smooth, 106).x), rounded(position(smooth, 106).y)],
 		[11.25, 10.6875]);
 
+	let refined_track = BoloGame.build([
+		record(100, [shell_list(4, [[160, 160]])]),
+		record(112, [shell_list(4, [[184, 164]])]),
+		record(124, [shell_list(4, [[208, 160]])]),
+	]);
+	let refined_track_shell = refined_track.shell_positions[0][2].shells[0];
+	check("later restatements refine heading from the first track point",
+		[rounded(refined_track_shell.heading_x),
+			rounded(refined_track_shell.heading_y),
+			refined_track_shell.heading_origin_x,
+			refined_track_shell.heading_origin_y], [1, 0, 160, 160]);
+
 	let new_head = BoloGame.build([
 		record(100, [shell_list(4, [[160, 160], [200, 160]])]),
 		record(112, [shell_list(4, [[160, 160], [184, 160], [224, 160]])]),
@@ -544,6 +556,24 @@ if (!fs.existsSync(log1)) {
 		[direction_zero_shell.pillbox_source_x,
 			direction_zero_shell.pillbox_source_y], [160, 160]);
 
+	let pillbox_refinement = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 10, y: 10, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(90, []),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 4 },
+			shell_list(4, [[168, 162]]),
+		]),
+		record(112, [shell_list(4, [[192, 160]])]),
+	]);
+	let refined_pillbox_shell = pillbox_refinement.shell_positions[0][2].shells[0];
+	check("pillbox heading keeps refining from its source",
+		[rounded(refined_pillbox_shell.heading_x),
+			rounded(refined_pillbox_shell.heading_y),
+			refined_pillbox_shell.heading_origin_x,
+			refined_pillbox_shell.heading_origin_y], [1, 0, 160, 160]);
+
 	let tank_muzzle = BoloGame.build([
 		record(90, [{
 			type: "tank_position", x: 10, y: 10, pixelX: 0, pixelY: 0,
@@ -561,6 +591,25 @@ if (!fs.existsSync(log1)) {
 		[[10.75, 10.5, 4]]);
 	check("synthetic muzzle segment hands off at the real restatement",
 		BoloGame.shell_birth_positions_at(tank_muzzle, 0, 100), []);
+
+	let tank_refinement = BoloGame.build([
+		record(90, [{
+			type: "tank_position", x: 10, y: 10, pixelX: 0, pixelY: 0,
+			direction: 4, inBoat: false, hidden: false, dying: false,
+			speed: 0, motion: 0,
+		}]),
+		record(100, [
+			{ type: "shot_fired", direction: 4 },
+			shell_list(4, [[168, 162]]),
+		]),
+		record(112, [shell_list(4, [[192, 160]])]),
+	]);
+	let refined_tank_shell = tank_refinement.shell_positions[0][2].shells[0];
+	check("tank heading keeps refining from its preserved birth origin",
+		[rounded(refined_tank_shell.heading_x),
+			rounded(refined_tank_shell.heading_y),
+			refined_tank_shell.birth_pixel_x,
+			refined_tank_shell.birth_pixel_y], [1, 0, 160, 160]);
 
 	let moving_tank_muzzle = BoloGame.build([
 		record(90, [{
