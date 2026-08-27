@@ -465,6 +465,38 @@ if (!fs.existsSync(log1)) {
 	check("shell disappears upon reaching tile impact",
 		position(tile_impact, 121), null);
 
+	let corner_graze = BoloGame.build([
+		record(100, [shell_list(12, [[2110, 1812]])]),
+		record(120, [shell_list(12, [[2071, 1814]])]),
+		record(132, [{ type: "explosion", code: 0, x: 128, y: 114 }]),
+	]);
+	let corner_graze_shell = corner_graze.shell_positions[0][1].shells[0];
+	check("subpixel corner graze matches a box impact",
+		[corner_graze_shell.next_terminal,
+			rounded(Math.hypot(corner_graze_shell.next_pixel_x + 8 - 2048,
+				corner_graze_shell.next_pixel_y + 8 - 1824))], [true, 0.4097]);
+
+	let wide_corner_miss = BoloGame.build([
+		record(100, [shell_list(12, [[2110, 1811]])]),
+		record(120, [shell_list(12, [[2071, 1813]])]),
+		record(132, [{ type: "explosion", code: 0, x: 128, y: 114 }]),
+	]);
+	check("corner miss outside one pixel remains unmatched",
+		wide_corner_miss.shell_positions[0][1].shells[0].next_time, undefined);
+
+	let graze_with_successor = BoloGame.build([
+		record(100, [shell_list(12, [[2110, 1812]])]),
+		record(120, [shell_list(12, [[2071, 1814]])]),
+		record(132, [
+			shell_list(12, [[2047, 1815]]),
+			{ type: "explosion", code: 0, x: 128, y: 114 },
+		]),
+	]);
+	let successor_shell = graze_with_successor.shell_positions[0][1].shells[0];
+	check("exact successor wins over graze fallback",
+		[!!successor_shell.next_terminal, successor_shell.next_pixel_x,
+			successor_shell.next_pixel_y], [false, 2047, 1815]);
+
 	let object_impact = BoloGame.build([
 		{
 			time: 90, seq: 90, status: 0, player: 1, tankStatus: 8, tankDir: 0,
