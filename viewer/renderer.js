@@ -857,7 +857,7 @@ function load_log(bytes, name) {
 	map_name_el.textContent = gi ? gi.mapName : (name || "Bolo log");
 	let bits = [`${recs.length.toLocaleString()} records`];
 	if (gi) {
-		bits.push(["", "open game", "tournament", "strict tournament"][gi.gameType] || `type ${gi.gameType}`);
+		bits.push(["", "open game", "tournament", "strict"][gi.gameType] || `type ${gi.gameType}`);
 	}
 	game_meta_el.textContent = bits.filter(Boolean).join(" · ");
 
