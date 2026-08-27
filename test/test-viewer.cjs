@@ -572,6 +572,115 @@ if (!fs.existsSync(log1)) {
 		[rounded(position(pillbox_burst, 106, 0, 0).x),
 			rounded(position(pillbox_burst, 106, 0, 1).x)], [12.75, 12.25]);
 
+	/* A pill shot can fire and hit terrain entirely between restatements. Its
+	 * F4 and explosion remain in the record, but it never has a shell-list
+	 * position. That directionless explosion must not steal an opposing
+	 * tank shell's otherwise unambiguous successor. */
+	let unseen_pill_impact = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 117, y: 138, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(88, [shell_list(4, [[1794, 2220]])]),
+		record(100, [shell_list(4, [[1818, 2218]])]),
+		record(112, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 12 },
+			{ type: "pillbox_fires", pillbox: 0, direction: 12 },
+			shell_list(4, [[1846, 2217]]),
+			shell_list(12, [[1852, 2208]]),
+			{ type: "explosion", code: 0, x: 115, y: 138 },
+		]),
+	]);
+	let opposing_shell = unseen_pill_impact.shell_positions[0][1].shells[0];
+	check("unseen pill impact does not steal opposing shell successor",
+		[!!opposing_shell.next_terminal, opposing_shell.next_pixel_x,
+			unseen_pill_impact.shell_positions[0][2].shells[0].matched_from_previous],
+		[false, 1846, true]);
+
+	let unseen_with_duplicate_impact = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 117, y: 138, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(88, [shell_list(4, [[1794, 2220]])]),
+		record(100, [shell_list(4, [[1818, 2218]])]),
+		record(112, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 12 },
+			{ type: "pillbox_fires", pillbox: 0, direction: 12 },
+			shell_list(12, [[1852, 2208]]),
+			{ type: "explosion", code: 0, x: 115, y: 138 },
+			{ type: "explosion", code: 0, x: 115, y: 138 },
+		]),
+	]);
+	let duplicate_terminals = unseen_with_duplicate_impact
+		.shell_positions[0][2].terminals;
+	check("unseen pill impact consumes only its terminal multiplicity",
+		[duplicate_terminals.filter(terminal =>
+			terminal.unseen_pillbox_source).length,
+			duplicate_terminals.filter(terminal =>
+				terminal.match_time !== undefined).length,
+			!!unseen_with_duplicate_impact.shell_positions[0][1]
+				.shells[0].next_terminal], [1, 1, true]);
+
+	/* When a tracked pill stream reaches several identical impacts, its
+	 * leading shells terminate and a younger shell with a real successor must
+	 * keep that successor. Pure cost matching gets this backwards because an
+	 * event can be logged well after the leading shell reached the tile. */
+	let ordered_pill_impacts = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 117, y: 138, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(88, [shell_list(4, [[1786, 2220]])]),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 12 },
+			{ type: "pillbox_fires", pillbox: 0, direction: 12 },
+			{ type: "pillbox_fires", pillbox: 0, direction: 12 },
+			shell_list(4, [[1810, 2218]]),
+			shell_list(12, [[1840, 2211], [1851, 2209], [1858, 2208]]),
+		]),
+		record(112, [
+			shell_list(4, [[1834, 2217]]),
+			shell_list(12, [[1835, 2211]]),
+			{ type: "explosion", code: 0, x: 114, y: 138 },
+			{ type: "explosion", code: 0, x: 114, y: 138 },
+		]),
+	]);
+	let ordered_previous = ordered_pill_impacts.shell_positions[0][1].shells;
+	check("ordered pill impacts leave opposing successor intact",
+		[!!ordered_previous[0].next_terminal, ordered_previous[0].next_pixel_x,
+			ordered_previous.slice(1).map(shell =>
+				shell.next_terminal ? "terminal" :
+					shell.next_time === 112 ? "snapshot" : "unmatched")],
+		[false, 1834, ["terminal", "terminal", "snapshot"]]);
+
+	let ordered_tank_impacts = BoloGame.build([
+		record(60, [{ type: "pillbox_list", items: [{
+			x: 117, y: 138, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(64, [{
+			type: "tank_position", x: 111, y: 138,
+			pixelX: 0, pixelY: 8, direction: 4,
+			inBoat: false, hidden: false, dying: false,
+			speed: 0, motion: 0,
+		}]),
+		record(76, [
+			{ type: "shot_fired", direction: 4 },
+			shell_list(4, [[1814, 2216]]),
+		]),
+		record(88, [
+			{ type: "shot_fired", direction: 4 },
+			shell_list(4, [[1838, 2216], [1814, 2216]]),
+		]),
+		record(100, [shell_list(4, [[1862, 2216], [1838, 2216]])]),
+		record(112, [
+			{ type: "pillbox_damage", pillbox: 0 },
+			shell_list(4, [[1862, 2216]]),
+		]),
+	]);
+	let tank_stream = ordered_tank_impacts.shell_positions[0][3].shells;
+	check("ordered tank impact leaves younger successor intact",
+		[tank_stream[0].next_terminal,
+			!!tank_stream[1].next_terminal,
+			tank_stream[1].next_pixel_x], [true, false, 1862]);
+
 	let pillbox_direction_zero = BoloGame.build([
 		record(80, [{ type: "pillbox_list", items: [
 			{ x: 10, y: 10, owner: 1, armour: 15, speed: 100 },

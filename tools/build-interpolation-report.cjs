@@ -40,7 +40,7 @@ function build_interpolation_report(game, metadata = {}) {
 	let lines = [
 		"# GENERATED FILE - do not edit. Regenerate with npm run build:interpolation-report",
 		"# Resolved interpolation choices for the anonymized sample replay.",
-		"format\t1",
+		"format\t2",
 	];
 	add_line(lines, "source", metadata.source || "fixtures/n20021018.2");
 	add_line(lines, "source_sha256", metadata.source_sha256);
@@ -72,6 +72,7 @@ function build_interpolation_report(game, metadata = {}) {
 
 	lines.push("# shell\tplayer\tsnapshot\ttime\tshell\tpixel_x\tpixel_y\tdirection\toutcome\tnext_time\tnext_pixel_x\tnext_pixel_y\tterminal_type\tterminal_event_type\tmatched_from_previous\theading_x\theading_y\torigin\tpillbox_source_x\tpillbox_source_y\tpillbox_source_distance\tbirth_time\tbirth_pixel_x\tbirth_pixel_y");
 	lines.push("# terminal\tplayer\tsnapshot\ttime\tterminal\ttype\tdirection\tpixel_x\tpixel_y\tmin_x\tmin_y\tmax_x\tmax_y\tevent_type\tmatch_time\teffect_time");
+	lines.push("# unseen_pill_terminal\tplayer\tsnapshot\tterminal\tpillbox_source_x\tpillbox_source_y\tdirection");
 	for (let player = 0; player < game.shell_positions.length; player++) {
 		let snapshots = game.shell_positions[player];
 		for (let snapshot_index = 0; snapshot_index < snapshots.length;
@@ -103,6 +104,12 @@ function build_interpolation_report(game, metadata = {}) {
 					terminal.pixel_x, terminal.pixel_y, terminal.min_x, terminal.min_y,
 					terminal.max_x, terminal.max_y, terminal.event_type,
 					terminal.match_time, terminal.effect && terminal.effect.time);
+				if (terminal.unseen_pillbox_source) {
+					add_line(lines, "unseen_pill_terminal", player, snapshot_index,
+						terminal_index, terminal.pillbox_source_x,
+						terminal.pillbox_source_y,
+						terminal.pillbox_source_direction);
+				}
 			}
 		}
 	}
