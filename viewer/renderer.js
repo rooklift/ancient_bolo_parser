@@ -884,7 +884,8 @@ function load_log(bytes, name) {
 	network_meta_el.textContent = net ? `Network conditions: ${net.rating}` : "";
 	network_meta_el.title = net ?
 		`${net.loss.toFixed(1)}% of packets lost, ` +
-		`${net.stall.toFixed(1)}% of the game spent frozen` : "";
+		`${net.stall.toFixed(1)}% of the time spent frozen; ` +
+		`measured over settled play, ${fmt_time(net.from)} to ${fmt_time(net.to)}` : "";
 
 	viewpoint_el.innerHTML = "";
 	viewpoint = -1;

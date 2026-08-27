@@ -669,28 +669,49 @@ per the 2003 notes.
 **[E:boat]** — all 38 sample boardings sit on terrain 9, none has a
 terrain event.
 
-**[E:seq-loss]** — that a step above 1 is really loss, rather than some
-rhythm of the protocol, shows in what the steps track. Over 445 logs of the
-Nemokrad corpus the missing-slot share runs from 2.7% in the cleanest games
-to over 60% in the worst, and it moves with the two facts outside the log
-that ought to move it. It rises with player count — medians 7.7% at two
-players, 12.9% at four, 17.6% at five, 36.1% at eight — a ring gaining a hop
-per player, each hop another chance to drop a packet. And it falls year on
-year as dial-up gave way to broadband: medians 13.1% in 2001, 12.6% in 2002,
-11.9% in 2003, 9.9% in 2004, 9.1% in 2005. It also agrees at r = 0.89 with
-an entirely separate reading of the same stream — the share of elapsed time
-spent in gaps over half a second, during which nothing arrived at all.
+**[E:seq-loss]** — a step above 1 is really loss, but only where the ring is
+settled, and getting that qualifier wrong ruins the measurement.
+
+**The join ramp.** While a game is still gathering — the map being handed to
+joiners, nodes arriving — the ring turns at full speed while the logging
+machine records only a fraction of what goes round it. The sequence number
+races ahead of the log, and every slot it skips is charged as a lost packet.
+A join ramp therefore reads as catastrophic loss without a single packet
+having gone astray: in one 19-minute 4-player log the first three minutes
+score 89%, 83% and 63% while the settled middle sits between 2% and 8%. The
+ramp is short — a median 50 s, about 4% of a log — but extreme enough to
+dominate any average that includes it. Across the corpus, the share of a log
+spent ramping predicts its untrimmed loss figure at **r = 0.71**; measured
+over settled play only, that relationship disappears entirely (**r = −0.04**).
+
+**What the steps track, once the ramp is excluded.** Loss rises with player
+count, a ring gaining a hop per player and each hop another chance to drop a
+packet: medians 5.2% at two players, 6.6% at four, 8.0% at six. It also
+agrees at r = 0.79 with an entirely separate reading of the same stream —
+the share of elapsed time in gaps over half a second, during which nothing
+arrived at all. Over settled play the corpus runs from 1.3% in the cleanest
+games to about 70% in the worst, median 6.4%.
+
+**A correction.** Read end to end, these logs appear to improve year on year
+as dial-up gave way to broadband — medians 13.1% in 2001 falling to 9.1% in
+2005. Almost all of that is the ramp: faster links transferred the map
+faster, so later logs waste less of themselves gathering. In settled play the
+medians are 6.7%, 6.2%, 6.2%, 6.3%, 6.0% — essentially flat. What improved
+between 2001 and 2005 was how quickly a game could be *started*, not how
+well it ran once it had.
 
 Steps are only trusted across gaps under 5 s. A node rejoining after a
 longer silence can advance the 7-bit counter right round, and a wrapped step
-understates the hole rather than measuring it.
+understates the hole rather than measuring it. The tail after the first quit
+is excluded on the same grounds as the ramp, though it costs far less: the
+ring is dissolving there, not failing.
 
-Scoring interleaved half-minute blocks of each log as though they were two
-separate games gives r = 0.955 on loss and 0.928 on stall, so this is a
-property of a session rather than of whichever minute was sampled, and fair
-to state once for a whole game — which is what the viewer's header does, via
-`network_conditions` in `viewer/game.js`. All of the above reproduces with
-`tools/measure-network-conditions.cjs`.
+Scoring interleaved half-minute blocks of the settled span as though they
+were two separate games gives r = 0.95 on loss and 0.90 on stall, so this is
+a property of a session rather than of whichever minute was sampled, and
+fair to state once for a whole game — which is what the viewer's header
+does, via `network_conditions` in `viewer/game.js`. All of the above
+reproduces with `tools/measure-network-conditions.cjs`.
 
 **[E:respawn-gap]** — measured gaps are 5.0–6.8 s (median 6.0).
 
