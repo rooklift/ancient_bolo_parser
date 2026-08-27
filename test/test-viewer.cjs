@@ -322,7 +322,9 @@ if (!fs.existsSync(log1)) {
 	]);
 	check("tile impact follows learned ray to tile boundary",
 		[rounded(position(tile_impact, 118).x),
-			rounded(position(tile_impact, 118).y)], [12.5, 11]);
+			rounded(position(tile_impact, 118).y)], [12.7276, 11.0569]);
+	check("shell disappears upon reaching tile impact",
+		position(tile_impact, 121), null);
 
 	let object_impact = BoloGame.build([
 		{
@@ -339,7 +341,9 @@ if (!fs.existsSync(log1)) {
 	]);
 	check("object impact follows learned ray to object boundary",
 		[rounded(position(object_impact, 118).x),
-			rounded(position(object_impact, 118).y)], [12.5, 11]);
+			rounded(position(object_impact, 118).y)], [12.7276, 11.0569]);
+	check("shell disappears upon reaching object impact",
+		position(object_impact, 121), null);
 
 	let coarse_only_impact = BoloGame.build([
 		record(112, [shell_list(4, [[184, 166]])]),
