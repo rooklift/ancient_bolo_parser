@@ -733,7 +733,7 @@ Scoring interleaved half-minute blocks of the settled span as though they
 were two separate games gives r = 0.88 on loss and 0.94 on stall, so this is
 a property of a session rather than of whichever minute was sampled, and
 fair to state once for a whole game — which is what the viewer's header
-does, via `network_conditions` in `viewer/game.js`. All of the above
+does, via `network_conditions` in `viewer/network.js`. All of the above
 reproduces with `tools/measure-network-conditions.cjs`.
 
 **[E:respawn-gap]** — measured gaps are 5.0–6.8 s (median 6.0).
