@@ -8,7 +8,8 @@
 		"bolodump": "bin/dump.js"
 	},
 	"scripts": {
-		"test": "node test/test.js && node test/test-viewer.cjs && node test/test-robustness.cjs"
+		"test": "node test/test.js && node test/test-viewer.cjs && node test/test-robustness.cjs",
+		"build:interpolation-report": "node tools/build-interpolation-report.cjs"
 	},
 	"engines": {
 		"node": ">=18"
