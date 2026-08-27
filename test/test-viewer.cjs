@@ -41,9 +41,12 @@ if (!fs.existsSync(log1)) {
 	check("bases", game.final.bases.length, 16);
 	check("starts", game.final.starts.length, 8);
 	check("chat entries", game.chat.length > 100, true);
-	check("network conditions rating", game.network.rating, "good");
-	check("network conditions loss %", game.network.loss.toFixed(2), "7.13");
-	check("network conditions stall %", game.network.stall.toFixed(2), "0.25");
+	check("network conditions rating", game.network.rating, "fair");
+	check("network conditions loss %", game.network.loss.toFixed(2), "6.84");
+	check("network conditions stall %", game.network.stall.toFixed(2), "0.04");
+	// The verdict is read from settled play, so the ramp at the start is
+	// outside the measured span.
+	check("network conditions skips the join ramp", game.network.from > game.t0, true);
 
 	// Mid-game teams: the 2v2 seen in the chat (players 0+1 vs 2+3).
 	const mid = BoloGame.state_at(game, Math.floor((game.t0 + game.t1) / 2)).state;
@@ -420,7 +423,7 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 {
 	// A clean ring: every step 1, every gap 2 ticks.
 	let clean = [];
-	for (let i = 0; i < 500; i++) clean.push({ time: 1000 + i * 2, seq: i & 0x7f });
+	for (let i = 0; i < 2000; i++) clean.push({ time: 1000 + i * 2, seq: i & 0x7f, subpackets: [] });
 	let net = BoloGame.network_conditions(clean);
 	check("clean ring loses nothing", net.loss, 0);
 	check("clean ring never freezes", net.stall, 0);
@@ -428,7 +431,7 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 
 	// Every other packet missed: half the ring's slots are holes.
 	let lossy = [];
-	for (let i = 0; i < 500; i++) lossy.push({ time: 1000 + i * 4, seq: (i * 2) & 0x7f });
+	for (let i = 0; i < 2000; i++) lossy.push({ time: 1000 + i * 4, seq: (i * 2) & 0x7f, subpackets: [] });
 	check("every other packet missed reads as 50% loss",
 		Math.round(BoloGame.network_conditions(lossy).loss), 50);
 	check("50% loss rates awful", BoloGame.network_conditions(lossy).rating, "awful");
@@ -440,8 +443,8 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	// Freezes alone can damn one the loss reading would pass. Steps stay at
 	// 1 throughout; a third of the time is spent waiting.
 	let frozen = [];
-	for (let i = 0, t = 1000; i < 300; i++) {
-		frozen.push({ time: t, seq: i & 0x7f });
+	for (let i = 0, t = 1000; i < 2000; i++) {
+		frozen.push({ time: t, seq: i & 0x7f, subpackets: [] });
 		t += i % 10 === 9 ? 60 : 2;   /* a 1.2 s freeze every tenth packet */
 	}
 	let net2 = BoloGame.network_conditions(frozen);
@@ -452,18 +455,47 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	// A duplicate (step 0) is not a loss, and a step across a long silence
 	// is a rejoin whose 7-bit counter may have wrapped: neither is charged.
 	check("a duplicate is not a loss", BoloGame.network_conditions([
-		{ time: 1000, seq: 5 }, { time: 1002, seq: 5 }, { time: 1004, seq: 6 },
+		{ time: 1000, seq: 5, subpackets: [] }, { time: 1002, seq: 5, subpackets: [] },
+		{ time: 1004, seq: 6, subpackets: [] },
 	]).loss, 0);
 	check("a step across a long silence is not a loss", BoloGame.network_conditions([
-		{ time: 1000, seq: 5 }, { time: 9000, seq: 40 }, { time: 9002, seq: 41 },
+		{ time: 1000, seq: 5, subpackets: [] }, { time: 9000, seq: 40, subpackets: [] },
+		{ time: 9002, seq: 41, subpackets: [] },
 	]).loss, 0);
 
 	// Too little to say anything about.
 	check("no records, no verdict", BoloGame.network_conditions([]), null);
-	check("one record, no verdict", BoloGame.network_conditions([{ time: 1, seq: 0 }]), null);
+	check("one record, no verdict", BoloGame.network_conditions([{ time: 1, seq: 0, subpackets: [] }]), null);
 	check("no elapsed time, no verdict", BoloGame.network_conditions([
-		{ time: 5, seq: 0 }, { time: 5, seq: 1 },
+		{ time: 5, seq: 0, subpackets: [] }, { time: 5, seq: 1, subpackets: [] },
 	]), null);
+
+	// The join ramp -- the ring at full speed while the logger catches only
+	// a fraction of it -- must not be charged as loss. Two minutes of
+	// one-in-five recorded, then eight of a clean ring.
+	let ramped = [];
+	for (let i = 0, t = 1000, seq = 0; i < 1200; i++, seq += 5)
+		ramped.push({ time: t + i * 5, seq: seq & 0x7f, subpackets: [] });
+	let after = ramped[ramped.length - 1].time;
+	for (let i = 1; i <= 12000; i++)
+		ramped.push({ time: after + i * 2, seq: i & 0x7f, subpackets: [] });
+	let ramp = BoloGame.network_conditions(ramped);
+	check("the join ramp is not charged as loss", ramp.loss, 0);
+	check("the join ramp is left outside the measured span", ramp.from > ramped[0].time, true);
+	check("a ramped log still rates on its settled play", ramp.rating, "good");
+
+	// The first quit ends the measured span: the ring is dissolving after
+	// it, not failing.
+	let quitting = [];
+	for (let i = 0; i < 3000; i++)
+		quitting.push({ time: 1000 + i * 2, seq: i & 0x7f, subpackets: [] });
+	let quitAt = quitting[quitting.length - 1].time;
+	quitting[quitting.length - 1].subpackets = [{ type: "quit" }];
+	for (let i = 1; i <= 600; i++)
+		quitting.push({ time: quitAt + i * 20, seq: (i * 9) & 0x7f, subpackets: [] });
+	let ending = BoloGame.network_conditions(quitting);
+	check("the span ends at the first quit", ending.to, quitAt);
+	check("the exodus after it is not charged as loss", ending.loss, 0);
 }
 
 process.exit(failures ? 1 : 0);

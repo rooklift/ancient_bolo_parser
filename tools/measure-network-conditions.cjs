@@ -15,10 +15,22 @@
  * over half a second.  No ring cycles that slowly at any player count, so
  * this is a freeze regardless of how many were playing.
  *
+ * THE JOIN RAMP is the thing that has to be got right.  While the game is
+ * still gathering, the ring turns at full speed but the logging machine
+ * records only a fraction of it, so the sequence number races ahead and
+ * every packet it skips is charged as loss -- a catastrophic reading with
+ * no packet actually lost.  The ramp is short but so extreme that averaging
+ * it in swamps the rest of the game, which is why the shipped metric reads
+ * only the settled span.  The script measures the damage directly, by
+ * correlating each log's loss figure against the share of it spent ramping,
+ * trimmed and untrimmed.
+ *
  * The script reports, over a corpus:
- *   -- the distribution of each signal, and how they correlate;
- *   -- the same split by player count and by year, the two external facts
- *      the signals ought to track if they measure anything real;
+ *   -- the distribution of each signal, trimmed and untrimmed;
+ *   -- the ramp confound above;
+ *   -- the split by player count and by year, the two external facts the
+ *      signals ought to track if they measure anything real -- shown both
+ *      ways, since trimming changes what they say;
  *   -- SPLIT-HALF RELIABILITY: each log diced into half-minute blocks and
  *      dealt alternately into two piles, each pile scored as if it were its
  *      own game.  This asks whether a single verdict for a whole game is
@@ -70,6 +82,22 @@ function spread(label, values) {
 		`p50=${q(.5)} p75=${q(.75)} p90=${q(.9)} p99=${q(.99)} max=${q(1)}`;
 }
 
+/* the readings as network_conditions takes them, but over whatever slice of
+ * records it is handed -- used here for the untrimmed comparison */
+function raw_readings(recs) {
+	let elapsed = recs[recs.length - 1].time - recs[0].time;
+	let missing = 0, slots = 0, frozen = 0;
+	for (let i = 1; i < recs.length; i++) {
+		let gap = recs[i].time - recs[i - 1].time;
+		let step = (recs[i].seq - recs[i - 1].seq) & 0x7f;
+		if (gap > 25 && gap <= 1500) frozen += gap;
+		if (step === 0 || gap > 250) { slots++; continue; }
+		missing += step - 1;
+		slots += step;
+	}
+	return { loss: 100 * missing / Math.max(1, slots), stall: 100 * frozen / Math.max(1, elapsed) };
+}
+
 function correlation(xs, ys) {
 	let n = xs.length;
 	let mx = xs.reduce((a, b) => a + b, 0) / n;
@@ -103,20 +131,31 @@ for (let file of walk(ROOT)) {
 	if (recs.length < MIN_RECORDS) continue;
 	if (recs[recs.length - 1].time - recs[0].time < MIN_TICKS) continue;
 
-	/* interleaved blocks, so a game that merely got worse as it went is not
-	 * mistaken for a game whose measurement is unstable */
-	let t0 = recs[0].time;
-	let piles = [[], []];
-	for (let rec of recs) piles[Math.floor((rec.time - t0) / BLOCK) % 2].push(rec);
-
 	let whole = BoloGame.network_conditions(recs);
-	let a = BoloGame.network_conditions(piles[0]);
-	let b = BoloGame.network_conditions(piles[1]);
-	if (!whole || !a || !b) continue;
+	if (!whole) continue;
+
+	/* Interleaved blocks, so a game that merely got worse as it went is not
+	 * mistaken for a game whose measurement is unstable.  The split is made
+	 * INSIDE the settled span and the halves are read raw: handing a pile of
+	 * non-adjacent blocks back to network_conditions would have it hunt for
+	 * a join ramp in a stream that no longer has one, and measure the
+	 * trimmer rather than the network. */
+	let span = recs.filter(rec => rec.time >= whole.from && rec.time <= whole.to);
+	let piles = [[], []];
+	for (let rec of span) piles[Math.floor((rec.time - whole.from) / BLOCK) % 2].push(rec);
+	if (piles[0].length < 100 || piles[1].length < 100) continue;
+	let a = raw_readings(piles[0]);
+	let b = raw_readings(piles[1]);
 
 	let year = (path.relative(ROOT, file).match(/(?:19|20)\d\d/) || ["?"])[0];
 	rows.push({
 		file: path.relative(ROOT, file), year, whole, a, b,
+		untrimmed: raw_readings(recs),
+		/* what fraction of the log the verdict was NOT read from */
+		trimmedShare: 100 * (1 - (whole.to - whole.from) /
+			Math.max(1, recs[recs.length - 1].time - recs[0].time)),
+		rampShare: 100 * (whole.from - recs[0].time) /
+			Math.max(1, recs[recs.length - 1].time - recs[0].time),
 		players: new Set(recs.map(r => r.player)).size,
 	});
 }
@@ -133,8 +172,25 @@ console.log(spread("stall %", rows.map(r => r.whole.stall)));
 console.log("loss/stall correlation: r = " +
 	correlation(rows.map(r => r.whole.loss), rows.map(r => r.whole.stall)).toFixed(3));
 
+console.log("\nuntrimmed, for comparison -- the same logs read end to end:");
+console.log(spread("loss %", rows.map(r => r.untrimmed.loss)));
+console.log(spread("stall %", rows.map(r => r.untrimmed.stall)));
+console.log(`trimmed away: median ${quantile(rows.map(r => r.trimmedShare).sort((a, b) => a - b), .5).toFixed(1)}% ` +
+	`of a log, of which the join ramp is ` +
+	`${quantile(rows.map(r => r.rampShare).sort((a, b) => a - b), .5).toFixed(1)}%`);
+
+/* The ramp confound: if the untrimmed figure is largely a measure of how
+ * much of the log was spent gathering, it will track the ramp share -- and
+ * the trimmed figure, if the correction works, will not track it at all. */
+console.log("\nthe join-ramp confound:");
+console.log(`  untrimmed loss vs ramp share of log: r = ` +
+	correlation(rows.map(r => r.rampShare), rows.map(r => r.untrimmed.loss)).toFixed(3));
+console.log(`  settled   loss vs ramp share of log: r = ` +
+	correlation(rows.map(r => r.rampShare), rows.map(r => r.whole.loss)).toFixed(3));
+
 /* Do the signals track the two things outside the log that ought to move
- * them?  A ring gains a hop per player, and the world got broadband. */
+ * them?  A ring gains a hop per player; and the world got broadband, which
+ * is the claim the trimming turns out to refute. */
 console.log("\nby player count (a longer ring should lose more):");
 let by_players = new Map();
 for (let row of rows) {
@@ -143,14 +199,19 @@ for (let row of rows) {
 }
 for (let n of [...by_players.keys()].sort((x, y) => x - y)) {
 	let group = by_players.get(n);
+	if (group.length < 8) continue;
 	let loss = group.map(r => r.whole.loss).sort((x, y) => x - y);
+	let raw = group.map(r => r.untrimmed.loss).sort((x, y) => x - y);
 	let stall = group.map(r => r.whole.stall).sort((x, y) => x - y);
 	console.log(`  ${n} players  n=${String(group.length).padStart(3)}  ` +
 		`loss p50=${quantile(loss, .5).toFixed(1).padStart(5)}  ` +
-		`stall p50=${quantile(stall, .5).toFixed(1).padStart(5)}`);
+		`stall p50=${quantile(stall, .5).toFixed(1).padStart(5)}` +
+		`   (untrimmed loss p50=${quantile(raw, .5).toFixed(1).padStart(5)})`);
 }
 
-console.log("\nby year (dial-up giving way to broadband):");
+console.log("\nby year -- untrimmed this looks like dial-up giving way to");
+console.log("broadband; in settled play the improvement mostly evaporates,");
+console.log("so what got faster was the map transfer, not the game:");
 let by_year = new Map();
 for (let row of rows) {
 	if (!by_year.has(row.year)) by_year.set(row.year, []);
@@ -158,11 +219,12 @@ for (let row of rows) {
 }
 for (let y of [...by_year.keys()].sort()) {
 	let group = by_year.get(y);
+	if (group.length < 8) continue;
 	let loss = group.map(r => r.whole.loss).sort((a, b) => a - b);
+	let raw = group.map(r => r.untrimmed.loss).sort((a, b) => a - b);
 	console.log(`  ${y}  n=${String(group.length).padStart(3)}  ` +
-		`loss p10=${quantile(loss, .1).toFixed(1).padStart(5)}  ` +
-		`p50=${quantile(loss, .5).toFixed(1).padStart(5)}  ` +
-		`p90=${quantile(loss, .9).toFixed(1).padStart(5)}`);
+		`untrimmed p50=${quantile(raw, .5).toFixed(1).padStart(5)}  ` +
+		`->  settled p50=${quantile(loss, .5).toFixed(1).padStart(5)}`);
 }
 
 console.log("\nsplit-half reliability (is one verdict per game honest?):");
@@ -179,7 +241,8 @@ let counts = new Map(NAMES.map(n => [n, 0]));
 let same = 0;
 for (let row of rows) {
 	counts.set(row.whole.rating, counts.get(row.whole.rating) + 1);
-	if (row.a.rating === row.b.rating) same++;
+	if (BoloGame.network_rating(row.a.loss, row.a.stall) ===
+		BoloGame.network_rating(row.b.loss, row.b.stall)) same++;
 }
 for (let name of NAMES) {
 	let c = counts.get(name);

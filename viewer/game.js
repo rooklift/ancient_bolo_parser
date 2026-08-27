@@ -1051,30 +1051,49 @@ function adjacent_change_time(records, tick, direction) {
  *   LOSS. The payload's sequence number is bumped by every node a packet
  *   passes, so consecutive records normally step by 1. A step of n means
  *   n-1 packets never reached the logging machine; a step of 0 is a
- *   duplicate, not a loss. Over the 445-log Nemokrad corpus this runs from
- *   2.7% in the cleanest games to over 50% in the worst, falls year on year
- *   from 2001 to 2005 as dial-up gave way to broadband, and rises with
- *   player count, the ring having more hops to lose a packet on
- *   [E:seq-loss].
+ *   duplicate, not a loss.
  *
- *   STALL. The share of the game's elapsed time spent in gaps where nothing
- *   at all arrived for over half a second -- a freeze the viewer shows
- *   whatever the player count, since no ring cycles that slowly.
+ *   STALL. The share of elapsed time spent in gaps where nothing at all
+ *   arrived for over half a second -- a freeze the viewer shows whatever
+ *   the player count, since no ring cycles that slowly.
  *
- * They agree closely (r = 0.89 across the corpus) but not perfectly: a game
- * can be steadily choppy without ever freezing outright, so the verdict is
- * the worse of the two. Scoring interleaved half-minute blocks of each log
- * as if they were separate games gives r = 0.955 on loss and 0.928 on
- * stall, so this is a stable property of a session rather than of the
- * moment sampled, and fair to state once for the whole game. The thresholds
- * below place the corpus at roughly 30% good, 47% fair, 16% bad, 7% awful.
- * All of it reproduces with tools/measure-network-conditions.cjs. */
+ * Both are read only over the stretch of SETTLED PLAY, and that qualifier
+ * carries most of the accuracy here. While the game is still gathering --
+ * the map being handed to joiners, nodes arriving -- the ring turns at full
+ * speed but the logging machine records only a fraction of it, so the
+ * sequence number races ahead and every packet it skips is counted as lost.
+ * The join ramp therefore reads as catastrophic loss without a single
+ * packet having gone astray. It is short in absolute terms (a median 50 s
+ * of a 22-minute log) but so extreme that averaging it in dominates
+ * everything else: over the corpus, the share of a log spent ramping
+ * predicts its untrimmed loss figure at r = 0.74, and once the ramp is
+ * excluded that relationship vanishes entirely (r = -0.02). The tail after
+ * the first quit is cut for the same reason, though it matters far less.
+ *
+ * What survives the correction: loss still rises with player count, a ring
+ * gaining a hop per player (median 5.2% at two, 6.6% at four, 8.0% at six),
+ * and the two readings still agree at r = 0.80 while disagreeing often
+ * enough to be worth keeping both -- a game can be steadily choppy without
+ * ever freezing -- so the verdict is the worse of them. What does NOT
+ * survive: the apparent year-on-year improvement from 2001 to 2005 was
+ * almost entirely faster map transfers shortening the ramp; in settled play
+ * the median barely moves (6.7% to 6.0%) [E:seq-loss].
+ *
+ * Scoring interleaved half-minute blocks as if they were separate games
+ * gives r = 0.95 on loss and 0.91 on stall, so this is a property of a
+ * session rather than of the moment sampled, and fair to state once for a
+ * whole game. The thresholds below place the corpus at roughly 41% good,
+ * 42% fair, 10% bad, 6% awful. All of it reproduces with
+ * tools/measure-network-conditions.cjs. */
 
 const STALL_GAP_TICKS = TICKS_PER_SECOND / 2;  /* silence that reads as a freeze */
 const SEQ_TRUST_TICKS = 250;    /* 5s: past this a step is a rejoin, not loss */
 const ABSENCE_TICKS = 1500;     /* 30s: nobody home, not a stalled network */
-const LOSS_BANDS = [10, 20, 36];        /* percent of ring slots missing */
-const STALL_BANDS = [3, 12, 26];        /* percent of elapsed time frozen */
+const SETTLE_BLOCK_TICKS = 500; /* 10s: the grain the join ramp is found on */
+const SETTLE_SHARE = 0.7;       /* of a typical block, to count as up to speed */
+const MIN_SETTLED_RECORDS = 500;
+const LOSS_BANDS = [6, 11, 22];         /* percent of ring slots missing */
+const STALL_BANDS = [2, 7, 18];         /* percent of elapsed time frozen */
 const CONDITION_NAMES = ["good", "fair", "bad", "awful"];
 
 function band_of(value, bands) {
@@ -1083,18 +1102,66 @@ function band_of(value, bands) {
 	return band;
 }
 
+/* The stretch over which the ring was settled and playing: from the point
+ * the log's own record rate reaches the plateau it holds for the rest of
+ * the game, to the first quit. Falls back to everything when the log is too
+ * short or too odd to tell, which costs nothing -- an untrimmable log is
+ * one with no ramp to trim. */
+function settled_span(records) {
+	let t0 = records[0].time;
+	let blocks = [];
+	for (const rec of records) {
+		let b = Math.floor((rec.time - t0) / SETTLE_BLOCK_TICKS);
+		blocks[b] = (blocks[b] || 0) + 1;
+	}
+	let live = [];
+	for (const count of blocks) if (count) live.push(count);
+	if (live.length < 6) return records;
+
+	live.sort((a, b) => a - b);
+	let typical = live[live.length >> 1];
+	let start = t0;
+	for (let b = 0; b < blocks.length; b++) {
+		let here = blocks[b] || 0;
+		let next = b + 1 < blocks.length ? (blocks[b + 1] || 0) : here;
+		/* two blocks running, so one busy moment inside the ramp cannot
+		 * be mistaken for the plateau */
+		if (here >= typical * SETTLE_SHARE && next >= typical * SETTLE_SHARE) {
+			start = t0 + b * SETTLE_BLOCK_TICKS;
+			break;
+		}
+	}
+
+	let end = records[records.length - 1].time;
+	for (const rec of records) {
+		if (rec.time <= start) continue;
+		if (rec.subpackets.some(s => s.type === "quit")) { end = rec.time; break; }
+	}
+
+	let span = records.filter(rec => rec.time >= start && rec.time <= end);
+	return span.length >= MIN_SETTLED_RECORDS ? span : records;
+}
+
+/* The band a pair of readings falls in, exposed so that measurement tools
+ * can rate a stretch of records without going back through the trimmer. */
+function network_rating(loss, stall) {
+	return CONDITION_NAMES[Math.max(band_of(loss, LOSS_BANDS), band_of(stall, STALL_BANDS))];
+}
+
 function network_conditions(records) {
 	if (records.length < 2) return null;
-	let elapsed = records[records.length - 1].time - records[0].time;
+	let span = settled_span(records);
+	if (span.length < 2) return null;
+	let elapsed = span[span.length - 1].time - span[0].time;
 	if (elapsed <= 0) return null;
 
 	let missing = 0;     /* ring slots whose packet never arrived */
 	let slots = 0;       /* ring slots accounted for either way */
 	let frozen = 0;      /* ticks spent hearing nothing at all */
 
-	for (let i = 1; i < records.length; i++) {
-		let gap = records[i].time - records[i - 1].time;
-		let step = (records[i].seq - records[i - 1].seq) & 0x7f;
+	for (let i = 1; i < span.length; i++) {
+		let gap = span[i].time - span[i - 1].time;
+		let step = (span[i].seq - span[i - 1].seq) & 0x7f;
 		if (gap > STALL_GAP_TICKS && gap <= ABSENCE_TICKS) frozen += gap;
 		if (step === 0 || gap > SEQ_TRUST_TICKS) {
 			/* a duplicate, or a hole long enough that the 7-bit counter may
@@ -1108,8 +1175,10 @@ function network_conditions(records) {
 
 	let loss = 100 * missing / Math.max(1, slots);
 	let stall = 100 * frozen / elapsed;
-	let band = Math.max(band_of(loss, LOSS_BANDS), band_of(stall, STALL_BANDS));
-	return { rating: CONDITION_NAMES[band], loss, stall };
+	return {
+		rating: network_rating(loss, stall), loss, stall,
+		from: span[0].time, to: span[span.length - 1].time,
+	};
 }
 
 /* Alliance team id for colouring: lowest player index in the mutual group. */
@@ -1126,7 +1195,7 @@ const BoloGame = {
 	MAP_SIZE, DEEP_SEA, TICKS_PER_SECOND, NEUTRAL, KEYFRAME_EVERY,
 	MAX_POSITION_INTERPOLATION_TICKS,
 	initial_state, clone_state, apply_record, build, state_at, team_of,
-	adjacent_change_time, network_conditions,
+	adjacent_change_time, network_conditions, network_rating,
 	tank_position_at, lgm_position_at,
 	extract_initial_map,
 };
