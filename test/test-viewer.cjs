@@ -249,6 +249,199 @@ if (!fs.existsSync(log1)) {
 	check("shell-list direction applies to every shell", st.shells[0].map(sh => sh.direction), [4, 4, 4]);
 }
 
+// Shell identities are inferred conservatively between one client's adjacent
+// restatements. The direction nibble is authoritative for every list member;
+// positions recover the finer heading within that 4-bit sector.
+{
+	let shell_list = (direction, points) => ({
+		type: "shells", count: points.length, direction,
+		shells: points.map((point, index) => index === 0 ? {
+			direction,
+			x: point[0] >> 4,
+			y: point[1] >> 4,
+			pixel: (point[1] & 0x0f) * 16 + (point[0] & 0x0f),
+		} : {
+			offsetX: point[0] - points[index - 1][0],
+			offsetY: point[1] - points[index - 1][1],
+		}),
+	});
+	let record = (time, lists, player = 0) => ({
+		time, seq: time, status: 0, player, tankStatus: 0, tankDir: 0,
+		subpackets: lists,
+	});
+	let position = (game, tick, player = 0, index = 0) => {
+		let state = BoloGame.state_at(game, tick).state;
+		return BoloGame.shell_position_at(game, player,
+			state.shells[player][index], index, tick);
+	};
+	let rounded = value => Math.round(value * 10000) / 10000;
+
+	let smooth = BoloGame.build([
+		record(100, [shell_list(4, [[160, 160]])]),
+		record(112, [shell_list(4, [[184, 166]])]),
+	]);
+	check("shell movement interpolates inside its direction sector",
+		[rounded(position(smooth, 106).x), rounded(position(smooth, 106).y)],
+		[11.25, 10.6875]);
+
+	let new_head = BoloGame.build([
+		record(100, [shell_list(4, [[160, 160], [200, 160]])]),
+		record(112, [shell_list(4, [[160, 160], [184, 160], [224, 160]])]),
+	]);
+	check("all directed list members survive a new shell head",
+		[rounded(position(new_head, 106, 0, 0).x),
+			rounded(position(new_head, 106, 0, 1).x)], [11.25, 13.75]);
+
+	let changed_direction = BoloGame.build([
+		record(100, [shell_list(4, [[160, 160]])]),
+		record(112, [shell_list(5, [[184, 160]])]),
+	]);
+	check("different shell directions never match",
+		rounded(position(changed_direction, 106).x), 10.5);
+
+	let ambiguous = BoloGame.build([
+		record(100, [shell_list(4, [[160, 160]])]),
+		record(112, [shell_list(4, [[183, 160], [185, 160]])]),
+	]);
+	check("ambiguous shell identity holds its packet position",
+		rounded(position(ambiguous, 106).x), 10.5);
+
+	let lag = BoloGame.build([
+		record(100, [shell_list(4, [[160, 160]])]),
+		record(100 + BoloGame.MAX_POSITION_INTERPOLATION_TICKS + 1,
+			[shell_list(4, [[208, 160]])]),
+	]);
+	check("shell stops across lag", rounded(position(lag, 112).x), 10.5);
+
+	let precise_impact = BoloGame.build([
+		record(100, [shell_list(4, [[160, 160]])]),
+		record(112, [shell_list(4, [[184, 166]])]),
+		record(124, [{ type: "shell_falls", x: 13, y: 10, pixel: 0xc0 }]),
+	]);
+	check("shell interpolates to precise ground impact",
+		[rounded(position(precise_impact, 118).x),
+			rounded(position(precise_impact, 118).y)], [12.75, 11.0625]);
+
+	let tile_impact = BoloGame.build([
+		record(100, [shell_list(4, [[160, 160]])]),
+		record(112, [shell_list(4, [[184, 166]])]),
+		record(124, [{ type: "explosion", code: 0, x: 13, y: 11 }]),
+	]);
+	check("tile impact follows learned ray to tile boundary",
+		[rounded(position(tile_impact, 118).x),
+			rounded(position(tile_impact, 118).y)], [12.7276, 11.0569]);
+	check("shell disappears upon reaching tile impact",
+		position(tile_impact, 121), null);
+
+	let object_impact = BoloGame.build([
+		{
+			time: 90, seq: 90, status: 0, player: 1, tankStatus: 8, tankDir: 0,
+			subpackets: [{
+				type: "tank_position", x: 13, y: 11, pixelX: 0, pixelY: 0,
+				direction: 0, inBoat: false, hidden: false, dying: false,
+				speed: 0, motion: 0,
+			}],
+		},
+		record(100, [shell_list(4, [[160, 160]])]),
+		record(112, [shell_list(4, [[184, 166]])]),
+		record(124, [{ type: "tank_hit", direction: 4, tank: 1 }]),
+	]);
+	check("object impact follows learned ray to object boundary",
+		[rounded(position(object_impact, 118).x),
+			rounded(position(object_impact, 118).y)], [12.7276, 11.0569]);
+	check("shell disappears upon reaching object impact",
+		position(object_impact, 121), null);
+
+	let duplicate_impacts = BoloGame.build([
+		record(100, [shell_list(4, [[160, 156], [160, 164]])]),
+		record(112, [shell_list(4, [[184, 156], [184, 164]])]),
+		record(124, [
+			{ type: "explosion", code: 0, x: 13, y: 10 },
+			{ type: "explosion", code: 0, x: 13, y: 10 },
+		]),
+	]);
+	check("duplicate impacts preserve their terminal multiplicity",
+		[rounded(position(duplicate_impacts, 118, 0, 0).x),
+			rounded(position(duplicate_impacts, 118, 0, 1).x)], [12.75, 12.75]);
+	check("both shells disappear at duplicate impacts",
+		[position(duplicate_impacts, 121, 0, 0),
+			position(duplicate_impacts, 121, 0, 1)], [null, null]);
+
+	let boundary_impact = BoloGame.build([
+		record(100, [shell_list(13, [[1972, 1794]])]),
+		record(112, [shell_list(13, [[1951, 1784]])]),
+		record(124, [{ type: "explosion", code: 0, x: 122, y: 111 }]),
+	]);
+	check("shell already at impact boundary disappears immediately",
+		position(boundary_impact, 112), null);
+
+	let equivalent_impact = BoloGame.build([
+		record(100, [shell_list(13, [[1993, 1804]])]),
+		record(112, [shell_list(13, [[1972, 1794]])]),
+		record(124, [
+			shell_list(13, [[1951, 1784]]),
+			{ type: "explosion", code: 0, x: 122, y: 111 },
+		]),
+		record(136, [{ type: "explosion", code: 0, x: 121, y: 111 }]),
+	]);
+	check("equivalent successor wins without losing the learned heading",
+		position(equivalent_impact, 130), null);
+
+	let pillbox_burst = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 10, y: 10, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(90, []),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 4 },
+			{ type: "pillbox_fires", pillbox: 0, direction: 4 },
+			shell_list(4, [[184, 160], [176, 160]]),
+		]),
+		record(112, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 4 },
+			{ type: "pillbox_fires", pillbox: 0, direction: 4 },
+			shell_list(4, [[200, 160], [176, 160], [168, 160]]),
+			{ type: "explosion", code: 0, x: 13, y: 10 },
+		]),
+	]);
+	check("pillbox source resolves a dense anonymous shell burst",
+		[rounded(position(pillbox_burst, 106, 0, 0).x),
+			rounded(position(pillbox_burst, 106, 0, 1).x)], [12.75, 12.25]);
+
+	let tank_muzzle = BoloGame.build([
+		record(90, [{
+			type: "tank_position", x: 10, y: 10, pixelX: 0, pixelY: 0,
+			direction: 4, inBoat: false, hidden: false, dying: false,
+			speed: 0, motion: 0,
+		}]),
+		record(100, [
+			{ type: "shot_fired", direction: 4 },
+			shell_list(4, [[168, 160]]),
+		]),
+	]);
+	check("tank shot starts at the muzzle before its first restatement",
+		BoloGame.shell_birth_positions_at(tank_muzzle, 0, 98).map(shell =>
+			[rounded(shell.x), rounded(shell.y), shell.direction]),
+		[[10.75, 10.5, 4]]);
+	check("synthetic muzzle segment hands off at the real restatement",
+		BoloGame.shell_birth_positions_at(tank_muzzle, 0, 100), []);
+
+	let coarse_only_impact = BoloGame.build([
+		record(112, [shell_list(4, [[184, 166]])]),
+		record(124, [{ type: "explosion", code: 0, x: 13, y: 11 }]),
+	]);
+	check("tile impact without fine heading stays at final frame",
+		[rounded(position(coarse_only_impact, 118).x),
+			rounded(position(coarse_only_impact, 118).y)], [12, 10.875]);
+
+	let separate_clients = BoloGame.build([
+		record(100, [shell_list(4, [[160, 160]])], 0),
+		record(112, [shell_list(4, [[184, 160]])], 1),
+	]);
+	check("shell identities do not migrate between clients",
+		rounded(position(separate_clients, 106).x), 10.5);
+}
+
 // Tank positions interpolate between nearby restatements. A long lag, or a
 // discontinuity such as death, leaves the tank at its last known position.
 {

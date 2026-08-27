@@ -15,6 +15,17 @@ const KEYFRAME_EVERY = 2000; /* records between state snapshots, for seeking */
  * hold the last known point instead of drawing a made-up line through lag. */
 const MAX_POSITION_INTERPOLATION_TICKS = TICKS_PER_SECOND / 2;
 const MAX_LGM_TANK_ENTRY_DISTANCE_PIXELS = 32;
+/* Shells travel at 2 px/tick. Their logged direction is only the 4-bit
+ * version of a presumably finer internal heading, so it defines a sector,
+ * not an exact vector. Packet timestamps and simulation updates can differ
+ * by a few pixels; matching remains deliberately conservative. */
+const SHELL_SPEED_PIXELS_PER_TICK = 2;
+const SHELL_MATCH_ERROR_PIXELS = 8;
+const SHELL_DIRECTION_TOLERANCE = Math.PI / 8;
+const SHELL_MATCH_MARGIN = 3;
+const SHELL_EQUIVALENT_ENDPOINT_PIXELS = 2;
+const SHELL_EQUIVALENT_TIME_TICKS = 1;
+const SHELL_TANK_BIRTH_ERROR_PIXELS = 16;
 
 const NEUTRAL = 16;
 const GONE = -2; /* inTank value: pill left the game with a quitting carrier */
@@ -221,9 +232,55 @@ function lowest_carried(s, player) {
 	return null;
 }
 
+/* Append one shell-list subpacket as absolute positions. Offsets are
+ * chained, and the direction nibble in the list header applies to EVERY
+ * shell in the list. position_time lets render-only interpolation verify
+ * that a reconstructed state still belongs to the expected snapshot. */
+function append_shell_list(shells, sub, position_time) {
+	let direction = sub.direction ?? sub.shells[0].direction;
+	let previous = null;
+	for (let i = 0; i < sub.shells.length; i++) {
+		let shell = sub.shells[i];
+		let pixel_x, pixel_y;
+		if (i === 0) {
+			pixel_x = shell.x * 16 + (shell.pixel & 0x0f);
+			pixel_y = shell.y * 16 + (shell.pixel >> 4);
+		} else {
+			pixel_x = previous.pixel_x + shell.offsetX;
+			pixel_y = previous.pixel_y + shell.offsetY;
+		}
+		previous = { pixel_x, pixel_y };
+		shells.push({
+			x: (pixel_x >> 4) & 0xff, y: (pixel_y >> 4) & 0xff,
+			px: pixel_x & 0x0f, py: pixel_y & 0x0f,
+			direction, position_time,
+		});
+	}
+}
+
+function add_shell_point_terminal(terminals, rec, x, y, px, py, direction = null) {
+	if (!terminals) return;
+	terminals.push({
+		record: rec, type: "point", pixel_x: x * 16 + px,
+		pixel_y: y * 16 + py, direction, terminal: true,
+	});
+}
+
+/* A box is expressed in centred world coordinates. Positioned sprites use
+ * their logged pixel coordinate as the top-left of a 16px box; fixed map
+ * objects and terrain tiles use their tile's corresponding 16px box. */
+function add_shell_box_terminal(terminals, rec, pixel_x, pixel_y, direction = null) {
+	if (!terminals) return;
+	terminals.push({
+		record: rec, type: "box", min_x: pixel_x, min_y: pixel_y,
+		max_x: pixel_x + 16, max_y: pixel_y + 16, direction,
+		terminal: true,
+	});
+}
+
 /* Apply one parsed record to the state. `effects` and `chat`, when given,
  * collect transient events (for rendering) and messages. */
-function apply_record(s, rec, effects, chat) {
+function apply_record(s, rec, effects, chat, shell_terminals) {
 	const pl = rec.player;
 	let sawShells = false;
 	let newShells = null;
@@ -317,31 +374,7 @@ function apply_record(s, rec, effects, chat) {
 				 * shell in its own list. */
 				sawShells = true;
 				if (newShells === null) newShells = [];
-				const list_direction = sub.direction ?? sub.shells[0].direction;
-				for (let i = 0; i < sub.shells.length; i++) {
-					const sh = sub.shells[i];
-					if (i === 0) {
-						newShells.push({
-							x: sh.x, y: sh.y, px: sh.pixel & 0x0f, py: sh.pixel >> 4,
-							direction: list_direction,
-						});
-					} else {
-						/* additional shells: signed pixel offsets CHAINED
-						 * from the PREVIOUS shell in the list, not the
-						 * first (verified: when a pill's new shot becomes
-						 * the list head, first-relative decoding conjures
-						 * a phantom shell and loses the real one; chained
-						 * decoding reconstructs both to the pixel). The list's
-						 * direction nibble applies to every shell in it. */
-						const prev = newShells[newShells.length - 1];
-						const wx = prev.x * 16 + prev.px + sub.shells[i].offsetX;
-						const wy = prev.y * 16 + prev.py + sub.shells[i].offsetY;
-						newShells.push({
-							x: (wx >> 4) & 0xff, y: (wy >> 4) & 0xff, px: wx & 0x0f, py: wy & 0x0f,
-							direction: list_direction,
-						});
-					}
-				}
+				append_shell_list(newShells, sub, rec.time);
 				break;
 			}
 			case "shot_fired":
@@ -357,6 +390,11 @@ function apply_record(s, rec, effects, chat) {
 				break;
 			}
 			case "explosion":
+				/* C is an LGM planting a mine and D is a tank superboom; neither
+				 * is a shell impact. Other explosion forms name the struck tile. */
+				if (sub.code !== 0x0c && sub.code !== 0x0d) {
+					add_shell_box_terminal(shell_terminals, rec, sub.x * 16, sub.y * 16);
+				}
 				if (sub.code === 0x0b) {
 					if (effects) effects.push({ time: rec.time, type: "boom", x: sub.x, y: sub.y });
 				} else if (sub.code === 0x0c) {
@@ -385,6 +423,9 @@ function apply_record(s, rec, effects, chat) {
 				if (p) {
 					p.armour = Math.max(0, p.armour - 1);
 					if (effects && p.inTank === null) effects.push({ time: rec.time, type: "pill_hit", x: p.x, y: p.y });
+					if (p.inTank === null) {
+						add_shell_box_terminal(shell_terminals, rec, p.x * 16, p.y * 16);
+					}
 				}
 				break;
 			}
@@ -393,6 +434,7 @@ function apply_record(s, rec, effects, chat) {
 				if (b) {
 					b.armour = Math.max(0, b.armour - 5);
 					if (effects) effects.push({ time: rec.time, type: "boom", x: b.x, y: b.y });
+					add_shell_box_terminal(shell_terminals, rec, b.x * 16, b.y * 16);
 				}
 				break;
 			}
@@ -496,12 +538,15 @@ function apply_record(s, rec, effects, chat) {
 				s.shells[pl] = [];
 				break;
 			}
-			case "tank_hit":
-				if (effects && s.tanks[sub.tank]) {
-					const t = s.tanks[sub.tank];
-					effects.push({ time: rec.time, type: "tank_hit", x: t.x, y: t.y, px: t.px, py: t.py, player: sub.tank });
+			case "tank_hit": {
+				let t = s.tanks[sub.tank];
+				if (t) {
+					if (effects) effects.push({ time: rec.time, type: "tank_hit", x: t.x, y: t.y, px: t.px, py: t.py, player: sub.tank });
+					add_shell_box_terminal(shell_terminals, rec,
+						t.x * 16 + t.px, t.y * 16 + t.py, sub.direction);
 				}
 				break;
+			}
 			case "lgm_death":
 				/* the same record restates the dying man's position (b=8,
 				 * applied above), so clear him here; the replacement's
@@ -511,6 +556,8 @@ function apply_record(s, rec, effects, chat) {
 				break;
 			case "shell_falls":
 				if (effects) effects.push({ time: rec.time, type: "splash", x: sub.x, y: sub.y, px: sub.pixel & 0x0f, py: sub.pixel >> 4 });
+				add_shell_point_terminal(shell_terminals, rec, sub.x, sub.y,
+					sub.pixel & 0x0f, sub.pixel >> 4);
 				break;
 			case "lay_mine": {
 				const t = s.tanks[pl];
@@ -913,6 +960,521 @@ function build_lgm_positions(records) {
 	return tracks;
 }
 
+function track_pixel_at(track, tick) {
+	let lo = 0, hi = track.length;
+	while (lo < hi) {
+		let mid = (lo + hi) >> 1;
+		if (track[mid].time <= tick) lo = mid + 1;
+		else hi = mid;
+	}
+	let current = track[lo - 1];
+	if (!current) return null;
+	let next = track[lo];
+	let duration = next ? next.time - current.time : 0;
+	if (!next || !next.continuous || duration <= 0 ||
+		duration > MAX_POSITION_INTERPOLATION_TICKS) return current;
+	let amount = (tick - current.time) / duration;
+	return {
+		pixel_x: current.pixel_x + (next.pixel_x - current.pixel_x) * amount,
+		pixel_y: current.pixel_y + (next.pixel_y - current.pixel_y) * amount,
+	};
+}
+
+function shell_match_cost(previous, next, duration) {
+	if (previous.direction !== next.direction) return null;
+
+	let delta_x = next.pixel_x - previous.pixel_x;
+	let delta_y = next.pixel_y - previous.pixel_y;
+	let distance = Math.hypot(delta_x, delta_y);
+	let expected_distance = duration * SHELL_SPEED_PIXELS_PER_TICK;
+	let distance_error = Math.abs(distance - expected_distance);
+	if (distance_error > SHELL_MATCH_ERROR_PIXELS || distance === 0) return null;
+
+	let heading_x = previous.heading_x;
+	let heading_y = previous.heading_y;
+	if (heading_x === undefined) {
+		let angle = previous.direction * Math.PI / 8;
+		heading_x = Math.sin(angle);
+		heading_y = -Math.cos(angle);
+	}
+	let forward = delta_x * heading_x + delta_y * heading_y;
+	let lateral = Math.abs(delta_x * heading_y - delta_y * heading_x);
+	if (forward <= 0) return null;
+	let angle_error = Math.atan2(lateral, forward);
+	if (angle_error > SHELL_DIRECTION_TOLERANCE) return null;
+
+	return distance_error + angle_error * expected_distance;
+}
+
+/* Intersect the shell centre's learned ray with a tile/object box, returning
+ * a shell top-left coordinate. If the final restatement is already inside
+ * the box, use the forward exit rather than manufacturing a zero-length
+ * terminal segment. */
+function shell_ray_box_endpoint(shell, box) {
+	if (shell.heading_x === undefined) return null;
+	let origin_x = shell.pixel_x + 8;
+	let origin_y = shell.pixel_y + 8;
+	let starts_inside = origin_x > box.min_x && origin_x < box.max_x &&
+		origin_y > box.min_y && origin_y < box.max_y;
+	let near = -Infinity, far = Infinity;
+	for (let axis of [
+		[origin_x, shell.heading_x, box.min_x, box.max_x],
+		[origin_y, shell.heading_y, box.min_y, box.max_y],
+	]) {
+		let [origin, heading, minimum, maximum] = axis;
+		if (Math.abs(heading) < 1e-9) {
+			if (origin < minimum || origin > maximum) return null;
+			continue;
+		}
+		let first = (minimum - origin) / heading;
+		let second = (maximum - origin) / heading;
+		if (first > second) [first, second] = [second, first];
+		near = Math.max(near, first);
+		far = Math.min(far, second);
+		if (far < near) return null;
+	}
+	let distance = starts_inside ? far : near;
+	if (distance < -1e-9) return null;
+	distance = Math.max(0, distance);
+	return {
+		pixel_x: origin_x + shell.heading_x * distance - 8,
+		pixel_y: origin_y + shell.heading_y * distance - 8,
+		distance,
+	};
+}
+
+function shell_terminal_match(previous, terminal, duration) {
+	if (terminal.direction !== null && terminal.direction !== previous.direction) return null;
+	let expected_distance = duration * SHELL_SPEED_PIXELS_PER_TICK;
+	let endpoint, angle_error = 0;
+	if (terminal.type === "box") {
+		/* A tile/object event supplies timing and bounds, not an aim point.
+		 * Without an already learned fine heading, centring the 4-bit sector
+		 * would merely disguise a guess as smooth motion. */
+		endpoint = shell_ray_box_endpoint(previous, terminal);
+		if (!endpoint) return null;
+	} else {
+		let delta_x = terminal.pixel_x - previous.pixel_x;
+		let delta_y = terminal.pixel_y - previous.pixel_y;
+		let distance = Math.hypot(delta_x, delta_y);
+		if (distance === 0) return null;
+		let heading_x = previous.heading_x;
+		let heading_y = previous.heading_y;
+		if (heading_x === undefined) {
+			let angle = previous.direction * Math.PI / 8;
+			heading_x = Math.sin(angle);
+			heading_y = -Math.cos(angle);
+		}
+		let forward = delta_x * heading_x + delta_y * heading_y;
+		let lateral = Math.abs(delta_x * heading_y - delta_y * heading_x);
+		if (forward <= 0) return null;
+		angle_error = Math.atan2(lateral, forward);
+		if (angle_error > SHELL_DIRECTION_TOLERANCE) return null;
+		endpoint = {
+			pixel_x: terminal.pixel_x, pixel_y: terminal.pixel_y, distance,
+		};
+	}
+	if (endpoint.distance > expected_distance + SHELL_MATCH_ERROR_PIXELS) return null;
+	return {
+		cost: Math.abs(endpoint.distance - expected_distance) +
+			angle_error * expected_distance,
+		pixel_x: endpoint.pixel_x,
+		pixel_y: endpoint.pixel_y,
+		distance: endpoint.distance,
+	};
+}
+
+function same_shell_terminal(first, second) {
+	if (first.type !== second.type || first.direction !== second.direction) return false;
+	if (first.type === "point") {
+		return first.pixel_x === second.pixel_x && first.pixel_y === second.pixel_y;
+	}
+	return first.min_x === second.min_x && first.min_y === second.min_y &&
+		first.max_x === second.max_x && first.max_y === second.max_y;
+}
+
+function mark_new_pillbox_shells(previous, next) {
+	let duration = next.time - previous.time;
+	if (duration <= 0 || duration > MAX_POSITION_INTERPOLATION_TICKS) return;
+	let maximum_distance = duration * SHELL_SPEED_PIXELS_PER_TICK +
+		SHELL_MATCH_ERROR_PIXELS * 2;
+	let source_groups = [];
+	for (let source of next.pillbox_sources) {
+		let group = source_groups.find(item => item.pixel_x === source.pixel_x &&
+			item.pixel_y === source.pixel_y && item.direction === source.direction);
+		if (group) group.capacity++;
+		else source_groups.push({ ...source, capacity: 1, assigned: 0 });
+	}
+
+	/* Pill-fire events accumulated in a restatement count newly created
+	 * shells. Match them backwards to the firing pill, nearest first. This
+	 * keeps older shells out of those anonymous list entries and recovers the
+	 * full heading from the source-to-position line. A shot which has already
+	 * hit something simply has no candidate and leaves capacity unused. */
+	let candidates = [];
+	for (let group of source_groups) {
+		let angle = group.direction * Math.PI / 8;
+		let coarse_x = Math.sin(angle);
+		let coarse_y = -Math.cos(angle);
+		for (let shell of next.shells) {
+			if (shell.starts_at_tank || shell.direction !== group.direction) continue;
+			let delta_x = shell.pixel_x - group.pixel_x;
+			let delta_y = shell.pixel_y - group.pixel_y;
+			let distance = Math.hypot(delta_x, delta_y);
+			if (distance > maximum_distance) continue;
+			if (distance > 0) {
+				let forward = delta_x * coarse_x + delta_y * coarse_y;
+				let lateral = Math.abs(delta_x * coarse_y - delta_y * coarse_x);
+				if (forward <= 0 || Math.atan2(lateral, forward) >
+					SHELL_DIRECTION_TOLERANCE) continue;
+			}
+			candidates.push({ group, shell, distance, delta_x, delta_y });
+		}
+	}
+	candidates.sort((a, b) => a.distance - b.distance);
+	let assigned_shells = new Set();
+	for (let candidate of candidates) {
+		if (candidate.group.assigned >= candidate.group.capacity ||
+			assigned_shells.has(candidate.shell)) continue;
+		candidate.group.assigned++;
+		assigned_shells.add(candidate.shell);
+		candidate.shell.starts_at_pillbox = true;
+		candidate.shell.pillbox_source_x = candidate.group.pixel_x;
+		candidate.shell.pillbox_source_y = candidate.group.pixel_y;
+		candidate.shell.pillbox_source_distance = candidate.distance;
+		if (candidate.distance > 0) {
+			candidate.shell.heading_x = candidate.delta_x / candidate.distance;
+			candidate.shell.heading_y = candidate.delta_y / candidate.distance;
+		}
+	}
+}
+
+function mark_new_tank_shells(previous, next) {
+	let duration = previous ? next.time - previous.time : 0;
+	let maximum_distance = SHELL_TANK_BIRTH_ERROR_PIXELS;
+	if (duration > 0 && duration <= MAX_POSITION_INTERPOLATION_TICKS) {
+		maximum_distance += duration * SHELL_SPEED_PIXELS_PER_TICK;
+	}
+	let source_groups = [];
+	for (let source of next.tank_sources) {
+		let group = source_groups.find(item => item.pixel_x === source.pixel_x &&
+			item.pixel_y === source.pixel_y && item.direction === source.direction);
+		if (group) group.capacity++;
+		else source_groups.push({ ...source, capacity: 1, assigned: 0 });
+	}
+	let candidates = [];
+	for (let group of source_groups) {
+		let angle = group.direction * Math.PI / 8;
+		let coarse_x = Math.sin(angle);
+		let coarse_y = -Math.cos(angle);
+		for (let shell of next.shells) {
+			if (shell.starts_at_pillbox || shell.matched_from_previous ||
+				shell.direction !== group.direction) continue;
+			let delta_x = shell.pixel_x - group.pixel_x;
+			let delta_y = shell.pixel_y - group.pixel_y;
+			let distance = Math.hypot(delta_x, delta_y);
+			if (distance === 0 || distance > maximum_distance) continue;
+			let forward = delta_x * coarse_x + delta_y * coarse_y;
+			let lateral = Math.abs(delta_x * coarse_y - delta_y * coarse_x);
+			if (forward <= 0 || Math.atan2(lateral, forward) >
+				SHELL_DIRECTION_TOLERANCE) continue;
+			candidates.push({ group, shell, distance, delta_x, delta_y });
+		}
+	}
+	candidates.sort((a, b) => a.distance - b.distance);
+	let assigned_shells = new Set();
+	for (let candidate of candidates) {
+		if (candidate.group.assigned >= candidate.group.capacity ||
+			assigned_shells.has(candidate.shell)) continue;
+		candidate.group.assigned++;
+		assigned_shells.add(candidate.shell);
+		let birth_pixel_x = candidate.group.pixel_x;
+		let birth_pixel_y = candidate.group.pixel_y;
+		let distance = candidate.distance;
+		let birth_time = next.time - distance / SHELL_SPEED_PIXELS_PER_TICK;
+		/* The packet's tank position is at the end of this inferred segment.
+		 * Refine against the interpolated tank track at the actual firing time,
+		 * which matters when a moving tank fires between position packets. */
+		for (let i = 0; i < 2 && candidate.group.track; i++) {
+			let tank_position = track_pixel_at(candidate.group.track, birth_time);
+			if (!tank_position) break;
+			birth_pixel_x = tank_position.pixel_x;
+			birth_pixel_y = tank_position.pixel_y;
+			candidate.delta_x = candidate.shell.pixel_x - birth_pixel_x;
+			candidate.delta_y = candidate.shell.pixel_y - birth_pixel_y;
+			distance = Math.hypot(candidate.delta_x, candidate.delta_y);
+			birth_time = next.time - distance / SHELL_SPEED_PIXELS_PER_TICK;
+		}
+		candidate.shell.starts_at_tank = true;
+		candidate.shell.heading_x = candidate.delta_x / distance;
+		candidate.shell.heading_y = candidate.delta_y / distance;
+		candidate.shell.birth_time = birth_time;
+		candidate.shell.birth_pixel_x = birth_pixel_x;
+		candidate.shell.birth_pixel_y = birth_pixel_y;
+	}
+}
+
+function same_pillbox_stream(first, second) {
+	return first.pillbox_source_x !== undefined &&
+		first.pillbox_source_x === second.pillbox_source_x &&
+		first.pillbox_source_y === second.pillbox_source_y &&
+		first.direction === second.direction;
+}
+
+function ordered_pillbox_successor(candidate, target_choices,
+	by_previous, previous_shells) {
+	if (target_choices[0] !== candidate) return false;
+	let close_alternatives = target_choices.slice(1).filter(alternative =>
+		alternative.cost - candidate.cost < SHELL_MATCH_MARGIN);
+	if (!close_alternatives.length) return false;
+	let candidate_shell = previous_shells[candidate.previous_index];
+	return close_alternatives.every(alternative => {
+		let alternative_shell = previous_shells[alternative.previous_index];
+		return same_pillbox_stream(candidate_shell, alternative_shell) &&
+			candidate_shell.pillbox_source_distance <
+				alternative_shell.pillbox_source_distance &&
+			by_previous[alternative.previous_index].some(choice =>
+				choice.target.terminal);
+	});
+}
+
+function unambiguous_shell_successor(candidate, target_choices,
+	by_previous, previous_shells) {
+	if (target_choices[0] !== candidate) return false;
+	return target_choices.length < 2 ||
+		target_choices[1].cost - candidate.cost >= SHELL_MATCH_MARGIN ||
+		ordered_pillbox_successor(candidate, target_choices,
+			by_previous, previous_shells);
+}
+
+function shell_target_groups(next) {
+	let groups = next.shells.map(target => ({ target, capacity: 1 }));
+	for (let terminal of next.terminals) {
+		let group = groups.find(item => item.target.terminal &&
+			same_shell_terminal(item.target, terminal));
+		if (group) group.capacity++;
+		else groups.push({ target: terminal, capacity: 1 });
+	}
+	return groups;
+}
+
+function equivalent_shell_candidates(first, second) {
+	/* Two nearby shell restatements remain distinct identities. Equivalence
+	 * only suppresses the artificial choice between a restatement and an
+	 * impact which describe the same visual endpoint. */
+	if (first.target.terminal === second.target.terminal) return first === second;
+	return Math.hypot(first.pixel_x - second.pixel_x,
+		first.pixel_y - second.pixel_y) <= SHELL_EQUIVALENT_ENDPOINT_PIXELS &&
+		Math.abs(first.end_time - second.end_time) <= SHELL_EQUIVALENT_TIME_TICKS;
+}
+
+/* Match only mutually best candidates, and only when each wins by a useful
+ * margin over its alternatives. Shell lists carry no IDs and may gain or
+ * lose entries at any restatement, so an unmatched pop is safer than a
+ * smooth but invented path. Exact direction and client ownership are hard
+ * constraints; the first accepted displacement recovers a finer heading
+ * inside the shell's 4-bit direction sector for subsequent matches. */
+function match_shell_snapshots(previous, next) {
+	let duration = next.time - previous.time;
+	if (duration <= 0 || duration > MAX_POSITION_INTERPOLATION_TICKS) return;
+	mark_new_pillbox_shells(previous, next);
+
+	let target_groups = shell_target_groups(next);
+	let by_previous = Array.from({ length: previous.shells.length }, () => []);
+	let by_next = Array.from({ length: target_groups.length }, () => []);
+	for (let previous_index = 0; previous_index < previous.shells.length; previous_index++) {
+		for (let next_index = 0; next_index < target_groups.length; next_index++) {
+			let target = target_groups[next_index].target;
+			if (target.starts_at_pillbox || target.starts_at_tank) continue;
+			let match;
+			if (target.terminal) {
+				match = shell_terminal_match(previous.shells[previous_index], target, duration);
+			} else {
+				let cost = shell_match_cost(previous.shells[previous_index], target, duration);
+				match = cost === null ? null : {
+					cost, pixel_x: target.pixel_x, pixel_y: target.pixel_y,
+				};
+			}
+			if (!match) continue;
+			match.end_time = target.terminal
+				? Math.min(next.time,
+					previous.time + match.distance / SHELL_SPEED_PIXELS_PER_TICK)
+				: next.time;
+			let candidate = { previous_index, next_index, target, ...match };
+			by_previous[previous_index].push(candidate);
+			by_next[next_index].push(candidate);
+		}
+	}
+	for (let choices of by_previous) choices.sort((a, b) => a.cost - b.cost);
+	for (let choices of by_next) choices.sort((a, b) => a.cost - b.cost);
+
+	let selected = [];
+	for (let previous_index = 0; previous_index < previous.shells.length; previous_index++) {
+		/* A normal successor which this shell cannot win is not a genuine
+		 * alternative to its impact. Dense pill streams often put the leading
+		 * shell and the following shell near the same next endpoint; the latter
+		 * is the mutually best successor while the former reaches the impact. */
+		let choices = by_previous[previous_index].filter(candidate => {
+			if (candidate.target.terminal) return true;
+			return unambiguous_shell_successor(candidate,
+				by_next[candidate.next_index], by_previous, previous.shells);
+		});
+		if (!choices.length) continue;
+		let cheapest = choices[0];
+		let equivalents = choices.filter(candidate =>
+			equivalent_shell_candidates(cheapest, candidate));
+		let trusted_successor = !cheapest.target.terminal &&
+			previous.shells[previous_index].pillbox_source_x !== undefined &&
+			unambiguous_shell_successor(cheapest, by_next[cheapest.next_index],
+				by_previous, previous.shells);
+		let previous_alternative = choices.find(candidate =>
+			!equivalent_shell_candidates(cheapest, candidate) &&
+			!(trusted_successor && candidate.target.terminal));
+		let previous_margin = previous_alternative
+			? previous_alternative.cost - cheapest.cost : Infinity;
+		/* Keep both descriptions of an equivalent endpoint available. The
+		 * real restatement is assigned first below, preserving its heading;
+		 * if another older shell wins that anonymous entry, this shell can
+		 * still consume the simultaneous impact instead of freezing. */
+		if (previous_margin >= SHELL_MATCH_MARGIN) selected.push(...equivalents);
+	}
+
+	/* Capacity belongs to selected destinations, not every candidate. A shell
+	 * which chose its real successor must not consume an equivalent impact and
+	 * block another shell from terminating there. */
+	let selected_by_next = Array.from({ length: target_groups.length }, () => []);
+	for (let candidate of selected) selected_by_next[candidate.next_index].push(candidate);
+	for (let choices of selected_by_next) choices.sort((a, b) => a.cost - b.cost);
+	let assigned_previous = new Set();
+
+	/* Shell restatements precede terminals in target_groups, so a real
+	 * successor wins an equivalent endpoint whenever it remains available. */
+	for (let next_index = 0; next_index < selected_by_next.length; next_index++) {
+		let group = target_groups[next_index];
+		let choices = selected_by_next[next_index].filter(candidate =>
+			!assigned_previous.has(candidate.previous_index));
+		let capacity = group.capacity;
+		let next_alternative;
+		if (group.target.terminal) {
+			next_alternative = choices[capacity];
+		} else {
+			/* Keep ordinary shell-to-shell matching mutually best. The relaxed
+			 * capacity accounting is specifically for impact multiplicity; it
+			 * must not broaden unrelated anonymous-shell associations. */
+			if (!choices.length || !unambiguous_shell_successor(choices[0],
+				by_next[next_index], by_previous, previous.shells)) continue;
+			next_alternative = by_next[next_index][1];
+			if (next_alternative && same_pillbox_stream(
+				previous.shells[choices[0].previous_index],
+				previous.shells[next_alternative.previous_index]) &&
+				by_previous[next_alternative.previous_index].some(candidate =>
+					candidate.target.terminal)) next_alternative = null;
+		}
+		for (let i = 0; i < Math.min(capacity, choices.length); i++) {
+			let best = choices[i];
+			let next_margin = next_alternative
+				? next_alternative.cost - best.cost : Infinity;
+			if (next_margin < SHELL_MATCH_MARGIN) continue;
+			if (assigned_previous.has(best.previous_index)) continue;
+			assigned_previous.add(best.previous_index);
+
+			let old_shell = previous.shells[best.previous_index];
+			old_shell.next_time = best.end_time;
+			old_shell.next_pixel_x = best.pixel_x;
+			old_shell.next_pixel_y = best.pixel_y;
+			old_shell.next_terminal = best.target.terminal;
+			if (best.target.terminal) old_shell.next_terminal_type = best.target.type;
+			if (best.target.terminal) continue;
+
+			let new_shell = best.target;
+			new_shell.matched_from_previous = true;
+			if (old_shell.heading_x !== undefined) {
+				new_shell.heading_x = old_shell.heading_x;
+				new_shell.heading_y = old_shell.heading_y;
+			} else {
+				let delta_x = new_shell.pixel_x - old_shell.pixel_x;
+				let delta_y = new_shell.pixel_y - old_shell.pixel_y;
+				let distance = Math.hypot(delta_x, delta_y);
+				new_shell.heading_x = delta_x / distance;
+				new_shell.heading_y = delta_y / distance;
+			}
+			if (old_shell.pillbox_source_x !== undefined) {
+				new_shell.pillbox_source_x = old_shell.pillbox_source_x;
+				new_shell.pillbox_source_y = old_shell.pillbox_source_y;
+				new_shell.pillbox_source_distance = Math.hypot(
+					new_shell.pixel_x - old_shell.pillbox_source_x,
+					new_shell.pixel_y - old_shell.pillbox_source_y);
+			}
+		}
+	}
+}
+
+/* Per-client shell restatements used only for drawing. Keeping separate
+ * client tracks is intentional: there is no evidence that technical shell
+ * ownership migrates in flight, and joining across clients would create
+ * especially convincing false identities. A possible migration therefore
+ * renders conservatively as one shell disappearing and another appearing. */
+function build_shell_positions(records, terminals, pillbox_sources_by_record,
+	tank_sources_by_record) {
+	let snapshots = Array.from({ length: 16 }, () => []);
+	let terminals_by_record = new Map();
+	for (let terminal of terminals) {
+		let record_terminals = terminals_by_record.get(terminal.record);
+		if (!record_terminals) {
+			record_terminals = [];
+			terminals_by_record.set(terminal.record, record_terminals);
+		}
+		record_terminals.push(terminal);
+	}
+	for (let rec of records) {
+		let map_node_only = rec.subpackets.length > 0 &&
+			rec.subpackets.every(sub => MAP_NODE_TYPES.has(sub.type));
+		let shell_lists = rec.subpackets.filter(sub => sub.type === "shells");
+		if (!shell_lists.length && (rec.tankStatus === 0x0f || map_node_only)) continue;
+
+		let shells = [];
+		for (let sub of shell_lists) append_shell_list(shells, sub, rec.time);
+		let snapshot = {
+			time: rec.time,
+			shells: shells.map(shell => ({
+				pixel_x: shell.x * 16 + shell.px,
+				pixel_y: shell.y * 16 + shell.py,
+				direction: shell.direction,
+			})),
+			terminals: terminals_by_record.get(rec) || [],
+			pillbox_sources: pillbox_sources_by_record.get(rec) || [],
+			tank_sources: tank_sources_by_record.get(rec) || [],
+		};
+		let client_snapshots = snapshots[rec.player];
+		let previous = client_snapshots[client_snapshots.length - 1];
+		if (previous) match_shell_snapshots(previous, snapshot);
+		mark_new_tank_shells(previous, snapshot);
+		client_snapshots.push(snapshot);
+	}
+	return snapshots;
+}
+
+function build_shell_births(shell_positions) {
+	return shell_positions.map(snapshots => {
+		let births = [];
+		for (let snapshot of snapshots) {
+			for (let shell of snapshot.shells) {
+				if (!shell.starts_at_tank || shell.birth_time >= snapshot.time) continue;
+				births.push({
+					start_time: shell.birth_time,
+					end_time: snapshot.time,
+					pixel_x: shell.birth_pixel_x,
+					pixel_y: shell.birth_pixel_y,
+					heading_x: shell.heading_x,
+					heading_y: shell.heading_y,
+					direction: shell.direction,
+				});
+			}
+		}
+		return births;
+	});
+}
+
 /* Build a seekable game from parsed records. */
 function build(records) {
 	const effects = [];
@@ -921,14 +1483,46 @@ function build(records) {
 	const seed = extract_initial_map(records);
 	const tank_positions = build_tank_positions(records);
 	const lgm_positions = build_lgm_positions(records);
+	let shell_terminals = [];
+	let pillbox_sources_by_record = new Map();
+	let tank_sources_by_record = new Map();
 	let s = initial_state(seed);
 
 	for (let i = 0; i < records.length; i++) {
 		if (i % KEYFRAME_EVERY === 0) {
 			keyframes.push({ index: i, state: clone_state(s) });
 		}
-		apply_record(s, records[i], effects, chat);
+		let rec = records[i];
+		let pillbox_sources = [];
+		let tank_sources = [];
+		let tank_position = track_pixel_at(tank_positions[rec.player], rec.time);
+		for (let sub of rec.subpackets) {
+			if (sub.type === "pillbox_fires") {
+				let pill = s.pills[sub.pillbox];
+				if (!pill || pill.inTank !== null) continue;
+				pillbox_sources.push({
+					pixel_x: pill.x * 16,
+					pixel_y: pill.y * 16,
+					direction: sub.direction,
+				});
+			} else if (sub.type === "shot_fired" && tank_position) {
+					tank_sources.push({
+						pixel_x: tank_position.pixel_x,
+						pixel_y: tank_position.pixel_y,
+						direction: sub.direction,
+						track: tank_positions[rec.player],
+					});
+			}
+		}
+		if (pillbox_sources.length) {
+			pillbox_sources_by_record.set(rec, pillbox_sources);
+		}
+		if (tank_sources.length) tank_sources_by_record.set(rec, tank_sources);
+		apply_record(s, rec, effects, chat, shell_terminals);
 	}
+	let shell_positions = build_shell_positions(records, shell_terminals,
+		pillbox_sources_by_record, tank_sources_by_record);
+	let shell_births = build_shell_births(shell_positions);
 
 	return {
 		records,
@@ -937,6 +1531,8 @@ function build(records) {
 		keyframes,
 		tank_positions,
 		lgm_positions,
+		shell_positions,
+		shell_births,
 		badMapRuns: seed.badRuns,
 		network: BoloNetwork.network_conditions(records),
 		final: s,
@@ -1011,6 +1607,62 @@ function lgm_position_at(game, state, player, tick) {
 	return interpolated_position(track, state.men[player], tick);
 }
 
+function shell_position_at(game, player, shell, index, tick) {
+	if (!shell) return null;
+	let pixel_x = shell.x * 16 + shell.px;
+	let pixel_y = shell.y * 16 + shell.py;
+	let fallback = () => ({ x: pixel_x / 16 + 0.5, y: pixel_y / 16 + 0.5 });
+	let snapshots = game.shell_positions && game.shell_positions[player];
+	if (!snapshots || shell.position_time === undefined) return fallback();
+
+	let lo = 0, hi = snapshots.length;
+	while (lo < hi) {
+		let mid = (lo + hi) >> 1;
+		if (snapshots[mid].time <= tick) lo = mid + 1;
+		else hi = mid;
+	}
+	let snapshot = snapshots[lo - 1];
+	let position = snapshot && snapshot.shells[index];
+	if (!position || snapshot.time !== shell.position_time ||
+		position.pixel_x !== pixel_x || position.pixel_y !== pixel_y ||
+		position.direction !== shell.direction || position.next_time === undefined) {
+		return fallback();
+	}
+	if (tick >= position.next_time) {
+		return position.next_terminal ? null : fallback();
+	}
+
+	let amount = (tick - snapshot.time) / (position.next_time - snapshot.time);
+	pixel_x += (position.next_pixel_x - position.pixel_x) * amount;
+	pixel_y += (position.next_pixel_y - position.pixel_y) * amount;
+	return { x: pixel_x / 16 + 0.5, y: pixel_y / 16 + 0.5 };
+}
+
+function shell_birth_positions_at(game, player, tick) {
+	let births = game.shell_births && game.shell_births[player];
+	if (!births || !births.length) return [];
+	let lo = 0, hi = births.length;
+	while (lo < hi) {
+		let mid = (lo + hi) >> 1;
+		if (births[mid].end_time <= tick) lo = mid + 1;
+		else hi = mid;
+	}
+	let latest_end = tick + MAX_POSITION_INTERPOLATION_TICKS * 2 +
+		SHELL_TANK_BIRTH_ERROR_PIXELS / SHELL_SPEED_PIXELS_PER_TICK;
+	let positions = [];
+	for (let i = lo; i < births.length && births[i].end_time <= latest_end; i++) {
+		let birth = births[i];
+		if (birth.start_time > tick) continue;
+		let distance = (tick - birth.start_time) * SHELL_SPEED_PIXELS_PER_TICK;
+		positions.push({
+			x: (birth.pixel_x + birth.heading_x * distance) / 16 + 0.5,
+			y: (birth.pixel_y + birth.heading_y * distance) / 16 + 0.5,
+			direction: birth.direction,
+		});
+	}
+	return positions;
+}
+
 /* State at a given tick: nearest keyframe at or before it, replayed forward.
  * Returns { state, index } where index is the first unapplied record. */
 function state_at(game, tick) {
@@ -1059,7 +1711,8 @@ const BoloGame = {
 	MAX_POSITION_INTERPOLATION_TICKS,
 	initial_state, clone_state, apply_record, build, state_at, team_of,
 	adjacent_change_time,
-	tank_position_at, lgm_position_at,
+	tank_position_at, lgm_position_at, shell_position_at,
+	shell_birth_positions_at,
 	extract_initial_map,
 };
 
