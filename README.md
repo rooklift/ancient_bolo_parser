@@ -108,6 +108,10 @@ determinism, base-stock model, initial-map extraction) plus synthetic
 tests, and additional raw logs are used locally from the gitignored
 `samples/`. Please don't submit logs — anonymized or otherwise.
 
+The committed interpolation-decision report is regenerated with
+`npm run build:interpolation-report`; the test suite requires the generated
+report for the sample replay to remain byte-identical.
+
 The replay engine reconstructs full game state (terrain, pills, bases,
 tanks, men, shells, alliances), including the pieces of game logic the log
 omits by design — pill dumps on death, boat consumption, alliance
