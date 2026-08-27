@@ -401,6 +401,24 @@ if (!fs.existsSync(log1)) {
 		[rounded(position(pillbox_burst, 106, 0, 0).x),
 			rounded(position(pillbox_burst, 106, 0, 1).x)], [12.75, 12.25]);
 
+	let tank_muzzle = BoloGame.build([
+		record(90, [{
+			type: "tank_position", x: 10, y: 10, pixelX: 0, pixelY: 0,
+			direction: 4, inBoat: false, hidden: false, dying: false,
+			speed: 0, motion: 0,
+		}]),
+		record(100, [
+			{ type: "shot_fired", direction: 4 },
+			shell_list(4, [[168, 160]]),
+		]),
+	]);
+	check("tank shot starts at the muzzle before its first restatement",
+		BoloGame.shell_birth_positions_at(tank_muzzle, 0, 98).map(shell =>
+			[rounded(shell.x), rounded(shell.y), shell.direction]),
+		[[10.75, 10.5, 4]]);
+	check("synthetic muzzle segment hands off at the real restatement",
+		BoloGame.shell_birth_positions_at(tank_muzzle, 0, 100), []);
+
 	let coarse_only_impact = BoloGame.build([
 		record(112, [shell_list(4, [[184, 166]])]),
 		record(124, [{ type: "explosion", code: 0, x: 13, y: 11 }]),
