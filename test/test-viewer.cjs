@@ -380,6 +380,27 @@ if (!fs.existsSync(log1)) {
 	check("equivalent successor wins without losing the learned heading",
 		position(equivalent_impact, 130), null);
 
+	let pillbox_burst = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 10, y: 10, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(90, []),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 4 },
+			{ type: "pillbox_fires", pillbox: 0, direction: 4 },
+			shell_list(4, [[184, 160], [176, 160]]),
+		]),
+		record(112, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 4 },
+			{ type: "pillbox_fires", pillbox: 0, direction: 4 },
+			shell_list(4, [[200, 160], [176, 160], [168, 160]]),
+			{ type: "explosion", code: 0, x: 13, y: 10 },
+		]),
+	]);
+	check("pillbox source resolves a dense anonymous shell burst",
+		[rounded(position(pillbox_burst, 106, 0, 0).x),
+			rounded(position(pillbox_burst, 106, 0, 1).x)], [12.75, 12.25]);
+
 	let coarse_only_impact = BoloGame.build([
 		record(112, [shell_list(4, [[184, 166]])]),
 		record(124, [{ type: "explosion", code: 0, x: 13, y: 11 }]),
