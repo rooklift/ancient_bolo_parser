@@ -1014,6 +1014,7 @@ function team_of(s, player) {
 const BoloGame = {
 	MAP_SIZE, DEEP_SEA, TICKS_PER_SECOND, NEUTRAL, KEYFRAME_EVERY,
 	MAX_POSITION_INTERPOLATION_TICKS: BoloMotion.MAX_POSITION_INTERPOLATION_TICKS,
+	MAX_SHELL_INTERPOLATION_TICKS: BoloMotion.MAX_SHELL_INTERPOLATION_TICKS,
 	initial_state, clone_state, apply_record, build, state_at, team_of,
 	classify_node_joins,
 	adjacent_change_time,
