@@ -258,24 +258,32 @@ function append_shell_list(shells, sub, position_time) {
 	}
 }
 
-function add_shell_point_terminal(terminals, rec, x, y, px, py, direction = null) {
+function add_shell_point_terminal(terminals, rec, x, y, px, py,
+	direction = null, details = null) {
 	if (!terminals) return;
-	terminals.push({
+	let terminal = {
 		record: rec, type: "point", pixel_x: x * 16 + px,
 		pixel_y: y * 16 + py, direction, terminal: true,
-	});
+	};
+	if (details) Object.assign(terminal, details);
+	terminals.push(terminal);
+	return terminal;
 }
 
 /* A box is expressed in centred world coordinates. Positioned sprites use
  * their logged pixel coordinate as the top-left of a 16px box; fixed map
  * objects and terrain tiles use their tile's corresponding 16px box. */
-function add_shell_box_terminal(terminals, rec, pixel_x, pixel_y, direction = null) {
+function add_shell_box_terminal(terminals, rec, pixel_x, pixel_y,
+	direction = null, details = null) {
 	if (!terminals) return;
-	terminals.push({
+	let terminal = {
 		record: rec, type: "box", min_x: pixel_x, min_y: pixel_y,
 		max_x: pixel_x + 16, max_y: pixel_y + 16, direction,
 		terminal: true,
-	});
+	};
+	if (details) Object.assign(terminal, details);
+	terminals.push(terminal);
+	return terminal;
 }
 
 /* Apply one parsed record to the state. `effects` and `chat`, when given,
@@ -389,14 +397,17 @@ function apply_record(s, rec, effects, chat, shell_terminals) {
 				set_terrain(s, sub.x, sub.y, terrain);
 				break;
 			}
-			case "explosion":
+			case "explosion": {
 				/* C is an LGM planting a mine and D is a tank superboom; neither
 				 * is a shell impact. Other explosion forms name the struck tile. */
+				let terminal = null;
+				let impact_effect = null;
 				if (sub.code !== 0x0c && sub.code !== 0x0d) {
-					add_shell_box_terminal(shell_terminals, rec, sub.x * 16, sub.y * 16);
+					terminal = add_shell_box_terminal(shell_terminals, rec,
+						sub.x * 16, sub.y * 16, null, { event_type: "explosion" });
 				}
 				if (sub.code === 0x0b) {
-					if (effects) effects.push({ time: rec.time, type: "boom", x: sub.x, y: sub.y });
+					if (effects) impact_effect = { time: rec.time, type: "boom", x: sub.x, y: sub.y };
 				} else if (sub.code === 0x0c) {
 					mine_square(s, sub.x, sub.y);
 				} else if (sub.code === 0x0d) {
@@ -415,16 +426,25 @@ function apply_record(s, rec, effects, chat, shell_terminals) {
 					if (sub.code !== 3 || !spared) {
 						set_terrain(s, sub.x, sub.y, sub.code);
 					}
-					if (effects) effects.push({ time: rec.time, type: "boom", x: sub.x, y: sub.y });
+					if (effects) impact_effect = { time: rec.time, type: "boom", x: sub.x, y: sub.y };
 				}
+				if (impact_effect) effects.push(impact_effect);
+				if (terminal && impact_effect) terminal.effect = impact_effect;
 				break;
+			}
 			case "pillbox_damage": {
 				const p = s.pills[sub.pillbox];
 				if (p) {
 					p.armour = Math.max(0, p.armour - 1);
-					if (effects && p.inTank === null) effects.push({ time: rec.time, type: "pill_hit", x: p.x, y: p.y });
+					let effect = null;
+					if (effects && p.inTank === null) {
+						effect = { time: rec.time, type: "pill_hit", x: p.x, y: p.y };
+						effects.push(effect);
+					}
 					if (p.inTank === null) {
-						add_shell_box_terminal(shell_terminals, rec, p.x * 16, p.y * 16);
+						add_shell_box_terminal(shell_terminals, rec,
+							p.x * 16, p.y * 16, null,
+							{ event_type: "pillbox_damage", effect });
 					}
 				}
 				break;
@@ -433,8 +453,13 @@ function apply_record(s, rec, effects, chat, shell_terminals) {
 				const b = s.bases[sub.base];
 				if (b) {
 					b.armour = Math.max(0, b.armour - 5);
-					if (effects) effects.push({ time: rec.time, type: "boom", x: b.x, y: b.y });
-					add_shell_box_terminal(shell_terminals, rec, b.x * 16, b.y * 16);
+					let effect = null;
+					if (effects) {
+						effect = { time: rec.time, type: "boom", x: b.x, y: b.y };
+						effects.push(effect);
+					}
+					add_shell_box_terminal(shell_terminals, rec, b.x * 16, b.y * 16,
+						null, { event_type: "base_damage", effect });
 				}
 				break;
 			}
@@ -541,9 +566,18 @@ function apply_record(s, rec, effects, chat, shell_terminals) {
 			case "tank_hit": {
 				let t = s.tanks[sub.tank];
 				if (t) {
-					if (effects) effects.push({ time: rec.time, type: "tank_hit", x: t.x, y: t.y, px: t.px, py: t.py, player: sub.tank });
+					let effect = null;
+					if (effects) {
+						effect = {
+							time: rec.time, type: "tank_hit", x: t.x, y: t.y,
+							px: t.px, py: t.py,
+							player: sub.tank,
+						};
+						effects.push(effect);
+					}
 					add_shell_box_terminal(shell_terminals, rec,
-						t.x * 16 + t.px, t.y * 16 + t.py, sub.direction);
+						t.x * 16 + t.px, t.y * 16 + t.py, sub.direction,
+						{ event_type: "tank_hit", effect });
 				}
 				break;
 			}
@@ -554,11 +588,18 @@ function apply_record(s, rec, effects, chat, shell_terminals) {
 				if (s.men[pl] && !s.men[pl].parachute) s.men[pl] = null;
 				if (effects) effects.push({ time: rec.time, type: "lgm_death", x: sub.x, y: sub.y, player: pl });
 				break;
-			case "shell_falls":
-				if (effects) effects.push({ time: rec.time, type: "splash", x: sub.x, y: sub.y, px: sub.pixel & 0x0f, py: sub.pixel >> 4 });
+			case "shell_falls": {
+				let effect = null;
+				if (effects) {
+					effect = { time: rec.time, type: "splash", x: sub.x, y: sub.y,
+						px: sub.pixel & 0x0f, py: sub.pixel >> 4 };
+					effects.push(effect);
+				}
 				add_shell_point_terminal(shell_terminals, rec, sub.x, sub.y,
-					sub.pixel & 0x0f, sub.pixel >> 4);
+					sub.pixel & 0x0f, sub.pixel >> 4, null,
+					{ event_type: "shell_falls", effect });
 				break;
+			}
 			case "lay_mine": {
 				const t = s.tanks[pl];
 				if (t) {
@@ -1116,22 +1157,37 @@ function mark_new_pillbox_shells(previous, next) {
 		let angle = group.direction * Math.PI / 8;
 		let coarse_x = Math.sin(angle);
 		let coarse_y = -Math.cos(angle);
-		for (let shell of next.shells) {
-			if (shell.starts_at_tank || shell.direction !== group.direction) continue;
-			let delta_x = shell.pixel_x - group.pixel_x;
-			let delta_y = shell.pixel_y - group.pixel_y;
-			let distance = Math.hypot(delta_x, delta_y);
-			if (distance > maximum_distance) continue;
-			if (distance > 0) {
-				let forward = delta_x * coarse_x + delta_y * coarse_y;
-				let lateral = Math.abs(delta_x * coarse_y - delta_y * coarse_x);
-				if (forward <= 0 || Math.atan2(lateral, forward) >
-					SHELL_DIRECTION_TOLERANCE) continue;
+		for (let origin of [{
+			pixel_x: group.pixel_x, pixel_y: group.pixel_y, fallback: false,
+		}, {
+			pixel_x: group.alternate_pixel_x,
+			pixel_y: group.alternate_pixel_y,
+			fallback: true,
+		}]) {
+			if (origin.pixel_x === undefined) continue;
+			for (let shell of next.shells) {
+				if (shell.direction !== group.direction) continue;
+				let delta_x = shell.pixel_x - origin.pixel_x;
+				let delta_y = shell.pixel_y - origin.pixel_y;
+				let distance = Math.hypot(delta_x, delta_y);
+				if (distance > maximum_distance) continue;
+				if (distance > 0) {
+					let forward = delta_x * coarse_x + delta_y * coarse_y;
+					let lateral = Math.abs(delta_x * coarse_y - delta_y * coarse_x);
+					if (forward <= 0 || Math.atan2(lateral, forward) >
+						SHELL_DIRECTION_TOLERANCE) continue;
+				}
+				candidates.push({
+					group, shell, distance, delta_x, delta_y,
+					pixel_x: origin.pixel_x, pixel_y: origin.pixel_y,
+					fallback: origin.fallback,
+				});
 			}
-			candidates.push({ group, shell, distance, delta_x, delta_y });
 		}
 	}
-	candidates.sort((a, b) => a.distance - b.distance);
+	/* Direction-zero F4 has a known n/n-1 ambiguity. Prefer the named pill,
+	 * but let the adjacent fallback fill capacity when its candidate fails. */
+	candidates.sort((a, b) => a.fallback - b.fallback || a.distance - b.distance);
 	let assigned_shells = new Set();
 	for (let candidate of candidates) {
 		if (candidate.group.assigned >= candidate.group.capacity ||
@@ -1139,8 +1195,8 @@ function mark_new_pillbox_shells(previous, next) {
 		candidate.group.assigned++;
 		assigned_shells.add(candidate.shell);
 		candidate.shell.starts_at_pillbox = true;
-		candidate.shell.pillbox_source_x = candidate.group.pixel_x;
-		candidate.shell.pillbox_source_y = candidate.group.pixel_y;
+		candidate.shell.pillbox_source_x = candidate.pixel_x;
+		candidate.shell.pillbox_source_y = candidate.pixel_y;
 		candidate.shell.pillbox_source_distance = candidate.distance;
 		if (candidate.distance > 0) {
 			candidate.shell.heading_x = candidate.delta_x / candidate.distance;
@@ -1192,6 +1248,10 @@ function mark_new_tank_shells(previous, next) {
 		let birth_pixel_y = candidate.group.pixel_y;
 		let distance = candidate.distance;
 		let birth_time = next.time - distance / SHELL_SPEED_PIXELS_PER_TICK;
+		let original = {
+			birth_pixel_x, birth_pixel_y, distance, birth_time,
+			delta_x: candidate.delta_x, delta_y: candidate.delta_y,
+		};
 		/* The packet's tank position is at the end of this inferred segment.
 		 * Refine against the interpolated tank track at the actual firing time,
 		 * which matters when a moving tank fires between position packets. */
@@ -1204,6 +1264,17 @@ function mark_new_tank_shells(previous, next) {
 			candidate.delta_y = candidate.shell.pixel_y - birth_pixel_y;
 			distance = Math.hypot(candidate.delta_x, candidate.delta_y);
 			birth_time = next.time - distance / SHELL_SPEED_PIXELS_PER_TICK;
+		}
+		let angle = candidate.group.direction * Math.PI / 8;
+		let coarse_x = Math.sin(angle), coarse_y = -Math.cos(angle);
+		let forward = candidate.delta_x * coarse_x + candidate.delta_y * coarse_y;
+		let lateral = Math.abs(candidate.delta_x * coarse_y -
+			candidate.delta_y * coarse_x);
+		if (!Number.isFinite(distance) || distance <= 1e-9 || forward <= 0 ||
+			Math.atan2(lateral, forward) > SHELL_DIRECTION_TOLERANCE) {
+			({ birth_pixel_x, birth_pixel_y, distance, birth_time } = original);
+			candidate.delta_x = original.delta_x;
+			candidate.delta_y = original.delta_y;
 		}
 		candidate.shell.starts_at_tank = true;
 		candidate.shell.heading_x = candidate.delta_x / distance;
@@ -1252,8 +1323,12 @@ function shell_target_groups(next) {
 	for (let terminal of next.terminals) {
 		let group = groups.find(item => item.target.terminal &&
 			same_shell_terminal(item.target, terminal));
-		if (group) group.capacity++;
-		else groups.push({ target: terminal, capacity: 1 });
+		if (group) {
+			group.capacity++;
+			group.terminals.push(terminal);
+		} else {
+			groups.push({ target: terminal, capacity: 1, terminals: [terminal] });
+		}
 	}
 	return groups;
 }
@@ -1285,7 +1360,7 @@ function match_shell_snapshots(previous, next) {
 	for (let previous_index = 0; previous_index < previous.shells.length; previous_index++) {
 		for (let next_index = 0; next_index < target_groups.length; next_index++) {
 			let target = target_groups[next_index].target;
-			if (target.starts_at_pillbox || target.starts_at_tank) continue;
+			if (target.starts_at_pillbox) continue;
 			let match;
 			if (target.terminal) {
 				match = shell_terminal_match(previous.shells[previous_index], target, duration);
@@ -1383,7 +1458,13 @@ function match_shell_snapshots(previous, next) {
 			old_shell.next_pixel_x = best.pixel_x;
 			old_shell.next_pixel_y = best.pixel_y;
 			old_shell.next_terminal = best.target.terminal;
-			if (best.target.terminal) old_shell.next_terminal_type = best.target.type;
+			if (best.target.terminal) {
+				old_shell.next_terminal_type = best.target.type;
+				let terminal = group.terminals[i];
+				terminal.match_time = best.end_time;
+				old_shell.next_terminal_event_type = terminal.event_type;
+				if (terminal.effect) terminal.effect.time = best.end_time;
+			}
 			if (best.target.terminal) continue;
 
 			let new_shell = best.target;
@@ -1499,12 +1580,23 @@ function build(records) {
 		for (let sub of rec.subpackets) {
 			if (sub.type === "pillbox_fires") {
 				let pill = s.pills[sub.pillbox];
-				if (!pill || pill.inTank !== null) continue;
-				pillbox_sources.push({
-					pixel_x: pill.x * 16,
-					pixel_y: pill.y * 16,
+				let alternate = sub.direction === 0 && sub.pillbox > 0
+					? s.pills[sub.pillbox - 1] : null;
+				let pill_available = pill && pill.inTank === null;
+				let alternate_available = alternate && alternate.inTank === null;
+				if (!pill_available && !alternate_available) continue;
+				let source = pill_available ? pill : alternate;
+				let item = {
+					pixel_x: source.x * 16,
+					pixel_y: source.y * 16,
 					direction: sub.direction,
-				});
+				};
+				if (pill_available && alternate_available &&
+					(pill.x !== alternate.x || pill.y !== alternate.y)) {
+					item.alternate_pixel_x = alternate.x * 16;
+					item.alternate_pixel_y = alternate.y * 16;
+				}
+				pillbox_sources.push(item);
 			} else if (sub.type === "shot_fired" && tank_position) {
 					tank_sources.push({
 						pixel_x: tank_position.pixel_x,
@@ -1523,6 +1615,7 @@ function build(records) {
 	let shell_positions = build_shell_positions(records, shell_terminals,
 		pillbox_sources_by_record, tank_sources_by_record);
 	let shell_births = build_shell_births(shell_positions);
+	effects.sort((a, b) => a.time - b.time);
 
 	return {
 		records,

@@ -137,14 +137,14 @@ nibble.
 | `F1 8n`/`F1 Cn` | 42 | pill/base "history" **group**: a 2-byte little-endian pills bitmask, a 2-byte little-endian bases bitmask (**set** bits = members), then a 36-byte history value shared by every marked object — a zero-padded Pascal `player@node` string, or the empty/default value `00 01` + zeros. One record is emitted per distinct value in the start-of-log burst; together they partition all 16 pills and 16 bases exactly, and `n` is the lowest marked base. The string names a player tied to the group, but the exact rule remains murky. `F1 8n` itself is never emitted, but the pill masks ride the `Cn` records [E:history] |
 | `F2` | 3 | map terrain request (2-byte `mapknown`, see `F3`) |
 | `F3` | 3+run | map terrain data: 2-byte `mapknown`, then one RLE run in `.bmap` format (run length byte includes the 4-byte run header). `mapknown` is a map position `YY XX` — the transfer frontier: the previous run's row and end-column (`00 00` before the first run), everything before it in reading order being already known [E:mapknown] |
-| `F4 nd` | 2 | pillbox `n` fires, shell direction `d` (the shell itself then appears in the shell lists of the machine simulating the pill — normally its target; see `0d`–`3d`). **When `d` reads 0 the index is unreliable**: about a quarter of those name the pill one above the one that really fired, so the true firer is `n-1`. Every other direction is right ~99% of the time. Nothing in playback depends on it — the shell is restated in the lists, damage arrives as `9n`, capture at pickup — so treat `F4` as a cue for effects only [E:pill-fire-index] |
+| `F4 nd` | 2 | pillbox `n` fires, shell direction `d` (the shell itself then appears in the shell lists of the machine simulating the pill — normally its target; see `0d`–`3d`). **When `d` reads 0 the index is unreliable**: about a quarter of those name the pill one above the one that really fired, so the true firer is `n-1`. Every other direction is right ~99% of the time. Playback may use the named pill as a candidate shell origin, but must reject geometrically implausible associations and try `n-1` for direction 0; damage and capture remain authoritative in their own events [E:pill-fire-index] |
 | `F5` | 3 | LGM death at `XX YY` |
 | `F6` | 1 | tank boards boat (boat consumed): the tank's centre square reverts from river-with-boat to plain river with **no** accompanying `6T` event — playback must apply the change itself [E:boat] |
 | `F7` | 1 | tank lays mine |
 | `F8` | 2+len | node id: Pascal string `player@node`; also sent on rename |
 | `F9` | 2 | tank death; code 1 = explosion, 2 = crater, 3 = sunk in deep sea (an F901 may be followed by F902 mid-animation). The respawn is the next tank position without the dying bit [E:respawn-gap]. Terminal cratering at the wreck's resting place is **evented** (`7T`/`7D`) and is gated on the ammo aboard: a 4-square superboom above 60 shells + mines, a single crater from 1 to 60, and no explosion at all when the tank dies empty [E:death-tiers] |
 | `FA` | 4+len | chat message: 2-byte little-endian recipient bitmask (`FFFF` = all) + Pascal string (max 120 chars; longer messages split across records) |
-| `FB` | 4 | shell falls to ground at `XX YY yx` |
+| `FB` | 4 | shell falls to ground at `XX YY yx`; the pixel position is the shell's terminal point [E:shell-fall-terminal] |
 | `FC dn` | 2 | shell (direction `d`) hits tank `n` |
 | `FD`, `FE` | 1 | unused |
 | `FF 0n`–`FF 4n` | 2 | pill `n`: pickup / repair 4 / repair 8 / repair 12 / full repair. **Pickup captures the pill immediately** — not at the later plant. Repairs never change ownership, whoever performs them [E:pill-capture] |
@@ -438,11 +438,20 @@ its last reported position against those, over the corpus:
 LGM keeps walking between its last position restatement and the event.
 Parachutes ride the same subpacket as LGMs, so presumably share the
 convention, but no square-addressed event is caused by one, so it is
-untested. `FB` (shell falls) carries a pixel byte too and is **not**
-settled: matching it against the sender's in-flight shells fails because
-the shell travels on after its last restatement, and matching it against
-a co-occurring explosion fails because the two are not causally paired
-(best fit 2.7%).
+untested. `FB` uses the shell convention established separately in
+[E:shell-fall-terminal].
+
+**[E:shell-fall-terminal]** — an `FB` shell continues at 2 px/tick along
+the fine heading learned from its earlier restatements; its `XX YY yx`
+position is the resulting terminal point, not a position expected to equal
+the last restatement. This matches 8,191 of 8,495 events (96.4%). The
+matched paths remain straight independently of the matching cost: lateral
+residual against the learned ray is median 0.56 px and p90 2.0 px. This
+supersedes the earlier negative result from comparing `FB` directly with
+the shell's last reported position. For any matched shell terminal, playback
+dates its transient impact effect to the computed arrival time; the event's
+authoritative terrain, object, or tank state change remains at its logged
+record time.
 
 **[E:shell-centre]** — fitted against the terrain the corpus says a shell
 cannot be inside. Reading 9,838,080 shell restatements at a range of
