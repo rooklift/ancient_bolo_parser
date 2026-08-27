@@ -1,11 +1,12 @@
 "use strict";
 /* Electron main process for the Ancient Bolo Log Viewer. Window/menu/dialog plumbing
  * duplicated from the lgm map editor and trimmed to viewer needs. */
-const { app, BrowserWindow, Menu, dialog, ipcMain } = require("electron");
+const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require("electron");
 const fs = require("fs");
 const path = require("path");
 
 let win = null;
+let loaded_file_path = null;
 
 const LOG_FILTERS = [
 	{ name: "Bolo logs", extensions: ["*"] },
@@ -74,12 +75,18 @@ function send(cmd) {
 	if (win) win.webContents.send("menu-cmd", cmd);
 }
 
+function show_file() {
+	if (loaded_file_path) shell.showItemInFolder(loaded_file_path);
+}
+
 function build_menu() {
 	let template = [
 		{
 			label: "&File",
 			submenu: [
 				{ label: "Open log…", accelerator: "CmdOrCtrl+O", click: () => send("open") },
+				{ type: "separator" },
+				{ label: "Show file", accelerator: "CmdOrCtrl+Shift+O", click: show_file },
 				{ label: "Save initial map…", accelerator: "CmdOrCtrl+S", click: () => send("save-map") },
 				{ type: "separator" },
 				{ role: "quit" },
@@ -200,6 +207,14 @@ ipcMain.handle("save-map", async (e, defaultName, data) => {
 ipcMain.on("show-error", (e, title, message) => {
 	dialog.showErrorBox(title, message);
 });
+
+ipcMain.on("file-loaded", (e, file_path) => {
+	if (typeof file_path === "string" && path.isAbsolute(file_path)) {
+		loaded_file_path = file_path;
+	}
+});
+
+ipcMain.on("show-file", show_file);
 
 app.whenReady().then(() => {
 	build_menu();

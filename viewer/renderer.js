@@ -911,6 +911,7 @@ function load_log(bytes, name) {
 	rebuild_chat(game.t0);
 	zoom_to_action();
 	set_playing(true);
+	if (window.api && name) window.api.file_loaded(name);
 }
 
 function show_error(title, message) {
@@ -1014,6 +1015,11 @@ function save_initial_map() {
 }
 
 window.addEventListener("keydown", e => {
+	if (e.code === "KeyO" && (e.ctrlKey || e.metaKey) && e.shiftKey && window.api) {
+		e.preventDefault();
+		window.api.show_file();
+		return;
+	}
 	if (e.code === "KeyD" && (e.ctrlKey || e.metaKey)) {
 		e.preventDefault();
 		toggle_coordinate_debug();
@@ -1145,8 +1151,9 @@ function take_file(f) {
 		show_error("Could not load log", `${f.name} is ${f.size} bytes; not a Bolo log`);
 		return;
 	}
+	let file_path = window.api ? window.api.file_path(f) : f.name;
 	f.arrayBuffer().then(
-		ab => load_log(new Uint8Array(ab), f.name),
+		ab => load_log(new Uint8Array(ab), file_path),
 		err => show_error("Could not read file", String(err)));
 }
 
