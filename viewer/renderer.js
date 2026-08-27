@@ -730,11 +730,13 @@ function draw_shells() {
 	let radius = Math.max(1, z * 0.12);
 	let small_size = Math.max(1, z / 8);
 	for (let p = 0; p < 16; p++) {
-		for (const sh of cur.shells[p]) {
+		for (let i = 0; i < cur.shells[p].length; i++) {
+			let sh = cur.shells[p][i];
 			/* same half-tile centring as every other positioned object;
 			 * verified against 3k muzzle samples (shell vs firing tank) */
-			let cx = tile_to_screen_x(world_x(sh));
-			let cy = tile_to_screen_y(world_y(sh));
+			let position = BoloGame.shell_position_at(game, p, sh, i, clock);
+			let cx = tile_to_screen_x(position.x);
+			let cy = tile_to_screen_y(position.y);
 			/* Big shots deliberately override the classic direction sprites.
 			 * obj_sprite adds the other two gates: object graphics on and zoom
 			 * at or above the shared sprite threshold. */

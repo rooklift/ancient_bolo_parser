@@ -12,6 +12,14 @@ const KEYFRAME_EVERY = 2000; /* records between state snapshots, for seeking */
  * hold the last known point instead of drawing a made-up line through lag. */
 const MAX_POSITION_INTERPOLATION_TICKS = TICKS_PER_SECOND / 2;
 const MAX_LGM_TANK_ENTRY_DISTANCE_PIXELS = 32;
+/* Shells travel at 2 px/tick. Their logged direction is only the 4-bit
+ * version of a presumably finer internal heading, so it defines a sector,
+ * not an exact vector. Packet timestamps and simulation updates can differ
+ * by a few pixels; matching remains deliberately conservative. */
+const SHELL_SPEED_PIXELS_PER_TICK = 2;
+const SHELL_MATCH_ERROR_PIXELS = 8;
+const SHELL_DIRECTION_TOLERANCE = Math.PI / 8;
+const SHELL_MATCH_MARGIN = 3;
 
 const NEUTRAL = 16;
 const GONE = -2; /* inTank value: pill left the game with a quitting carrier */
@@ -218,6 +226,32 @@ function lowest_carried(s, player) {
 	return null;
 }
 
+/* Append one shell-list subpacket as absolute positions. Offsets are
+ * chained, and the direction nibble in the list header applies to EVERY
+ * shell in the list. position_time lets render-only interpolation verify
+ * that a reconstructed state still belongs to the expected snapshot. */
+function append_shell_list(shells, sub, position_time) {
+	let direction = sub.direction ?? sub.shells[0].direction;
+	let previous = null;
+	for (let i = 0; i < sub.shells.length; i++) {
+		let shell = sub.shells[i];
+		let pixel_x, pixel_y;
+		if (i === 0) {
+			pixel_x = shell.x * 16 + (shell.pixel & 0x0f);
+			pixel_y = shell.y * 16 + (shell.pixel >> 4);
+		} else {
+			pixel_x = previous.pixel_x + shell.offsetX;
+			pixel_y = previous.pixel_y + shell.offsetY;
+		}
+		previous = { pixel_x, pixel_y };
+		shells.push({
+			x: (pixel_x >> 4) & 0xff, y: (pixel_y >> 4) & 0xff,
+			px: pixel_x & 0x0f, py: pixel_y & 0x0f,
+			direction, position_time,
+		});
+	}
+}
+
 /* Apply one parsed record to the state. `effects` and `chat`, when given,
  * collect transient events (for rendering) and messages. */
 function apply_record(s, rec, effects, chat) {
@@ -314,31 +348,7 @@ function apply_record(s, rec, effects, chat) {
 				 * shell in its own list. */
 				sawShells = true;
 				if (newShells === null) newShells = [];
-				const list_direction = sub.direction ?? sub.shells[0].direction;
-				for (let i = 0; i < sub.shells.length; i++) {
-					const sh = sub.shells[i];
-					if (i === 0) {
-						newShells.push({
-							x: sh.x, y: sh.y, px: sh.pixel & 0x0f, py: sh.pixel >> 4,
-							direction: list_direction,
-						});
-					} else {
-						/* additional shells: signed pixel offsets CHAINED
-						 * from the PREVIOUS shell in the list, not the
-						 * first (verified: when a pill's new shot becomes
-						 * the list head, first-relative decoding conjures
-						 * a phantom shell and loses the real one; chained
-						 * decoding reconstructs both to the pixel). The list's
-						 * direction nibble applies to every shell in it. */
-						const prev = newShells[newShells.length - 1];
-						const wx = prev.x * 16 + prev.px + sub.shells[i].offsetX;
-						const wy = prev.y * 16 + prev.py + sub.shells[i].offsetY;
-						newShells.push({
-							x: (wx >> 4) & 0xff, y: (wy >> 4) & 0xff, px: wx & 0x0f, py: wy & 0x0f,
-							direction: list_direction,
-						});
-					}
-				}
+				append_shell_list(newShells, sub, rec.time);
 				break;
 			}
 			case "shot_fired":
@@ -910,6 +920,117 @@ function build_lgm_positions(records) {
 	return tracks;
 }
 
+function shell_match_cost(previous, next, duration) {
+	if (previous.direction !== next.direction) return null;
+
+	let delta_x = next.pixel_x - previous.pixel_x;
+	let delta_y = next.pixel_y - previous.pixel_y;
+	let distance = Math.hypot(delta_x, delta_y);
+	let expected_distance = duration * SHELL_SPEED_PIXELS_PER_TICK;
+	let distance_error = Math.abs(distance - expected_distance);
+	if (distance_error > SHELL_MATCH_ERROR_PIXELS || distance === 0) return null;
+
+	let heading_x = previous.heading_x;
+	let heading_y = previous.heading_y;
+	if (heading_x === undefined) {
+		let angle = previous.direction * Math.PI / 8;
+		heading_x = Math.sin(angle);
+		heading_y = -Math.cos(angle);
+	}
+	let forward = delta_x * heading_x + delta_y * heading_y;
+	let lateral = Math.abs(delta_x * heading_y - delta_y * heading_x);
+	if (forward <= 0) return null;
+	let angle_error = Math.atan2(lateral, forward);
+	if (angle_error > SHELL_DIRECTION_TOLERANCE) return null;
+
+	return distance_error + angle_error * expected_distance;
+}
+
+/* Match only mutually best candidates, and only when each wins by a useful
+ * margin over its alternatives. Shell lists carry no IDs and may gain or
+ * lose entries at any restatement, so an unmatched pop is safer than a
+ * smooth but invented path. Exact direction and client ownership are hard
+ * constraints; the first accepted displacement recovers a finer heading
+ * inside the shell's 4-bit direction sector for subsequent matches. */
+function match_shell_snapshots(previous, next) {
+	let duration = next.time - previous.time;
+	if (duration <= 0 || duration > MAX_POSITION_INTERPOLATION_TICKS) return;
+
+	let by_previous = Array.from({ length: previous.shells.length }, () => []);
+	let by_next = Array.from({ length: next.shells.length }, () => []);
+	for (let previous_index = 0; previous_index < previous.shells.length; previous_index++) {
+		for (let next_index = 0; next_index < next.shells.length; next_index++) {
+			let cost = shell_match_cost(previous.shells[previous_index],
+				next.shells[next_index], duration);
+			if (cost === null) continue;
+			let candidate = { previous_index, next_index, cost };
+			by_previous[previous_index].push(candidate);
+			by_next[next_index].push(candidate);
+		}
+	}
+	for (let choices of [...by_previous, ...by_next]) {
+		choices.sort((a, b) => a.cost - b.cost);
+	}
+
+	for (let previous_index = 0; previous_index < previous.shells.length; previous_index++) {
+		let choices = by_previous[previous_index];
+		if (!choices.length) continue;
+		let best = choices[0];
+		let reverse = by_next[best.next_index];
+		if (reverse[0] !== best) continue;
+		let previous_margin = choices.length > 1 ? choices[1].cost - best.cost : Infinity;
+		let next_margin = reverse.length > 1 ? reverse[1].cost - best.cost : Infinity;
+		if (previous_margin < SHELL_MATCH_MARGIN || next_margin < SHELL_MATCH_MARGIN) continue;
+
+		let old_shell = previous.shells[previous_index];
+		let new_shell = next.shells[best.next_index];
+		old_shell.next_time = next.time;
+		old_shell.next_pixel_x = new_shell.pixel_x;
+		old_shell.next_pixel_y = new_shell.pixel_y;
+		if (old_shell.heading_x !== undefined) {
+			new_shell.heading_x = old_shell.heading_x;
+			new_shell.heading_y = old_shell.heading_y;
+		} else {
+			let delta_x = new_shell.pixel_x - old_shell.pixel_x;
+			let delta_y = new_shell.pixel_y - old_shell.pixel_y;
+			let distance = Math.hypot(delta_x, delta_y);
+			new_shell.heading_x = delta_x / distance;
+			new_shell.heading_y = delta_y / distance;
+		}
+	}
+}
+
+/* Per-client shell restatements used only for drawing. Keeping separate
+ * client tracks is intentional: there is no evidence that technical shell
+ * ownership migrates in flight, and joining across clients would create
+ * especially convincing false identities. A possible migration therefore
+ * renders conservatively as one shell disappearing and another appearing. */
+function build_shell_positions(records) {
+	let snapshots = Array.from({ length: 16 }, () => []);
+	for (let rec of records) {
+		let map_node_only = rec.subpackets.length > 0 &&
+			rec.subpackets.every(sub => MAP_NODE_TYPES.has(sub.type));
+		let shell_lists = rec.subpackets.filter(sub => sub.type === "shells");
+		if (!shell_lists.length && (rec.tankStatus === 0x0f || map_node_only)) continue;
+
+		let shells = [];
+		for (let sub of shell_lists) append_shell_list(shells, sub, rec.time);
+		let snapshot = {
+			time: rec.time,
+			shells: shells.map(shell => ({
+				pixel_x: shell.x * 16 + shell.px,
+				pixel_y: shell.y * 16 + shell.py,
+				direction: shell.direction,
+			})),
+		};
+		let client_snapshots = snapshots[rec.player];
+		let previous = client_snapshots[client_snapshots.length - 1];
+		if (previous) match_shell_snapshots(previous, snapshot);
+		client_snapshots.push(snapshot);
+	}
+	return snapshots;
+}
+
 /* Build a seekable game from parsed records. */
 function build(records) {
 	const effects = [];
@@ -918,6 +1039,7 @@ function build(records) {
 	const seed = extract_initial_map(records);
 	const tank_positions = build_tank_positions(records);
 	const lgm_positions = build_lgm_positions(records);
+	let shell_positions = build_shell_positions(records);
 	let s = initial_state(seed);
 
 	for (let i = 0; i < records.length; i++) {
@@ -934,6 +1056,7 @@ function build(records) {
 		keyframes,
 		tank_positions,
 		lgm_positions,
+		shell_positions,
 		badMapRuns: seed.badRuns,
 		final: s,
 		t0: records.length ? records[0].time : 0,
@@ -1007,6 +1130,33 @@ function lgm_position_at(game, state, player, tick) {
 	return interpolated_position(track, state.men[player], tick);
 }
 
+function shell_position_at(game, player, shell, index, tick) {
+	if (!shell) return null;
+	let pixel_x = shell.x * 16 + shell.px;
+	let pixel_y = shell.y * 16 + shell.py;
+	let fallback = () => ({ x: pixel_x / 16 + 0.5, y: pixel_y / 16 + 0.5 });
+	let snapshots = game.shell_positions && game.shell_positions[player];
+	if (!snapshots || shell.position_time === undefined) return fallback();
+
+	let lo = 0, hi = snapshots.length;
+	while (lo < hi) {
+		let mid = (lo + hi) >> 1;
+		if (snapshots[mid].time <= tick) lo = mid + 1;
+		else hi = mid;
+	}
+	let snapshot = snapshots[lo - 1];
+	let position = snapshot && snapshot.shells[index];
+	if (!position || snapshot.time !== shell.position_time ||
+		position.pixel_x !== pixel_x || position.pixel_y !== pixel_y ||
+		position.direction !== shell.direction || position.next_time === undefined ||
+		tick >= position.next_time) return fallback();
+
+	let amount = (tick - snapshot.time) / (position.next_time - snapshot.time);
+	pixel_x += (position.next_pixel_x - position.pixel_x) * amount;
+	pixel_y += (position.next_pixel_y - position.pixel_y) * amount;
+	return { x: pixel_x / 16 + 0.5, y: pixel_y / 16 + 0.5 };
+}
+
 /* State at a given tick: nearest keyframe at or before it, replayed forward.
  * Returns { state, index } where index is the first unapplied record. */
 function state_at(game, tick) {
@@ -1055,7 +1205,7 @@ const BoloGame = {
 	MAX_POSITION_INTERPOLATION_TICKS,
 	initial_state, clone_state, apply_record, build, state_at, team_of,
 	adjacent_change_time,
-	tank_position_at, lgm_position_at,
+	tank_position_at, lgm_position_at, shell_position_at,
 	extract_initial_map,
 };
 

@@ -242,6 +242,78 @@ if (!fs.existsSync(log1)) {
 	check("shell-list direction applies to every shell", st.shells[0].map(sh => sh.direction), [4, 4, 4]);
 }
 
+// Shell identities are inferred conservatively between one client's adjacent
+// restatements. The direction nibble is authoritative for every list member;
+// positions recover the finer heading within that 4-bit sector.
+{
+	let shell_list = (direction, points) => ({
+		type: "shells", count: points.length, direction,
+		shells: points.map((point, index) => index === 0 ? {
+			direction,
+			x: point[0] >> 4,
+			y: point[1] >> 4,
+			pixel: (point[1] & 0x0f) * 16 + (point[0] & 0x0f),
+		} : {
+			offsetX: point[0] - points[index - 1][0],
+			offsetY: point[1] - points[index - 1][1],
+		}),
+	});
+	let record = (time, lists, player = 0) => ({
+		time, seq: time, status: 0, player, tankStatus: 0, tankDir: 0,
+		subpackets: lists,
+	});
+	let position = (game, tick, player = 0, index = 0) => {
+		let state = BoloGame.state_at(game, tick).state;
+		return BoloGame.shell_position_at(game, player,
+			state.shells[player][index], index, tick);
+	};
+	let rounded = value => Math.round(value * 10000) / 10000;
+
+	let smooth = BoloGame.build([
+		record(100, [shell_list(4, [[160, 160]])]),
+		record(112, [shell_list(4, [[184, 166]])]),
+	]);
+	check("shell movement interpolates inside its direction sector",
+		[rounded(position(smooth, 106).x), rounded(position(smooth, 106).y)],
+		[11.25, 10.6875]);
+
+	let new_head = BoloGame.build([
+		record(100, [shell_list(4, [[160, 160], [200, 160]])]),
+		record(112, [shell_list(4, [[160, 160], [184, 160], [224, 160]])]),
+	]);
+	check("all directed list members survive a new shell head",
+		[rounded(position(new_head, 106, 0, 0).x),
+			rounded(position(new_head, 106, 0, 1).x)], [11.25, 13.75]);
+
+	let changed_direction = BoloGame.build([
+		record(100, [shell_list(4, [[160, 160]])]),
+		record(112, [shell_list(5, [[184, 160]])]),
+	]);
+	check("different shell directions never match",
+		rounded(position(changed_direction, 106).x), 10.5);
+
+	let ambiguous = BoloGame.build([
+		record(100, [shell_list(4, [[160, 160]])]),
+		record(112, [shell_list(4, [[183, 160], [185, 160]])]),
+	]);
+	check("ambiguous shell identity holds its packet position",
+		rounded(position(ambiguous, 106).x), 10.5);
+
+	let lag = BoloGame.build([
+		record(100, [shell_list(4, [[160, 160]])]),
+		record(100 + BoloGame.MAX_POSITION_INTERPOLATION_TICKS + 1,
+			[shell_list(4, [[208, 160]])]),
+	]);
+	check("shell stops across lag", rounded(position(lag, 112).x), 10.5);
+
+	let separate_clients = BoloGame.build([
+		record(100, [shell_list(4, [[160, 160]])], 0),
+		record(112, [shell_list(4, [[184, 160]])], 1),
+	]);
+	check("shell identities do not migrate between clients",
+		rounded(position(separate_clients, 106).x), 10.5);
+}
+
 // Tank positions interpolate between nearby restatements. A long lag, or a
 // discontinuity such as death, leaves the tank at its last known position.
 {
