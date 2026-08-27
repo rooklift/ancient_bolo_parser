@@ -410,12 +410,28 @@ if (!fs.existsSync(log1)) {
 	check("ambiguous shell identity holds its packet position",
 		rounded(position(ambiguous, 106).x), 10.5);
 
-	let lag = BoloGame.build([
+	let recoverable_lag = BoloGame.build([
 		record(100, [shell_list(4, [[160, 160]])]),
-		record(100 + BoloGame.MAX_POSITION_INTERPOLATION_TICKS + 1,
-			[shell_list(4, [[208, 160]])]),
+		record(100 + BoloGame.MAX_SHELL_INTERPOLATION_TICKS,
+			[shell_list(4, [[260, 160]])]),
 	]);
-	check("shell stops across lag", rounded(position(lag, 112).x), 10.5);
+	check("shell interpolates across recoverable lag",
+		rounded(position(recoverable_lag, 125).x), 13.625);
+
+	let excessive_lag = BoloGame.build([
+		record(100, [shell_list(4, [[160, 160]])]),
+		record(100 + BoloGame.MAX_SHELL_INTERPOLATION_TICKS + 1,
+			[shell_list(4, [[262, 160]])]),
+	]);
+	check("shell stops beyond its lag window",
+		rounded(position(excessive_lag, 125).x), 10.5);
+
+	let delayed_impact = BoloGame.build([
+		record(100, [shell_list(4, [[160, 160]])]),
+		record(140, [{ type: "shell_falls", x: 11, y: 10, pixel: 0 }]),
+	]);
+	check("shell does not infer an early impact across long lag",
+		rounded(position(delayed_impact, 125).x), 10.5);
 
 	let precise_impact = BoloGame.build([
 		record(100, [shell_list(4, [[160, 160]])]),

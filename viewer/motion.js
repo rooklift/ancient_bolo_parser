@@ -8,6 +8,11 @@ const TICKS_PER_SECOND = 50;
  * half a second the path between two positions is no longer trustworthy:
  * hold the last known point instead of drawing a made-up line through lag. */
 const MAX_POSITION_INTERPOLATION_TICKS = TICKS_PER_SECOND / 2;
+/* Shell trajectories are simpler than tank and LGM motion, so trustworthy
+ * restatements can be joined across a full second of packet lag. Impact
+ * records remain capped at the ordinary interpolation window below: their
+ * event time may legitimately follow the shell's inferred arrival. */
+const MAX_SHELL_INTERPOLATION_TICKS = TICKS_PER_SECOND;
 const MAX_LGM_TANK_ENTRY_DISTANCE_PIXELS = 32;
 /* Shells travel at 2 px/tick. Their logged direction is only the 4-bit
  * version of a presumably finer internal heading, so it defines a sector,
@@ -571,7 +576,7 @@ function equivalent_shell_candidates(first, second) {
  * inside the shell's 4-bit direction sector for subsequent matches. */
 function match_shell_snapshots(previous, next) {
 	let duration = next.time - previous.time;
-	if (duration <= 0 || duration > MAX_POSITION_INTERPOLATION_TICKS) return;
+	if (duration <= 0 || duration > MAX_SHELL_INTERPOLATION_TICKS) return;
 	mark_new_pillbox_shells(previous, next);
 
 	let target_groups = shell_target_groups(next);
@@ -583,6 +588,7 @@ function match_shell_snapshots(previous, next) {
 			if (target.starts_at_pillbox) continue;
 			let match;
 			if (target.terminal) {
+				if (duration > MAX_POSITION_INTERPOLATION_TICKS) continue;
 				match = shell_terminal_match(previous.shells[previous_index], target, duration);
 			} else {
 				let cost = shell_match_cost(previous.shells[previous_index], target, duration);
@@ -932,6 +938,7 @@ function shell_birth_positions_at(game, player, tick) {
 
 const BoloMotion = {
 	TICKS_PER_SECOND, MAX_POSITION_INTERPOLATION_TICKS,
+	MAX_SHELL_INTERPOLATION_TICKS,
 	append_shell_list, add_shell_point_terminal, add_shell_box_terminal,
 	build_tank_positions, build_tank_directions, build_lgm_positions, track_pixel_at,
 	build_shell_positions, build_shell_births,
