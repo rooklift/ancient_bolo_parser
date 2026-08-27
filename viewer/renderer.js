@@ -1008,7 +1008,7 @@ window.addEventListener("keydown", e => {
 		toggle_coordinate_debug();
 		return;
 	}
-	if (e.code === "KeyI" && (e.ctrlKey || e.metaKey)) {
+	if (e.code === "KeyI" && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
 		e.preventDefault();
 		toggle_pillbox_ids();
 		return;
