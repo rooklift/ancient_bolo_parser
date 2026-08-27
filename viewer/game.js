@@ -1063,27 +1063,44 @@ function adjacent_change_time(records, tick, direction) {
  * speed but the logging machine records only a fraction of it, so the
  * sequence number races ahead and every packet it skips is counted as lost.
  * The join ramp therefore reads as catastrophic loss without a single
- * packet having gone astray. It is short in absolute terms (a median 50 s
+ * packet having gone astray. It is short in absolute terms (a median 56 s
  * of a 22-minute log) but so extreme that averaging it in dominates
- * everything else: over the corpus, the share of a log spent ramping
- * predicts its untrimmed loss figure at r = 0.74, and once the ramp is
- * excluded that relationship vanishes entirely (r = -0.02). The tail after
+ * everything else: over the corpus, the share of a log spent gathering
+ * predicts its untrimmed loss figure at r = 0.83, and once that stretch is
+ * excluded the relationship vanishes entirely (r = -0.03). The tail after
  * the first quit is cut for the same reason, though it matters far less.
  *
+ * The first BASE CAPTURE marks the start. It is a fact about the game
+ * rather than about the log -- somebody drove a man into a base and took
+ * it, which cannot happen until the map is distributed and everyone is
+ * playing -- and it beats inferring the moment from the record rate, which
+ * was the first thing tried here. Rate inference misfires badly on a
+ * minority of logs, declaring the plateau reached at the very first block
+ * of a game that had not started; those logs kept their artefact and landed
+ * among the worst in the corpus. Switching to the capture marker cuts the
+ * worst loss figure from 69.8% to 49.5% and the 99th percentile from 46.9%
+ * to 28.5%, and it measures no less consistently for the change: half-to-
+ * half disagreement falls (p90 of |A-B| from 3.13 to 2.76 points) even as
+ * the raw split-half correlation falls with it, that correlation having
+ * been inflated by the very spread the marker removes. Rate inference
+ * survives only as the fallback for a game nobody ever captured a base in
+ * -- there is no such log in the 445-log corpus, so the path is untravelled
+ * in practice but cheap to keep.
+ *
  * What survives the correction: loss still rises with player count, a ring
- * gaining a hop per player (median 5.2% at two, 6.6% at four, 8.0% at six),
- * and the two readings still agree at r = 0.80 while disagreeing often
+ * gaining a hop per player (median 5.2% at two, 6.6% at four, 7.4% at six),
+ * and the two readings still agree at r = 0.69 while disagreeing often
  * enough to be worth keeping both -- a game can be steadily choppy without
  * ever freezing -- so the verdict is the worse of them. What does NOT
  * survive: the apparent year-on-year improvement from 2001 to 2005 was
- * almost entirely faster map transfers shortening the ramp; in settled play
- * the median barely moves (6.7% to 6.0%) [E:seq-loss].
+ * almost entirely faster map transfers shortening the gathering phase; in
+ * settled play the median barely moves (6.6% to 5.7%) [E:seq-loss].
  *
  * Scoring interleaved half-minute blocks as if they were separate games
- * gives r = 0.95 on loss and 0.91 on stall, so this is a property of a
+ * gives r = 0.88 on loss and 0.94 on stall, so this is a property of a
  * session rather than of the moment sampled, and fair to state once for a
- * whole game. The thresholds below place the corpus at roughly 41% good,
- * 42% fair, 10% bad, 6% awful. All of it reproduces with
+ * whole game. The thresholds below place the corpus at roughly 43% good,
+ * 42% fair, 11% bad, 4% awful. All of it reproduces with
  * tools/measure-network-conditions.cjs. */
 
 const STALL_GAP_TICKS = TICKS_PER_SECOND / 2;  /* silence that reads as a freeze */
@@ -1102,12 +1119,19 @@ function band_of(value, bands) {
 	return band;
 }
 
-/* The stretch over which the ring was settled and playing: from the point
- * the log's own record rate reaches the plateau it holds for the rest of
- * the game, to the first quit. Falls back to everything when the log is too
- * short or too odd to tell, which costs nothing -- an untrimmable log is
- * one with no ramp to trim. */
-function settled_span(records) {
+function first_time_with(records, type, after) {
+	for (const rec of records) {
+		if (rec.time <= after) continue;
+		if (rec.subpackets.some(s => s.type === type)) return rec.time;
+	}
+	return null;
+}
+
+/* Fallback start for a game in which no base was ever captured: the point
+ * the log's own record rate reaches the plateau it holds thereafter. Reads
+ * the log rather than the game, and misjudges a minority of them, so it is
+ * only ever consulted when the capture marker is missing. */
+function rate_plateau(records) {
 	let t0 = records[0].time;
 	let blocks = [];
 	for (const rec of records) {
@@ -1116,27 +1140,32 @@ function settled_span(records) {
 	}
 	let live = [];
 	for (const count of blocks) if (count) live.push(count);
-	if (live.length < 6) return records;
+	if (live.length < 6) return t0;
 
 	live.sort((a, b) => a - b);
 	let typical = live[live.length >> 1];
-	let start = t0;
 	for (let b = 0; b < blocks.length; b++) {
 		let here = blocks[b] || 0;
 		let next = b + 1 < blocks.length ? (blocks[b + 1] || 0) : here;
 		/* two blocks running, so one busy moment inside the ramp cannot
 		 * be mistaken for the plateau */
 		if (here >= typical * SETTLE_SHARE && next >= typical * SETTLE_SHARE) {
-			start = t0 + b * SETTLE_BLOCK_TICKS;
-			break;
+			return t0 + b * SETTLE_BLOCK_TICKS;
 		}
 	}
+	return t0;
+}
 
-	let end = records[records.length - 1].time;
-	for (const rec of records) {
-		if (rec.time <= start) continue;
-		if (rec.subpackets.some(s => s.type === "quit")) { end = rec.time; break; }
-	}
+/* The stretch over which the ring was settled and playing: from the first
+ * base capture to the first quit. Falls back to everything when the log is
+ * too short or too odd to leave a usable span, which costs nothing -- an
+ * untrimmable log is one with no gathering phase to trim. */
+function settled_span(records) {
+	let t0 = records[0].time;
+	let start = first_time_with(records, "base_capture", t0 - 1);
+	if (start === null) start = rate_plateau(records);
+	let end = first_time_with(records, "quit", start);
+	if (end === null) end = records[records.length - 1].time;
 
 	let span = records.filter(rec => rec.time >= start && rec.time <= end);
 	return span.length >= MIN_SETTLED_RECORDS ? span : records;

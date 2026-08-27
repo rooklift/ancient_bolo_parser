@@ -15,19 +15,19 @@
  * over half a second.  No ring cycles that slowly at any player count, so
  * this is a freeze regardless of how many were playing.
  *
- * THE JOIN RAMP is the thing that has to be got right.  While the game is
- * still gathering, the ring turns at full speed but the logging machine
+ * THE GATHERING PHASE is the thing that has to be got right.  While a game
+ * is still gathering, the ring turns at full speed but the logging machine
  * records only a fraction of it, so the sequence number races ahead and
  * every packet it skips is charged as loss -- a catastrophic reading with
- * no packet actually lost.  The ramp is short but so extreme that averaging
- * it in swamps the rest of the game, which is why the shipped metric reads
- * only the settled span.  The script measures the damage directly, by
- * correlating each log's loss figure against the share of it spent ramping,
- * trimmed and untrimmed.
+ * no packet actually lost.  It is short but so extreme that averaging it in
+ * swamps the rest of the game, which is why the shipped metric reads only
+ * the settled span, from the first base capture to the first quit.  The
+ * script measures the damage directly, by correlating each log's loss
+ * figure against the share of it spent gathering, trimmed and untrimmed.
  *
  * The script reports, over a corpus:
  *   -- the distribution of each signal, trimmed and untrimmed;
- *   -- the ramp confound above;
+ *   -- the gathering confound above;
  *   -- the split by player count and by year, the two external facts the
  *      signals ought to track if they measure anything real -- shown both
  *      ways, since trimming changes what they say;
@@ -147,6 +147,7 @@ for (let file of walk(ROOT)) {
 	let a = raw_readings(piles[0]);
 	let b = raw_readings(piles[1]);
 
+	let captured = recs.some(rec => rec.subpackets.some(s => s.type === "base_capture"));
 	let year = (path.relative(ROOT, file).match(/(?:19|20)\d\d/) || ["?"])[0];
 	rows.push({
 		file: path.relative(ROOT, file), year, whole, a, b,
@@ -157,6 +158,7 @@ for (let file of walk(ROOT)) {
 		rampShare: 100 * (whole.from - recs[0].time) /
 			Math.max(1, recs[recs.length - 1].time - recs[0].time),
 		players: new Set(recs.map(r => r.player)).size,
+		captured,
 	});
 }
 
@@ -176,16 +178,16 @@ console.log("\nuntrimmed, for comparison -- the same logs read end to end:");
 console.log(spread("loss %", rows.map(r => r.untrimmed.loss)));
 console.log(spread("stall %", rows.map(r => r.untrimmed.stall)));
 console.log(`trimmed away: median ${quantile(rows.map(r => r.trimmedShare).sort((a, b) => a - b), .5).toFixed(1)}% ` +
-	`of a log, of which the join ramp is ` +
+	`of a log, of which the gathering phase is ` +
 	`${quantile(rows.map(r => r.rampShare).sort((a, b) => a - b), .5).toFixed(1)}%`);
 
-/* The ramp confound: if the untrimmed figure is largely a measure of how
- * much of the log was spent gathering, it will track the ramp share -- and
+/* The gathering confound: if the untrimmed figure is largely a measure of
+ * how much of the log was spent gathering, it will track that share -- and
  * the trimmed figure, if the correction works, will not track it at all. */
-console.log("\nthe join-ramp confound:");
-console.log(`  untrimmed loss vs ramp share of log: r = ` +
+console.log("\nthe gathering confound:");
+console.log(`  untrimmed loss vs gathering share: r = ` +
 	correlation(rows.map(r => r.rampShare), rows.map(r => r.untrimmed.loss)).toFixed(3));
-console.log(`  settled   loss vs ramp share of log: r = ` +
+console.log(`  settled   loss vs gathering share: r = ` +
 	correlation(rows.map(r => r.rampShare), rows.map(r => r.whole.loss)).toFixed(3));
 
 /* Do the signals track the two things outside the log that ought to move
