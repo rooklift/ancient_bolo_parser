@@ -402,6 +402,15 @@ function fmt_time(ticks) {
 function update_transport() {
 	if (!game) return;
 	time_label.textContent = `${fmt_time(clock)} / ${fmt_time(game.t1)}`;
+	let bits = [
+		`${cursor.toLocaleString()} / ${game.records.length.toLocaleString()} records`,
+	];
+	let gi = game.final.gameInfo;
+	if (gi) {
+		bits.push(["", "open game", "tournament", "strict"][gi.gameType] ||
+			`type ${gi.gameType}`);
+	}
+	game_meta_el.textContent = bits.filter(Boolean).join(" · ");
 	let span = Math.max(1, game.t1 - game.t0);
 	seek_el.value = Math.round(((clock - game.t0) / span) * 1000);
 	update_players();
@@ -855,11 +864,6 @@ function load_log(bytes, name) {
 	document.title = (name ? name.split(/[\\/]/).pop() + " — " : "") + "Ancient Bolo Log Viewer";
 	let gi = game.final.gameInfo;
 	map_name_el.textContent = gi ? gi.mapName : (name || "Bolo log");
-	let bits = [`${recs.length.toLocaleString()} records`];
-	if (gi) {
-		bits.push(["", "open game", "tournament", "strict"][gi.gameType] || `type ${gi.gameType}`);
-	}
-	game_meta_el.textContent = bits.filter(Boolean).join(" · ");
 
 	viewpoint_el.innerHTML = "";
 	viewpoint = -1;
