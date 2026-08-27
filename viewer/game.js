@@ -310,16 +310,17 @@ function apply_record(s, rec, effects, chat) {
 				 * of pillboxes it is currently simulating — Bolo hands a
 				 * pill's simulation to the machine it is shooting at, which
 				 * is why pill shells ride in the TARGET's restatements.
-				 * Lists concatenate; each list's offset shells are relative
-				 * to that list's own first shell. */
+				 * Lists concatenate; each offset is chained from the previous
+				 * shell in its own list. */
 				sawShells = true;
 				if (newShells === null) newShells = [];
+				const list_direction = sub.direction ?? sub.shells[0].direction;
 				for (let i = 0; i < sub.shells.length; i++) {
 					const sh = sub.shells[i];
 					if (i === 0) {
 						newShells.push({
 							x: sh.x, y: sh.y, px: sh.pixel & 0x0f, py: sh.pixel >> 4,
-							direction: sh.direction,
+							direction: list_direction,
 						});
 					} else {
 						/* additional shells: signed pixel offsets CHAINED
@@ -327,15 +328,14 @@ function apply_record(s, rec, effects, chat) {
 						 * first (verified: when a pill's new shot becomes
 						 * the list head, first-relative decoding conjures
 						 * a phantom shell and loses the real one; chained
-						 * decoding reconstructs both to the pixel). The
-						 * direction nibble belongs to the first shell only
-						 * — shells of any direction ride one list. */
+						 * decoding reconstructs both to the pixel). The list's
+						 * direction nibble applies to every shell in it. */
 						const prev = newShells[newShells.length - 1];
 						const wx = prev.x * 16 + prev.px + sub.shells[i].offsetX;
 						const wy = prev.y * 16 + prev.py + sub.shells[i].offsetY;
 						newShells.push({
 							x: (wx >> 4) & 0xff, y: (wy >> 4) & 0xff, px: wx & 0x0f, py: wy & 0x0f,
-							direction: sh.direction ?? prev.direction,
+							direction: list_direction,
 						});
 					}
 				}

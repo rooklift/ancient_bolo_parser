@@ -29,6 +29,7 @@ check("version", header.version, "00990700");
 let count = 0;
 let warned = 0;
 let mapName = null;
+let multi_shell_list = null;
 const players = {};
 for (const rec of records(buf)) {
 	count++;
@@ -36,6 +37,7 @@ for (const rec of records(buf)) {
 	for (const sub of rec.subpackets) {
 		if (sub.type === "game_info") mapName = sub.mapName;
 		if (sub.type === "node_id" && !(rec.player in players)) players[rec.player] = sub.name;
+		if (sub.type === "shells" && sub.shells.length > 1 && multi_shell_list === null) multi_shell_list = sub;
 	}
 }
 
@@ -44,6 +46,8 @@ check("records with warnings", warned, 0);
 check("map name", mapName, "Fly Swatter IV");
 check("player count", Object.keys(players).length, 4);
 check("player 0", players[0], "Jarvis@wolf.step.uwu.com");
+check("multi-shell list exposes its direction", multi_shell_list?.direction, multi_shell_list?.shells[0].direction);
+check("list direction applies to every parsed shell", multi_shell_list?.shells.every(shell => shell.direction === multi_shell_list.direction), true);
 
 // Second fixture: 4-player game on "Crankcase", 6 March 2002 — including a
 // player literally named with the Apple logo (MacRoman 0xF0 = U+F8FF).
