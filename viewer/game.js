@@ -1069,6 +1069,95 @@ function same_shell_terminal(first, second) {
 		first.max_x === second.max_x && first.max_y === second.max_y;
 }
 
+function mark_new_pillbox_shells(previous, next) {
+	let duration = next.time - previous.time;
+	if (duration <= 0 || duration > MAX_POSITION_INTERPOLATION_TICKS) return;
+	let maximum_distance = duration * SHELL_SPEED_PIXELS_PER_TICK +
+		SHELL_MATCH_ERROR_PIXELS * 2;
+	let source_groups = [];
+	for (let source of next.pillbox_sources) {
+		let group = source_groups.find(item => item.pixel_x === source.pixel_x &&
+			item.pixel_y === source.pixel_y && item.direction === source.direction);
+		if (group) group.capacity++;
+		else source_groups.push({ ...source, capacity: 1, assigned: 0 });
+	}
+
+	/* Pill-fire events accumulated in a restatement count newly created
+	 * shells. Match them backwards to the firing pill, nearest first. This
+	 * keeps older shells out of those anonymous list entries and recovers the
+	 * full heading from the source-to-position line. A shot which has already
+	 * hit something simply has no candidate and leaves capacity unused. */
+	let candidates = [];
+	for (let group of source_groups) {
+		let angle = group.direction * Math.PI / 8;
+		let coarse_x = Math.sin(angle);
+		let coarse_y = -Math.cos(angle);
+		for (let shell of next.shells) {
+			if (shell.direction !== group.direction) continue;
+			let delta_x = shell.pixel_x - group.pixel_x;
+			let delta_y = shell.pixel_y - group.pixel_y;
+			let distance = Math.hypot(delta_x, delta_y);
+			if (distance > maximum_distance) continue;
+			if (distance > 0) {
+				let forward = delta_x * coarse_x + delta_y * coarse_y;
+				let lateral = Math.abs(delta_x * coarse_y - delta_y * coarse_x);
+				if (forward <= 0 || Math.atan2(lateral, forward) >
+					SHELL_DIRECTION_TOLERANCE) continue;
+			}
+			candidates.push({ group, shell, distance, delta_x, delta_y });
+		}
+	}
+	candidates.sort((a, b) => a.distance - b.distance);
+	let assigned_shells = new Set();
+	for (let candidate of candidates) {
+		if (candidate.group.assigned >= candidate.group.capacity ||
+			assigned_shells.has(candidate.shell)) continue;
+		candidate.group.assigned++;
+		assigned_shells.add(candidate.shell);
+		candidate.shell.starts_at_pillbox = true;
+		candidate.shell.pillbox_source_x = candidate.group.pixel_x;
+		candidate.shell.pillbox_source_y = candidate.group.pixel_y;
+		candidate.shell.pillbox_source_distance = candidate.distance;
+		if (candidate.distance > 0) {
+			candidate.shell.heading_x = candidate.delta_x / candidate.distance;
+			candidate.shell.heading_y = candidate.delta_y / candidate.distance;
+		}
+	}
+}
+
+function same_pillbox_stream(first, second) {
+	return first.pillbox_source_x !== undefined &&
+		first.pillbox_source_x === second.pillbox_source_x &&
+		first.pillbox_source_y === second.pillbox_source_y &&
+		first.direction === second.direction;
+}
+
+function ordered_pillbox_successor(candidate, target_choices,
+	by_previous, previous_shells) {
+	if (target_choices[0] !== candidate) return false;
+	let close_alternatives = target_choices.slice(1).filter(alternative =>
+		alternative.cost - candidate.cost < SHELL_MATCH_MARGIN);
+	if (!close_alternatives.length) return false;
+	let candidate_shell = previous_shells[candidate.previous_index];
+	return close_alternatives.every(alternative => {
+		let alternative_shell = previous_shells[alternative.previous_index];
+		return same_pillbox_stream(candidate_shell, alternative_shell) &&
+			candidate_shell.pillbox_source_distance <
+				alternative_shell.pillbox_source_distance &&
+			by_previous[alternative.previous_index].some(choice =>
+				choice.target.terminal);
+	});
+}
+
+function unambiguous_shell_successor(candidate, target_choices,
+	by_previous, previous_shells) {
+	if (target_choices[0] !== candidate) return false;
+	return target_choices.length < 2 ||
+		target_choices[1].cost - candidate.cost >= SHELL_MATCH_MARGIN ||
+		ordered_pillbox_successor(candidate, target_choices,
+			by_previous, previous_shells);
+}
+
 function shell_target_groups(next) {
 	let groups = next.shells.map(target => ({ target, capacity: 1 }));
 	for (let terminal of next.terminals) {
@@ -1099,6 +1188,7 @@ function equivalent_shell_candidates(first, second) {
 function match_shell_snapshots(previous, next) {
 	let duration = next.time - previous.time;
 	if (duration <= 0 || duration > MAX_POSITION_INTERPOLATION_TICKS) return;
+	mark_new_pillbox_shells(previous, next);
 
 	let target_groups = shell_target_groups(next);
 	let by_previous = Array.from({ length: previous.shells.length }, () => []);
@@ -1106,6 +1196,7 @@ function match_shell_snapshots(previous, next) {
 	for (let previous_index = 0; previous_index < previous.shells.length; previous_index++) {
 		for (let next_index = 0; next_index < target_groups.length; next_index++) {
 			let target = target_groups[next_index].target;
+			if (target.starts_at_pillbox) continue;
 			let match;
 			if (target.terminal) {
 				match = shell_terminal_match(previous.shells[previous_index], target, duration);
@@ -1130,19 +1221,33 @@ function match_shell_snapshots(previous, next) {
 
 	let selected = [];
 	for (let previous_index = 0; previous_index < previous.shells.length; previous_index++) {
-		let choices = by_previous[previous_index];
+		/* A normal successor which this shell cannot win is not a genuine
+		 * alternative to its impact. Dense pill streams often put the leading
+		 * shell and the following shell near the same next endpoint; the latter
+		 * is the mutually best successor while the former reaches the impact. */
+		let choices = by_previous[previous_index].filter(candidate => {
+			if (candidate.target.terminal) return true;
+			return unambiguous_shell_successor(candidate,
+				by_next[candidate.next_index], by_previous, previous.shells);
+		});
 		if (!choices.length) continue;
 		let cheapest = choices[0];
 		let equivalents = choices.filter(candidate =>
 			equivalent_shell_candidates(cheapest, candidate));
-		/* Prefer a real next restatement over a visually identical impact.
-		 * It preserves the fine heading if that shell continues afterwards. */
-		let best = equivalents.find(candidate => !candidate.target.terminal) || cheapest;
+		let trusted_successor = !cheapest.target.terminal &&
+			previous.shells[previous_index].pillbox_source_x !== undefined &&
+			unambiguous_shell_successor(cheapest, by_next[cheapest.next_index],
+				by_previous, previous.shells);
 		let previous_alternative = choices.find(candidate =>
-			!equivalent_shell_candidates(best, candidate));
+			!equivalent_shell_candidates(cheapest, candidate) &&
+			!(trusted_successor && candidate.target.terminal));
 		let previous_margin = previous_alternative
-			? previous_alternative.cost - best.cost : Infinity;
-		if (previous_margin >= SHELL_MATCH_MARGIN) selected.push(best);
+			? previous_alternative.cost - cheapest.cost : Infinity;
+		/* Keep both descriptions of an equivalent endpoint available. The
+		 * real restatement is assigned first below, preserving its heading;
+		 * if another older shell wins that anonymous entry, this shell can
+		 * still consume the simultaneous impact instead of freezing. */
+		if (previous_margin >= SHELL_MATCH_MARGIN) selected.push(...equivalents);
 	}
 
 	/* Capacity belongs to selected destinations, not every candidate. A shell
@@ -1151,10 +1256,14 @@ function match_shell_snapshots(previous, next) {
 	let selected_by_next = Array.from({ length: target_groups.length }, () => []);
 	for (let candidate of selected) selected_by_next[candidate.next_index].push(candidate);
 	for (let choices of selected_by_next) choices.sort((a, b) => a.cost - b.cost);
+	let assigned_previous = new Set();
 
+	/* Shell restatements precede terminals in target_groups, so a real
+	 * successor wins an equivalent endpoint whenever it remains available. */
 	for (let next_index = 0; next_index < selected_by_next.length; next_index++) {
 		let group = target_groups[next_index];
-		let choices = selected_by_next[next_index];
+		let choices = selected_by_next[next_index].filter(candidate =>
+			!assigned_previous.has(candidate.previous_index));
 		let capacity = group.capacity;
 		let next_alternative;
 		if (group.target.terminal) {
@@ -1163,14 +1272,22 @@ function match_shell_snapshots(previous, next) {
 			/* Keep ordinary shell-to-shell matching mutually best. The relaxed
 			 * capacity accounting is specifically for impact multiplicity; it
 			 * must not broaden unrelated anonymous-shell associations. */
-			if (!choices.length || by_next[next_index][0] !== choices[0]) continue;
+			if (!choices.length || !unambiguous_shell_successor(choices[0],
+				by_next[next_index], by_previous, previous.shells)) continue;
 			next_alternative = by_next[next_index][1];
+			if (next_alternative && same_pillbox_stream(
+				previous.shells[choices[0].previous_index],
+				previous.shells[next_alternative.previous_index]) &&
+				by_previous[next_alternative.previous_index].some(candidate =>
+					candidate.target.terminal)) next_alternative = null;
 		}
 		for (let i = 0; i < Math.min(capacity, choices.length); i++) {
 			let best = choices[i];
 			let next_margin = next_alternative
 				? next_alternative.cost - best.cost : Infinity;
 			if (next_margin < SHELL_MATCH_MARGIN) continue;
+			if (assigned_previous.has(best.previous_index)) continue;
+			assigned_previous.add(best.previous_index);
 
 			let old_shell = previous.shells[best.previous_index];
 			old_shell.next_time = best.end_time;
@@ -1191,6 +1308,13 @@ function match_shell_snapshots(previous, next) {
 				new_shell.heading_x = delta_x / distance;
 				new_shell.heading_y = delta_y / distance;
 			}
+			if (old_shell.pillbox_source_x !== undefined) {
+				new_shell.pillbox_source_x = old_shell.pillbox_source_x;
+				new_shell.pillbox_source_y = old_shell.pillbox_source_y;
+				new_shell.pillbox_source_distance = Math.hypot(
+					new_shell.pixel_x - old_shell.pillbox_source_x,
+					new_shell.pixel_y - old_shell.pillbox_source_y);
+			}
 		}
 	}
 }
@@ -1200,7 +1324,7 @@ function match_shell_snapshots(previous, next) {
  * ownership migrates in flight, and joining across clients would create
  * especially convincing false identities. A possible migration therefore
  * renders conservatively as one shell disappearing and another appearing. */
-function build_shell_positions(records, terminals) {
+function build_shell_positions(records, terminals, pillbox_sources_by_record) {
 	let snapshots = Array.from({ length: 16 }, () => []);
 	let terminals_by_record = new Map();
 	for (let terminal of terminals) {
@@ -1227,6 +1351,7 @@ function build_shell_positions(records, terminals) {
 				direction: shell.direction,
 			})),
 			terminals: terminals_by_record.get(rec) || [],
+			pillbox_sources: pillbox_sources_by_record.get(rec) || [],
 		};
 		let client_snapshots = snapshots[rec.player];
 		let previous = client_snapshots[client_snapshots.length - 1];
@@ -1245,15 +1370,32 @@ function build(records) {
 	const tank_positions = build_tank_positions(records);
 	const lgm_positions = build_lgm_positions(records);
 	let shell_terminals = [];
+	let pillbox_sources_by_record = new Map();
 	let s = initial_state(seed);
 
 	for (let i = 0; i < records.length; i++) {
 		if (i % KEYFRAME_EVERY === 0) {
 			keyframes.push({ index: i, state: clone_state(s) });
 		}
-		apply_record(s, records[i], effects, chat, shell_terminals);
+		let rec = records[i];
+		let pillbox_sources = [];
+		for (let sub of rec.subpackets) {
+			if (sub.type !== "pillbox_fires") continue;
+			let pill = s.pills[sub.pillbox];
+			if (!pill || pill.inTank !== null) continue;
+			pillbox_sources.push({
+				pixel_x: pill.x * 16,
+				pixel_y: pill.y * 16,
+				direction: sub.direction,
+			});
+		}
+		if (pillbox_sources.length) {
+			pillbox_sources_by_record.set(rec, pillbox_sources);
+		}
+		apply_record(s, rec, effects, chat, shell_terminals);
 	}
-	let shell_positions = build_shell_positions(records, shell_terminals);
+	let shell_positions = build_shell_positions(records, shell_terminals,
+		pillbox_sources_by_record);
 
 	return {
 		records,
