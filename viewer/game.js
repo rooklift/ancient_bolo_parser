@@ -20,6 +20,8 @@ const SHELL_SPEED_PIXELS_PER_TICK = 2;
 const SHELL_MATCH_ERROR_PIXELS = 8;
 const SHELL_DIRECTION_TOLERANCE = Math.PI / 8;
 const SHELL_MATCH_MARGIN = 3;
+const SHELL_EQUIVALENT_ENDPOINT_PIXELS = 2;
+const SHELL_EQUIVALENT_TIME_TICKS = 1;
 
 const NEUTRAL = 16;
 const GONE = -2; /* inTank value: pill left the game with a quitting carrier */
@@ -1008,7 +1010,8 @@ function shell_ray_box_endpoint(shell, box) {
 		if (far < near) return null;
 	}
 	let distance = starts_inside ? far : near;
-	if (distance <= 0) return null;
+	if (distance < -1e-9) return null;
+	distance = Math.max(0, distance);
 	return {
 		pixel_x: origin_x + shell.heading_x * distance - 8,
 		pixel_y: origin_y + shell.heading_y * distance - 8,
@@ -1057,6 +1060,36 @@ function shell_terminal_match(previous, terminal, duration) {
 	};
 }
 
+function same_shell_terminal(first, second) {
+	if (first.type !== second.type || first.direction !== second.direction) return false;
+	if (first.type === "point") {
+		return first.pixel_x === second.pixel_x && first.pixel_y === second.pixel_y;
+	}
+	return first.min_x === second.min_x && first.min_y === second.min_y &&
+		first.max_x === second.max_x && first.max_y === second.max_y;
+}
+
+function shell_target_groups(next) {
+	let groups = next.shells.map(target => ({ target, capacity: 1 }));
+	for (let terminal of next.terminals) {
+		let group = groups.find(item => item.target.terminal &&
+			same_shell_terminal(item.target, terminal));
+		if (group) group.capacity++;
+		else groups.push({ target: terminal, capacity: 1 });
+	}
+	return groups;
+}
+
+function equivalent_shell_candidates(first, second) {
+	/* Two nearby shell restatements remain distinct identities. Equivalence
+	 * only suppresses the artificial choice between a restatement and an
+	 * impact which describe the same visual endpoint. */
+	if (first.target.terminal === second.target.terminal) return first === second;
+	return Math.hypot(first.pixel_x - second.pixel_x,
+		first.pixel_y - second.pixel_y) <= SHELL_EQUIVALENT_ENDPOINT_PIXELS &&
+		Math.abs(first.end_time - second.end_time) <= SHELL_EQUIVALENT_TIME_TICKS;
+}
+
 /* Match only mutually best candidates, and only when each wins by a useful
  * margin over its alternatives. Shell lists carry no IDs and may gain or
  * lose entries at any restatement, so an unmatched pop is safer than a
@@ -1067,12 +1100,12 @@ function match_shell_snapshots(previous, next) {
 	let duration = next.time - previous.time;
 	if (duration <= 0 || duration > MAX_POSITION_INTERPOLATION_TICKS) return;
 
-	let targets = [...next.shells, ...next.terminals];
+	let target_groups = shell_target_groups(next);
 	let by_previous = Array.from({ length: previous.shells.length }, () => []);
-	let by_next = Array.from({ length: targets.length }, () => []);
+	let by_next = Array.from({ length: target_groups.length }, () => []);
 	for (let previous_index = 0; previous_index < previous.shells.length; previous_index++) {
-		for (let next_index = 0; next_index < targets.length; next_index++) {
-			let target = targets[next_index];
+		for (let next_index = 0; next_index < target_groups.length; next_index++) {
+			let target = target_groups[next_index].target;
 			let match;
 			if (target.terminal) {
 				match = shell_terminal_match(previous.shells[previous_index], target, duration);
@@ -1083,46 +1116,81 @@ function match_shell_snapshots(previous, next) {
 				};
 			}
 			if (!match) continue;
+			match.end_time = target.terminal
+				? Math.min(next.time,
+					previous.time + match.distance / SHELL_SPEED_PIXELS_PER_TICK)
+				: next.time;
 			let candidate = { previous_index, next_index, target, ...match };
 			by_previous[previous_index].push(candidate);
 			by_next[next_index].push(candidate);
 		}
 	}
-	for (let choices of [...by_previous, ...by_next]) {
-		choices.sort((a, b) => a.cost - b.cost);
-	}
+	for (let choices of by_previous) choices.sort((a, b) => a.cost - b.cost);
+	for (let choices of by_next) choices.sort((a, b) => a.cost - b.cost);
 
+	let selected = [];
 	for (let previous_index = 0; previous_index < previous.shells.length; previous_index++) {
 		let choices = by_previous[previous_index];
 		if (!choices.length) continue;
-		let best = choices[0];
-		let reverse = by_next[best.next_index];
-		if (reverse[0] !== best) continue;
-		let previous_margin = choices.length > 1 ? choices[1].cost - best.cost : Infinity;
-		let next_margin = reverse.length > 1 ? reverse[1].cost - best.cost : Infinity;
-		if (previous_margin < SHELL_MATCH_MARGIN || next_margin < SHELL_MATCH_MARGIN) continue;
+		let cheapest = choices[0];
+		let equivalents = choices.filter(candidate =>
+			equivalent_shell_candidates(cheapest, candidate));
+		/* Prefer a real next restatement over a visually identical impact.
+		 * It preserves the fine heading if that shell continues afterwards. */
+		let best = equivalents.find(candidate => !candidate.target.terminal) || cheapest;
+		let previous_alternative = choices.find(candidate =>
+			!equivalent_shell_candidates(best, candidate));
+		let previous_margin = previous_alternative
+			? previous_alternative.cost - best.cost : Infinity;
+		if (previous_margin >= SHELL_MATCH_MARGIN) selected.push(best);
+	}
 
-		let old_shell = previous.shells[previous_index];
-		old_shell.next_time = best.target.terminal
-			? Math.min(next.time,
-				previous.time + best.distance / SHELL_SPEED_PIXELS_PER_TICK)
-			: next.time;
-		old_shell.next_pixel_x = best.pixel_x;
-		old_shell.next_pixel_y = best.pixel_y;
-		old_shell.next_terminal = best.target.terminal;
-		if (best.target.terminal) old_shell.next_terminal_type = best.target.type;
-		if (best.target.terminal) continue;
+	/* Capacity belongs to selected destinations, not every candidate. A shell
+	 * which chose its real successor must not consume an equivalent impact and
+	 * block another shell from terminating there. */
+	let selected_by_next = Array.from({ length: target_groups.length }, () => []);
+	for (let candidate of selected) selected_by_next[candidate.next_index].push(candidate);
+	for (let choices of selected_by_next) choices.sort((a, b) => a.cost - b.cost);
 
-		let new_shell = best.target;
-		if (old_shell.heading_x !== undefined) {
-			new_shell.heading_x = old_shell.heading_x;
-			new_shell.heading_y = old_shell.heading_y;
+	for (let next_index = 0; next_index < selected_by_next.length; next_index++) {
+		let group = target_groups[next_index];
+		let choices = selected_by_next[next_index];
+		let capacity = group.capacity;
+		let next_alternative;
+		if (group.target.terminal) {
+			next_alternative = choices[capacity];
 		} else {
-			let delta_x = new_shell.pixel_x - old_shell.pixel_x;
-			let delta_y = new_shell.pixel_y - old_shell.pixel_y;
-			let distance = Math.hypot(delta_x, delta_y);
-			new_shell.heading_x = delta_x / distance;
-			new_shell.heading_y = delta_y / distance;
+			/* Keep ordinary shell-to-shell matching mutually best. The relaxed
+			 * capacity accounting is specifically for impact multiplicity; it
+			 * must not broaden unrelated anonymous-shell associations. */
+			if (!choices.length || by_next[next_index][0] !== choices[0]) continue;
+			next_alternative = by_next[next_index][1];
+		}
+		for (let i = 0; i < Math.min(capacity, choices.length); i++) {
+			let best = choices[i];
+			let next_margin = next_alternative
+				? next_alternative.cost - best.cost : Infinity;
+			if (next_margin < SHELL_MATCH_MARGIN) continue;
+
+			let old_shell = previous.shells[best.previous_index];
+			old_shell.next_time = best.end_time;
+			old_shell.next_pixel_x = best.pixel_x;
+			old_shell.next_pixel_y = best.pixel_y;
+			old_shell.next_terminal = best.target.terminal;
+			if (best.target.terminal) old_shell.next_terminal_type = best.target.type;
+			if (best.target.terminal) continue;
+
+			let new_shell = best.target;
+			if (old_shell.heading_x !== undefined) {
+				new_shell.heading_x = old_shell.heading_x;
+				new_shell.heading_y = old_shell.heading_y;
+			} else {
+				let delta_x = new_shell.pixel_x - old_shell.pixel_x;
+				let delta_y = new_shell.pixel_y - old_shell.pixel_y;
+				let distance = Math.hypot(delta_x, delta_y);
+				new_shell.heading_x = delta_x / distance;
+				new_shell.heading_y = delta_y / distance;
+			}
 		}
 	}
 }

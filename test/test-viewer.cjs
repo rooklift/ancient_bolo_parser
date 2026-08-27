@@ -345,6 +345,41 @@ if (!fs.existsSync(log1)) {
 	check("shell disappears upon reaching object impact",
 		position(object_impact, 121), null);
 
+	let duplicate_impacts = BoloGame.build([
+		record(100, [shell_list(4, [[160, 156], [160, 164]])]),
+		record(112, [shell_list(4, [[184, 156], [184, 164]])]),
+		record(124, [
+			{ type: "explosion", code: 0, x: 13, y: 10 },
+			{ type: "explosion", code: 0, x: 13, y: 10 },
+		]),
+	]);
+	check("duplicate impacts preserve their terminal multiplicity",
+		[rounded(position(duplicate_impacts, 118, 0, 0).x),
+			rounded(position(duplicate_impacts, 118, 0, 1).x)], [12.75, 12.75]);
+	check("both shells disappear at duplicate impacts",
+		[position(duplicate_impacts, 121, 0, 0),
+			position(duplicate_impacts, 121, 0, 1)], [null, null]);
+
+	let boundary_impact = BoloGame.build([
+		record(100, [shell_list(13, [[1972, 1794]])]),
+		record(112, [shell_list(13, [[1951, 1784]])]),
+		record(124, [{ type: "explosion", code: 0, x: 122, y: 111 }]),
+	]);
+	check("shell already at impact boundary disappears immediately",
+		position(boundary_impact, 112), null);
+
+	let equivalent_impact = BoloGame.build([
+		record(100, [shell_list(13, [[1993, 1804]])]),
+		record(112, [shell_list(13, [[1972, 1794]])]),
+		record(124, [
+			shell_list(13, [[1951, 1784]]),
+			{ type: "explosion", code: 0, x: 122, y: 111 },
+		]),
+		record(136, [{ type: "explosion", code: 0, x: 121, y: 111 }]),
+	]);
+	check("equivalent successor wins without losing the learned heading",
+		position(equivalent_impact, 130), null);
+
 	let coarse_only_impact = BoloGame.build([
 		record(112, [shell_list(4, [[184, 166]])]),
 		record(124, [{ type: "explosion", code: 0, x: 13, y: 11 }]),
