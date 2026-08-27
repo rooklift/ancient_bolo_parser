@@ -154,6 +154,7 @@ let player_locked = false;
 let effect_lo = 0;       /* rolling window start into game.effects */
 let chat_shown = 0;
 let last_frame = null;
+let last_viewpoint_html = null;
 
 const ZOOMS = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32];
 let view = { zoom: 3, ox: 0, oy: 0 };
@@ -415,11 +416,32 @@ function update_transport() {
 	game_meta_el.textContent = bits.filter(Boolean).join(" · ");
 	let span = Math.max(1, game.t1 - game.t0);
 	seek_el.value = Math.round(((clock - game.t0) / span) * 1000);
+	update_viewpoint_options();
 	update_players();
 	update_chat();
 }
 
 /* ---------- sidebar ---------- */
+
+/* Names belong to player slots and can change when a vacated slot is reused.
+ * Follow the state at the playback clock rather than leaking the final names
+ * backwards through the whole replay. Names deliberately survive quits, so a
+ * departed player remains selectable until another node id takes their slot. */
+function update_viewpoint_options() {
+	let html = "";
+	let first = -1;
+	for (let p = 0; p < 16; p++) {
+		if (!cur.names[p]) continue;
+		if (first < 0) first = p;
+		html += `<option value="${p}">${esc(pretty(cur.names[p].split("@")[0]))}</option>`;
+	}
+	if (last_viewpoint_html === html) return;
+
+	last_viewpoint_html = html;
+	viewpoint_el.innerHTML = html;
+	if (viewpoint < 0 || !cur.names[viewpoint]) viewpoint = first;
+	if (viewpoint >= 0) viewpoint_el.value = String(viewpoint);
+}
 
 /* Name colours for the players panel and message wire: team-indexed like
  * the map colours, but with no reds or greens, which the viewer already
@@ -873,6 +895,8 @@ function load_log(bytes, name) {
 	}
 	game = newGame;
 	player_locked = false;
+	viewpoint = -1;
+	last_viewpoint_html = null;
 	clock = game.t0;
 	cur = BoloGame.clone_state(game.keyframes[0].state);
 	cursor = 0;
@@ -896,17 +920,6 @@ function load_log(bytes, name) {
 		`${net.loss.toFixed(1)}% of packets lost, ` +
 		`${net.stall.toFixed(1)}% of the time spent frozen; ` +
 		`measured over settled play, ${fmt_time(net.from)} to ${fmt_time(net.to)}` : "";
-
-	viewpoint_el.innerHTML = "";
-	viewpoint = -1;
-	for (let p = 0; p < 16; p++) {
-		if (game.final.names[p]) {
-			if (viewpoint < 0) viewpoint = p;
-			viewpoint_el.insertAdjacentHTML("beforeend",
-				`<option value="${p}">${esc(pretty(game.final.names[p].split("@")[0]))}</option>`);
-		}
-	}
-	if (viewpoint >= 0) viewpoint_el.value = String(viewpoint);
 
 	rebuild_chat(game.t0);
 	zoom_to_action();
