@@ -760,6 +760,24 @@ if (!fs.existsSync(log1)) {
 		impossible_pill_orbit.shell_positions[0][1].shells[0].next_time,
 		undefined);
 
+	let offset_constrained_orbits = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 10, y: 10, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(90, []),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 13 },
+			{ type: "pillbox_fires", pillbox: 0, direction: 13 },
+			shell_list(13, [[152, 158], [148, 157]]),
+		]),
+	]);
+	check("raw chained offset narrows overlapping orbit positions",
+		offset_constrained_orbits.shell_positions[0][1].shells.map(shell =>
+			shell.pillbox_orbit_states), [
+			[{ bradian: 201, step: 0 }],
+			[{ bradian: 201, step: 1 }],
+		]);
+
 	/* Only a shell list's head has an absolute pixel coordinate. Later
 	 * members are reconstructed from quantised, chained offsets, so the nth
 	 * member can differ from its exact orbit point by up to n pixels per
@@ -792,6 +810,16 @@ if (!fs.existsSync(log1)) {
 			[{ bradian: 209, step: 31 }],
 			[{ bradian: 207, step: 31 }],
 		]);
+	check("unique pill orbits recover exact pixels from quantised members",
+		quantised_streams.map(shell => [shell.pixel_x, shell.pixel_y,
+			shell.pillbox_orbit_pixel_x, shell.pillbox_orbit_pixel_y]), [
+			[40, 108, 40, 108],
+			[37, 111, 38, 112],
+		]);
+	check("known exact pill position replaces its lossy rendered coordinate",
+		[rounded(position(quantised_pill_orbits, 160, 0, 1).x),
+			rounded(position(quantised_pill_orbits, 160, 0, 1).y)],
+		[2.875, 7.5]);
 	check("quantised pill streams reach their distinct range expiries",
 		quantised_streams.map(shell => [shell.next_terminal,
 			shell.next_pixel_x, shell.next_pixel_y]), [
