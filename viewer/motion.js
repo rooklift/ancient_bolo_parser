@@ -3,6 +3,9 @@
 "use strict";
 (function () {
 
+const PillboxShellOrbits = typeof module !== "undefined" && module.exports
+	? require("./pillbox_shell_orbits.js") : window.PillboxShellOrbits;
+
 const TICKS_PER_SECOND = 50;
 /* Moving objects normally restate at about four packets per second. Beyond
  * half a second the path between two positions is no longer trustworthy:
@@ -26,6 +29,13 @@ const SHELL_MATCH_MARGIN = 3;
 const SHELL_EQUIVALENT_ENDPOINT_PIXELS = 2;
 const SHELL_EQUIVALENT_TIME_TICKS = 1;
 const SHELL_TANK_BIRTH_ERROR_PIXELS = 16;
+const PILLBOX_ORBITS = PillboxShellOrbits.orbits;
+const PILLBOX_ORBITS_BY_BRADIAN = new Map(PILLBOX_ORBITS.map(orbit =>
+	[orbit.bradian, orbit]));
+const PILLBOX_ORBITS_BY_DIRECTION = Array.from({ length: 16 }, () => []);
+for (let orbit of PILLBOX_ORBITS) {
+	PILLBOX_ORBITS_BY_DIRECTION[orbit.coarse_direction].push(orbit);
+}
 
 /* Standalone map/node records carry no player state or motion. */
 const MAP_NODE_TYPES = new Set([
@@ -249,6 +259,8 @@ function track_pixel_at(track, tick) {
 
 function shell_match_cost(previous, next, duration) {
 	if (previous.direction !== next.direction) return null;
+	let orbit_states = pillbox_shell_successor_states(previous, next);
+	if (orbit_states && !orbit_states.length) return null;
 
 	let delta_x = next.pixel_x - previous.pixel_x;
 	let delta_y = next.pixel_y - previous.pixel_y;
@@ -256,6 +268,9 @@ function shell_match_cost(previous, next, duration) {
 	let expected_distance = duration * SHELL_SPEED_PIXELS_PER_TICK;
 	let distance_error = Math.abs(distance - expected_distance);
 	if (distance_error > SHELL_MATCH_ERROR_PIXELS || distance === 0) return null;
+	if (orbit_states) {
+		return { cost: distance_error, pillbox_orbit_states: orbit_states };
+	}
 
 	let heading_x = previous.heading_x;
 	let heading_y = previous.heading_y;
@@ -270,7 +285,112 @@ function shell_match_cost(previous, next, duration) {
 	let angle_error = Math.atan2(lateral, forward);
 	if (angle_error > SHELL_DIRECTION_TOLERANCE) return null;
 
-	return distance_error + angle_error * expected_distance;
+	return {
+		cost: distance_error + angle_error * expected_distance,
+		pillbox_orbit_states: orbit_states,
+	};
+}
+
+/* A pill shell's logged coordinate is one of the integer points in its
+ * measured orbit. Near the muzzle several fine directions share a point,
+ * so retain every compatible state and let later restatements narrow the
+ * set. `undefined` means this shell predates orbit-backed identification;
+ * an empty array means a proposed continuation is physically impossible. */
+function pillbox_orbit_states_at(direction, pixel_x, pixel_y) {
+	let states = [];
+	for (let orbit of PILLBOX_ORBITS_BY_DIRECTION[direction]) {
+		for (let step = 0; step < orbit.positions.length; step++) {
+			let position = orbit.positions[step];
+			if (position[0] === pixel_x && position[1] === pixel_y) {
+				states.push({ bradian: orbit.bradian, step });
+			}
+		}
+	}
+	return states;
+}
+
+function pillbox_orbit_position(orbit, step) {
+	return step < orbit.positions.length ? orbit.positions[step] : orbit.terminal;
+}
+
+function pillbox_shell_successor_states(previous, next) {
+	if (!previous.pillbox_orbit_states) return undefined;
+	let relative_x = next.pixel_x - previous.pillbox_source_x;
+	let relative_y = next.pixel_y - previous.pillbox_source_y;
+	let states = [];
+	for (let previous_state of previous.pillbox_orbit_states) {
+		let orbit = PILLBOX_ORBITS_BY_BRADIAN.get(previous_state.bradian);
+		for (let step = previous_state.step + 1;
+			step < orbit.positions.length; step++) {
+			let position = orbit.positions[step];
+			if (position[0] === relative_x && position[1] === relative_y) {
+				states.push({ bradian: orbit.bradian, step });
+			}
+		}
+	}
+	return states;
+}
+
+function pillbox_shell_terminal_match(previous, terminal, duration) {
+	if (!previous.pillbox_orbit_states) return undefined;
+	let matches = [];
+	for (let previous_state of previous.pillbox_orbit_states) {
+		let orbit = PILLBOX_ORBITS_BY_BRADIAN.get(previous_state.bradian);
+		if (terminal.event_type === "shell_falls") {
+			if (previous.pillbox_source_x + orbit.terminal[0] === terminal.pixel_x &&
+				previous.pillbox_source_y + orbit.terminal[1] === terminal.pixel_y) {
+				matches.push({ bradian: orbit.bradian,
+					step: orbit.positions.length, position: orbit.terminal });
+			}
+			continue;
+		}
+		/* A restatement can catch a shell already one frame inside the tile
+		 * whose collision event follows. Other point terminals must be a later
+		 * simulated coordinate. FB range expiry was handled separately above. */
+		let first_step = previous_state.step + (terminal.type === "box" ? 0 : 1);
+		for (let step = first_step;
+			step <= orbit.positions.length; step++) {
+			let position = pillbox_orbit_position(orbit, step);
+			let enters_terminal;
+			if (terminal.type === "point") {
+				enters_terminal = previous.pillbox_source_x + position[0] ===
+					terminal.pixel_x &&
+					previous.pillbox_source_y + position[1] === terminal.pixel_y;
+			} else {
+				let centre_x = previous.pillbox_source_x + position[0] + 8;
+				let centre_y = previous.pillbox_source_y + position[1] + 8;
+				enters_terminal = centre_x >= terminal.min_x && centre_x < terminal.max_x &&
+					centre_y >= terminal.min_y && centre_y < terminal.max_y;
+			}
+			if (enters_terminal) {
+				matches.push({ bradian: orbit.bradian, step, position });
+				break;
+			}
+		}
+	}
+	let expected_distance = duration * SHELL_SPEED_PIXELS_PER_TICK;
+	for (let match of matches) {
+		match.pixel_x = previous.pillbox_source_x + match.position[0];
+		match.pixel_y = previous.pillbox_source_y + match.position[1];
+		match.distance = Math.hypot(match.pixel_x - previous.pixel_x,
+			match.pixel_y - previous.pixel_y);
+		match.cost = Math.abs(match.distance - expected_distance);
+	}
+	matches = matches.filter(match =>
+		match.distance <= expected_distance + SHELL_MATCH_ERROR_PIXELS);
+	if (!matches.length) return null;
+	matches.sort((a, b) => a.cost - b.cost);
+	let best = matches[0];
+	return {
+		cost: best.cost,
+		pixel_x: best.pixel_x,
+		pixel_y: best.pixel_y,
+		distance: best.distance,
+		graze_distance: 0,
+		pillbox_orbit_states: matches.map(match => ({
+			bradian: match.bradian, step: match.step,
+		})),
+	};
 }
 
 /* Intersect the shell centre's learned ray with a tile/object box, returning
@@ -365,6 +485,8 @@ function shell_ray_box_endpoint(shell, box) {
 
 function shell_terminal_match(previous, terminal, duration) {
 	if (terminal.direction !== null && terminal.direction !== previous.direction) return null;
+	let pillbox_match = pillbox_shell_terminal_match(previous, terminal, duration);
+	if (pillbox_match !== undefined) return pillbox_match;
 	let expected_distance = duration * SHELL_SPEED_PIXELS_PER_TICK;
 	let endpoint, angle_error = 0;
 	if (terminal.type === "box") {
@@ -415,68 +537,36 @@ function same_shell_terminal(first, second) {
 }
 
 /* An F4 and its impact can both arrive in one restatement even though the
- * shell itself lived entirely between records. Test whether a terminal is
- * reachable from the firing pill within the direction sector. This is only
- * a birth-side compatibility test: the exact firing tick is unknown, so a
- * terminal need only fit inside the interval's maximum travel distance. */
+ * shell itself lived entirely between records. Test every fine orbit for an
+ * exact point terminal or a discrete shell-centre entry into an object/tile
+ * box. The exact firing tick is unknown, so the caller separately limits
+ * the result to the interval's maximum travel distance. */
 function pillbox_source_terminal_distance(source, terminal) {
 	if (terminal.direction !== null && terminal.direction !== source.direction) {
 		return null;
 	}
-	let angle = source.direction * Math.PI / 8;
-	let coarse_x = Math.sin(angle);
-	let coarse_y = -Math.cos(angle);
 	let best = null;
 	let origins = [[source.pixel_x, source.pixel_y]];
 	if (source.alternate_pixel_x !== undefined) {
 		origins.push([source.alternate_pixel_x, source.alternate_pixel_y]);
 	}
 
-	let consider = (delta_x, delta_y) => {
-		let distance = Math.hypot(delta_x, delta_y);
-		if (distance <= 1e-9) return;
-		let forward = delta_x * coarse_x + delta_y * coarse_y;
-		let lateral = Math.abs(delta_x * coarse_y - delta_y * coarse_x);
-		if (forward <= 0 || Math.atan2(lateral, forward) >
-			SHELL_DIRECTION_TOLERANCE + 1e-9) return;
-		if (best === null || distance < best) best = distance;
-	};
-
 	for (let [origin_x, origin_y] of origins) {
-		if (terminal.type === "point") {
-			consider(terminal.pixel_x - origin_x, terminal.pixel_y - origin_y);
-			continue;
-		}
-
-		/* Box coordinates describe the shell centre at collision. Check the
-		 * centre ray, both sector edges, and rays through every extremal box
-		 * point. Together they cover every way the sector can enter the box. */
-		let shell = { pixel_x: origin_x, pixel_y: origin_y };
-		for (let ray_angle of [
-			angle,
-			angle - SHELL_DIRECTION_TOLERANCE,
-			angle + SHELL_DIRECTION_TOLERANCE,
-		]) {
-			shell.heading_x = Math.sin(ray_angle);
-			shell.heading_y = -Math.cos(ray_angle);
-			let endpoint = shell_ray_box_endpoint(shell, terminal);
-			if (endpoint && (best === null || endpoint.distance < best)) {
-				best = endpoint.distance;
+		for (let orbit of PILLBOX_ORBITS_BY_DIRECTION[source.direction]) {
+			for (let step = 0; step <= orbit.positions.length; step++) {
+				let position = pillbox_orbit_position(orbit, step);
+				let matches = terminal.type === "point"
+					? origin_x + position[0] === terminal.pixel_x &&
+						origin_y + position[1] === terminal.pixel_y
+					: origin_x + position[0] + 8 >= terminal.min_x &&
+						origin_x + position[0] + 8 < terminal.max_x &&
+						origin_y + position[1] + 8 >= terminal.min_y &&
+						origin_y + position[1] + 8 < terminal.max_y;
+				if (!matches) continue;
+				let distance = Math.hypot(position[0], position[1]);
+				if (best === null || distance < best) best = distance;
+				break;
 			}
-		}
-
-		let centre_x = origin_x + 8;
-		let centre_y = origin_y + 8;
-		let points = [
-			[terminal.min_x, terminal.min_y],
-			[terminal.min_x, terminal.max_y],
-			[terminal.max_x, terminal.min_y],
-			[terminal.max_x, terminal.max_y],
-			[Math.max(terminal.min_x, Math.min(terminal.max_x, centre_x)),
-				Math.max(terminal.min_y, Math.min(terminal.max_y, centre_y))],
-		];
-		for (let [point_x, point_y] of points) {
-			consider(point_x - centre_x, point_y - centre_y);
 		}
 	}
 	return best;
@@ -546,9 +636,6 @@ function mark_new_pillbox_shells(previous, next) {
 	 * hit something simply has no candidate and leaves capacity unused. */
 	let candidates = [];
 	for (let group of source_groups) {
-		let angle = group.direction * Math.PI / 8;
-		let coarse_x = Math.sin(angle);
-		let coarse_y = -Math.cos(angle);
 		for (let origin of [{
 			pixel_x: group.pixel_x, pixel_y: group.pixel_y, fallback: false,
 		}, {
@@ -563,23 +650,21 @@ function mark_new_pillbox_shells(previous, next) {
 				let delta_y = shell.pixel_y - origin.pixel_y;
 				let distance = Math.hypot(delta_x, delta_y);
 				if (distance > maximum_distance) continue;
-				if (distance > 0) {
-					let forward = delta_x * coarse_x + delta_y * coarse_y;
-					let lateral = Math.abs(delta_x * coarse_y - delta_y * coarse_x);
-					if (forward <= 0 || Math.atan2(lateral, forward) >
-						SHELL_DIRECTION_TOLERANCE) continue;
-				}
+				let orbit_states = pillbox_orbit_states_at(group.direction,
+					delta_x, delta_y);
+				if (!orbit_states.length) continue;
 				candidates.push({
 					group, shell, distance, delta_x, delta_y,
 					pixel_x: origin.pixel_x, pixel_y: origin.pixel_y,
-					fallback: origin.fallback,
+					fallback: origin.fallback, orbit_states,
 				});
 			}
 		}
 	}
 	/* Direction-zero F4 has a known n/n-1 ambiguity. Prefer the named pill,
 	 * but let the adjacent fallback fill capacity when its candidate fails. */
-	candidates.sort((a, b) => a.fallback - b.fallback || a.distance - b.distance);
+	candidates.sort((a, b) => a.fallback - b.fallback ||
+		a.distance - b.distance);
 	let assigned_shells = new Set();
 	for (let candidate of candidates) {
 		if (candidate.group.assigned >= candidate.group.capacity ||
@@ -592,6 +677,7 @@ function mark_new_pillbox_shells(previous, next) {
 		candidate.shell.pillbox_source_distance = candidate.distance;
 		candidate.shell.heading_origin_x = candidate.pixel_x;
 		candidate.shell.heading_origin_y = candidate.pixel_y;
+		candidate.shell.pillbox_orbit_states = candidate.orbit_states;
 		if (candidate.distance > 0) {
 			candidate.shell.heading_x = candidate.delta_x / candidate.distance;
 			candidate.shell.heading_y = candidate.delta_y / candidate.distance;
@@ -868,10 +954,11 @@ function match_shell_snapshots(previous, next) {
 				if (duration > MAX_POSITION_INTERPOLATION_TICKS) continue;
 				match = shell_terminal_match(previous.shells[previous_index], target, duration);
 			} else {
-				let cost = shell_match_cost(previous.shells[previous_index], target, duration);
-				match = cost === null ? null : {
-					cost, pixel_x: target.pixel_x, pixel_y: target.pixel_y,
-				};
+				match = shell_match_cost(previous.shells[previous_index], target, duration);
+				if (match) {
+					match.pixel_x = target.pixel_x;
+					match.pixel_y = target.pixel_y;
+				}
 			}
 			if (!match) continue;
 			match.end_time = target.terminal
@@ -1007,6 +1094,9 @@ function match_shell_snapshots(previous, next) {
 				new_shell.pillbox_source_distance = Math.hypot(
 					new_shell.pixel_x - old_shell.pillbox_source_x,
 					new_shell.pixel_y - old_shell.pillbox_source_y);
+				if (best.pillbox_orbit_states) {
+					new_shell.pillbox_orbit_states = best.pillbox_orbit_states;
+				}
 			}
 			if (old_shell.birth_pixel_x !== undefined) {
 				new_shell.birth_time = old_shell.birth_time;
