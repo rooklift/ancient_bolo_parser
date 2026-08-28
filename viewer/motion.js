@@ -24,10 +24,11 @@ const MAX_LGM_TANK_ENTRY_DISTANCE_PIXELS = 32;
 const SHELL_SPEED_PIXELS_PER_TICK = 2;
 const SHELL_MATCH_ERROR_PIXELS = 8;
 const SHELL_BOX_GRAZE_TOLERANCE_PIXELS = 1;
-/* Tank-hit evidence includes exact pill-orbit contacts whose centres lie
- * just under two pixels outside the tank's 16px box. This agrees with the
- * classic shell art's 3-4px footprint: collision is not point against box. */
-const SHELL_TANK_COLLISION_PADDING_PIXELS = 2;
+/* The exact pill orbit combined with our linearly reconstructed tank path
+ * can miss an authoritative tank hit by 1.57px. Allow two pixels for integer
+ * position quantisation and uncertainty in the tank's between-packet path;
+ * this is not a claim about Bolo's original collision shape. */
+const SHELL_TANK_HIT_TOLERANCE_PIXELS = 2;
 const SHELL_DIRECTION_TOLERANCE = Math.PI / 8;
 const SHELL_MATCH_MARGIN = 3;
 const SHELL_EQUIVALENT_ENDPOINT_PIXELS = 2;
@@ -379,14 +380,14 @@ function pillbox_shell_terminal_match(previous, terminal, duration, start_time) 
 					hitbox_pixel_x = min_x;
 					hitbox_pixel_y = min_y;
 				}
-				let padding = terminal.event_type === "tank_hit"
-					? SHELL_TANK_COLLISION_PADDING_PIXELS : 0;
+				let tolerance = terminal.event_type === "tank_hit"
+					? SHELL_TANK_HIT_TOLERANCE_PIXELS : 0;
 				let centre_x = pixel_x + 8;
 				let centre_y = pixel_y + 8;
-				enters_terminal = centre_x >= min_x - padding &&
-					centre_x < min_x + 16 + padding &&
-					centre_y >= min_y - padding &&
-					centre_y < min_y + 16 + padding;
+				enters_terminal = centre_x >= min_x - tolerance &&
+					centre_x < min_x + 16 + tolerance &&
+					centre_y >= min_y - tolerance &&
+					centre_y < min_y + 16 + tolerance;
 			}
 			if (enters_terminal) {
 				matches.push({
