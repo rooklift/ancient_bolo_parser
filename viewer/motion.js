@@ -49,10 +49,14 @@ const MAP_NODE_TYPES = new Set([
 	"attached_log",
 ]);
 
-/* Append one shell-list subpacket as absolute positions. Offsets are
- * chained, and the direction nibble in the list header applies to EVERY
- * shell in the list. position_time lets render-only interpolation verify
- * that a reconstructed state still belongs to the expected snapshot. */
+/* Append one shell-list subpacket as reconstructed absolute positions.
+ * Only the head has an absolute pixel coordinate. Later coordinates add
+ * quantised offsets derived from finer internal positions, so each chained
+ * link can lose one pixel per axis. `position_uncertainty` records the
+ * resulting orbit-matching bound; it is zero for the exact list head.
+ * The direction nibble in the list header applies to EVERY shell.
+ * position_time lets render-only interpolation verify that a reconstructed
+ * state still belongs to the expected snapshot. */
 function append_shell_list(shells, sub, position_time) {
 	let direction = sub.direction ?? sub.shells[0].direction;
 	let previous = null;
@@ -70,7 +74,7 @@ function append_shell_list(shells, sub, position_time) {
 		shells.push({
 			x: (pixel_x >> 4) & 0xff, y: (pixel_y >> 4) & 0xff,
 			px: pixel_x & 0x0f, py: pixel_y & 0x0f,
-			direction, position_time,
+			direction, position_time, position_uncertainty: i,
 		});
 	}
 }
@@ -264,8 +268,17 @@ function track_pixel_at(track, tick) {
 
 function shell_match_cost(previous, next, duration) {
 	if (previous.direction !== next.direction) return null;
-	let orbit_states = pillbox_shell_successor_states(previous, next);
+	let orbit_states = pillbox_shell_successor_states(previous, next, duration);
 	if (orbit_states && !orbit_states.length) return null;
+	if (orbit_states) {
+		let cost = Math.min(...orbit_states.map(state => state.cost));
+		return {
+			cost,
+			pillbox_orbit_states: orbit_states.map(state => ({
+				bradian: state.bradian, step: state.step,
+			})),
+		};
+	}
 
 	let delta_x = next.pixel_x - previous.pixel_x;
 	let delta_y = next.pixel_y - previous.pixel_y;
@@ -273,10 +286,6 @@ function shell_match_cost(previous, next, duration) {
 	let expected_distance = duration * SHELL_SPEED_PIXELS_PER_TICK;
 	let distance_error = Math.abs(distance - expected_distance);
 	if (distance_error > SHELL_MATCH_ERROR_PIXELS || distance === 0) return null;
-	if (orbit_states) {
-		return { cost: distance_error, pillbox_orbit_states: orbit_states };
-	}
-
 	let heading_x = previous.heading_x;
 	let heading_y = previous.heading_y;
 	if (heading_x === undefined) {
@@ -296,17 +305,27 @@ function shell_match_cost(previous, next, duration) {
 	};
 }
 
-/* A pill shell's logged coordinate is one of the integer points in its
- * measured orbit. Near the muzzle several fine directions share a point,
- * so retain every compatible state and let later restatements narrow the
- * set. `undefined` means this shell predates orbit-backed identification;
- * an empty array means a proposed continuation is physically impossible. */
-function pillbox_orbit_states_at(direction, pixel_x, pixel_y) {
+/* A pill shell's exact whole-pixel coordinate is one of the measured orbit
+ * points. A list head supplies that coordinate directly; later members only
+ * bound it because their chained offsets were quantised independently.
+ * Near the muzzle several fine directions also share or overlap a bound, so
+ * retain every compatible state and let later restatements narrow the set.
+ * `undefined` means this shell predates orbit-backed identification; an
+ * empty array means a proposed continuation is physically impossible. */
+function pillbox_orbit_position_matches(position, pixel_x, pixel_y,
+	position_uncertainty = 0) {
+	return Math.abs(position[0] - pixel_x) <= position_uncertainty &&
+		Math.abs(position[1] - pixel_y) <= position_uncertainty;
+}
+
+function pillbox_orbit_states_at(direction, pixel_x, pixel_y,
+	position_uncertainty = 0) {
 	let states = [];
 	for (let orbit of PILLBOX_ORBITS_BY_DIRECTION[direction]) {
 		for (let step = 0; step < orbit.positions.length; step++) {
 			let position = orbit.positions[step];
-			if (position[0] === pixel_x && position[1] === pixel_y) {
+			if (pillbox_orbit_position_matches(position, pixel_x, pixel_y,
+				position_uncertainty)) {
 				states.push({ bradian: orbit.bradian, step });
 			}
 		}
@@ -318,22 +337,33 @@ function pillbox_orbit_position(orbit, step) {
 	return step < orbit.positions.length ? orbit.positions[step] : orbit.terminal;
 }
 
-function pillbox_shell_successor_states(previous, next) {
+function pillbox_shell_successor_states(previous, next, duration) {
 	if (!previous.pillbox_orbit_states) return undefined;
 	let relative_x = next.pixel_x - previous.pillbox_source_x;
 	let relative_y = next.pixel_y - previous.pillbox_source_y;
-	let states = [];
+	let expected_distance = duration * SHELL_SPEED_PIXELS_PER_TICK;
+	let states_by_key = new Map();
 	for (let previous_state of previous.pillbox_orbit_states) {
 		let orbit = PILLBOX_ORBITS_BY_BRADIAN.get(previous_state.bradian);
+		let previous_position = pillbox_orbit_position(orbit,
+			previous_state.step);
 		for (let step = previous_state.step + 1;
 			step < orbit.positions.length; step++) {
 			let position = orbit.positions[step];
-			if (position[0] === relative_x && position[1] === relative_y) {
-				states.push({ bradian: orbit.bradian, step });
+			if (!pillbox_orbit_position_matches(position, relative_x, relative_y,
+				next.position_uncertainty)) continue;
+			let distance = Math.hypot(position[0] - previous_position[0],
+				position[1] - previous_position[1]);
+			let cost = Math.abs(distance - expected_distance);
+			if (cost > SHELL_MATCH_ERROR_PIXELS) continue;
+			let key = `${orbit.bradian}:${step}`;
+			let existing = states_by_key.get(key);
+			if (!existing || cost < existing.cost) {
+				states_by_key.set(key, { bradian: orbit.bradian, step, cost });
 			}
 		}
 	}
-	return states;
+	return [...states_by_key.values()];
 }
 
 function pillbox_shell_terminal_match(previous, terminal, duration, start_time) {
@@ -341,11 +371,19 @@ function pillbox_shell_terminal_match(previous, terminal, duration, start_time) 
 	let matches = [];
 	for (let previous_state of previous.pillbox_orbit_states) {
 		let orbit = PILLBOX_ORBITS_BY_BRADIAN.get(previous_state.bradian);
+		let previous_position = pillbox_orbit_position(orbit,
+			previous_state.step);
 		if (terminal.event_type === "shell_falls") {
 			if (previous.pillbox_source_x + orbit.terminal[0] === terminal.pixel_x &&
 				previous.pillbox_source_y + orbit.terminal[1] === terminal.pixel_y) {
-				matches.push({ bradian: orbit.bradian,
-					step: orbit.positions.length, position: orbit.terminal });
+				matches.push({
+					bradian: orbit.bradian,
+					step: orbit.positions.length,
+					position: orbit.terminal,
+					distance: Math.hypot(
+						orbit.terminal[0] - previous_position[0],
+						orbit.terminal[1] - previous_position[1]),
+				});
 			}
 			continue;
 		}
@@ -358,8 +396,8 @@ function pillbox_shell_terminal_match(previous, terminal, duration, start_time) 
 			let position = pillbox_orbit_position(orbit, step);
 			let pixel_x = previous.pillbox_source_x + position[0];
 			let pixel_y = previous.pillbox_source_y + position[1];
-			let distance = Math.hypot(pixel_x - previous.pixel_x,
-				pixel_y - previous.pixel_y);
+			let distance = Math.hypot(position[0] - previous_position[0],
+				position[1] - previous_position[1]);
 			let enters_terminal, hitbox_pixel_x, hitbox_pixel_y;
 			if (terminal.type === "point") {
 				enters_terminal = pixel_x === terminal.pixel_x &&
@@ -686,7 +724,7 @@ function mark_new_pillbox_shells(previous, next) {
 				let distance = Math.hypot(delta_x, delta_y);
 				if (distance > maximum_distance) continue;
 				let orbit_states = pillbox_orbit_states_at(group.direction,
-					delta_x, delta_y);
+					delta_x, delta_y, shell.position_uncertainty);
 				if (!orbit_states.length) continue;
 				candidates.push({
 					group, shell, distance, delta_x, delta_y,
@@ -966,6 +1004,39 @@ function prefer_ordered_shell_impacts(target_groups, by_previous, by_next,
 	}
 }
 
+/* Exact orbit uncertainty can leave several same-stream predecessors for a
+ * shell restatement even though its pillbox source and surviving orbit
+ * states are unambiguous. Preserve that shared provenance without claiming
+ * any one shell-to-shell identity; a later frame can then narrow the orbit
+ * and resume interpolation. */
+function propagate_ambiguous_pillbox_orbits(target_groups, by_next,
+	previous_shells) {
+	for (let next_index = 0; next_index < target_groups.length; next_index++) {
+		let target = target_groups[next_index].target;
+		if (target.terminal || target.starts_at_pillbox) continue;
+		let choices = by_next[next_index];
+		if (!choices.length || choices.some(candidate =>
+			!candidate.pillbox_orbit_states)) continue;
+		let first_shell = previous_shells[choices[0].previous_index];
+		if (first_shell.pillbox_source_x === undefined ||
+			choices.some(candidate => !same_pillbox_stream(first_shell,
+				previous_shells[candidate.previous_index]))) continue;
+
+		let states_by_key = new Map();
+		for (let candidate of choices) {
+			for (let state of candidate.pillbox_orbit_states) {
+				states_by_key.set(`${state.bradian}:${state.step}`, state);
+			}
+		}
+		target.pillbox_source_x = first_shell.pillbox_source_x;
+		target.pillbox_source_y = first_shell.pillbox_source_y;
+		target.pillbox_source_distance = Math.hypot(
+			target.pixel_x - first_shell.pillbox_source_x,
+			target.pixel_y - first_shell.pillbox_source_y);
+		target.pillbox_orbit_states = [...states_by_key.values()];
+	}
+}
+
 /* Match only mutually best candidates, and only when each wins by a useful
  * margin over its alternatives. Shell lists carry no IDs and may gain or
  * lose entries at any restatement, so an unmatched pop is safer than a
@@ -1037,6 +1108,8 @@ function match_shell_snapshots(previous, next) {
 		previous.shells);
 	for (let choices of by_previous) choices.sort((a, b) => a.cost - b.cost);
 	for (let choices of by_next) choices.sort((a, b) => a.cost - b.cost);
+	propagate_ambiguous_pillbox_orbits(target_groups, by_next,
+		previous.shells);
 
 	let selected = [];
 	for (let previous_index = 0; previous_index < previous.shells.length; previous_index++) {
@@ -1191,6 +1264,7 @@ function build_shell_positions(records, terminals, pillbox_sources_by_record,
 				pixel_x: shell.x * 16 + shell.px,
 				pixel_y: shell.y * 16 + shell.py,
 				direction: shell.direction,
+				position_uncertainty: shell.position_uncertainty,
 			})),
 			terminals: terminals_by_record.get(rec) || [],
 			pillbox_sources: pillbox_sources_by_record.get(rec) || [],

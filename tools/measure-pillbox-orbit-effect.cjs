@@ -120,7 +120,13 @@ function same_match(first, second) {
 		first.next_pixel_y === second.next_pixel_y;
 }
 
-function orbit_states_at(orbits, shell) {
+function orbit_position_matches(position, pixel_x, pixel_y,
+	position_uncertainty = 0) {
+	return Math.abs(position[0] - pixel_x) <= position_uncertainty &&
+		Math.abs(position[1] - pixel_y) <= position_uncertainty;
+}
+
+function orbit_states_at(orbits, shell, position_uncertainty = 0) {
 	if (shell.pillbox_source_x === undefined) return [];
 	let relative_x = shell.pixel_x - shell.pillbox_source_x;
 	let relative_y = shell.pixel_y - shell.pillbox_source_y;
@@ -129,7 +135,8 @@ function orbit_states_at(orbits, shell) {
 		if (orbit.coarse_direction !== shell.direction) continue;
 		for (let step = 0; step < orbit.positions.length; step++) {
 			let position = orbit.positions[step];
-			if (position[0] === relative_x && position[1] === relative_y) {
+			if (orbit_position_matches(position, relative_x, relative_y,
+				position_uncertainty)) {
 				states.push({ orbit, step });
 			}
 		}
@@ -137,8 +144,9 @@ function orbit_states_at(orbits, shell) {
 	return states;
 }
 
-function baseline_link_is_disproved(orbits, shell) {
-	let states = orbit_states_at(orbits, shell);
+function baseline_link_is_disproved(orbits, shell, position_uncertainty,
+	next_position_uncertainty = 0) {
+	let states = orbit_states_at(orbits, shell, position_uncertainty);
 	if (!states.length) return "birth";
 	let kind = match_kind(shell);
 	if (kind === "successor") {
@@ -148,7 +156,8 @@ function baseline_link_is_disproved(orbits, shell) {
 			for (let step = state.step + 1;
 				step < state.orbit.positions.length; step++) {
 				let position = state.orbit.positions[step];
-				if (position[0] === relative_x && position[1] === relative_y) return true;
+				if (orbit_position_matches(position, relative_x, relative_y,
+					next_position_uncertainty)) return true;
 			}
 			return false;
 		});
@@ -202,7 +211,20 @@ function compare_games(current, baseline, orbits) {
 					metrics.rejected++;
 					add_count(metrics.rejected_by_kind, match_kind(before));
 					if (before.pillbox_source_x !== undefined) {
-						let reason = baseline_link_is_disproved(orbits, before);
+						let next_position_uncertainty = 0;
+						if (match_kind(before) === "successor") {
+							let next_snapshot = current_snapshots[snapshot_index + 1];
+							let next_shells = next_snapshot ? next_snapshot.shells.filter(shell =>
+								shell.pixel_x === before.next_pixel_x &&
+								shell.pixel_y === before.next_pixel_y &&
+								shell.direction === before.direction) : [];
+							if (next_shells.length) {
+								next_position_uncertainty = Math.max(...next_shells.map(shell =>
+									shell.position_uncertainty));
+							}
+						}
+						let reason = baseline_link_is_disproved(orbits, before,
+							now.position_uncertainty, next_position_uncertainty);
 						if (reason === "birth") metrics.directly_disproved_births++;
 						else if (reason === "successor") {
 							metrics.directly_disproved_successors++;
