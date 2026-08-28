@@ -92,8 +92,10 @@ if (!fs.existsSync(log1)) {
 			if (shell.next_time !== undefined) pill_burst.matched++;
 		}
 	}
-	check("fixture pillbox burst stays fully interpolated",
-		[pill_burst.total, pill_burst.matched], [25, 25]);
+	/* Exact pill orbits expose six geometrically plausible links in this
+	 * deliberately dense stream which are not positions on the shot's track. */
+	check("fixture pillbox burst rejects off-orbit identities",
+		[pill_burst.total, pill_burst.matched], [25, 19]);
 
 	// Mid-game teams: the 2v2 seen in the chat (players 0+1 vs 2+3).
 	const mid = BoloGame.state_at(game, Math.floor((game.t0 + game.t1) / 2)).state;
@@ -549,18 +551,18 @@ if (!fs.existsSync(log1)) {
 		record(100, [
 			{ type: "pillbox_fires", pillbox: 0, direction: 4 },
 			{ type: "pillbox_fires", pillbox: 0, direction: 4 },
-			shell_list(4, [[184, 160], [176, 160]]),
+			shell_list(4, [[183, 160], [175, 160]]),
 		]),
 		record(112, [
 			{ type: "pillbox_fires", pillbox: 0, direction: 4 },
 			{ type: "pillbox_fires", pillbox: 0, direction: 4 },
-			shell_list(4, [[200, 160], [176, 160], [168, 160]]),
+			shell_list(4, [[207, 161], [199, 161], [175, 160]]),
 			{ type: "explosion", code: 0, x: 13, y: 10 },
 		]),
 	]);
 	check("pillbox source resolves a dense anonymous shell burst",
 		[rounded(position(pillbox_burst, 106, 0, 0).x),
-			rounded(position(pillbox_burst, 106, 0, 1).x)], [12.75, 12.25]);
+			rounded(position(pillbox_burst, 106, 0, 1).x)], [12.6875, 12.3125]);
 
 	/* A pill shot can fire and hit terrain entirely between restatements. Its
 	 * F4 and explosion remain in the record, but it never has a shell-list
@@ -624,11 +626,11 @@ if (!fs.existsSync(log1)) {
 			{ type: "pillbox_fires", pillbox: 0, direction: 12 },
 			{ type: "pillbox_fires", pillbox: 0, direction: 12 },
 			shell_list(4, [[1810, 2218]]),
-			shell_list(12, [[1840, 2211], [1851, 2209], [1858, 2208]]),
+			shell_list(12, [[1840, 2211], [1852, 2210], [1860, 2209]]),
 		]),
 		record(112, [
 			shell_list(4, [[1834, 2217]]),
-			shell_list(12, [[1835, 2211]]),
+			shell_list(12, [[1836, 2212]]),
 			{ type: "explosion", code: 0, x: 114, y: 138 },
 			{ type: "explosion", code: 0, x: 114, y: 138 },
 		]),
@@ -694,9 +696,9 @@ if (!fs.existsSync(log1)) {
 		record(90, []),
 		record(100, [
 			{ type: "pillbox_fires", pillbox: 0, direction: 4 },
-			shell_list(4, [[168, 162]]),
+			shell_list(4, [[167, 160]]),
 		]),
-		record(112, [shell_list(4, [[192, 160]])]),
+		record(112, [shell_list(4, [[191, 160]])]),
 	]);
 	let refined_pillbox_shell = pillbox_refinement.shell_positions[0][2].shells[0];
 	check("pillbox heading keeps refining from its source",
@@ -704,6 +706,135 @@ if (!fs.existsSync(log1)) {
 			rounded(refined_pillbox_shell.heading_y),
 			refined_pillbox_shell.heading_origin_x,
 			refined_pillbox_shell.heading_origin_y], [1, 0, 160, 160]);
+
+	let overlapping_pill_orbits = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 10, y: 10, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(90, []),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 0 },
+			shell_list(0, [[160, 152]]),
+		]),
+		record(122, [shell_list(0, [[164, 108]])]),
+	]);
+	let overlapping_start = overlapping_pill_orbits.shell_positions[0][1].shells[0];
+	let narrowed_orbit = overlapping_pill_orbits.shell_positions[0][2].shells[0];
+	check("overlapping muzzle positions retain every possible pill orbit",
+		overlapping_start.pillbox_orbit_states.map(state => state.bradian),
+		[1, 3, 5]);
+	check("later pill position narrows the exact fine direction",
+		[narrowed_orbit.matched_from_previous,
+			narrowed_orbit.pillbox_orbit_states],
+		[true, [{ bradian: 3, step: 11 }]]);
+
+	let viable_pill_orbit = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 10, y: 10, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(90, []),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 5 },
+			shell_list(5, [[173, 167]]),
+		]),
+		record(108, [shell_list(5, [[187, 175]])]),
+	]);
+	check("pill shell matches an exact later orbit position",
+		viable_pill_orbit.shell_positions[0][1].shells[0].next_time, 108);
+
+	let impossible_pill_orbit = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 10, y: 10, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(90, []),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 5 },
+			shell_list(5, [[173, 167]]),
+		]),
+		record(108, [shell_list(5, [[186, 175]])]),
+	]);
+	check("pill shell rejects a nearby point absent from every surviving orbit",
+		impossible_pill_orbit.shell_positions[0][1].shells[0].next_time,
+		undefined);
+
+	let viable_pill_terminal = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 10, y: 10, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(90, []),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 5 },
+			shell_list(5, [[173, 167]]),
+		]),
+		record(124, [shell_list(5, [[215, 191]])]),
+		record(148, [shell_list(5, [[257, 215]])]),
+		record(160, [{ type: "shell_falls", x: 17, y: 14, pixel: 0x36 }]),
+	]);
+	check("pill shell accepts its exact range-expiry coordinate",
+		viable_pill_terminal.shell_positions[0][3].shells[0]
+			.next_terminal_type, "point");
+
+	let impossible_pill_terminal = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 10, y: 10, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(90, []),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 5 },
+			shell_list(5, [[173, 167]]),
+		]),
+		record(124, [shell_list(5, [[215, 191]])]),
+		record(148, [shell_list(5, [[257, 215]])]),
+		record(158, [{ type: "shell_falls", x: 17, y: 14, pixel: 0x13 }]),
+	]);
+	check("pill shell rejects FB at a pre-expiry orbit position",
+		impossible_pill_terminal.shell_positions[0][3].shells[0].next_time,
+		undefined);
+
+	let viable_pill_box = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 10, y: 10, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(90, []),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 5 },
+			shell_list(5, [[187, 175]]),
+		]),
+		record(125, [{ type: "explosion", code: 0, x: 15, y: 13 }]),
+	]);
+	check("pill shell accepts a tile entered by its discrete orbit",
+		viable_pill_box.shell_positions[0][1].shells[0].next_terminal_type,
+		"box");
+
+	let impossible_pill_box = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 10, y: 10, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(90, []),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 5 },
+			shell_list(5, [[187, 175]]),
+		]),
+		record(125, [{ type: "explosion", code: 0, x: 15, y: 12 }]),
+	]);
+	check("pill shell rejects a tile its continuous ray only grazes",
+		impossible_pill_box.shell_positions[0][1].shells[0].next_time,
+		undefined);
+
+	let pill_orbit_overrules_ray = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 10, y: 10, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(90, []),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 0 },
+			shell_list(0, [[162, 140]]),
+		]),
+		record(124, [{ type: "explosion", code: 0, x: 11, y: 6 }]),
+	]);
+	check("exact pill orbit is not vetoed by its learned continuous ray",
+		pill_orbit_overrules_ray.shell_positions[0][1].shells[0]
+			.next_terminal_type, "box");
 
 	let tank_muzzle = BoloGame.build([
 		record(90, [{
