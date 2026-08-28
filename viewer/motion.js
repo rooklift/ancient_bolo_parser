@@ -414,6 +414,118 @@ function same_shell_terminal(first, second) {
 		first.max_x === second.max_x && first.max_y === second.max_y;
 }
 
+/* An F4 and its impact can both arrive in one restatement even though the
+ * shell itself lived entirely between records. Test whether a terminal is
+ * reachable from the firing pill within the direction sector. This is only
+ * a birth-side compatibility test: the exact firing tick is unknown, so a
+ * terminal need only fit inside the interval's maximum travel distance. */
+function pillbox_source_terminal_distance(source, terminal) {
+	if (terminal.direction !== null && terminal.direction !== source.direction) {
+		return null;
+	}
+	let angle = source.direction * Math.PI / 8;
+	let coarse_x = Math.sin(angle);
+	let coarse_y = -Math.cos(angle);
+	let best = null;
+	let origins = [[source.pixel_x, source.pixel_y]];
+	if (source.alternate_pixel_x !== undefined) {
+		origins.push([source.alternate_pixel_x, source.alternate_pixel_y]);
+	}
+
+	let consider = (delta_x, delta_y) => {
+		let distance = Math.hypot(delta_x, delta_y);
+		if (distance <= 1e-9) return;
+		let forward = delta_x * coarse_x + delta_y * coarse_y;
+		let lateral = Math.abs(delta_x * coarse_y - delta_y * coarse_x);
+		if (forward <= 0 || Math.atan2(lateral, forward) >
+			SHELL_DIRECTION_TOLERANCE + 1e-9) return;
+		if (best === null || distance < best) best = distance;
+	};
+
+	for (let [origin_x, origin_y] of origins) {
+		if (terminal.type === "point") {
+			consider(terminal.pixel_x - origin_x, terminal.pixel_y - origin_y);
+			continue;
+		}
+
+		/* Box coordinates describe the shell centre at collision. Check the
+		 * centre ray, both sector edges, and rays through every extremal box
+		 * point. Together they cover every way the sector can enter the box. */
+		let shell = { pixel_x: origin_x, pixel_y: origin_y };
+		for (let ray_angle of [
+			angle,
+			angle - SHELL_DIRECTION_TOLERANCE,
+			angle + SHELL_DIRECTION_TOLERANCE,
+		]) {
+			shell.heading_x = Math.sin(ray_angle);
+			shell.heading_y = -Math.cos(ray_angle);
+			let endpoint = shell_ray_box_endpoint(shell, terminal);
+			if (endpoint && (best === null || endpoint.distance < best)) {
+				best = endpoint.distance;
+			}
+		}
+
+		let centre_x = origin_x + 8;
+		let centre_y = origin_y + 8;
+		let points = [
+			[terminal.min_x, terminal.min_y],
+			[terminal.min_x, terminal.max_y],
+			[terminal.max_x, terminal.min_y],
+			[terminal.max_x, terminal.max_y],
+			[Math.max(terminal.min_x, Math.min(terminal.max_x, centre_x)),
+				Math.max(terminal.min_y, Math.min(terminal.max_y, centre_y))],
+		];
+		for (let [point_x, point_y] of points) {
+			consider(point_x - centre_x, point_y - centre_y);
+		}
+	}
+	return best;
+}
+
+/* Reserve only strict, count-forced impacts for pill shots which have an F4
+ * but no shell-list position. Identical terminals are interchangeable, so
+ * spare birth capacity may consume part of their multiplicity. Distinct
+ * terminal locations are left alone unless their count exactly accounts for
+ * the spare births. */
+function mark_unseen_pillbox_terminals(source_groups, terminals,
+	maximum_distance) {
+	let active_groups = source_groups.filter(group =>
+		group.capacity > group.assigned);
+	let candidates_by_terminal = new Map();
+	let candidates_by_group = new Map(active_groups.map(group => [group, []]));
+	for (let terminal of terminals) {
+		/* Terrain explosions are the directionless event implicated here.
+		 * Direction-bearing tank hits already exclude opposing shells, while
+		 * broadening this to every object impact needs separate evidence. */
+		if (terminal.event_type !== "explosion") continue;
+		let candidates = [];
+		for (let group of active_groups) {
+			let distance = pillbox_source_terminal_distance(group, terminal);
+			if (distance === null || distance > maximum_distance) continue;
+			candidates.push(group);
+			candidates_by_group.get(group).push(terminal);
+		}
+		candidates_by_terminal.set(terminal, candidates);
+	}
+
+	for (let group of active_groups) {
+		let remaining = group.capacity - group.assigned;
+		let candidates = candidates_by_group.get(group).filter(terminal =>
+			candidates_by_terminal.get(terminal).length === 1);
+		if (!candidates.length) continue;
+		let equivalent = candidates.every(terminal =>
+			same_shell_terminal(candidates[0], terminal));
+		if (!equivalent && candidates.length !== remaining) continue;
+		let count = Math.min(remaining, candidates.length);
+		for (let i = 0; i < count; i++) {
+			candidates[i].unseen_pillbox_source = true;
+			candidates[i].pillbox_source_x = group.pixel_x;
+			candidates[i].pillbox_source_y = group.pixel_y;
+			candidates[i].pillbox_source_direction = group.direction;
+		}
+	}
+}
+
 function mark_new_pillbox_shells(previous, next) {
 	let duration = next.time - previous.time;
 	if (duration <= 0 || duration > MAX_POSITION_INTERPOLATION_TICKS) return;
@@ -485,6 +597,8 @@ function mark_new_pillbox_shells(previous, next) {
 			candidate.shell.heading_y = candidate.delta_y / candidate.distance;
 		}
 	}
+	mark_unseen_pillbox_terminals(source_groups, next.terminals,
+		maximum_distance);
 }
 
 function mark_new_tank_shells(previous, next) {
@@ -612,6 +726,21 @@ function same_pillbox_stream(first, second) {
 		first.direction === second.direction;
 }
 
+function same_known_shell_stream(first, second) {
+	if (same_pillbox_stream(first, second)) return true;
+	return first.pillbox_source_x === undefined &&
+		second.pillbox_source_x === undefined &&
+		first.birth_time !== undefined && second.birth_time !== undefined &&
+		first.direction === second.direction;
+}
+
+function compare_shell_stream_age(first, second) {
+	if (first.pillbox_source_x !== undefined) {
+		return second.pillbox_source_distance - first.pillbox_source_distance;
+	}
+	return first.birth_time - second.birth_time;
+}
+
 function ordered_pillbox_successor(candidate, target_choices,
 	by_previous, previous_shells) {
 	if (target_choices[0] !== candidate) return false;
@@ -641,6 +770,7 @@ function unambiguous_shell_successor(candidate, target_choices,
 function shell_target_groups(next) {
 	let groups = next.shells.map(target => ({ target, capacity: 1 }));
 	for (let terminal of next.terminals) {
+		if (terminal.unseen_pillbox_source) continue;
 		let group = groups.find(item => item.target.terminal &&
 			same_shell_terminal(item.target, terminal));
 		if (group) {
@@ -661,6 +791,58 @@ function equivalent_shell_candidates(first, second) {
 	return Math.hypot(first.pixel_x - second.pixel_x,
 		first.pixel_y - second.pixel_y) <= SHELL_EQUIVALENT_ENDPOINT_PIXELS &&
 		Math.abs(first.end_time - second.end_time) <= SHELL_EQUIVALENT_TIME_TICKS;
+}
+
+/* Impact records may arrive after a leading shell has already reached the
+ * struck object. Pure distance cost then prefers a younger shell, even when
+ * that younger shell has the stream's only trustworthy successor. If one
+ * known weapon stream alone has enough successor-less shells to fill an
+ * impact's multiplicity, reserve the impacts for its leading members. */
+function prefer_ordered_shell_impacts(target_groups, by_previous, by_next,
+	previous_shells) {
+	let removed = new Set();
+	for (let next_index = 0; next_index < target_groups.length; next_index++) {
+		let target_group = target_groups[next_index];
+		if (!target_group.target.terminal) continue;
+		let streams = [];
+		for (let candidate of by_next[next_index]) {
+			let shell = previous_shells[candidate.previous_index];
+			if (shell.pillbox_source_x === undefined &&
+				shell.birth_time === undefined) continue;
+			let has_successor = by_previous[candidate.previous_index]
+				.some(successor => !successor.target.terminal &&
+					unambiguous_shell_successor(successor,
+						by_next[successor.next_index], by_previous,
+						previous_shells));
+			if (has_successor) continue;
+			let stream = streams.find(item =>
+				same_known_shell_stream(item.shell, shell));
+			if (!stream) {
+				stream = { shell, candidates: [] };
+				streams.push(stream);
+			}
+			stream.candidates.push(candidate);
+		}
+		let eligible = streams.filter(stream =>
+			stream.candidates.length >= target_group.capacity);
+		if (eligible.length !== 1) continue;
+		eligible[0].candidates.sort((a, b) =>
+			compare_shell_stream_age(previous_shells[a.previous_index],
+				previous_shells[b.previous_index]));
+		let retained = new Set(eligible[0].candidates
+			.slice(0, target_group.capacity));
+		for (let candidate of by_next[next_index]) {
+			if (!retained.has(candidate)) removed.add(candidate);
+		}
+	}
+	if (!removed.size) return;
+	for (let i = 0; i < by_previous.length; i++) {
+		by_previous[i] = by_previous[i].filter(candidate =>
+			!removed.has(candidate));
+	}
+	for (let i = 0; i < by_next.length; i++) {
+		by_next[i] = by_next[i].filter(candidate => !removed.has(candidate));
+	}
 }
 
 /* Match only mutually best candidates, and only when each wins by a useful
@@ -726,6 +908,10 @@ function match_shell_snapshots(previous, next) {
 				!rejected_grazes.has(candidate));
 		}
 	}
+	for (let choices of by_previous) choices.sort((a, b) => a.cost - b.cost);
+	for (let choices of by_next) choices.sort((a, b) => a.cost - b.cost);
+	prefer_ordered_shell_impacts(target_groups, by_previous, by_next,
+		previous.shells);
 	for (let choices of by_previous) choices.sort((a, b) => a.cost - b.cost);
 	for (let choices of by_next) choices.sort((a, b) => a.cost - b.cost);
 
