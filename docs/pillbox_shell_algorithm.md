@@ -52,6 +52,8 @@ SIN[i] == (int)(128.0 * sin(i * 2*PI/256))     /* truncate toward zero, NOT roun
 **3. Fire and fly**
 
 ```c
+// [Note that only odd-number bradians e.g. 1,3,5 etc are seen for pillboxes - Ed]
+
 dir = bradian;                       /* 0..255, 0 = north, increasing clockwise */
 opp = (dir + 192) & 255;             /* sin(θ-90°) = -cos θ  →  the Y component */
 
