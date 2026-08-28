@@ -821,6 +821,45 @@ if (!fs.existsSync(log1)) {
 		impossible_pill_box.shell_positions[0][1].shells[0].next_time,
 		undefined);
 
+	let moving_tank_hit = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 137, y: 116, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(90, []),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 13 },
+			shell_list(13, [[2185, 1851]]),
+		]),
+		record(110, [shell_list(13, [[2168, 1841]])]),
+		record(120, [shell_list(13, [[2151, 1830]])]),
+		record(130, [shell_list(13, [[2134, 1819]])]),
+		record(138, [{
+			type: "tank_position", x: 131, y: 112, pixelX: 10, pixelY: 8,
+			direction: 0, inBoat: false, hidden: false, dying: false,
+			speed: 0, motion: 0,
+		}, shell_list(13, [[2121, 1811]])]),
+		record(159, [{
+			type: "tank_position", x: 130, y: 112, pixelX: 8, pixelY: 13,
+			direction: 0, inBoat: false, hidden: false, dying: false,
+			speed: 0, motion: 0,
+		}, { type: "tank_hit", direction: 13, tank: 0 }]),
+	]);
+	let moving_tank_shell = moving_tank_hit.shell_positions[0][5].shells[0];
+	check("pill shell hits the tank's interpolated square",
+		moving_tank_shell.next_terminal_event_type, "tank_hit");
+	check("moving tank impact is backdated to the orbit collision",
+		rounded(moving_tank_shell.next_time), 148.1242);
+	let moving_tank_effect = moving_tank_hit.effects.find(effect =>
+		effect.type === "tank_hit");
+	let hitbox_x = moving_tank_effect.x * 16 + moving_tank_effect.px;
+	let hitbox_y = moving_tank_effect.y * 16 + moving_tank_effect.py;
+	check("tank-hit effect follows the interpolated tank position", [
+		moving_tank_shell.next_pixel_x + 8 >= hitbox_x &&
+			moving_tank_shell.next_pixel_x + 8 < hitbox_x + 16,
+		moving_tank_shell.next_pixel_y + 8 >= hitbox_y &&
+			moving_tank_shell.next_pixel_y + 8 < hitbox_y + 16,
+	], [true, true]);
+
 	let pill_orbit_overrules_ray = BoloGame.build([
 		record(80, [{ type: "pillbox_list", items: [{
 			x: 10, y: 10, owner: 1, armour: 15, speed: 100,
