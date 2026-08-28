@@ -848,17 +848,44 @@ if (!fs.existsSync(log1)) {
 	check("pill shell hits the tank's interpolated square",
 		moving_tank_shell.next_terminal_event_type, "tank_hit");
 	check("moving tank impact is backdated to the orbit collision",
-		rounded(moving_tank_shell.next_time), 148.1242);
+		rounded(moving_tank_shell.next_time), 143.831);
 	let moving_tank_effect = moving_tank_hit.effects.find(effect =>
 		effect.type === "tank_hit");
 	let hitbox_x = moving_tank_effect.x * 16 + moving_tank_effect.px;
 	let hitbox_y = moving_tank_effect.y * 16 + moving_tank_effect.py;
 	check("tank-hit effect follows the interpolated tank position", [
-		moving_tank_shell.next_pixel_x + 8 >= hitbox_x &&
-			moving_tank_shell.next_pixel_x + 8 < hitbox_x + 16,
-		moving_tank_shell.next_pixel_y + 8 >= hitbox_y &&
-			moving_tank_shell.next_pixel_y + 8 < hitbox_y + 16,
+		moving_tank_shell.next_pixel_x + 8 >= hitbox_x - 2 &&
+			moving_tank_shell.next_pixel_x + 8 < hitbox_x + 18,
+		moving_tank_shell.next_pixel_y + 8 >= hitbox_y - 2 &&
+			moving_tank_shell.next_pixel_y + 8 < hitbox_y + 18,
 	], [true, true]);
+
+	let shell_footprint_hit = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 116, y: 122, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(100, []),
+		record(110, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 2 },
+			shell_list(2, [[1869, 1937]]),
+		]),
+		record(128, [shell_list(2, [[1892, 1910]])]),
+		record(146, [{
+			type: "tank_position", x: 119, y: 116, pixelX: 14, pixelY: 11,
+			direction: 1, inBoat: false, hidden: false, dying: false,
+			speed: 64, motion: 0,
+		}, shell_list(2, [[1916, 1883]])]),
+		record(165, [{
+			type: "tank_position", x: 120, y: 115, pixelX: 5, pixelY: 11,
+			direction: 1, inBoat: false, hidden: false, dying: false,
+			speed: 64, motion: 0,
+		}, { type: "tank_hit", direction: 2, tank: 0 }]),
+	]);
+	let footprint_shell = shell_footprint_hit.shell_positions[0][3].shells[0];
+	check("pill shell footprint catches a moving tank-box corner",
+		[footprint_shell.next_terminal_event_type,
+			footprint_shell.next_pixel_x, footprint_shell.next_pixel_y],
+		["tank_hit", 1929, 1868]);
 
 	let pill_orbit_overrules_ray = BoloGame.build([
 		record(80, [{ type: "pillbox_list", items: [{
