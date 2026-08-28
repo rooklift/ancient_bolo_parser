@@ -1,4 +1,5 @@
 > Hi! Don't bother looking at the rest of the repo, but solely at docs/pillbox-shell-orbits-compact.json
+>
 > Coarse direction 0 corresponds to north. Coordinates or vectors are given as [x, y] pairs. Negative Y values mean north of the origin, positive means south.
 > What exact shot simulation algorithm could produce the data? The code was written circa 1990 and will likely be 16-bit at best, no floating point.
 
