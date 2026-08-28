@@ -12,6 +12,10 @@ Bolo time runs at exactly 50 ticks per second.
 
 0: building, 1: river, 2: swamp, 3: crater, 4: road, 5: forest, 6: rubble, 7: grass, 8: shot building, 9: boat, 10: mined swamp, 11: mined crater, 12: mined road, 13: mined forest, 14: mined rubble, 15: mined grass
 
+Shells pass over: river, swamp, crater, road, rubble, grass (and their mined equivalents).
+
+Shells are blocked by (and do damage to): building, forest (including mined forest), shot building, boat. Also by tanks, pillboxes, and enemy bases that has armour above a certain threshold.
+
 ## File header (72 bytes, not encrypted)
 
 | offset | size | contents |
