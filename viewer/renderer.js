@@ -554,8 +554,9 @@ function draw() {
 	}
 
 	draw_bases();
+	draw_pills(true);
 	draw_shells();
-	draw_pills();
+	draw_pills(false);
 	draw_pillbox_labels();
 	draw_effects();
 	draw_men();
@@ -587,12 +588,12 @@ function draw_bases() {
 	}
 }
 
-function draw_pills() {
+function draw_pills(dead) {
 	let z = view.zoom;
 	let r = Math.max(2, z * 0.36);
 	let good = good_team();
 	for (let p of cur.pills) {
-		if (p.inTank !== null) continue;
+		if (p.inTank !== null || (p.armour === 0) !== dead) continue;
 		let cx = tile_to_screen_x(p.x) + z / 2;
 		let cy = tile_to_screen_y(p.y) + z / 2;
 		/* the art shows neutral pills as hostile; armour state 0 is the dead look */
@@ -602,7 +603,6 @@ function draw_pills() {
 			draw_obj(img, tile_to_screen_x(p.x), tile_to_screen_y(p.y));
 			continue;
 		}
-		let dead = p.armour === 0;
 		ctx.fillStyle = dead ? "#555c6a"
 			: p.owner === BoloGame.NEUTRAL ? HOSTILE_COLOR : side_color(p.owner);
 		ctx.strokeStyle = "rgba(0,0,0,0.65)";
