@@ -1029,6 +1029,11 @@ function save_initial_map() {
 }
 
 window.addEventListener("keydown", e => {
+	if (e.code === "Escape" && window.api) {
+		e.preventDefault();
+		window.api.exit_fullscreen();
+		return;
+	}
 	if (e.code === "KeyO" && (e.ctrlKey || e.metaKey) && e.shiftKey && window.api) {
 		e.preventDefault();
 		window.api.show_file();
