@@ -860,7 +860,7 @@ if (!fs.existsSync(log1)) {
 			moving_tank_shell.next_pixel_y + 8 < hitbox_y + 18,
 	], [true, true]);
 
-	let shell_footprint_hit = BoloGame.build([
+	let near_corner_tank_hit = BoloGame.build([
 		record(80, [{ type: "pillbox_list", items: [{
 			x: 116, y: 122, owner: 1, armour: 15, speed: 100,
 		}] }]),
@@ -881,10 +881,10 @@ if (!fs.existsSync(log1)) {
 			speed: 64, motion: 0,
 		}, { type: "tank_hit", direction: 2, tank: 0 }]),
 	]);
-	let footprint_shell = shell_footprint_hit.shell_positions[0][3].shells[0];
-	check("pill shell footprint catches a moving tank-box corner",
-		[footprint_shell.next_terminal_event_type,
-			footprint_shell.next_pixel_x, footprint_shell.next_pixel_y],
+	let near_corner_shell = near_corner_tank_hit.shell_positions[0][3].shells[0];
+	check("two-pixel tank-hit tolerance recovers a near-corner orbit hit",
+		[near_corner_shell.next_terminal_event_type,
+			near_corner_shell.next_pixel_x, near_corner_shell.next_pixel_y],
 		["tank_hit", 1929, 1868]);
 
 	let pill_orbit_overrules_ray = BoloGame.build([
