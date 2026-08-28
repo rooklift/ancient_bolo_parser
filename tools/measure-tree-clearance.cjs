@@ -62,9 +62,9 @@
  * accumulates contradictions and hidden-tank hits.  The right size is the
  * one that holds both down at once.
  *
- * Shell falls (`FB`) onto forest are NOT counted either way: an
+ * Shell falls (`FB`) onto forest are NOT counted either way: maybe an
  * end-of-range shell lands harmlessly on a forest square without felling
- * the tree.
+ * the tree? [UPDATE: this is probably a FALSE idea.]
  *
  * REMOVED DETECTOR, and why.  Earlier rounds also counted shells seen in
  * a model-forest square, reasoning that forest stops shells.  That count
