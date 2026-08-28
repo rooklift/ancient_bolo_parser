@@ -11,4 +11,8 @@ const expected = JSON.parse(fs.readFileSync(expected_path, "utf8"));
 
 assert.deepStrictEqual(PillboxShellOrbits.orbits, expected);
 assert.deepStrictEqual(PillboxShellOrbits.create_pillbox_shell_orbits(), expected);
+assert.deepStrictEqual(PillboxShellOrbits.internal_position_at(209, 30),
+	[-1857, -801]);
+assert.deepStrictEqual(PillboxShellOrbits.internal_position_at(207, 28),
+	[-1771, -690]);
 console.log("ok   generated pillbox shell orbits match the JSON reference");
