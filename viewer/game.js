@@ -561,7 +561,7 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 					}
 					BoloMotion.add_shell_box_terminal(shell_terminals, rec,
 						t.x * 16 + t.px, t.y * 16 + t.py, sub.direction,
-						{ event_type: "tank_hit", effect });
+						{ event_type: "tank_hit", effect, target_tank: sub.tank });
 				}
 				break;
 			}
@@ -945,7 +945,7 @@ function build(records) {
 		apply_record(s, rec, effects, chat, shell_terminals, node_joins);
 	}
 	let shell_positions = BoloMotion.build_shell_positions(records, shell_terminals,
-		pillbox_sources_by_record, tank_sources_by_record);
+		pillbox_sources_by_record, tank_sources_by_record, tank_positions);
 	let shell_births = BoloMotion.build_shell_births(shell_positions);
 	effects.sort((a, b) => a.time - b.time);
 

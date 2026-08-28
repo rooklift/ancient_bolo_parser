@@ -331,7 +331,7 @@ function pillbox_shell_successor_states(previous, next) {
 	return states;
 }
 
-function pillbox_shell_terminal_match(previous, terminal, duration) {
+function pillbox_shell_terminal_match(previous, terminal, duration, start_time) {
 	if (!previous.pillbox_orbit_states) return undefined;
 	let matches = [];
 	for (let previous_state of previous.pillbox_orbit_states) {
@@ -351,19 +351,40 @@ function pillbox_shell_terminal_match(previous, terminal, duration) {
 		for (let step = first_step;
 			step <= orbit.positions.length; step++) {
 			let position = pillbox_orbit_position(orbit, step);
-			let enters_terminal;
+			let pixel_x = previous.pillbox_source_x + position[0];
+			let pixel_y = previous.pillbox_source_y + position[1];
+			let distance = Math.hypot(pixel_x - previous.pixel_x,
+				pixel_y - previous.pixel_y);
+			let enters_terminal, hitbox_pixel_x, hitbox_pixel_y;
 			if (terminal.type === "point") {
-				enters_terminal = previous.pillbox_source_x + position[0] ===
-					terminal.pixel_x &&
-					previous.pillbox_source_y + position[1] === terminal.pixel_y;
+				enters_terminal = pixel_x === terminal.pixel_x &&
+					pixel_y === terminal.pixel_y;
 			} else {
-				let centre_x = previous.pillbox_source_x + position[0] + 8;
-				let centre_y = previous.pillbox_source_y + position[1] + 8;
-				enters_terminal = centre_x >= terminal.min_x && centre_x < terminal.max_x &&
-					centre_y >= terminal.min_y && centre_y < terminal.max_y;
+				let min_x = terminal.min_x, min_y = terminal.min_y;
+				/* A tank-hit packet gives the tank's eventual recorded box. The
+				 * shell can reach it earlier while the tank is moving, so test this
+				 * exact orbit point against the tank track at its arrival time. */
+				if (terminal.event_type === "tank_hit" && terminal.tank_track) {
+					let arrival_time = start_time +
+						distance / SHELL_SPEED_PIXELS_PER_TICK;
+					let tank_position = track_pixel_at(terminal.tank_track, arrival_time);
+					if (tank_position) {
+						min_x = tank_position.pixel_x;
+						min_y = tank_position.pixel_y;
+					}
+					hitbox_pixel_x = min_x;
+					hitbox_pixel_y = min_y;
+				}
+				let centre_x = pixel_x + 8;
+				let centre_y = pixel_y + 8;
+				enters_terminal = centre_x >= min_x && centre_x < min_x + 16 &&
+					centre_y >= min_y && centre_y < min_y + 16;
 			}
 			if (enters_terminal) {
-				matches.push({ bradian: orbit.bradian, step, position });
+				matches.push({
+					bradian: orbit.bradian, step, position, distance,
+					hitbox_pixel_x, hitbox_pixel_y,
+				});
 				break;
 			}
 		}
@@ -372,8 +393,10 @@ function pillbox_shell_terminal_match(previous, terminal, duration) {
 	for (let match of matches) {
 		match.pixel_x = previous.pillbox_source_x + match.position[0];
 		match.pixel_y = previous.pillbox_source_y + match.position[1];
-		match.distance = Math.hypot(match.pixel_x - previous.pixel_x,
-			match.pixel_y - previous.pixel_y);
+		if (match.distance === undefined) {
+			match.distance = Math.hypot(match.pixel_x - previous.pixel_x,
+				match.pixel_y - previous.pixel_y);
+		}
 		match.cost = Math.abs(match.distance - expected_distance);
 	}
 	matches = matches.filter(match =>
@@ -387,6 +410,8 @@ function pillbox_shell_terminal_match(previous, terminal, duration) {
 		pixel_y: best.pixel_y,
 		distance: best.distance,
 		graze_distance: 0,
+		hitbox_pixel_x: best.hitbox_pixel_x,
+		hitbox_pixel_y: best.hitbox_pixel_y,
 		pillbox_orbit_states: matches.map(match => ({
 			bradian: match.bradian, step: match.step,
 		})),
@@ -483,9 +508,10 @@ function shell_ray_box_endpoint(shell, box) {
 	return closest;
 }
 
-function shell_terminal_match(previous, terminal, duration) {
+function shell_terminal_match(previous, terminal, duration, start_time) {
 	if (terminal.direction !== null && terminal.direction !== previous.direction) return null;
-	let pillbox_match = pillbox_shell_terminal_match(previous, terminal, duration);
+	let pillbox_match = pillbox_shell_terminal_match(previous, terminal, duration,
+		start_time);
 	if (pillbox_match !== undefined) return pillbox_match;
 	let expected_distance = duration * SHELL_SPEED_PIXELS_PER_TICK;
 	let endpoint, angle_error = 0;
@@ -952,7 +978,8 @@ function match_shell_snapshots(previous, next) {
 			let match;
 			if (target.terminal) {
 				if (duration > MAX_POSITION_INTERPOLATION_TICKS) continue;
-				match = shell_terminal_match(previous.shells[previous_index], target, duration);
+				match = shell_terminal_match(previous.shells[previous_index], target,
+					duration, previous.time);
 			} else {
 				match = shell_match_cost(previous.shells[previous_index], target, duration);
 				if (match) {
@@ -1082,7 +1109,15 @@ function match_shell_snapshots(previous, next) {
 				let terminal = group.terminals[i];
 				terminal.match_time = best.end_time;
 				old_shell.next_terminal_event_type = terminal.event_type;
-				if (terminal.effect) terminal.effect.time = best.end_time;
+				if (terminal.effect) {
+					terminal.effect.time = best.end_time;
+					if (best.hitbox_pixel_x !== undefined) {
+						terminal.effect.x = Math.floor(best.hitbox_pixel_x / 16);
+						terminal.effect.y = Math.floor(best.hitbox_pixel_y / 16);
+						terminal.effect.px = best.hitbox_pixel_x - terminal.effect.x * 16;
+						terminal.effect.py = best.hitbox_pixel_y - terminal.effect.y * 16;
+					}
+				}
 			}
 			if (best.target.terminal) continue;
 
@@ -1114,7 +1149,15 @@ function match_shell_snapshots(previous, next) {
  * especially convincing false identities. A possible migration therefore
  * renders conservatively as one shell disappearing and another appearing. */
 function build_shell_positions(records, terminals, pillbox_sources_by_record,
-	tank_sources_by_record) {
+	tank_sources_by_record, tank_positions = null) {
+	if (tank_positions) {
+		for (let terminal of terminals) {
+			if (terminal.event_type === "tank_hit" &&
+				terminal.target_tank !== undefined) {
+				terminal.tank_track = tank_positions[terminal.target_tank];
+			}
+		}
+	}
 	let snapshots = Array.from({ length: 16 }, () => []);
 	let terminals_by_record = new Map();
 	for (let terminal of terminals) {
