@@ -92,10 +92,11 @@ if (!fs.existsSync(log1)) {
 			if (shell.next_time !== undefined) pill_burst.matched++;
 		}
 	}
-	/* Exact pill orbits expose six geometrically plausible links in this
-	 * deliberately dense stream which are not positions on the shot's track. */
-	check("fixture pillbox burst rejects off-orbit identities",
-		[pill_burst.total, pill_burst.matched], [25, 19]);
+	/* Non-head coordinates in this dense stream are reconstructed from lossy
+	 * chained offsets. Their bounded orbit positions recover all six links
+	 * which a strict comparison incorrectly rejected. */
+	check("fixture pillbox burst accepts quantised orbit positions",
+		[pill_burst.total, pill_burst.matched], [25, 25]);
 
 	// Mid-game teams: the 2v2 seen in the chat (players 0+1 vs 2+3).
 	const mid = BoloGame.state_at(game, Math.floor((game.t0 + game.t1) / 2)).state;
@@ -343,6 +344,8 @@ if (!fs.existsSync(log1)) {
 	}, null, null);
 	check("chained shell offsets", st.shells[0].map(sh => sh.x), [100, 101, 102]);
 	check("shell-list direction applies to every shell", st.shells[0].map(sh => sh.direction), [4, 4, 4]);
+	check("chained shell offsets accumulate positional uncertainty",
+		st.shells[0].map(sh => sh.position_uncertainty), [0, 1, 2]);
 }
 
 // Shell identities are inferred conservatively between one client's adjacent
@@ -756,6 +759,45 @@ if (!fs.existsSync(log1)) {
 	check("pill shell rejects a nearby point absent from every surviving orbit",
 		impossible_pill_orbit.shell_positions[0][1].shells[0].next_time,
 		undefined);
+
+	/* Only a shell list's head has an absolute pixel coordinate. Later
+	 * members are reconstructed from quantised, chained offsets, so the nth
+	 * member can differ from its exact orbit point by up to n pixels per
+	 * axis. These two streams are bradians 209 and 207 respectively; the
+	 * second is deliberately one pixel off at every restatement. */
+	let quantised_pill_orbits = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 10, y: 10, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(90, []),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 13 },
+			{ type: "pillbox_fires", pillbox: 0, direction: 13 },
+			shell_list(13, [[145, 153], [144, 153]]),
+		]),
+		record(110, [shell_list(13, [[127, 145], [125, 146]])]),
+		record(120, [shell_list(13, [[109, 138], [107, 138]])]),
+		record(130, [shell_list(13, [[91, 130], [88, 131]])]),
+		record(140, [shell_list(13, [[72, 122], [70, 124]])]),
+		record(150, [shell_list(13, [[54, 114], [52, 117]])]),
+		record(160, [shell_list(13, [[40, 108], [37, 111]])]),
+		record(162, [
+			{ type: "shell_falls", x: 2, y: 6, pixel: 0xa4 },
+			{ type: "shell_falls", x: 2, y: 6, pixel: 0xf2 },
+		]),
+	]);
+	let quantised_streams = quantised_pill_orbits.shell_positions[0][7].shells;
+	check("quantised chained pill positions retain their exact orbits",
+		quantised_streams.map(shell => shell.pillbox_orbit_states), [
+			[{ bradian: 209, step: 31 }],
+			[{ bradian: 207, step: 31 }],
+		]);
+	check("quantised pill streams reach their distinct range expiries",
+		quantised_streams.map(shell => [shell.next_terminal,
+			shell.next_pixel_x, shell.next_pixel_y]), [
+			[true, 36, 106],
+			[true, 34, 111],
+		]);
 
 	let viable_pill_terminal = BoloGame.build([
 		record(80, [{ type: "pillbox_list", items: [{
