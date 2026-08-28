@@ -52,9 +52,7 @@ SIN[i] == (int)(128.0 * sin(i * 2*PI/256))     /* truncate toward zero, NOT roun
 **3. Fire and fly**
 
 ```c
-// [Note that only odd-number bradians e.g. 1,3,5 etc are seen for pillboxes - Ed]
-
-dir = bradian;                       /* 0..255, 0 = north, increasing clockwise */
+dir = bradian;                       /* 0..255, 0 = north, clockwise; always ODD here */
 opp = (dir + 192) & 255;             /* sin(θ-90°) = -cos θ  →  the Y component */
 
 x = SCALE(dir, 128);   y = SCALE(opp, 128);   /* muzzle: 128 units = half a tile */
@@ -88,6 +86,6 @@ That is exactly `(T + 1) >> 1` on a *signed* table value with an arithmetic shif
 - `/2` instead of `>>1` — C's truncating division gives −61 where bradian 9 needs vy = −62;
 - negating *after* the shift (`-SCALE(dir+64, ...)`) — that yields −64 where bradian 1 needs −63. The negation has to happen at the table lookup, which is what a quarter-table-with-sign-fixup does naturally.
 
-The double reduction also pins the table down: the spawn offset is `SIN[dir]` and the velocity is `(SIN[dir]+1)>>1`, and the two sum to `SIN[dir]`, so **every table entry the file touches is uniquely recoverable** — all 128 of them come out equal to `trunc(128·sinθ)`, with `SIN[256-i] == -SIN[i]` and `SIN[128-i] == SIN[i]` holding exactly. (Only odd indices are exercised by this file; the 33 even quarter-table entries, `SIN[64] = 128` included, are inferred from the formula.)
+Because each entry is used twice, at two different scales, it is also pinned down exactly. The velocity on its own is ambiguous: `(T+1)>>1` maps both `T = 2v−1` and `T = 2v` to the same `v`. The spawn offset is the *unhalved* entry `SIN[dir]`, so those two candidates start one world unit apart and their 33 rendered samples diverge — across all 256 axis-trajectories in the file the wrong twin is always rejected. Every recovered entry equals `trunc(128·sinθ)`, and `SIN[256-i] == -SIN[i]` and `SIN[128-i] == SIN[i]` hold exactly. Since `dir` is always odd here, both lookups (`dir` and `dir+192`) land on odd indices, so those 128 entries are the entire set this code path can ever reach; the even ones, `SIN[64] = 128` included, are never touched.
 
 The tidy part is that `dist = 128` makes `SCALE(dir, 128) == SIN[dir]` exactly, so the muzzle offset needs no rounding of its own — spawn and per-tick motion come from the same one-line helper, which is why the spawn looks "unrounded" and the velocity "rounded".
