@@ -1,4 +1,4 @@
-/* Build the committed, human-diffable account of every interpolation choice
+/* Build a human-diffable account of every interpolation choice
  * made for the sample replay. The report deliberately describes the resolved
  * tracks, rather than implementation steps, so refactors may change how a
  * choice is reached without changing the expected result.
