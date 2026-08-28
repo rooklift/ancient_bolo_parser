@@ -65,13 +65,13 @@ if (!fs.existsSync(log1)) {
 			}
 		}
 	}
-	let tank_births = game.shell_births.reduce((count, births) =>
+	let synthetic_births = game.shell_births.reduce((count, births) =>
 		count + births.length, 0);
 	check("fixture shell interpolation remains broadly effective", [
 		shell_metrics.total,
 		shell_metrics.matched >= 67000,
 		shell_metrics.falls >= 8000,
-		tank_births >= 8500,
+		synthetic_births >= 8500,
 	], [73753, true, true, true]);
 	check("fixture impact effects follow matched shell arrival", [
 		matched_effect_terminals.size >= 18000,
@@ -722,6 +722,23 @@ if (!fs.existsSync(log1)) {
 		[[10.75, 10.5, 4]]);
 	check("synthetic muzzle segment hands off at the real restatement",
 		BoloGame.shell_birth_positions_at(tank_muzzle, 0, 100), []);
+
+	let pillbox_muzzle = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 10, y: 10, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(90, []),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 4 },
+			shell_list(4, [[167, 160]]),
+		]),
+	]);
+	check("pillbox shot starts at its source before its first restatement",
+		BoloGame.shell_birth_positions_at(pillbox_muzzle, 0, 98).map(shell =>
+			[rounded(shell.x), rounded(shell.y), shell.direction]),
+		[[10.6875, 10.5, 4]]);
+	check("synthetic pillbox segment hands off at the real restatement",
+		BoloGame.shell_birth_positions_at(pillbox_muzzle, 0, 100), []);
 
 	let tank_refinement = BoloGame.build([
 		record(90, [{

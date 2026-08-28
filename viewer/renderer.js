@@ -554,10 +554,10 @@ function draw() {
 	}
 
 	draw_bases();
+	draw_shells();
 	draw_pills();
 	draw_pillbox_labels();
 	draw_effects();
-	draw_shells();
 	draw_men();
 	draw_tanks();
 	update_coordinate_debug();
