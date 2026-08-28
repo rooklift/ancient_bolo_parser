@@ -8,7 +8,7 @@
 		"bolodump": "bin/dump.js"
 	},
 	"scripts": {
-		"test": "node test/test.js && node test/test-viewer.cjs && node test/test-robustness.cjs",
+		"test": "node test/test.js && node test/test-viewer.cjs && node test/test-robustness.cjs && node test/test-pillbox_shell_orbits.cjs",
 		"build:interpolation-report": "node tools/build-interpolation-report.cjs"
 	},
 	"engines": {

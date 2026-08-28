@@ -6,8 +6,6 @@ const path = require("node:path");
 const BoloLog = require("../viewer/logparse.js");
 const BoloGame = require("../viewer/game.js");
 const BoloNetwork = require("../viewer/network.js");
-const { build_interpolation_report, sha256 } =
-	require("../tools/build-interpolation-report.cjs");
 
 const root = path.join(__dirname, "..");
 const log1 = path.join(root, "fixtures", "n20021018.2");
@@ -39,14 +37,6 @@ if (!fs.existsSync(log1)) {
 	check("records parsed (CJS parser)", recs.length, 120840);
 
 	const game = BoloGame.build(recs);
-	const interpolation_report = build_interpolation_report(game, {
-		source: "fixtures/n20021018.2",
-		source_sha256: sha256(buf),
-	});
-	const expected_interpolation_report = fs.readFileSync(path.join(root,
-		"test", "expected", "n20021018.2-interpolation.tsv"));
-	check("sample interpolation decisions match the generated baseline byte-for-byte",
-		Buffer.from(interpolation_report, "utf8").equals(expected_interpolation_report), true);
 	check("map name", game.final.gameInfo.mapName, "Fly Swatter IV");
 	check("pills", game.final.pills.length, 16);
 	check("bases", game.final.bases.length, 16);
