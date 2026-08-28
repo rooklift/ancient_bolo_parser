@@ -123,6 +123,9 @@ function build_menu() {
 				{ label: "Dev tools", role: "toggleDevTools" },
 			],
 		},
+		{
+			label: app.getVersion(),
+		},
 	];
 	Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
