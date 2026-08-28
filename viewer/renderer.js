@@ -398,7 +398,7 @@ function go_to_boundary(at_end) {
 }
 
 function fmt_time(ticks) {
-	let s = Math.max(0, Math.round((ticks - game.t0) / TPS));
+	let s = Math.max(0, Math.floor((ticks - game.t0) / TPS));
 	return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
