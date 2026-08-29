@@ -579,8 +579,14 @@ whose timing is purely cosmetic. Deltas against `ad2168d`:
 
 * `terminal_links_rushed` 69,351 -- down from 79,521, a 12.8% bite.
   10,170 falls that used to slam into their splash now draw the whole
-  final leg at 2 px/tick, splash retimed to the true arrival, fall
-  segments carrying the sprite past the record. This lands the class
+  final leg at 2 px/tick, splash retimed to the drawn shell's arrival,
+  fall segments carrying the sprite past the record. To be clear about
+  what is being claimed: the sender-side splash necessarily happened
+  *before* its record arrived, so a lead-case retime moves the splash
+  *further* from sender truth, not closer -- what it buys is scene
+  consistency, the splash landing where and when the drawn shell does,
+  on a drawn timeline already built from the restatement clock that was
+  lying in the first place. This lands the class
   *below* the 76,597 of the pre-lead-fix baseline: the +2,924 that
   `ad2168d` added are repaid two and a half times over.
 * The falls share of the class turns out to be ~13%. The remaining

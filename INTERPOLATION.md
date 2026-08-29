@@ -175,7 +175,12 @@ shell from packet state — but a *shell fall* has no coupled state, so its
 arrival stays on the 2 px/tick schedule even past the record: the splash
 moves with it, and fall segments (the mirror of birth segments) carry the
 sprite from the moment state loses it to the retimed splash. This is what
-keeps early-record falls from drawing as rushed final links.
+keeps early-record falls from drawing as rushed final links. Note the
+retime is a knowing lie about the splash's time, not a recovery of it —
+the sender-side fall happened before its record arrived — accepted
+because the drawn timeline is already built from the restatement clock,
+and a splash coinciding with the drawn shell beats a splash the shell
+visibly hasn't reached.
 
 Between matching and drawing there is a smoothing pass: jittered on-path
 restatements are *absorbed* into their chain (with a temporal gate so a
