@@ -683,49 +683,93 @@ function shell_ray_box_endpoint(shell, box) {
 	return closest;
 }
 
+/* A non-head shell-list member is reconstructed by adding independently
+ * truncated offsets. Its reported coordinate is therefore a one-sided lower
+ * bound, not an exact point. Pillbox shells resolve that bound against their
+ * discrete orbits above; for a tracked tank shell, retain every integer point
+ * in the small bound and derive the corresponding heading from the fixed tank
+ * origin. This is used only when testing an authoritative terminal, where
+ * treating the lower bound as exact can turn a real corner hit into a miss. */
+function ordinary_shell_position_variants(shell) {
+	let uncertainty = shell.birth_time === undefined ? 0 :
+		Math.max(0, Math.floor(shell.position_uncertainty || 0));
+	let variants = [];
+	for (let offset_x = 0; offset_x <= uncertainty; offset_x++) {
+		for (let offset_y = 0; offset_y <= uncertainty; offset_y++) {
+			let variant = {
+				pixel_x: shell.pixel_x + offset_x,
+				pixel_y: shell.pixel_y + offset_y,
+				heading_x: shell.heading_x,
+				heading_y: shell.heading_y,
+				bounded_position: uncertainty > 0,
+			};
+			if (shell.heading_origin_x !== undefined) {
+				let delta_x = variant.pixel_x - shell.heading_origin_x;
+				let delta_y = variant.pixel_y - shell.heading_origin_y;
+				let distance = Math.hypot(delta_x, delta_y);
+				if (distance > 0) {
+					variant.heading_x = delta_x / distance;
+					variant.heading_y = delta_y / distance;
+				}
+			}
+			variants.push(variant);
+		}
+	}
+	return variants;
+}
+
 function shell_terminal_match(previous, terminal, duration, start_time) {
 	if (terminal.direction !== null && terminal.direction !== previous.direction) return null;
 	let pillbox_match = pillbox_shell_terminal_match(previous, terminal, duration,
 		start_time);
 	if (pillbox_match !== undefined) return pillbox_match;
 	let expected_distance = duration * SHELL_SPEED_PIXELS_PER_TICK;
-	let endpoint, angle_error = 0;
-	if (terminal.type === "box") {
-		/* A tile/object event supplies timing and bounds, not an aim point.
-		 * Without an already learned fine heading, centring the 4-bit sector
-		 * would merely disguise a guess as smooth motion. */
-		endpoint = shell_ray_box_endpoint(previous, terminal);
-		if (!endpoint) return null;
-	} else {
-		let delta_x = terminal.pixel_x - previous.pixel_x;
-		let delta_y = terminal.pixel_y - previous.pixel_y;
-		let distance = Math.hypot(delta_x, delta_y);
-		if (distance === 0) return null;
-		let heading_x = previous.heading_x;
-		let heading_y = previous.heading_y;
-		if (heading_x === undefined) {
-			let angle = previous.direction * Math.PI / 8;
-			heading_x = Math.sin(angle);
-			heading_y = -Math.cos(angle);
+	let matches = [];
+	for (let variant of ordinary_shell_position_variants(previous)) {
+		let endpoint, angle_error = 0;
+		if (terminal.type === "box") {
+			/* A tile/object event supplies timing and bounds, not an aim point.
+			 * Without an already learned fine heading, centring the 4-bit sector
+			 * would merely disguise a guess as smooth motion. */
+			endpoint = shell_ray_box_endpoint(variant, terminal);
+			if (!endpoint) continue;
+		} else {
+			let delta_x = terminal.pixel_x - variant.pixel_x;
+			let delta_y = terminal.pixel_y - variant.pixel_y;
+			let distance = Math.hypot(delta_x, delta_y);
+			if (distance === 0) continue;
+			let heading_x = variant.heading_x;
+			let heading_y = variant.heading_y;
+			if (heading_x === undefined) {
+				let angle = previous.direction * Math.PI / 8;
+				heading_x = Math.sin(angle);
+				heading_y = -Math.cos(angle);
+			}
+			let forward = delta_x * heading_x + delta_y * heading_y;
+			let lateral = Math.abs(delta_x * heading_y - delta_y * heading_x);
+			if (forward <= 0) continue;
+			angle_error = Math.atan2(lateral, forward);
+			if (angle_error > SHELL_DIRECTION_TOLERANCE) continue;
+			endpoint = {
+				pixel_x: terminal.pixel_x, pixel_y: terminal.pixel_y, distance,
+			};
 		}
-		let forward = delta_x * heading_x + delta_y * heading_y;
-		let lateral = Math.abs(delta_x * heading_y - delta_y * heading_x);
-		if (forward <= 0) return null;
-		angle_error = Math.atan2(lateral, forward);
-		if (angle_error > SHELL_DIRECTION_TOLERANCE) return null;
-		endpoint = {
-			pixel_x: terminal.pixel_x, pixel_y: terminal.pixel_y, distance,
-		};
+		if (endpoint.distance > expected_distance +
+			SHELL_MATCH_ERROR_PIXELS) continue;
+		matches.push({
+			cost: Math.abs(endpoint.distance - expected_distance) +
+				angle_error * expected_distance +
+				(endpoint.graze_distance || 0),
+			pixel_x: endpoint.pixel_x,
+			pixel_y: endpoint.pixel_y,
+			distance: endpoint.distance,
+			graze_distance: endpoint.graze_distance || 0,
+			bounded_position: variant.bounded_position,
+		});
 	}
-	if (endpoint.distance > expected_distance + SHELL_MATCH_ERROR_PIXELS) return null;
-	return {
-		cost: Math.abs(endpoint.distance - expected_distance) +
-			angle_error * expected_distance + (endpoint.graze_distance || 0),
-		pixel_x: endpoint.pixel_x,
-		pixel_y: endpoint.pixel_y,
-		distance: endpoint.distance,
-		graze_distance: endpoint.graze_distance || 0,
-	};
+	if (!matches.length) return null;
+	matches.sort((first, second) => first.cost - second.cost);
+	return matches[0];
 }
 
 function same_shell_terminal(first, second) {
@@ -1257,7 +1301,8 @@ function match_shell_snapshots(previous, next) {
 	let rejected_grazes = new Set();
 	for (let choices of by_previous) {
 		for (let candidate of choices) {
-			if (!(candidate.graze_distance > 0)) continue;
+			if (!(candidate.graze_distance > 0) ||
+				candidate.bounded_position) continue;
 			let previous_has_exact = choices.some(alternative =>
 				!(alternative.graze_distance > 0));
 			let target_has_exact = by_next[candidate.next_index].some(alternative =>
@@ -1305,13 +1350,24 @@ function match_shell_snapshots(previous, next) {
 				by_next[candidate.next_index], by_previous, previous.shells);
 		});
 		if (!choices.length) continue;
-		let cheapest = choices[0];
+		/* A mutually best real restatement is stronger evidence than a
+		 * directionless impact for every known weapon stream. This was
+		 * historically needed for dense pill bursts; bounded tank coordinates
+		 * expose the same ambiguity when a shot passes close to an adjacent
+		 * object before hitting the next one. */
+		let previous_shell = previous.shells[previous_index];
+		let bounded_tank_terminal = previous_shell.birth_time !== undefined &&
+			choices.some(candidate => candidate.target.terminal &&
+				candidate.bounded_position);
+		let trusted_successor = choices.find(candidate =>
+			!candidate.target.terminal &&
+			(previous_shell.pillbox_source_x !== undefined ||
+				bounded_tank_terminal) &&
+			unambiguous_shell_successor(candidate,
+				by_next[candidate.next_index], by_previous, previous.shells));
+		let cheapest = trusted_successor || choices[0];
 		let equivalents = choices.filter(candidate =>
 			equivalent_shell_candidates(cheapest, candidate));
-		let trusted_successor = !cheapest.target.terminal &&
-			previous.shells[previous_index].pillbox_source_x !== undefined &&
-			unambiguous_shell_successor(cheapest, by_next[cheapest.next_index],
-				by_previous, previous.shells);
 		let previous_alternative = choices.find(candidate =>
 			!equivalent_shell_candidates(cheapest, candidate) &&
 			!(trusted_successor && candidate.target.terminal));
