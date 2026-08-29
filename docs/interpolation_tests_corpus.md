@@ -21,7 +21,7 @@ The corpus is the private 443-log set described in `FORMAT.md` (2001-2005, all
 Bolo 0.99.7), read recursively. It does not live in this repository and its
 location is deliberately not recorded anywhere in the tree. The measurement
 tools find it through `corpus.json` at the repo root, which is gitignored --
-copy `corpus.example.json` to it and set `"root"`, or set `BOLO_CORPUS` in the
+create it as `{"root": "/path/to/logs"}`, or set `BOLO_CORPUS` in the
 environment. **An agent re-running this should ask the user where the corpus
 is** rather than guessing, since `corpus.json` is absent from a fresh clone.
 The three logs known to be hacked or broken are excluded.
