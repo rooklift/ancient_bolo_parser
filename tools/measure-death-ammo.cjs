@@ -72,7 +72,7 @@ const BoloGame = require(path.join(__dirname, "..", "viewer", "game.js"));
 
 const args = process.argv.slice(2).filter(a => !a.startsWith("--"));
 const ALL_GAMETYPES = process.argv.includes("--all-gametypes");
-const ROOT = args[0] || "C:/Users/Owner/__DOCS/Bolo Archives/Nemokrad's Bolo logs";
+const ROOT = args[0] || require("./corpus.cjs").corpus_root();
 
 const MAP_SIZE = 256;
 const MAX_SHELLS = 40;          /* Brain.h: BYTE shells; // Range 0-40 */

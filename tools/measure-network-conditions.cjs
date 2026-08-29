@@ -48,7 +48,7 @@ const BoloLog = require(path.join(__dirname, "..", "viewer", "logparse.js"));
 const BoloNetwork = require(path.join(__dirname, "..", "viewer", "network.js"));
 
 const args = process.argv.slice(2).filter(a => !a.startsWith("--"));
-const ROOT = args[0] || "C:/Users/Owner/__DOCS/Bolo Archives/Nemokrad's Bolo logs";
+const ROOT = args[0] || require("./corpus.cjs").corpus_root();
 const BLOCK = 1500;             /* ticks per split-half block (30 s) */
 const MIN_RECORDS = 2000;       /* below this a log says too little to score */
 const MIN_TICKS = 3000;         /* and likewise below a minute of play */

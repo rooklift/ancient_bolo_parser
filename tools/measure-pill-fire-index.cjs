@@ -30,7 +30,7 @@ const BoloLog = require(path.join(__dirname, "..", "viewer", "logparse.js"));
 const BoloGame = require(path.join(__dirname, "..", "viewer", "game.js"));
 
 const args = process.argv.slice(2).filter(a => !a.startsWith("--"));
-const ROOT = args[0] || "C:/Users/Owner/__DOCS/Bolo Archives/Nemokrad's Bolo logs";
+const ROOT = args[0] || require("./corpus.cjs").corpus_root();
 const WINDOW = 25;      /* ticks to wait for the shot to be restated */
 const NEAR = 48;        /* px: close enough to call the shot that pill's */
 
