@@ -186,8 +186,8 @@ trades between shell continuity and terminal matching.
 
 - **Tank shots are harder, but perhaps not hopeless.** They fire from a
   moving, interpolated origin at an unknown tick, so there is no finite
-  table of absolute positions to prune against. But the heading is
-  presumably at most one of the 256 integer bradians (pillboxes use only
+  table of absolute positions to prune against. But emulation evidence
+  says tanks can shoot at the 256 integer bradians (pillboxes use only
   the odd 128), most likely fed through the same sine-table simulation —
   the half-tile muzzle offset observed for tank shots supports the shared
   code path. If so, the per-tick velocity is one of 256 known integer
