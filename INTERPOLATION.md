@@ -202,20 +202,21 @@ trades between shell continuity and terminal matching.
   all three headline metrics to new records at once.
 - **Cross-client identity is never inferred.** A simulation migration draws
   as pop-out/pop-in by design.
-- **Matching is greedy and local** — pairs of consecutive snapshots, mutual
-  best with margins. Issue #15 proposes the alternative: a *global maximum
-  parsimony* analysis assigning every shot-creation event (5d/F4) to a
-  shot-fate event (FB/FC/9n/An/7T) over the whole file, then fitting the
-  observed shell restatements to those constructed paths. Feasibility has
-  been probed (`tools/probe-shot-fate-parsimony.cjs`): building the
-  constraint-pruned residual candidate graph costs ~0.4s on the fixture
-  against ~3s of parsing and matching already paid, and it decomposes
-  into hundreds of independent components of at most a few dozen nodes,
-  so solver cost is a non-issue. The probe also shows the residue's
-  largest single cause is *same-client chain fragmentation* — the
-  conservative matcher splitting one flight into an origin-less and a
-  fate-less fragment — with genuine cross-client migration contributing
-  almost nothing under the same constraints.
+- **Matching is greedy and local, with a global backstop.** The primary
+  matcher works on pairs of consecutive snapshots, mutual best with
+  margins. What it leaves behind now goes through the safe core of issue
+  #15's *maximum parsimony* idea: a stitching pass reconnects chain
+  fragments (the residue's largest cause — margin failures and lag gaps,
+  not cross-client migration, which measurement found essentially never
+  happens), and a per-component maximum-flow pass
+  (`resolve_residual_shell_fates`) makes every *forced* assignment among
+  unaccounted chain ends, unconsumed shots, origin-less starts, and
+  unexplained impacts — an assignment is applied only when every maximum
+  assignment agrees on it. Impacts whose shell was never observed get
+  their firing pill or tank named (`unseen_*_source`), the beginnings of
+  shooter attribution. What remains genuinely ambiguous is left
+  unexplained by design; a full cost-ranked assignment over the ambiguous
+  remainder is the open frontier of #15.
 - Collision inference against terrain/objects currently only enters through
   terminal events; the orbit tables could in principle also *predict* where
   an unterminated pillbox shell must stop, which is only partially
