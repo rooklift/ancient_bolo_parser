@@ -604,10 +604,13 @@ whose timing is purely cosmetic. Deltas against `ad2168d`:
   the fixture; recorded here so the coupling is on the books.
   **Removed at `70b1227`**: pairwise candidates now carry the capped
   `end_time` for decisions and a separate `draw_end_time` for the
-  renderer, so a re-run's report should be byte-identical to the
-  `ad2168d` run (giving the wiggle back) while the audit keeps the
-  rushed-terminal win. The residual path needed no split -- the flow
-  solver has decided everything before an assignment is applied.
+  renderer. The residual path needed no split -- the flow solver has
+  decided everything before an assignment is applied. Confirmed by
+  re-run at `70b1227`: the report is byte-identical to the `ad2168d`
+  run (the wiggle given back, terminals 1,614,645, `shell_falls`
+  619,133), the audit's link structure reverts with it, and
+  `terminal_links_rushed` holds at 69,351 -- the drawing win survives
+  the decision revert in full.
 
 ## Findings
 
