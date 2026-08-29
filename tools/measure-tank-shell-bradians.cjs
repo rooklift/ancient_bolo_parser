@@ -192,9 +192,16 @@ function extract_chains(game_result) {
 						if (claimed.has(j)) continue;
 						let shell = snapshot.shells[j];
 						if (!shell.matched_from_previous ||
-							shell.direction !== old_shell.direction ||
-							shell.pixel_x !== old_shell.next_pixel_x ||
-							shell.pixel_y !== old_shell.next_pixel_y) continue;
+							shell.direction !== old_shell.direction) continue;
+						/* The recorded endpoint is the successor's raw pixel,
+						 * or its recovered exact coordinate when the engine
+						 * carries bradian tracking. */
+						let raw = shell.pixel_x === old_shell.next_pixel_x &&
+							shell.pixel_y === old_shell.next_pixel_y;
+						let exact = shell.tank_exact_pixel_x !== undefined &&
+							shell.tank_exact_pixel_x === old_shell.next_pixel_x &&
+							shell.tank_exact_pixel_y === old_shell.next_pixel_y;
+						if (!raw && !exact) continue;
 						claimed.add(j);
 						chain.pill = chain.pill || shell.pillbox_source_x !== undefined;
 						if (chain.obs.length < MAX_CHAIN_OBSERVATIONS) {

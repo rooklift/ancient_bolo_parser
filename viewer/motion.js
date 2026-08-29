@@ -50,6 +50,33 @@ for (let orbit of PILLBOX_ORBITS) {
 	PILLBOX_ORBITS_BY_DIRECTION[orbit.coarse_direction].push(orbit);
 }
 
+/* Tank shells run the same integer simulation as pillbox shells, at all 256
+ * bradians (docs/tank_shell_bradians.md): one velocity-table step every two
+ * ticks, positions rendered by an arithmetic >>4. Unlike a pillbox, the
+ * firing tank's sub-pixel position and exact firing tick are unknown, so a
+ * tank-born shell carries no absolute track. Instead it carries hypothesis
+ * states, one per candidate bradian, each bounding the shell's exact
+ * 1/16-pixel coordinate at its latest restatement; a continuation must
+ * shift some state by a whole number of velocity steps into the observed
+ * pixel's bounds, and the boxes narrow as the chain grows. */
+const TANK_SHELL_VELOCITIES = Array.from({ length: 256 }, (_, bradian) => [
+	PillboxShellOrbits.scale(bradian, 64),
+	PillboxShellOrbits.scale((bradian + 192) & 0xff, 64),
+]);
+/* Corpus-measured gate: the true bradian sits in the direction nibble's
+ * round-to-nearest window, plus up to four steps of skew either side from
+ * the nibble and the bradian being sampled a tick or two apart on a
+ * turning tank. */
+const TANK_BRADIAN_MIN_OFFSET = -12;
+const TANK_BRADIAN_MAX_OFFSET = 11;
+/* Update-count tolerance per link. Each link re-anchors at the previous
+ * restatement, so a sender whose whole simulation lags stays inside the
+ * window; only jitter within one link has to fit. Two updates equals the
+ * matcher's existing eight-pixel distance tolerance, and measured best on
+ * the fixture: one update vetoed a handful of real, merely-laggy links. */
+const TANK_BRADIAN_UPDATE_JITTER = 2;
+const TICKS_PER_SHELL_UPDATE = 2;
+
 /* Standalone map/node records carry no player state or motion. */
 const MAP_NODE_TYPES = new Set([
 	"node_id", "map_run", "map_terrain_request", "map_header_request",
@@ -292,8 +319,13 @@ function shell_match_cost(previous, next, duration) {
 		};
 	}
 
-	let delta_x = next.pixel_x - previous.pixel_x;
-	let delta_y = next.pixel_y - previous.pixel_y;
+	let tank_states = tank_shell_successor_states(previous, next, duration);
+	if (tank_states && !tank_states.length) return null;
+
+	let previous_pixel_x = previous.tank_exact_pixel_x ?? previous.pixel_x;
+	let previous_pixel_y = previous.tank_exact_pixel_y ?? previous.pixel_y;
+	let delta_x = next.pixel_x - previous_pixel_x;
+	let delta_y = next.pixel_y - previous_pixel_y;
 	let distance = Math.hypot(delta_x, delta_y);
 	let expected_distance = duration * SHELL_SPEED_PIXELS_PER_TICK;
 	let distance_error = Math.abs(distance - expected_distance);
@@ -314,6 +346,7 @@ function shell_match_cost(previous, next, duration) {
 	return {
 		cost: distance_error + angle_error * expected_distance,
 		pillbox_orbit_states: orbit_states,
+		tank_bradian_states: tank_states,
 	};
 }
 
@@ -397,6 +430,118 @@ function set_pillbox_orbit_states(shell, states) {
 	shell.pillbox_source_distance = Math.hypot(
 		exact_position[0] - shell.pillbox_source_x,
 		exact_position[1] - shell.pillbox_source_y);
+}
+
+/* Inclusive internal-coordinate bounds for a reconstructed shell pixel:
+ * the exact pixel lies in [pixel, pixel + uncertainty] (the one-sided
+ * chained-offset bound), and each pixel spans sixteen internal units. */
+function shell_internal_bounds(pixel, uncertainty) {
+	return [pixel * 16, (pixel + uncertainty) * 16 + 15];
+}
+
+function initial_tank_bradian_states(direction, pixel_x, pixel_y,
+	uncertainty) {
+	let [lo_x, hi_x] = shell_internal_bounds(pixel_x, uncertainty);
+	let [lo_y, hi_y] = shell_internal_bounds(pixel_y, uncertainty);
+	let states = [];
+	for (let offset = TANK_BRADIAN_MIN_OFFSET;
+		offset <= TANK_BRADIAN_MAX_OFFSET; offset++) {
+		states.push({
+			bradian: (direction * 16 + offset) & 0xff,
+			lo_x, hi_x, lo_y, hi_y,
+		});
+	}
+	return states;
+}
+
+/* One axis of the advance: the union over plausible update counts of the
+ * intersection between the shifted hypothesis interval and the observed
+ * bounds, a sound over-approximation. Null when no count reaches. */
+function advance_bradian_axis(lo, hi, velocity, obs_lo, obs_hi, m_lo, m_hi) {
+	let out_lo = Infinity, out_hi = -Infinity;
+	for (let m = m_lo; m <= m_hi; m++) {
+		let step_lo = Math.max(lo + m * velocity, obs_lo);
+		let step_hi = Math.min(hi + m * velocity, obs_hi);
+		if (step_lo > step_hi) continue;
+		out_lo = Math.min(out_lo, step_lo);
+		out_hi = Math.max(out_hi, step_hi);
+	}
+	return out_lo <= out_hi ? [out_lo, out_hi] : null;
+}
+
+/* Advance each hypothesis and keep those reaching the observed bounds.
+ * The axes are advanced independently: in the simulation they share one
+ * update count, but real logs contain single-pixel sampling anomalies
+ * where the axes disagree by one update (a documented corpus shot in the
+ * tests is one), so demanding the shared count would break real chains
+ * for a marginal gain in pruning. `undefined` means the shell predates
+ * bradian tracking; an empty array proves the proposed continuation
+ * physically impossible. */
+function tank_shell_successor_states(previous, next, duration) {
+	if (!previous.tank_bradian_states) return undefined;
+	let uncertainty = next.position_uncertainty || 0;
+	let [obs_lo_x, obs_hi_x] = shell_internal_bounds(next.pixel_x, uncertainty);
+	let [obs_lo_y, obs_hi_y] = shell_internal_bounds(next.pixel_y, uncertainty);
+	let m_lo = Math.max(0, Math.floor(duration / TICKS_PER_SHELL_UPDATE) -
+		TANK_BRADIAN_UPDATE_JITTER);
+	let m_hi = Math.ceil(duration / TICKS_PER_SHELL_UPDATE) +
+		TANK_BRADIAN_UPDATE_JITTER;
+	let states = [];
+	for (let state of previous.tank_bradian_states) {
+		let [vx, vy] = TANK_SHELL_VELOCITIES[state.bradian];
+		let box_x = advance_bradian_axis(state.lo_x, state.hi_x, vx,
+			obs_lo_x, obs_hi_x, m_lo, m_hi);
+		if (!box_x) continue;
+		let box_y = advance_bradian_axis(state.lo_y, state.hi_y, vy,
+			obs_lo_y, obs_hi_y, m_lo, m_hi);
+		if (!box_y) continue;
+		states.push({
+			bradian: state.bradian,
+			lo_x: box_x[0], hi_x: box_x[1],
+			lo_y: box_y[0], hi_y: box_y[1],
+		});
+	}
+	return states;
+}
+
+/* When every surviving hypothesis renders to one and the same pixel, the
+ * shell's exact coordinate is recovered despite chained-offset
+ * quantisation, exactly as pill orbits recover theirs. */
+function tank_states_exact_pixel(states) {
+	if (!states || !states.length) return null;
+	let exact = null;
+	for (let state of states) {
+		if ((state.lo_x >> 4) !== (state.hi_x >> 4) ||
+			(state.lo_y >> 4) !== (state.hi_y >> 4)) return null;
+		let pixel_x = state.lo_x >> 4, pixel_y = state.lo_y >> 4;
+		if (!exact) exact = [pixel_x, pixel_y];
+		else if (exact[0] !== pixel_x || exact[1] !== pixel_y) return null;
+	}
+	return exact;
+}
+
+function set_tank_bradian_states(shell, states) {
+	shell.tank_bradian_states = states;
+	let exact = tank_states_exact_pixel(states);
+	if (exact) {
+		shell.tank_exact_pixel_x = exact[0];
+		shell.tank_exact_pixel_y = exact[1];
+	}
+}
+
+/* A uniquely surviving bradian is a better heading than any fit through
+ * quantised restatements. Applied after refine_shell_heading so the fitted
+ * estimate remains the fallback while several bradians survive. */
+function apply_tank_bradian_heading(shell) {
+	let states = shell.tank_bradian_states;
+	if (!states || !states.length ||
+		states.some(state => state.bradian !== states[0].bradian)) return;
+	let [vx, vy] = TANK_SHELL_VELOCITIES[states[0].bradian];
+	let length = Math.hypot(vx, vy);
+	if (length > 0) {
+		shell.heading_x = vx / length;
+		shell.heading_y = vy / length;
+	}
 }
 
 function pillbox_orbit_internal_position(shell, state) {
@@ -608,7 +753,8 @@ function pillbox_shell_terminal_match(previous, terminal, duration, start_time) 
  * the rendered box itself. If the final restatement is already inside the
  * box, use the forward exit rather than manufacturing a zero-length
  * terminal segment. */
-function shell_ray_box_endpoint(shell, box) {
+function shell_ray_box_endpoint(shell, box,
+	graze_tolerance = SHELL_BOX_GRAZE_TOLERANCE_PIXELS) {
 	if (shell.heading_x === undefined) return null;
 	let origin_x = shell.pixel_x + 8;
 	let origin_y = shell.pixel_y + 8;
@@ -686,8 +832,9 @@ function shell_ray_box_endpoint(shell, box) {
 			};
 		}
 	}
-	if (!closest || closest.graze_distance >
-		SHELL_BOX_GRAZE_TOLERANCE_PIXELS + 1e-9) return null;
+	if (!closest || closest.graze_distance > graze_tolerance + 1e-9) {
+		return null;
+	}
 	return closest;
 }
 
@@ -701,12 +848,21 @@ function shell_ray_box_endpoint(shell, box) {
 function ordinary_shell_position_variants(shell) {
 	let uncertainty = shell.birth_time === undefined ? 0 :
 		Math.max(0, Math.floor(shell.position_uncertainty || 0));
+	let base_pixel_x = shell.pixel_x;
+	let base_pixel_y = shell.pixel_y;
+	/* Bradian tracking may have recovered the exact coordinate already;
+	 * the bound then needs no enumeration. */
+	if (shell.tank_exact_pixel_x !== undefined) {
+		base_pixel_x = shell.tank_exact_pixel_x;
+		base_pixel_y = shell.tank_exact_pixel_y;
+		uncertainty = 0;
+	}
 	let variants = [];
 	for (let offset_x = 0; offset_x <= uncertainty; offset_x++) {
 		for (let offset_y = 0; offset_y <= uncertainty; offset_y++) {
 			let variant = {
-				pixel_x: shell.pixel_x + offset_x,
-				pixel_y: shell.pixel_y + offset_y,
+				pixel_x: base_pixel_x + offset_x,
+				pixel_y: base_pixel_y + offset_y,
 				heading_x: shell.heading_x,
 				heading_y: shell.heading_y,
 				bounded_position: uncertainty > 0,
@@ -732,6 +888,13 @@ function shell_terminal_match(previous, terminal, duration, start_time) {
 		start_time);
 	if (pillbox_match !== undefined) return pillbox_match;
 	let expected_distance = duration * SHELL_SPEED_PIXELS_PER_TICK;
+	/* A recovered exact trajectory can miss an authoritative object hit by
+	 * about a pixel and a half, the same phenomenon SHELL_TANK_HIT_TOLERANCE
+	 * covers where an exact pill orbit meets a reconstructed tank: the tile
+	 * box is not quite the original collision shape. Only exact coordinates
+	 * earn the wider graze; bounded ones already enumerate their slack. */
+	let graze_tolerance = previous.tank_exact_pixel_x !== undefined
+		? SHELL_TANK_HIT_TOLERANCE_PIXELS : SHELL_BOX_GRAZE_TOLERANCE_PIXELS;
 	let matches = [];
 	for (let variant of ordinary_shell_position_variants(previous)) {
 		let endpoint, angle_error = 0;
@@ -739,7 +902,7 @@ function shell_terminal_match(previous, terminal, duration, start_time) {
 			/* A tile/object event supplies timing and bounds, not an aim point.
 			 * Without an already learned fine heading, centring the 4-bit sector
 			 * would merely disguise a guess as smooth motion. */
-			endpoint = shell_ray_box_endpoint(variant, terminal);
+			endpoint = shell_ray_box_endpoint(variant, terminal, graze_tolerance);
 			if (!endpoint) continue;
 		} else {
 			let delta_x = terminal.pixel_x - variant.pixel_x;
@@ -1019,6 +1182,10 @@ function mark_new_tank_shells(previous, next) {
 		candidate.shell.birth_pixel_y = birth_pixel_y;
 		candidate.shell.heading_origin_x = birth_pixel_x;
 		candidate.shell.heading_origin_y = birth_pixel_y;
+		set_tank_bradian_states(candidate.shell, initial_tank_bradian_states(
+			candidate.group.direction, candidate.shell.pixel_x,
+			candidate.shell.pixel_y,
+			candidate.shell.position_uncertainty || 0));
 	}
 }
 
@@ -1046,8 +1213,10 @@ function refine_shell_heading(previous, next) {
 	next.heading_origin_x = origin_x;
 	next.heading_origin_y = origin_y;
 
-	let next_pixel_x = next.pillbox_orbit_pixel_x ?? next.pixel_x;
-	let next_pixel_y = next.pillbox_orbit_pixel_y ?? next.pixel_y;
+	let next_pixel_x = next.pillbox_orbit_pixel_x ?? next.tank_exact_pixel_x ??
+		next.pixel_x;
+	let next_pixel_y = next.pillbox_orbit_pixel_y ?? next.tank_exact_pixel_y ??
+		next.pixel_y;
 	let delta_x = next_pixel_x - origin_x;
 	let delta_y = next_pixel_y - origin_y;
 	let distance = Math.hypot(delta_x, delta_y);
@@ -1431,7 +1600,8 @@ function match_shell_snapshots(previous, next) {
 			let exact_endpoint = best.target.terminal ? null :
 				common_pillbox_orbit_pixel(old_shell.pillbox_source_x,
 					old_shell.pillbox_source_y,
-					best.pillbox_orbit_states || []);
+					best.pillbox_orbit_states || []) ||
+				tank_states_exact_pixel(best.tank_bradian_states);
 			old_shell.next_time = best.end_time;
 			old_shell.next_pixel_x = exact_endpoint
 				? exact_endpoint[0] : best.pixel_x;
@@ -1473,7 +1643,11 @@ function match_shell_snapshots(previous, next) {
 				new_shell.birth_pixel_x = old_shell.birth_pixel_x;
 				new_shell.birth_pixel_y = old_shell.birth_pixel_y;
 			}
+			if (best.tank_bradian_states) {
+				set_tank_bradian_states(new_shell, best.tank_bradian_states);
+			}
 			refine_shell_heading(old_shell, new_shell);
+			apply_tank_bradian_heading(new_shell);
 		}
 	}
 }
@@ -1705,8 +1879,10 @@ function shell_position_at(game, player, shell, index, tick) {
 		position.direction !== shell.direction) {
 		return packet_position();
 	}
-	pixel_x = position.pillbox_orbit_pixel_x ?? pixel_x;
-	pixel_y = position.pillbox_orbit_pixel_y ?? pixel_y;
+	pixel_x = position.pillbox_orbit_pixel_x ?? position.tank_exact_pixel_x ??
+		pixel_x;
+	pixel_y = position.pillbox_orbit_pixel_y ?? position.tank_exact_pixel_y ??
+		pixel_y;
 	let exact_position = () => ({
 		x: pixel_x / 16 + 0.5,
 		y: pixel_y / 16 + 0.5,
