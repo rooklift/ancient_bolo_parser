@@ -778,6 +778,21 @@ if (!fs.existsSync(log1)) {
 			[{ bradian: 201, step: 1 }],
 		]);
 
+	let wrong_sign_pill_orbit = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 10, y: 10, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(90, []),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 13 },
+			{ type: "pillbox_fires", pillbox: 0, direction: 13 },
+			shell_list(13, [[152, 158], [149, 158]]),
+		]),
+	]);
+	check("chained uncertainty rejects an orbit below its reconstruction",
+		wrong_sign_pill_orbit.shell_positions[0][1].shells.map(shell =>
+			!!shell.starts_at_pillbox), [true, false]);
+
 	/* Only a shell list's head has an absolute pixel coordinate. Later
 	 * members are reconstructed from quantised, chained offsets, so the nth
 	 * member can differ from its exact orbit point by up to n pixels per

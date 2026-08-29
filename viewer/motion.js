@@ -311,15 +311,20 @@ function shell_match_cost(previous, next, duration) {
 
 /* A pill shell's exact whole-pixel coordinate is one of the measured orbit
  * points. A list head supplies that coordinate directly; later members only
- * bound it because their chained offsets were quantised independently.
+ * bound it because their chained offsets were quantised independently. An
+ * arithmetic shift rounds every offset down, so the exact coordinate is
+ * between the reconstructed coordinate and that coordinate plus the member
+ * index; it can never be below the reconstruction.
  * Near the muzzle several fine directions also share or overlap a bound, so
  * retain every compatible state and let later restatements narrow the set.
  * `undefined` means this shell predates orbit-backed identification; an
  * empty array means a proposed continuation is physically impossible. */
 function pillbox_orbit_position_matches(position, pixel_x, pixel_y,
 	position_uncertainty = 0) {
-	return Math.abs(position[0] - pixel_x) <= position_uncertainty &&
-		Math.abs(position[1] - pixel_y) <= position_uncertainty;
+	return position[0] >= pixel_x &&
+		position[0] <= pixel_x + position_uncertainty &&
+		position[1] >= pixel_y &&
+		position[1] <= pixel_y + position_uncertainty;
 }
 
 function pillbox_orbit_states_at(direction, pixel_x, pixel_y,

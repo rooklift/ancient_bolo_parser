@@ -122,8 +122,10 @@ function same_match(first, second) {
 
 function orbit_position_matches(position, pixel_x, pixel_y,
 	position_uncertainty = 0) {
-	return Math.abs(position[0] - pixel_x) <= position_uncertainty &&
-		Math.abs(position[1] - pixel_y) <= position_uncertainty;
+	return position[0] >= pixel_x &&
+		position[0] <= pixel_x + position_uncertainty &&
+		position[1] >= pixel_y &&
+		position[1] <= pixel_y + position_uncertainty;
 }
 
 function orbit_states_at(orbits, shell, position_uncertainty = 0) {
