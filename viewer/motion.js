@@ -97,6 +97,13 @@ const MAX_FATE_EVENT_LAG_TICKS = 30;
  * rival story carries at least this much extra geometric error, the same
  * ambiguity unit the pairwise matcher uses. */
 const RESIDUAL_COST_MARGIN = SHELL_MATCH_MARGIN;
+/* Dilated joins: a lagging sender's timestamps can put a single hop far
+ * off the two-pixel-per-tick schedule while the shell stays exactly on
+ * its ray. The penalty keeps any ordinary-physics story preferred; the
+ * catch-up allowance covers a sender flushing its backlog. */
+const DILATED_JOIN_PENALTY_PIXELS = 8;
+const DILATED_CATCHUP_PIXELS = 16;
+const DILATED_UPDATE_SLACK = 8;
 
 /* Standalone map/node records carry no player state or motion. */
 const MAP_NODE_TYPES = new Set([
@@ -1681,6 +1688,115 @@ function match_shell_snapshots(previous, next) {
 	}
 }
 
+/* Ray reachability under a widened update window, for joins whose timing
+ * the sender's clock has mangled. The windows and boxes are opened wide;
+ * the test claims only that the position lies ahead on the shell's own
+ * discrete track, not that the timing fits. */
+function tank_states_reachable(end_shell, shell, duration) {
+	let states = end_shell.tank_bradian_states;
+	if (!states) return true;
+	let uncertainty = shell.position_uncertainty || 0;
+	let [obs_lo_x, obs_hi_x] = shell_internal_bounds(shell.pixel_x, uncertainty);
+	let [obs_lo_y, obs_hi_y] = shell_internal_bounds(shell.pixel_y, uncertainty);
+	let m_hi = Math.ceil(duration / TICKS_PER_SHELL_UPDATE) +
+		DILATED_UPDATE_SLACK;
+	let slack = 32;
+	for (let state of states) {
+		let [vx, vy] = TANK_SHELL_VELOCITIES[state.bradian];
+		for (let m = 0; m <= m_hi; m++) {
+			if (state.lo_x + m * vx <= obs_hi_x + slack &&
+				state.hi_x + m * vx >= obs_lo_x - slack &&
+				state.lo_y + m * vy <= obs_hi_y + slack &&
+				state.hi_y + m * vy >= obs_lo_y - slack) return true;
+		}
+	}
+	return false;
+}
+
+function pill_states_reachable(end_shell, shell, duration) {
+	let states = end_shell.pillbox_orbit_states;
+	if (!states || end_shell.pillbox_source_x === undefined) return true;
+	let m_hi = Math.ceil(duration / TICKS_PER_SHELL_UPDATE) +
+		DILATED_UPDATE_SLACK;
+	let relative_x = shell.pixel_x - end_shell.pillbox_source_x;
+	let relative_y = shell.pixel_y - end_shell.pillbox_source_y;
+	let uncertainty = shell.position_uncertainty || 0;
+	for (let state of states) {
+		let orbit = PILLBOX_ORBITS_BY_BRADIAN.get(state.bradian);
+		let last = Math.min(orbit.positions.length - 1, state.step + m_hi);
+		for (let step = state.step; step <= last; step++) {
+			/* The widening is in time only: a pill shell's position must
+			 * still be EXACTLY an orbit point within its quantisation
+			 * bound, or the orbit table's power is thrown away. */
+			if (pillbox_orbit_position_matches(orbit.positions[step],
+				relative_x, relative_y, uncertainty)) return true;
+		}
+	}
+	return false;
+}
+
+/* A join the ordinary physics refused, admissible only because the
+ * sender's record clock is known to lie: the start must sit forward on
+ * the end's ray within stall-to-catch-up bounds, and be reachable on the
+ * end's discrete track under the widened window. The penalty keeps every
+ * ordinary story preferred, and the resolver's margins arbitrate what
+ * remains. */
+function dilated_join_candidate(end, start) {
+	let duration = start.time - end.time;
+	if (duration <= 0 || duration > MAX_SHELL_INTERPOLATION_TICKS) return null;
+	let end_shell = end.shell;
+	let shell = start.shell;
+	if (shell.direction !== end_shell.direction) return null;
+	if (shell.pillbox_source_x !== undefined &&
+		(shell.pillbox_source_x !== end_shell.pillbox_source_x ||
+			shell.pillbox_source_y !== end_shell.pillbox_source_y)) return null;
+	if (end_shell.birth_time !== undefined &&
+		start.time - end_shell.birth_time > TANK_SHELL_FLIGHT_LIMIT_TICKS) {
+		return null;
+	}
+	let heading_x = end_shell.heading_x;
+	let heading_y = end_shell.heading_y;
+	if (heading_x === undefined) {
+		let angle = end_shell.direction * Math.PI / 8;
+		heading_x = Math.sin(angle);
+		heading_y = -Math.cos(angle);
+	}
+	let delta_x = shell.pixel_x - end_shell.pixel_x;
+	let delta_y = shell.pixel_y - end_shell.pixel_y;
+	let along = delta_x * heading_x + delta_y * heading_y;
+	let lateral = Math.abs(delta_x * heading_y - delta_y * heading_x);
+	if (lateral > ABSORB_LATERAL_TOLERANCE_PIXELS +
+		(shell.position_uncertainty || 0) +
+		(end_shell.position_uncertainty || 0)) return null;
+	let expected = duration * SHELL_SPEED_PIXELS_PER_TICK;
+	if (along < -1 || along > expected + DILATED_CATCHUP_PIXELS) return null;
+	if (!tank_states_reachable(end_shell, shell, duration) ||
+		!pill_states_reachable(end_shell, shell, duration)) return null;
+	return {
+		end, start, duration, dilated: true, heading_x, heading_y,
+		cost: DILATED_JOIN_PENALTY_PIXELS + lateral +
+			Math.abs(along - expected) / 4,
+	};
+}
+
+/* A draw-only continuation: the sprite carries on, but no identity is
+ * claimed and no origin propagates, because several same-ray stories
+ * remain inside the margin and all of them draw this way. Better one of
+ * the near-identical stories than a vanish-and-reappear that matches
+ * none of them. */
+function apply_visual_join(candidate) {
+	let end_shell = candidate.end.shell;
+	let start_shell = candidate.start.shell;
+	end_shell.next_time = candidate.start.time;
+	end_shell.next_pixel_x = start_shell.pixel_x;
+	end_shell.next_pixel_y = start_shell.pixel_y;
+	end_shell.next_terminal = false;
+	end_shell.next_shell = start_shell;
+	start_shell.matched_from_previous = true;
+	start_shell.stitched = true;
+	start_shell.visual_join = true;
+}
+
 /* Carry an origin down a chain: the linked observations are one shell, so
  * the origin belongs to every one of them. Links made by ordinary
  * matching and by stitches both record next_shell, so the walk is direct. */
@@ -2288,7 +2404,8 @@ function resolve_residual_shell_fates(snapshots) {
 		for (let ri = 0; ri < rights.length; ri++) {
 			let right = rights[ri];
 			if (left.kind === "end" && right.kind === "start") {
-				let candidate = stitch_candidate(left.end, right.start);
+				let candidate = stitch_candidate(left.end, right.start) ||
+					dilated_join_candidate(left.end, right.start);
 				if (candidate) {
 					edges.push({ left: li, right: ri, candidate,
 						cost: candidate.cost });
@@ -2345,6 +2462,75 @@ function resolve_residual_shell_fates(snapshots) {
 		} else {
 			apply_forced_unseen(left.creation, right.fate, units);
 		}
+	}
+
+	/* Visual joins over whatever margins refused. When every remaining
+	 * story for an appearance is a same-ray continuation of some vanished
+	 * shell -- no fired shot could explain it, and no still-open impact
+	 * competes for its cheapest predecessor -- link the cheapest pair for
+	 * drawing only. Rival same-ray stories draw the same; a rival on a
+	 * genuinely different ray, a plausible creation, or a nearby fate
+	 * story keeps the pop instead. */
+	let joins_by_start = new Map();
+	let creation_cost_by_start = new Map();
+	let fate_cost_by_end = new Map();
+	for (let edge of edges) {
+		let left = lefts[edge.left];
+		let right = rights[edge.right];
+		if (left.kind === "end" && right.kind === "start") {
+			if (!joins_by_start.has(right.start)) {
+				joins_by_start.set(right.start, []);
+			}
+			joins_by_start.get(right.start).push(edge);
+		} else if (left.kind === "creation" && right.kind === "start") {
+			let best = creation_cost_by_start.get(right.start);
+			if (best === undefined || edge.cost < best) {
+				creation_cost_by_start.set(right.start, edge.cost);
+			}
+		} else if (left.kind === "end" && right.kind === "fate") {
+			if (!right.fate.terminals.some(terminal =>
+				terminal.match_time === undefined &&
+				!terminal.unseen_pillbox_source &&
+				!terminal.unseen_tank_source)) continue;
+			let best = fate_cost_by_end.get(left.end);
+			if (best === undefined || edge.cost < best) {
+				fate_cost_by_end.set(left.end, edge.cost);
+			}
+		}
+	}
+	for (let [start, joins] of joins_by_start) {
+		if (start.shell.matched_from_previous) continue;
+		let open = joins.filter(edge =>
+			lefts[edge.left].end.shell.next_time === undefined);
+		if (!open.length) continue;
+		open.sort((a, b) => a.cost - b.cost);
+		let best = open[0];
+		let creation_cost = creation_cost_by_start.get(start);
+		if (creation_cost !== undefined &&
+			creation_cost < best.cost + RESIDUAL_COST_MARGIN) continue;
+		let best_end = lefts[best.left].end;
+		let fate_cost = fate_cost_by_end.get(best_end);
+		if (fate_cost !== undefined &&
+			fate_cost < best.cost + RESIDUAL_COST_MARGIN) continue;
+		/* Same-ray check on the rivals inside the margin: their ends'
+		 * headings must agree with the winner's, or the stories genuinely
+		 * diverge and the pop stands. */
+		let best_candidate = best.candidate;
+		let heading_x = best_candidate.heading_x ??
+			best_end.shell.heading_x;
+		let heading_y = best_candidate.heading_y ??
+			best_end.shell.heading_y;
+		let divergent = open.some(edge => {
+			if (edge === best ||
+				edge.cost - best.cost >= RESIDUAL_COST_MARGIN) return false;
+			let rival = lefts[edge.left].end.shell;
+			if (rival.heading_x === undefined ||
+				heading_x === undefined) return false;
+			return rival.heading_x * heading_x +
+				rival.heading_y * heading_y < 0.9986;
+		});
+		if (divergent) continue;
+		apply_visual_join(best_candidate);
 	}
 }
 
