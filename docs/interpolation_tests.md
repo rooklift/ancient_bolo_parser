@@ -614,7 +614,10 @@ numbers):
   so the final link draws faster than 2 px/tick; the same capped-arrival
   cost the matcher already accepted for lagging events, now paid by the
   rescued chains too
-* Corpus not yet measured for this commit.
+* Corpus: measured, and the story survives the scale-up at roughly 100x
+  the fixture's deltas with all three headline records taken together --
+  see the `ad2168d` entry in
+  [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md).
 
 ## Findings
 
