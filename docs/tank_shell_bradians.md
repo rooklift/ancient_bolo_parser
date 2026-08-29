@@ -88,6 +88,9 @@ retain two candidates instead of one.
   (24 gated bradians), exact quantised arithmetic, and hard
   impossibility verdicts for proposed continuations — with the sub-pixel
   origin as the only free parameter, narrowing as the chain grows.
+  **Since implemented** in `viewer/motion.js` (tank bradian states); it
+  took all three headline interpolation metrics to new records at once —
+  see the `c4bf83c` section of `docs/interpolation_tests.md`.
 * A pinned bradian gives an exact heading, better than the current
   continuously-refined estimate, and an exact future track for collision
   and terminal prediction once the origin phase is bounded.

@@ -349,6 +349,49 @@ Every shell, terminal, tank-position and LGM metric is byte-identical before and
 after, in both runs: facing feeds drawing only, and nothing in shell matching
 reads it.
 
+## Tank shells join the discrete simulation -- `c4bf83c`
+
+Corpus measurement (`docs/tank_shell_bradians.md`) proved tank shells run
+the same integer simulation as pillbox shells, at all 256 bradians. This
+commit makes the matcher use it: a tank-born shell carries per-bradian
+hypothesis states bounding its exact internal coordinate, continuations
+are vetoed when no state can reach them, boxes narrow into exact
+coordinates and uniquely pinned bradians into exact headings, and exact
+trajectories get the same two-pixel box graze the exact pill orbits
+already had against reconstructed tanks. The update-count window is two
+per link (the equivalent of the matcher's existing eight-pixel distance
+tolerance); a one-update window was measured too, and vetoed a handful of
+real, merely-laggy links, converting them to impact matches but costing
+one net forward match.
+
+The first commit to hold all three headline records at once since
+`926f391`, and the first to gain on every one of them simultaneously:
+
+* `rate_shells_matched_forward` 0.980448 -- up from 0.980136, a new best
+* `rate_shells_unlinked` 0.007864 -- down from 0.008081, a new best
+* `rate_terminals_matched` 0.850218 -- up from 0.849553, a new best
+* `shells_matched_forward` 72311 -- up 23
+* `shells_matched_to_snapshot` 51842 -- up 7
+* `shells_matched_to_terminal` 20469 -- up 16
+* `shells_unlinked` 580 -- down 16
+* `terminals_matched:tank_hit` 3108 of 3879 -- up 12
+* `terminals_matched:pillbox_damage` 6000 -- up 3
+* `terminals_matched:base_damage` 1118 -- up 1
+* `terminals_matched:explosion` 1828 -- up 1
+* `terminals_matched:shell_falls` 8415 -- down 1, the only regression
+* `shells_from_tank` 9019 -- up 2; `shells_with_birth` 28081 -- up 14;
+  `shell_births` 20682 -- up 2
+* Tank, LGM and facing tracks byte-identical, as expected
+
+Reading the shape of it: the veto converts physically impossible snapshot
+links into the impacts the shells actually reached (hence terminals up
+across four classes while snapshot links also rise), and the recovered
+exact coordinates let bounded restatements match where the quantised
+reconstruction previously missed. `npm test` passes, 188 checks; the
+bounded-successor test's hand-made coordinates violated the integer
+simulation (its y rose then fell, which no bradian can do) and were
+regenerated to follow it.
+
 ## Findings
 
 * **The branch line now leads the branch point on every headline metric.** At
