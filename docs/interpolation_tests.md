@@ -252,8 +252,9 @@ more matched terminals:
 * `max_shell_interpolation_ticks` 50
 
 The sign constraint also survives direct replay audits: every exact position
-recovered for 1752 non-head shell observations in `052504.1`, and all 19162 in
-the sample fixture, lies inside the one-sided bound. The original two-shell
+recovered for 1752 non-head shell observations in corpus replay md5
+`0f691e1d594c0a6636c25578d7d4fa17`, and all 19162 in the sample fixture, lies
+inside the one-sided bound. The original two-shell
 case at record 1251 remains resolved to its two distinct orbit states and
 shell-fall terminals.
 
