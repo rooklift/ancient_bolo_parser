@@ -30,6 +30,9 @@ const MAX_LGM_TANK_ENTRY_DISTANCE_PIXELS = 32;
  * not an exact vector. Packet timestamps and simulation updates can differ
  * by a few pixels; matching remains deliberately conservative. */
 const SHELL_SPEED_PIXELS_PER_TICK = 2;
+/* A link drawn slower than this is sender clock dilation, not motion (the
+ * shell always flies at exactly 2 px/tick); the renderer re-times it. */
+const MIN_LINK_DRAW_SPEED_PIXELS_PER_TICK = 1;
 const SHELL_MATCH_ERROR_PIXELS = 8;
 const SHELL_BOX_GRAZE_TOLERANCE_PIXELS = 1;
 /* The exact pill orbit combined with our linearly reconstructed tank path
@@ -2843,9 +2846,21 @@ function shell_position_at(game, player, shell, index, tick) {
 		return position.next_terminal ? null : exact_position();
 	}
 
-	let amount = (tick - snapshot.time) / (position.next_time - snapshot.time);
+	let duration = position.next_time - snapshot.time;
 	let target_x = position.smooth_next_pixel_x ?? position.next_pixel_x;
 	let target_y = position.smooth_next_pixel_y ?? position.next_pixel_y;
+	let amount = (tick - snapshot.time) / duration;
+	let distance = Math.hypot(target_x - pixel_x, target_y - pixel_y);
+	if (!position.next_terminal &&
+		distance < duration * MIN_LINK_DRAW_SPEED_PIXELS_PER_TICK) {
+		/* Sender clock dilation stretched this link below any real shell
+		 * speed. Same rule as tanks under lag: hold the last known point,
+		 * then fly at true speed to arrive on time -- holding first keeps
+		 * the handoff into the next link speed-continuous. */
+		let hold = duration - distance / SHELL_SPEED_PIXELS_PER_TICK;
+		amount = tick <= snapshot.time + hold ? 0 :
+			(tick - snapshot.time - hold) / (duration - hold);
+	}
 	pixel_x += (target_x - pixel_x) * amount;
 	pixel_y += (target_y - pixel_y) * amount;
 	return { x: pixel_x / 16 + 0.5, y: pixel_y / 16 + 0.5 };

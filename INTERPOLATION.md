@@ -179,7 +179,11 @@ wobbles a large fraction of drawn links. Where identity is genuinely
 ambiguous but every candidate story draws the same line (dense same-ray
 pill streams), a *visual join* draws the continuation without believing
 it: the sprite flies on, but no identity, birth, or fate propagates
-across the link.
+across the link. A link that would draw slower than 1 px/tick (sender
+clock dilation stretched it — the real shell always flies at 2) is
+re-timed at draw time as hold-then-fly: the shell keeps its last known
+point through the dilated part of the gap, then covers the distance at
+true speed, arriving on time — the same rule tanks follow under lag.
 
 ## Measurement
 
