@@ -514,6 +514,11 @@ if (!fs.existsSync(log1)) {
 			quantised_tank_shell.next_terminal_event_type],
 		[2, "pillbox_damage"]);
 
+	/* The restatements follow the recovered integer simulation exactly
+	 * (bradian 66: velocity 64,3 per update from internal 32725,32332), so
+	 * bradian tracking cannot veto the chain; the chained member's
+	 * reconstructed coordinate sits one below its exact position on each
+	 * axis, per the one-sided quantisation bound. */
 	let bounded_tank_successor = BoloGame.build([
 		record(80, [{ type: "pillbox_list", items: [{
 			x: 132, y: 127, owner: 1, armour: 15, speed: 100,
@@ -526,13 +531,13 @@ if (!fs.existsSync(log1)) {
 		}]),
 		record(100, [
 			{ type: "shot_fired", direction: 4 },
-			shell_list(4, [[2045, 2018]]),
+			shell_list(4, [[2045, 2020]]),
 		]),
-		record(112, [shell_list(4, [[2069, 2020]])]),
-		record(123, [shell_list(4, [[2040, 2018], [2093, 2022]])]),
+		record(112, [shell_list(4, [[2069, 2021]])]),
+		record(123, [shell_list(4, [[2040, 2018], [2088, 2021]])]),
 		record(134, [
 			{ type: "pillbox_damage", pillbox: 0 },
-			shell_list(4, [[2113, 2021]]),
+			shell_list(4, [[2113, 2023]]),
 		]),
 	]);
 	let bounded_successor_shell = bounded_tank_successor
@@ -541,7 +546,7 @@ if (!fs.existsSync(log1)) {
 		[!!bounded_successor_shell.next_terminal,
 			bounded_successor_shell.next_pixel_x,
 			bounded_successor_shell.next_pixel_y],
-		[false, 2113, 2021]);
+		[false, 2113, 2023]);
 
 	let graze_with_successor = BoloGame.build([
 		record(100, [shell_list(12, [[2110, 1812]])]),

@@ -61,6 +61,7 @@ function create_pillbox_shell_orbits() {
 const PillboxShellOrbits = {
 	create_pillbox_shell_orbits,
 	internal_position_at,
+	scale,
 	orbits: create_pillbox_shell_orbits(),
 };
 
