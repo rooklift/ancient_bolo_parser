@@ -356,6 +356,41 @@ Attribution flows across the stitched joins at scale:
 * `shell_births` 1,612,506 = 650,870 + 961,636 **exactly**; the identity
   holds
 
+## Branch -- forced assignment and jitter absorption, `4c791a0`
+
+The forced-assignment residual resolver (`d10f153`) plus jitter
+absorption and constant-velocity drawing (`4c791a0`), measured together
+against the previous corpus run. Corpus constants and every tank, LGM
+and facing number reproduce byte-for-byte again, and the birth identity
+is exact: 652,292 + 963,996 = 1,616,288 = `shell_births`.
+
+Both passes scale better than the fixture predicted -- the residue they
+target is concentrated in laggy, dense games the hand-picked fixture
+under-represents:
+
+* `rate_terminals_matched` 0.827713 -- up from 0.816888, +21,071
+  terminals; the fixture gained 0.65 points here, the corpus 1.08
+* `rate_shells_matched_forward` 0.988925 -- up from 0.984399, +44,433
+* `rate_shells_unlinked` 0.004020 -- down from 0.005985; `shells_unlinked`
+  39,462, down 19,294, largely the absorbed phantom observations
+* `terminals_unseen_pillbox_source` 96,171 -- up from 37,361, plus the
+  new `terminals_unseen_tank_source` 58,266: about 117,000 impacts whose
+  shell was never observed now name their firing pill or tank
+* Counting unseen attributions, 90.7% of the corpus's 1,946,439 impacts
+  have an explanation, against 83.6% at the `926f391` baseline; the
+  truly unexplained residue is 180,909 (9.3%)
+* Every terminal class gains: `tank_hit` +5,164 (86.5% matched),
+  `pillbox_damage` +7,447, `shell_falls` +4,586, `explosion` +2,739,
+  `base_damage` +1,135
+* Origins spread: `shells_with_birth` +11,500,
+  `shells_with_pillbox_source` +19,905, `shells_from_pillbox` +2,360,
+  `shells_from_tank` +1,422; `shell_births` 1,612,506 -> 1,616,288
+
+Cumulative for the branch against the `926f391` baseline: unmatched
+forward shells 245,139 -> 108,728 and unlinked 86,675 -> 39,462, both
+better than halved; forward matching 0.975030 -> 0.988925; terminals
+0.816566 -> 0.827713 with all five classes up.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
