@@ -14,7 +14,7 @@ Bolo time runs at exactly 50 ticks per second.
 
 Shells pass over: river, swamp, crater, road, rubble, grass (and their mined equivalents).
 
-Shells are blocked by (and do damage to): building, forest (including mined forest), shot building, boat. Also by tanks, pillboxes, and enemy bases that has armour above a certain threshold.
+Shells are blocked by (and do damage to): building, forest (including mined forest), shot building, boat. Also by tanks, pillboxes (if not dead), and enemy bases that have armour above a certain threshold.
 
 ## File header (72 bytes, not encrypted)
 
