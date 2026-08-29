@@ -77,6 +77,8 @@ body {
 	color: #8b96ad;
 	pointer-events: none;
 }
+/* an id beats the [hidden] rule the browser supplies, so say it here */
+#loading[hidden] { display: none; }
 #loading h1 { font-size: 20px; margin-bottom: 8px; color: #cfd6e4; }
 #loading p { min-height: 1.45em; }
 #loadingBar {
