@@ -1,4 +1,0 @@
-{
-	"_comment": "Copy this file to corpus.json and set \"root\" to the directory holding the log corpus. corpus.json is gitignored so the path is never committed. The BOLO_CORPUS environment variable overrides it.",
-	"root": "C:/path/to/the/log/corpus"
-}
