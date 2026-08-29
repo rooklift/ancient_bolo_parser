@@ -16,6 +16,14 @@ const MAX_POSITION_INTERPOLATION_TICKS = TICKS_PER_SECOND / 2;
  * records remain capped at the ordinary interpolation window below: their
  * event time may legitimately follow the shell's inferred arrival. */
 const MAX_SHELL_INTERPOLATION_TICKS = TICKS_PER_SECOND;
+/* Facing gets a longer window than position for the same reason shells do:
+ * a turn rate is bounded, so the intermediate angles are constrained in a way
+ * an unseen path across open ground is not. Corpus-wide, gaps of 26 to 50
+ * ticks imply at worst 6.75 ticks per sixteenth of a circle, still slower
+ * than turns seen inside the trusted window; beyond 50 ticks the changes
+ * start clustering at seven or eight sixteenths, where the shorter way round
+ * stops being a safe guess. */
+const MAX_DIRECTION_INTERPOLATION_TICKS = TICKS_PER_SECOND;
 const MAX_LGM_TANK_ENTRY_DISTANCE_PIXELS = 32;
 /* Shells travel at 2 px/tick. Their logged direction is only the 4-bit
  * version of a presumably finer internal heading, so it defines a sector,
@@ -1660,7 +1668,7 @@ function tank_direction_at(game, state, player, tick) {
 	let next = track[lo];
 	let duration = next ? next.time - current.time : 0;
 	if (!next || !next.continuous || tick >= next.time || duration <= 0 ||
-		duration > MAX_POSITION_INTERPOLATION_TICKS) return fallback;
+		duration > MAX_DIRECTION_INTERPOLATION_TICKS) return fallback;
 
 	let amount = (tick - current.time) / duration;
 	let delta = (next.direction - current.direction + 24) % 16 - 8;
@@ -1741,7 +1749,7 @@ function shell_birth_positions_at(game, player, tick) {
 
 const BoloMotion = {
 	TICKS_PER_SECOND, MAX_POSITION_INTERPOLATION_TICKS,
-	MAX_SHELL_INTERPOLATION_TICKS,
+	MAX_SHELL_INTERPOLATION_TICKS, MAX_DIRECTION_INTERPOLATION_TICKS,
 	append_shell_list, add_shell_point_terminal, add_shell_box_terminal,
 	build_tank_positions, build_tank_directions, build_lgm_positions, track_pixel_at,
 	build_shell_positions, build_shell_births,

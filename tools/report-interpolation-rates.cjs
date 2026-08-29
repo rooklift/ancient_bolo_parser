@@ -119,6 +119,16 @@ function empty_totals() {
 		lgm_ticks: null,
 		lgm_ticks_interpolated: null,
 
+		/* Tank facing is a track of its own, with a gap limit of its own: a
+		 * turn rate is bounded in a way a path across open ground is not. */
+		tank_direction_points: null,
+		tank_direction_segments: null,
+		tank_direction_segments_interpolated: null,
+		tank_direction_segments_broken: null,
+		tank_direction_segments_overlong: null,
+		tank_direction_ticks: null,
+		tank_direction_ticks_interpolated: null,
+
 		shell_births: null,
 	};
 }
@@ -225,9 +235,15 @@ function count_file(totals, engines, file) {
 	let records = [...engines.log.records(bytes)];
 	let game = engines.game.build(records);
 	let max_ticks = engines.game.MAX_POSITION_INTERPOLATION_TICKS;
+	/* Repo states from before facing had a limit of its own bridged it with
+	 * the position limit, so reporting that keeps their numbers honest. */
+	let max_direction_ticks =
+		engines.game.MAX_DIRECTION_INTERPOLATION_TICKS ?? max_ticks;
 	count_shells(totals, game);
 	count_tracks(totals, game.tank_positions, "tank", max_ticks);
 	count_tracks(totals, game.lgm_positions, "lgm", max_ticks);
+	count_tracks(totals, game.tank_directions, "tank_direction",
+		max_direction_ticks);
 	if (Array.isArray(game.shell_births)) {
 		add(totals, "shell_births", 0);
 		for (let births of game.shell_births) {
@@ -256,6 +272,8 @@ function build_report(totals, meta) {
 		`input\t${meta.input}`,
 		`max_position_interpolation_ticks\t${cell(meta.max_position_interpolation_ticks)}`,
 		`max_shell_interpolation_ticks\t${cell(meta.max_shell_interpolation_ticks)}`,
+		`max_direction_interpolation_ticks\t` +
+			`${cell(meta.max_direction_interpolation_ticks)}`,
 	];
 	for (let key of Object.keys(totals)) {
 		if (key.endsWith("_by_type")) continue;
@@ -277,7 +295,7 @@ function build_report(totals, meta) {
 	rate_line(lines, "shells_unlinked", totals.shells_unlinked, totals.shells);
 	rate_line(lines, "terminals_matched", totals.terminals_matched,
 		totals.terminals);
-	for (let prefix of ["tank", "lgm"]) {
+	for (let prefix of ["tank", "lgm", "tank_direction"]) {
 		rate_line(lines, `${prefix}_segments_interpolated`,
 			totals[`${prefix}_segments_interpolated`], totals[`${prefix}_segments`]);
 		rate_line(lines, `${prefix}_ticks_interpolated`,
@@ -321,6 +339,8 @@ function main() {
 		input: path.relative(ROOT, target).replace(/\\/g, "/") || ".",
 		max_position_interpolation_ticks: engines.game.MAX_POSITION_INTERPOLATION_TICKS,
 		max_shell_interpolation_ticks: engines.game.MAX_SHELL_INTERPOLATION_TICKS,
+		max_direction_interpolation_ticks:
+			engines.game.MAX_DIRECTION_INTERPOLATION_TICKS,
 	}));
 }
 
