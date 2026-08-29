@@ -316,10 +316,12 @@ Attribution and births:
 
 The tank-shell bradian work (`c4bf83c`, see `docs/tank_shell_bradians.md`)
 plus the fragment-stitching pass (`0d181be`), run against the same corpus
-from a live checkout of the branch. The measuring tool is unchanged --
-`tools/report-interpolation-rates.cjs` still has exactly one commit -- and
-the corpus constants reproduce exactly (`shells` 9,817,361, `terminals`
-1,946,439 with the same five-class breakdown, `files_failed` 0), as do
+from a live checkout of the branch. The measuring tool has gained one
+commit since the ten-run table -- `5455724` added the tank-facing track
+metrics, purely additively, so every key compared below is computed by
+identical code -- and the corpus constants reproduce exactly (`shells`
+9,817,361, `terminals` 1,946,439 with the same five-class breakdown,
+`files_failed` 0), as do
 all tank, LGM and facing track numbers, byte for byte: the branch touched
 shell reconstruction and nothing else.
 
