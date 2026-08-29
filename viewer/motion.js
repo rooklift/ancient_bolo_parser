@@ -83,6 +83,11 @@ const TICKS_PER_SHELL_UPDATE = 2;
  * evidence keep the ordinary window. */
 const MAX_STITCH_GAP_TICKS = 100;
 const TANK_SHELL_FLIGHT_LIMIT_TICKS = 72;
+/* 8.5 tiles: the pill orbit range, and the assumed tank-shot range from
+ * the shared simulation. */
+const SHELL_RANGE_PIXELS = 136;
+/* An impact record normally trails the impact by well under a second. */
+const MAX_FATE_EVENT_LAG_TICKS = 30;
 
 /* Standalone map/node records carry no player state or motion. */
 const MAP_NODE_TYPES = new Set([
@@ -1036,6 +1041,7 @@ function mark_unseen_pillbox_terminals(source_groups, terminals,
 			candidates[i].pillbox_source_y = group.pixel_y;
 			candidates[i].pillbox_source_direction = group.direction;
 		}
+		group.assigned += count;
 	}
 }
 
@@ -1108,6 +1114,9 @@ function mark_new_pillbox_shells(previous, next) {
 	}
 	mark_unseen_pillbox_terminals(source_groups, next.terminals,
 		maximum_distance);
+	next.unclaimed_pillbox_sources = source_groups
+		.filter(group => group.capacity > group.assigned)
+		.map(group => ({ ...group, count: group.capacity - group.assigned }));
 }
 
 function mark_new_tank_shells(previous, next) {
@@ -1194,6 +1203,9 @@ function mark_new_tank_shells(previous, next) {
 			candidate.shell.pixel_y,
 			candidate.shell.position_uncertainty || 0));
 	}
+	next.unclaimed_tank_sources = source_groups
+		.filter(group => group.capacity > group.assigned)
+		.map(group => ({ ...group, count: group.capacity - group.assigned }));
 }
 
 /* Refine a shell's fine heading over its whole trusted track instead of
@@ -1660,10 +1672,50 @@ function match_shell_snapshots(previous, next) {
 	}
 }
 
-/* Carry a stitched-together identity down the continuation's whole chain:
- * the fragments were one shell, so the head fragment's origin belongs to
- * every later observation. Links made by ordinary matching and by earlier
- * stitches both record next_shell, so the walk is direct. */
+/* Carry an origin down a chain: the linked observations are one shell, so
+ * the origin belongs to every one of them. Links made by ordinary
+ * matching and by stitches both record next_shell, so the walk is direct. */
+function propagate_identity_down_chain(origin_shell, first_shell) {
+	for (let walk = first_shell; walk; walk = walk.next_shell) {
+		if (origin_shell.pillbox_source_x !== undefined &&
+			walk.pillbox_source_x === undefined) {
+			walk.pillbox_source_x = origin_shell.pillbox_source_x;
+			walk.pillbox_source_y = origin_shell.pillbox_source_y;
+			walk.pillbox_source_distance = Math.hypot(
+				walk.pixel_x - walk.pillbox_source_x,
+				walk.pixel_y - walk.pillbox_source_y);
+		}
+		if (origin_shell.birth_pixel_x !== undefined &&
+			walk.birth_time === undefined) {
+			walk.birth_time = origin_shell.birth_time;
+			walk.birth_pixel_x = origin_shell.birth_pixel_x;
+			walk.birth_pixel_y = origin_shell.birth_pixel_y;
+		}
+	}
+}
+
+/* One end-to-start continuation candidate, or null. Shared between the
+ * margin-based stitching pass and the forced-assignment residual pass. */
+function stitch_candidate(end, start) {
+	let duration = start.time - end.time;
+	if (duration <= 0 || duration > MAX_STITCH_GAP_TICKS) return null;
+	if (end.shell.birth_time !== undefined &&
+		start.time - end.shell.birth_time >
+			TANK_SHELL_FLIGHT_LIMIT_TICKS) return null;
+	/* A start already claimed by a different pill stream through
+	 * ambiguity propagation is not this shell's continuation. */
+	if (start.shell.pillbox_source_x !== undefined &&
+		(start.shell.pillbox_source_x !== end.shell.pillbox_source_x ||
+			start.shell.pillbox_source_y !== end.shell.pillbox_source_y)) {
+		return null;
+	}
+	let match = shell_match_cost(end.shell, start.shell, duration);
+	if (!match) return null;
+	if (!match.pillbox_orbit_states && !match.tank_bradian_states &&
+		duration > MAX_SHELL_INTERPOLATION_TICKS) return null;
+	return { end, start, duration, ...match };
+}
+
 function apply_stitch(candidate) {
 	let end_shell = candidate.end.shell;
 	let start_shell = candidate.start.shell;
@@ -1681,23 +1733,7 @@ function apply_stitch(candidate) {
 	end_shell.next_shell = start_shell;
 	start_shell.matched_from_previous = true;
 	start_shell.stitched = true;
-
-	for (let walk = start_shell; walk; walk = walk.next_shell) {
-		if (end_shell.pillbox_source_x !== undefined &&
-			walk.pillbox_source_x === undefined) {
-			walk.pillbox_source_x = end_shell.pillbox_source_x;
-			walk.pillbox_source_y = end_shell.pillbox_source_y;
-			walk.pillbox_source_distance = Math.hypot(
-				walk.pixel_x - walk.pillbox_source_x,
-				walk.pixel_y - walk.pillbox_source_y);
-		}
-		if (end_shell.birth_pixel_x !== undefined &&
-			walk.birth_time === undefined) {
-			walk.birth_time = end_shell.birth_time;
-			walk.birth_pixel_x = end_shell.birth_pixel_x;
-			walk.birth_pixel_y = end_shell.birth_pixel_y;
-		}
-	}
+	propagate_identity_down_chain(end_shell, start_shell);
 	if (candidate.pillbox_orbit_states) {
 		set_pillbox_orbit_states(start_shell, candidate.pillbox_orbit_states);
 	} else if (candidate.tank_bradian_states) {
@@ -1741,23 +1777,8 @@ function stitch_shell_chains(snapshots) {
 	let by_start = new Map();
 	for (let end of ends) {
 		for (let start of starts) {
-			let duration = start.time - end.time;
-			if (duration <= 0 || duration > MAX_STITCH_GAP_TICKS) continue;
-			if (end.shell.birth_time !== undefined &&
-				start.time - end.shell.birth_time >
-					TANK_SHELL_FLIGHT_LIMIT_TICKS) continue;
-			/* A start already claimed by a different pill stream through
-			 * ambiguity propagation is not this shell's continuation. */
-			if (start.shell.pillbox_source_x !== undefined &&
-				(start.shell.pillbox_source_x !== end.shell.pillbox_source_x ||
-					start.shell.pillbox_source_y !== end.shell.pillbox_source_y)) {
-				continue;
-			}
-			let match = shell_match_cost(end.shell, start.shell, duration);
-			if (!match) continue;
-			if (!match.pillbox_orbit_states && !match.tank_bradian_states &&
-				duration > MAX_SHELL_INTERPOLATION_TICKS) continue;
-			let candidate = { end, start, duration, ...match };
+			let candidate = stitch_candidate(end, start);
+			if (!candidate) continue;
 			if (!by_end.has(end)) by_end.set(end, []);
 			by_end.get(end).push(candidate);
 			if (!by_start.has(start)) by_start.set(start, []);
@@ -1793,6 +1814,415 @@ function stitch_shell_chains(snapshots) {
 			used_ends.add(end);
 			used_starts.add(best.start);
 			changed = true;
+		}
+	}
+}
+
+/* ---- residual resolution: forced assignments over what is left -------
+ *
+ * After matching and stitching, one client's leftovers form a bipartite
+ * problem: SUPPLIERS of a shell identity (chain ends whose shell went
+ * unaccounted, and fired shots no shell was matched to) against CONSUMERS
+ * of one (origin-less chain starts, and unexplained impact events, since
+ * every observed start and every impact was *some* shell). An assignment
+ * is accepted only when it is FORCED: present in every maximum
+ * assignment, tested by whether deleting the edge reduces the maximum
+ * flow. This is the safe core of the issue #15 parsimony idea -- what is
+ * ambiguous stays unexplained, but what has only one consistent story
+ * gets that story, including conclusions the pairwise margins could not
+ * reach because they cannot see that a rival candidate is itself needed
+ * elsewhere. */
+
+/* Maximum flow on one small bipartite component: implicit source into the
+ * left groups, implicit sink out of the right groups, unbounded edges
+ * between (group capacities bound everything). `skip` excludes one edge
+ * for the forced-edge test. */
+function bipartite_flow(left_caps, right_caps, edges, skip) {
+	let left_flow = left_caps.map(() => 0);
+	let right_flow = right_caps.map(() => 0);
+	let edge_flow = edges.map(() => 0);
+	let edges_by_left = left_caps.map(() => []);
+	let edges_by_right = right_caps.map(() => []);
+	for (let i = 0; i < edges.length; i++) {
+		if (i === skip) continue;
+		edges_by_left[edges[i].left].push(i);
+		edges_by_right[edges[i].right].push(i);
+	}
+	let value = 0;
+	for (;;) {
+		let left_seen = left_caps.map(() => false);
+		let right_via = right_caps.map(() => undefined);
+		let left_via = left_caps.map(() => undefined);
+		let queue = [];
+		for (let l = 0; l < left_caps.length; l++) {
+			if (left_flow[l] < left_caps[l]) {
+				left_seen[l] = true;
+				queue.push(l);
+			}
+		}
+		let found = -1;
+		while (queue.length && found < 0) {
+			let l = queue.shift();
+			for (let e of edges_by_left[l]) {
+				let r = edges[e].right;
+				if (right_via[r] !== undefined) continue;
+				right_via[r] = e;
+				if (right_flow[r] < right_caps[r]) {
+					found = r;
+					break;
+				}
+				/* Saturated right node: try rerouting its current flows. */
+				for (let back of edges_by_right[r]) {
+					if (edge_flow[back] <= 0) continue;
+					let other = edges[back].left;
+					if (left_seen[other]) continue;
+					left_seen[other] = true;
+					left_via[other] = back;
+					queue.push(other);
+				}
+			}
+		}
+		if (found < 0) break;
+		let r = found;
+		for (;;) {
+			let e = right_via[r];
+			edge_flow[e]++;
+			let l = edges[e].left;
+			let back = left_via[l];
+			if (back === undefined) {
+				left_flow[l]++;
+				break;
+			}
+			edge_flow[back]--;
+			r = edges[back].right;
+		}
+		right_flow[found]++;
+		value++;
+	}
+	return { value, edge_flow };
+}
+
+/* Split the graph into connected components and, per component, keep the
+ * edges whose removal reduces the maximum flow -- the assignments every
+ * maximum assignment agrees on. */
+function forced_bipartite_assignments(lefts, rights, edges) {
+	if (!edges.length) return [];
+	let parent = Array.from({ length: lefts.length + rights.length },
+		(_, i) => i);
+	let find = node => {
+		while (parent[node] !== node) {
+			parent[node] = parent[parent[node]];
+			node = parent[node];
+		}
+		return node;
+	};
+	for (let edge of edges) {
+		let a = find(edge.left);
+		let b = find(lefts.length + edge.right);
+		if (a !== b) parent[a] = b;
+	}
+	let components = new Map();
+	for (let i = 0; i < edges.length; i++) {
+		let root = find(edges[i].left);
+		if (!components.has(root)) components.set(root, []);
+		components.get(root).push(i);
+	}
+
+	let results = [];
+	for (let edge_indices of components.values()) {
+		/* A pathological component is left unresolved rather than solved
+		 * slowly; measured components stay well under this. */
+		if (edge_indices.length > 400) continue;
+		let left_ids = [...new Set(edge_indices.map(i => edges[i].left))];
+		let right_ids = [...new Set(edge_indices.map(i => edges[i].right))];
+		let left_map = new Map(left_ids.map((id, i) => [id, i]));
+		let right_map = new Map(right_ids.map((id, i) => [id, i]));
+		let local_edges = edge_indices.map(i => ({
+			left: left_map.get(edges[i].left),
+			right: right_map.get(edges[i].right),
+		}));
+		let left_caps = left_ids.map(id => lefts[id].count);
+		let right_caps = right_ids.map(id => rights[id].count);
+		let full = bipartite_flow(left_caps, right_caps, local_edges, -1);
+		for (let i = 0; i < local_edges.length; i++) {
+			if (full.edge_flow[i] <= 0) continue;
+			let reduced = bipartite_flow(left_caps, right_caps, local_edges, i);
+			if (reduced.value < full.value) {
+				results.push({
+					edge: edges[edge_indices[i]],
+					units: full.value - reduced.value,
+				});
+			}
+		}
+	}
+	return results;
+}
+
+function group_shot_sources(sources) {
+	let groups = [];
+	for (let source of sources || []) {
+		let group = groups.find(item => item.pixel_x === source.pixel_x &&
+			item.pixel_y === source.pixel_y &&
+			item.direction === source.direction);
+		if (group) group.count++;
+		else groups.push({ ...source, count: 1 });
+	}
+	return groups;
+}
+
+/* Can this unconsumed shot explain an origin-less chain start? Exact
+ * orbit membership decides for a pill; sector geometry for a tank. */
+function creation_start_match(creation, start) {
+	let duration = start.time - creation.time;
+	if (duration < 0 || duration > MAX_STITCH_GAP_TICKS) return null;
+	let shell = start.shell;
+	if (shell.direction !== creation.direction) return null;
+	let origins = [[creation.pixel_x, creation.pixel_y]];
+	if (creation.alternate_pixel_x !== undefined) {
+		origins.push([creation.alternate_pixel_x, creation.alternate_pixel_y]);
+	}
+	for (let [origin_x, origin_y] of origins) {
+		let delta_x = shell.pixel_x - origin_x;
+		let delta_y = shell.pixel_y - origin_y;
+		let distance = Math.hypot(delta_x, delta_y);
+		if (distance <= 1e-9 ||
+			distance > SHELL_RANGE_PIXELS + SHELL_MATCH_ERROR_PIXELS ||
+			Math.abs(distance - duration * SHELL_SPEED_PIXELS_PER_TICK) >
+				SHELL_MATCH_ERROR_PIXELS * 2) continue;
+		if (creation.kind === "pill") {
+			let states = pillbox_orbit_states_at(creation.direction,
+				delta_x, delta_y, shell.position_uncertainty || 0);
+			if (!states.length) continue;
+			return { origin_x, origin_y, distance, delta_x, delta_y, states };
+		}
+		let angle = creation.direction * Math.PI / 8;
+		let forward = delta_x * Math.sin(angle) - delta_y * Math.cos(angle);
+		let lateral = Math.abs(delta_x * Math.cos(angle) +
+			delta_y * Math.sin(angle));
+		if (forward <= 0 ||
+			Math.atan2(lateral, forward) > SHELL_DIRECTION_TOLERANCE) continue;
+		return { origin_x, origin_y, distance, delta_x, delta_y };
+	}
+	return null;
+}
+
+/* Can this unconsumed shot have flown, unobserved, into this impact? */
+function creation_fate_match(creation, fate) {
+	let terminal = fate.terminals[0];
+	let duration = fate.time - creation.time;
+	if (duration <= 0 || duration > MAX_STITCH_GAP_TICKS) return null;
+	if (terminal.direction !== null && terminal.direction !== undefined &&
+		terminal.direction !== creation.direction) return null;
+	let reach = Math.min(duration * SHELL_SPEED_PIXELS_PER_TICK,
+		SHELL_RANGE_PIXELS) + SHELL_MATCH_ERROR_PIXELS;
+	if (creation.kind === "pill") {
+		let distance = pillbox_source_terminal_distance(creation, terminal);
+		if (distance === null || distance > reach) return null;
+		if (duration - distance / SHELL_SPEED_PIXELS_PER_TICK >
+			MAX_FATE_EVENT_LAG_TICKS) return null;
+		return { distance };
+	}
+	let target_x, target_y, slack;
+	if (terminal.type === "point") {
+		target_x = terminal.pixel_x + 8;
+		target_y = terminal.pixel_y + 8;
+		slack = 4;
+	} else {
+		target_x = (terminal.min_x + terminal.max_x) / 2;
+		target_y = (terminal.min_y + terminal.max_y) / 2;
+		slack = 12;
+	}
+	let delta_x = target_x - (creation.pixel_x + 8);
+	let delta_y = target_y - (creation.pixel_y + 8);
+	let distance = Math.hypot(delta_x, delta_y);
+	if (distance > reach + slack) return null;
+	if (duration - distance / SHELL_SPEED_PIXELS_PER_TICK >
+		MAX_FATE_EVENT_LAG_TICKS) return null;
+	if (distance > slack) {
+		let angle = creation.direction * Math.PI / 8;
+		let forward = delta_x * Math.sin(angle) - delta_y * Math.cos(angle);
+		let lateral = Math.abs(delta_x * Math.cos(angle) +
+			delta_y * Math.sin(angle));
+		if (forward <= 0 || Math.atan2(lateral, forward) >
+			SHELL_DIRECTION_TOLERANCE + Math.atan2(slack, distance)) return null;
+	}
+	return { distance };
+}
+
+function apply_forced_terminal(end, fate, match) {
+	let terminal = fate.terminals.find(item => item.match_time === undefined);
+	if (!terminal) return;
+	let end_time = Math.min(fate.time,
+		end.time + match.distance / SHELL_SPEED_PIXELS_PER_TICK);
+	let shell = end.shell;
+	shell.next_time = end_time;
+	shell.next_pixel_x = match.pixel_x;
+	shell.next_pixel_y = match.pixel_y;
+	shell.next_terminal = true;
+	shell.next_terminal_type = terminal.type;
+	shell.next_terminal_event_type = terminal.event_type;
+	terminal.match_time = end_time;
+	if (terminal.effect) {
+		terminal.effect.time = end_time;
+		if (match.hitbox_pixel_x !== undefined) {
+			terminal.effect.x = Math.floor(match.hitbox_pixel_x / 16);
+			terminal.effect.y = Math.floor(match.hitbox_pixel_y / 16);
+			terminal.effect.px = match.hitbox_pixel_x - terminal.effect.x * 16;
+			terminal.effect.py = match.hitbox_pixel_y - terminal.effect.y * 16;
+		}
+	}
+}
+
+function apply_forced_origin(creation, start, match) {
+	let shell = start.shell;
+	if (match.distance > 0) {
+		shell.heading_x = match.delta_x / match.distance;
+		shell.heading_y = match.delta_y / match.distance;
+	}
+	shell.heading_origin_x = match.origin_x;
+	shell.heading_origin_y = match.origin_y;
+	if (creation.kind === "pill") {
+		shell.starts_at_pillbox = true;
+		shell.pillbox_source_x = match.origin_x;
+		shell.pillbox_source_y = match.origin_y;
+		shell.pillbox_source_distance = match.distance;
+		set_pillbox_orbit_states(shell, match.states);
+	} else {
+		shell.starts_at_tank = true;
+		shell.birth_time = start.time -
+			match.distance / SHELL_SPEED_PIXELS_PER_TICK;
+		shell.birth_pixel_x = match.origin_x;
+		shell.birth_pixel_y = match.origin_y;
+		set_tank_bradian_states(shell, initial_tank_bradian_states(
+			creation.direction, shell.pixel_x, shell.pixel_y,
+			shell.position_uncertainty || 0));
+	}
+	propagate_identity_down_chain(shell, shell.next_shell);
+}
+
+/* An impact with no observed shell, forced onto a fired shot: mark the
+ * terminal's source the way count-forced pill terminals already are, so
+ * it stops being an open question without claiming a drawn shell. */
+function apply_forced_unseen(creation, fate, units) {
+	let applied = 0;
+	for (let terminal of fate.terminals) {
+		if (applied >= units) break;
+		if (terminal.match_time !== undefined) continue;
+		if (creation.kind === "pill") {
+			if (terminal.unseen_pillbox_source) continue;
+			terminal.unseen_pillbox_source = true;
+			terminal.pillbox_source_x = creation.pixel_x;
+			terminal.pillbox_source_y = creation.pixel_y;
+			terminal.pillbox_source_direction = creation.direction;
+		} else {
+			if (terminal.unseen_tank_source) continue;
+			terminal.unseen_tank_source = true;
+			terminal.tank_source_x = creation.pixel_x;
+			terminal.tank_source_y = creation.pixel_y;
+			terminal.tank_source_direction = creation.direction;
+		}
+		applied++;
+	}
+}
+
+function resolve_residual_shell_fates(snapshots) {
+	let ends = [];
+	let starts = [];
+	let fate_groups = [];
+	let creation_groups = [];
+	for (let index = 0; index < snapshots.length; index++) {
+		let snapshot = snapshots[index];
+		let final = index === snapshots.length - 1;
+		for (let shell of snapshot.shells) {
+			if (shell.next_time === undefined && !final) {
+				ends.push({ shell, time: snapshot.time });
+			}
+			if (index > 0 && !shell.matched_from_previous &&
+				!shell.starts_at_tank && !shell.starts_at_pillbox) {
+				starts.push({ shell, time: snapshot.time });
+			}
+		}
+		for (let terminal of snapshot.terminals) {
+			if (terminal.match_time !== undefined ||
+				terminal.unseen_pillbox_source) continue;
+			let group = fate_groups.find(item => item.time === snapshot.time &&
+				same_shell_terminal(item.terminals[0], terminal));
+			if (group) group.terminals.push(terminal);
+			else fate_groups.push({ time: snapshot.time, terminals: [terminal] });
+		}
+		let pill_sources = snapshot.unclaimed_pillbox_sources ??
+			group_shot_sources(snapshot.pillbox_sources);
+		for (let source of pill_sources) {
+			creation_groups.push({ kind: "pill", time: snapshot.time, ...source });
+		}
+		let tank_sources = snapshot.unclaimed_tank_sources ??
+			group_shot_sources(snapshot.tank_sources);
+		for (let source of tank_sources) {
+			creation_groups.push({ kind: "tank", time: snapshot.time, ...source });
+		}
+	}
+	if ((!ends.length && !creation_groups.length) ||
+		(!starts.length && !fate_groups.length)) return;
+
+	let lefts = [];
+	let rights = [];
+	for (let end of ends) lefts.push({ kind: "end", end, count: 1 });
+	for (let creation of creation_groups) {
+		lefts.push({ kind: "creation", creation, count: creation.count });
+	}
+	for (let start of starts) rights.push({ kind: "start", start, count: 1 });
+	for (let fate of fate_groups) {
+		rights.push({ kind: "fate", fate, count: fate.terminals.length });
+	}
+
+	let edges = [];
+	for (let li = 0; li < lefts.length; li++) {
+		let left = lefts[li];
+		for (let ri = 0; ri < rights.length; ri++) {
+			let right = rights[ri];
+			if (left.kind === "end" && right.kind === "start") {
+				let candidate = stitch_candidate(left.end, right.start);
+				if (candidate) edges.push({ left: li, right: ri, candidate });
+			} else if (left.kind === "end") {
+				let duration = right.fate.time - left.end.time;
+				if (duration <= 0 ||
+					duration > MAX_SHELL_INTERPOLATION_TICKS) continue;
+				let match = shell_terminal_match(left.end.shell,
+					right.fate.terminals[0], duration, left.end.time);
+				/* The event may trail the inferred arrival, but not by more
+				 * than ordinary event lag: a distant late event is more
+				 * likely another shell's than a record delayed this long. */
+				if (match && duration -
+					match.distance / SHELL_SPEED_PIXELS_PER_TICK <=
+						MAX_FATE_EVENT_LAG_TICKS) {
+					edges.push({ left: li, right: ri, match });
+				}
+			} else if (right.kind === "start") {
+				let match = creation_start_match(left.creation, right.start);
+				if (match) edges.push({ left: li, right: ri, match });
+			} else {
+				let match = creation_fate_match(left.creation, right.fate);
+				if (match) edges.push({ left: li, right: ri, match });
+			}
+		}
+	}
+
+	let assignments = forced_bipartite_assignments(lefts, rights, edges);
+	/* Observed shells claim terminals before unseen shots mark leftovers. */
+	assignments.sort((a, b) =>
+		(lefts[a.edge.left].kind === "creation") -
+		(lefts[b.edge.left].kind === "creation"));
+	for (let { edge, units } of assignments) {
+		let left = lefts[edge.left];
+		let right = rights[edge.right];
+		if (left.kind === "end" && right.kind === "start") {
+			apply_stitch(edge.candidate);
+		} else if (left.kind === "end") {
+			apply_forced_terminal(left.end, right.fate, edge.match);
+		} else if (right.kind === "start") {
+			apply_forced_origin(left.creation, right.start, edge.match);
+		} else {
+			apply_forced_unseen(left.creation, right.fate, units);
 		}
 	}
 }
@@ -1854,6 +2284,7 @@ function build_shell_positions(records, terminals, pillbox_sources_by_record,
 	}
 	for (let client_snapshots of snapshots) {
 		stitch_shell_chains(client_snapshots);
+		resolve_residual_shell_fates(client_snapshots);
 	}
 	return snapshots;
 }
