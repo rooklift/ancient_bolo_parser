@@ -38,6 +38,13 @@ for key, value in zips.items():
 	if os.path.exists(os.path.join(build_dir, "electron")):
 		os.rename(os.path.join(build_dir, "electron"), os.path.join(build_dir, name))
 
+	# Remove unneeded locale files
+	locales_dir = os.path.join(build_dir, "locales")
+	if os.path.exists(locales_dir):
+		for file in os.listdir(locales_dir):
+			if file.endswith(".pak") and file != "en-US.pak":
+				os.remove(os.path.join(locales_dir, file))
+
 	# We could and maybe should...
 	"""
 	if key == "windows":
