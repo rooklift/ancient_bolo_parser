@@ -36,6 +36,8 @@ for (let t = 10; t <= 15; t++) RGB[t] = RGB[t - 8];
 const FRIENDLY_COLOR = "#58d858";
 const HOSTILE_COLOR = "#ff5d5d";
 const NEUTRAL_BASE = "#f0b429";
+/* the empty canvas, matching #view's CSS background */
+const BACKGROUND = "#0a0e16";
 
 const EFFECT_TICKS = 30; /* how long a transient effect stays on screen */
 const OBJ_NATIVE_TILE = 16;
@@ -155,6 +157,15 @@ let effect_lo = 0;       /* rolling window start into game.effects */
 let chat_shown = 0;
 let last_frame = null;
 let last_viewpoint_html = null;
+let loading = false;     /* a log is being read: the old replay is off screen */
+
+/* True when there is no replay to act on: either nothing is loaded, or a
+ * load is running, which takes the current one off the screen until it
+ * finishes. Everything that touches the game asks first, so a load leaves
+ * the viewer behaving exactly as it does at startup. */
+function no_replay() {
+	return !game || loading;
+}
 
 const ZOOMS = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32];
 let view = { zoom: 3, ox: 0, oy: 0 };
@@ -236,7 +247,7 @@ function hover_point_from_event(e) {
 }
 
 function update_coordinate_debug() {
-	if (!coordinate_debug_enabled || !cur || !hover_point || pointer_buttons !== 0) {
+	if (!coordinate_debug_enabled || !cur || loading || !hover_point || pointer_buttons !== 0) {
 		coordinate_debug_el.hidden = true;
 		return;
 	}
@@ -327,7 +338,7 @@ function zoom_to_action() {
 
 /* ---------- playback ---------- */
 function set_clock(tick, hard) {
-	if (!game) return;
+	if (no_replay()) return;
 	tick = Math.max(game.t0, Math.min(game.t1, tick));
 	if (hard || tick < clock) {
 		/* backwards (or explicit reset): restore from nearest keyframe */
@@ -377,7 +388,7 @@ function frame(ts) {
 }
 
 function set_playing(p) {
-	if (!game) p = false;
+	if (no_replay()) p = false;
 	if (p === playing) return;
 	playing = p;
 	play_btn.textContent = playing ? "❚❚" : "▶";
@@ -389,14 +400,14 @@ function set_playing(p) {
 }
 
 function step_change(direction) {
-	if (!game) return;
+	if (no_replay()) return;
 	set_playing(false);
 	let tick = BoloGame.adjacent_change_time(game.records, clock, direction);
 	set_clock(tick, direction < 0);
 }
 
 function go_to_boundary(at_end) {
-	if (!game) return;
+	if (no_replay()) return;
 	set_playing(false);
 	set_clock(at_end ? game.t1 : game.t0, !at_end);
 }
@@ -407,7 +418,7 @@ function fmt_time(ticks) {
 }
 
 function update_transport() {
-	if (!game) return;
+	if (no_replay()) return;
 	time_label.textContent = `${fmt_time(clock)} / ${fmt_time(game.t1)}`;
 	let bits = [
 		`${cursor.toLocaleString()} / ${game.records.length.toLocaleString()} records`,
@@ -537,8 +548,19 @@ function request_draw() {
 function world_x(o) { return o.x + (o.px ?? 0) / 16 + 0.5; }
 function world_y(o) { return o.y + (o.py ?? 0) / 16 + 0.5; }
 
+/* The canvas as it is before any log is opened, and while one loads. */
+function clear_canvas() {
+	let { w, h } = css_size();
+	ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+	ctx.fillStyle = BACKGROUND;
+	ctx.fillRect(0, 0, w, h);
+}
+
 function draw() {
-	if (!cur) return;
+	if (!cur || loading) {
+		clear_canvas();
+		return;
+	}
 	centre_locked_player();
 	let { w, h } = css_size();
 	let z = view.zoom;
@@ -546,7 +568,7 @@ function draw() {
 	if (off_version !== cur.gridVersion) rebuild_offscreen();
 
 	ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
-	ctx.fillStyle = "#0a0e16";
+	ctx.fillStyle = BACKGROUND;
 	ctx.fillRect(0, 0, w, h);
 	ctx.imageSmoothingEnabled = false;
 	ctx.drawImage(off, view.ox, view.oy, w / z, h / z, 0, 0, w, h);
@@ -950,6 +972,7 @@ async function load_log(bytes, name) {
 	} catch (err) {
 		if (generation === load_generation) {
 			end_progress();
+			if (game) show_game();
 			set_playing(was_playing);
 		}
 		show_error("Could not load log", String(err.message || err));
@@ -962,7 +985,6 @@ async function load_log(bytes, name) {
 	end_progress();
 	player_locked = false;
 	viewpoint = -1;
-	last_viewpoint_html = null;
 	clock = game.t0;
 	cur = BoloGame.clone_state(game.keyframes[0].state);
 	cursor = 0;
@@ -972,9 +994,20 @@ async function load_log(bytes, name) {
 	/* keep the source path/filename: shown in the window title and
 	 * available as ABV.filename in the dev console */
 	loaded_name = name || null;
-	document.title = (name ? name.split(/[\\/]/).pop() + " — " : "") + "Ancient Bolo Log Viewer";
+	show_game();
+	zoom_to_action();
+	set_playing(true);
+	if (window.api && name) window.api.file_loaded(name);
+}
+
+/* Everything on screen that belongs to the loaded game. Put up by a
+ * finished load, and again by a failed one, which has to give back the
+ * replay it took off the screen. */
+function show_game() {
+	document.title = (loaded_name ? loaded_name.split(/[\\/]/).pop() + " — " : "") +
+		"Ancient Bolo Log Viewer";
 	let gi = game.final.gameInfo;
-	map_name_el.textContent = gi ? gi.mapName : (name || "Bolo log");
+	map_name_el.textContent = gi ? gi.mapName : (loaded_name || "Bolo log");
 
 	/* One verdict for the whole log, so it is set here and not in
 	 * update_transport: the network was what it was, and a figure that
@@ -986,10 +1019,33 @@ async function load_log(bytes, name) {
 		`${net.stall.toFixed(1)}% of the time spent frozen; ` +
 		`measured over settled play, ${fmt_time(net.from)} to ${fmt_time(net.to)}` : "";
 
-	rebuild_chat(game.t0);
-	zoom_to_action();
-	set_playing(true);
-	if (window.api && name) window.api.file_loaded(name);
+	rebuild_chat(clock);
+	update_transport();
+	request_draw();
+}
+
+/* The startup view, held for the duration of a load: the replay on screen
+ * has nothing to do with the one arriving, and a frozen map under a
+ * loading bar reads as a hung viewer. The game itself stays in memory
+ * until the new one is built, so a file that turns out not to be a log
+ * can put it straight back. */
+function hide_game() {
+	document.title = "Ancient Bolo Log Viewer";
+	map_name_el.textContent = "No log loaded";
+	game_meta_el.textContent = "";
+	network_meta_el.textContent = "";
+	network_meta_el.title = "";
+	/* the sidebar caches what it last rendered, so emptying it by hand
+	 * means saying so, or an identical game would never be redrawn */
+	viewpoint_el.innerHTML = "";
+	last_viewpoint_html = null;
+	players_el.innerHTML = "";
+	last_players_html = null;
+	chat_el.innerHTML = "";
+	chat_shown = 0;
+	time_label.textContent = "0:00 / 0:00";
+	seek_el.value = 0;
+	clear_canvas();
 }
 
 /* The loading panel: a name, the pass now running, and a bar. */
@@ -997,6 +1053,8 @@ function begin_progress(name) {
 	loading_name_el.textContent = name ?
 		`Loading ${name.split(/[\\/]/).pop()}` : "Loading log";
 	show_progress({ fraction: 0, label: "Reading records" });
+	loading = true;
+	hide_game();
 	drop_hint.classList.add("hidden");
 	loading_el.hidden = false;
 }
@@ -1007,6 +1065,7 @@ function show_progress(step) {
 }
 
 function end_progress() {
+	loading = false;
 	loading_el.hidden = true;
 	if (!game) drop_hint.classList.remove("hidden");
 }
@@ -1076,7 +1135,7 @@ viewpoint_el.addEventListener("change", () => {
 	request_draw();
 });
 seek_el.addEventListener("input", () => {
-	if (!game) return;
+	if (no_replay()) return;
 	let tick = game.t0 + (parseInt(seek_el.value, 10) / 1000) * (game.t1 - game.t0);
 	set_clock(tick, tick < clock);
 });
@@ -1087,7 +1146,7 @@ seek_el.addEventListener("change", () => seek_el.blur());
 
 /* Save the map's earliest known state as a standard BMAPBOLO file. */
 function save_initial_map() {
-	if (!game) return;
+	if (no_replay()) return;
 	let map = BoloGame.extract_initial_map(game.records);
 	let bytes;
 	try {
@@ -1137,7 +1196,7 @@ window.addEventListener("keydown", e => {
 		toggle_pill_fire_flashes();
 		return;
 	}
-	if (!game) return;
+	if (no_replay()) return;
 	if (e.code === "KeyS" && (e.ctrlKey || e.metaKey)) {
 		e.preventDefault(); /* it's our save now, not the browser's */
 		save_initial_map();
