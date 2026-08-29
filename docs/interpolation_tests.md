@@ -420,6 +420,42 @@ The largest single movement in shell continuity measured in this file:
 
 `npm test` passes, 189 checks, including a new lag-gap stitching case.
 
+## Forced residual assignment -- `d10f153`
+
+The safe core of issue #15. After matching and stitching, one client's
+leftovers form a bipartite problem -- suppliers of a shell identity
+(unaccounted chain ends, unconsumed fired shots) against consumers of one
+(origin-less chain starts, unexplained impacts) -- and a per-component
+maximum-flow solver accepts exactly the assignments present in every
+maximum assignment. Ambiguity stays unexplained; the only consistent
+story gets told, including conclusions pairwise margins cannot reach.
+
+* `rate_terminals_matched` 0.856698 -- up from 0.850218, a new best and
+  the largest terminal gain since `4f5dbe9`; +156 terminals, all five
+  classes up (`tank_hit` +53 to 3161, `pillbox_damage` +44,
+  `shell_falls` +32, `explosion` +20, `base_damage` +8)
+* `rate_shells_matched_forward` 0.990889 -- up from 0.988055, a new best
+* `rate_shells_unlinked` 0.004434 -- down from 0.004990, a new best
+* `terminals_unseen_pillbox_source` 792 -- up from 393, and a new
+  `terminals_unseen_tank_source` 879: 1,278 further impacts whose shell
+  was never observed now name their firing pill or tank. Counting those,
+  92.6% of the fixture's terminals have an explanation, against 86.6%
+  before the pass.
+* `shells_from_tank` +12, `shells_from_pillbox` +8, `shells_with_birth`
+  +40 -- forced origin recovery for origin-less chains
+* The bradian physics audit is flat (`no_model_s1` 70), and the
+  event-lag bound means every forced fate sits within ordinary record
+  lag of its shell's inferred arrival.
+* Build time on the fixture rises about half a second; playback is
+  untouched.
+
+`npm test` passes, 191 checks, including new forced-late-impact and
+unseen-tank-attribution cases.
+
+Cumulative for the branch line against `926f391`: forward matching
+0.980136 -> 0.990889, unlinked 0.008081 -> 0.004434 (nearly halved),
+terminals 0.849553 -> 0.856698.
+
 ## Findings
 
 * **The branch line now leads the branch point on every headline metric.** At
