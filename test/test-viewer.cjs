@@ -410,12 +410,20 @@ if (!fs.existsSync(log1)) {
 	check("different shell directions never match",
 		rounded(position(changed_direction, 106).x), 10.5);
 
+	/* Two same-ray successors a pixel either side of schedule: no identity
+	 * is claimed (the margin refuses, and no origin propagates), but the
+	 * sprite continues along the shared ray as a draw-only visual join --
+	 * every candidate story draws this way, and a freeze-and-vanish
+	 * matches none of them. */
 	let ambiguous = BoloGame.build([
 		record(100, [shell_list(4, [[160, 160]])]),
 		record(112, [shell_list(4, [[183, 160], [185, 160]])]),
 	]);
-	check("ambiguous shell identity holds its packet position",
-		rounded(position(ambiguous, 106).x), 10.5);
+	check("ambiguous same-ray identity continues as a draw-only join",
+		[rounded(position(ambiguous, 106).x),
+			!!ambiguous.shell_positions[0][1].shells[0].visual_join,
+			ambiguous.shell_positions[0][1].shells[0].birth_time === undefined],
+		[11.2188, true, true]);
 
 	let recoverable_lag = BoloGame.build([
 		record(100, [shell_list(4, [[160, 160]])]),
