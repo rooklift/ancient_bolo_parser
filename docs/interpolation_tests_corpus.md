@@ -92,9 +92,29 @@ Constant at all ten commits, and worth having once:
 | `4f5dbe9` | bad assumption | 0.967669 | 0.011431 | 0.813086 | 227,331 |
 | `83cb132` | quantized shots | 0.972767 | 0.009576 | 0.813034 | 227,201 |
 | `5f9d86f` | one-sided | 0.973966 | 0.009100 | 0.813066 | 227,223 |
-| `926f391` | index 1+ | **0.975030** | **0.008829** | **0.816566** | **227,585** |
+| `926f391` | index 1+ | 0.975030 | 0.008829 | 0.816566 | 227,585 |
+| `0d181be` | bradian + stitching | 0.984399 | 0.005985 | 0.816888 | 228,016 |
+| `4c791a0` | forced assign + jitter | **0.988925** | **0.004020** | **0.827713** | **233,180** |
+| `b345ef0` | temporal gate | 0.988826† | 0.004112† | 0.827709 | 233,180†† |
 
-Every headline record is held by `926f391`, as on the fixture.
+`4c791a0` now holds all three headline records (superseding `926f391`, which held
+them when this table originally ended). `b345ef0` trades a hair of each back for
+correctness the rate can't see -- see its section below.
+
+† `4c791a0` and `0d181be` restate `rate_shells_matched_forward` and
+`rate_shells_unlinked` directly; `b345ef0`'s section does not, so these two are
+derived from the exact absolute counts it does give (`shells_matched_to_snapshot`
+8,096,589; total shells 9,817,361 throughout) plus `shells_matched_to_terminal`,
+itself derived from the "down 8 terminals" delta on `rate_terminals_matched`
+applied to `4c791a0`'s exact terminal count (1,611,093, cross-checked two ways
+from the deltas stated in the `0d181be` and `4c791a0` sections). The
+`rate_terminals_matched` figure recomputed this way (0.827710) matches the
+directly stated 0.827709 to within rounding.
+
+†† `tank_hit` is not separately restated at `b345ef0`; the section states only
+that terminal matches fell by 8 net across all five classes combined, without
+attributing the drop to specific classes, so this carries over `4c791a0`'s
+value and could be up to 8 lower.
 
 ## Tank and LGM tracks
 
