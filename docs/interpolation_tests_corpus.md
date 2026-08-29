@@ -516,6 +516,62 @@ that remain are chains whose dilation exceeds even the widened windows
 (the bradian audit's growing `no_model` class points the same way) plus
 true cross-client migrations, which draw as pops by design.
 
+## Leading impacts -- `ad2168d`
+
+Residual end-to-fate edges may now *lead* the receiver-clock arrival
+estimate, bounded by the gap back to the sender's previous record (see
+the fixture file's entry for the mechanism and the motivating replay).
+The fixture predicted +34 shells matched forward and +24 terminals; the
+corpus delivers roughly 100x both, the by-now-familiar amplification of
+a residue concentrated in laggy games -- and this change is specifically
+about lag. Deltas against `a74033a`:
+
+* `rate_shells_matched_forward` 0.993965 -- up from 0.993609, +3,501
+  shells, a new record; `shells_unmatched_forward` 59,246
+* `rate_shells_unlinked` 0.002019 -- down from 0.002202;
+  `shells_unlinked` 19,823, down from 21,615, a new record
+* `rate_terminals_matched` 0.829538 -- up from 0.828353, +2,307
+  terminals, the best recorded figure (the unmeasured `f340943` peak
+  still stands, on an engine with 44k forward-paired pops)
+* `terminals_matched:tank_hit` 233,481 -- up 1,139, recovering the pop
+  rescue's 838 give-back and passing `4c791a0`'s 233,180 record by 301.
+  The continue-vs-die reassignments that cost tank hits at `a74033a`
+  are exactly the cases this change re-decides: the continuation and
+  the death now both get claimed.
+* `terminals_unseen_pillbox_source` 120,090 (+16) and
+  `terminals_unseen_tank_source` 64,181 (-34) -- essentially flat.
+  Counting unseen attributions, 1,798,916 of 1,946,439 impacts have an
+  explanation, 92.4%; the truly unexplained residue is 147,523
+* Birth identity exact: 652,260 + 964,260 = 1,616,520 = `shell_births`,
+  up 25
+* `shells_visual_joins` 5,212 -- down 28; a few former draw-only links
+  are now believed
+* Non-shell tracks and corpus constants reproduce (122.8M tank ticks,
+  112.3M LGM ticks)
+
+The drawn-motion audit, against `a74033a`:
+
+* `pop_outs` 59,060 -- down from 62,561 by exactly 3,501: every newly
+  matched shell was previously a visible pop. `pops_paired_forward`
+  9,162, down from 9,443; `pops_paired_backwards` 5,514, down from
+  5,588; `rush_links` 4,841, down from 4,860
+* `seam_jumps` 128 and `seam_jump_max` 3.16 -- byte-identical; the rare
+  handoff bug neither grew nor moved
+* `terminal_links_rushed` 79,521 -- up from 76,597, the expected cost:
+  a lead match caps its arrival at the fate record's time, so the final
+  link draws fast. 4.9% of terminal links, from 4.75%; the same
+  capped-arrival cosmetic lagging events already paid, landing on
+  chains that previously rendered as a pop-out plus a frozen orphan
+* `hover_links` 3,642 -- up 80, same neighbourhood as before;
+  `rate_links_steady` 0.963885, down from 0.964359
+
+Reading it together: a both-axes gain at full scale -- more shells
+matched forward *and* more terminals explained, with every pop class
+down and the seam-jump invariant untouched -- paid for with ~2,900 more
+rushed final links. The rushed-terminal class remains the obvious
+drawing-side follow-up (a per-link speed cap at draw time), but it
+predates this change.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
