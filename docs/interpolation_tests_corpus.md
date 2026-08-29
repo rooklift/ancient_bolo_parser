@@ -391,6 +391,27 @@ forward shells 245,139 -> 108,728 and unlinked 86,675 -> 39,462, both
 better than halved; forward matching 0.975030 -> 0.988925; terminals
 0.816566 -> 0.827713 with all five classes up.
 
+## Branch -- absorption temporal gate, `b345ef0`
+
+The fix for the dense-stream false absorption found in replay `122903.4`
+(a trailing shell claimed as a stitched leader's intermediate because it
+sat on the segment, drawing a shell that hovered and then rocketed).
+Requiring absorbed observations to agree with uniform time rejects about
+955 such claims corpus-wide -- each one a wrong identity that rendered
+as that artifact:
+
+* `shells_matched_to_snapshot` 8,096,589 -- down 951;
+  `shells_unlinked` 40,367 -- up 905. These are the false absorptions,
+  now correctly unexplained rather than wrongly explained.
+* `rate_terminals_matched` 0.827709 -- down 8 terminals of 1.9M;
+  `terminals_unseen_tank_source` down 2; everything else within a few
+  counts, and `shell_births` rises 12 with the identity still exact
+  (652,296 + 964,004 = 1,616,300).
+* Non-shell tracks byte-identical; corpus constants reproduce.
+
+A reminder the headline rates measure matches, not truth: this commit
+makes the numbers fractionally worse and the replays visibly better.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
