@@ -6,6 +6,13 @@
 const PillboxShellOrbits = typeof module !== "undefined" && module.exports
 	? require("./pillbox_shell_orbits.js") : window.PillboxShellOrbits;
 
+/* Each pass over the records comes in two forms: build_x(), the plain
+ * synchronous function, and build_x_steps(), the generator it drains,
+ * which reports progress so the viewer can draw a loading bar. See
+ * progress.js. */
+const { PROGRESS_CHUNK, drain, sub_progress } = typeof module !== "undefined" && module.exports
+	? require("./progress.js") : window.BoloProgress;
+
 const TICKS_PER_SECOND = 50;
 /* Moving objects normally restate at about four packets per second. Beyond
  * half a second the path between two positions is no longer trustworthy:
@@ -82,6 +89,10 @@ const TICKS_PER_SHELL_UPDATE = 2;
  * tank shot measured from its birth. Fuzzy joins with no discrete
  * evidence keep the ordinary window. */
 const MAX_STITCH_GAP_TICKS = 100;
+/* Share of shell reconstruction spent matching snapshots rather than
+ * working on the chains that matching produced (2.4 s against 1.0 s on the
+ * sample log). Only the loading bar cares, and only about the proportion. */
+const SHELL_MATCH_SHARE = 0.7;
 const TANK_SHELL_FLIGHT_LIMIT_TICKS = 72;
 /* 8.5 tiles: the pill orbit range, and the assumed tank-shot range from
  * the shared simulation. */
@@ -180,10 +191,16 @@ function add_shell_box_terminal(terminals, rec, pixel_x, pixel_y,
  * prevents interpolation towards the bogus far-away positions sometimes
  * carried by ghost-split quit records. */
 function build_tank_positions(records) {
+	return drain(build_tank_positions_steps(records));
+}
+
+function* build_tank_positions_steps(records) {
 	let tracks = Array.from({ length: 16 }, () => []);
 	let active = Array.from({ length: 16 }, () => false);
 
-	for (let rec of records) {
+	for (let i = 0; i < records.length; i++) {
+		if (i % PROGRESS_CHUNK === 0) yield { fraction: i / records.length };
+		let rec = records[i];
 		let pl = rec.player;
 		let map_node_only = rec.subpackets.length > 0 &&
 			rec.subpackets.every(sub => MAP_NODE_TYPES.has(sub.type));
@@ -210,10 +227,16 @@ function build_tank_positions(records) {
  * it needs a track of its own. `continuous` has the same meaning as it does
  * for position tracks: it describes the span ending at this entry. */
 function build_tank_directions(records) {
+	return drain(build_tank_directions_steps(records));
+}
+
+function* build_tank_directions_steps(records) {
 	let tracks = Array.from({ length: 16 }, () => []);
 	let active = Array.from({ length: 16 }, () => false);
 
-	for (let rec of records) {
+	for (let i = 0; i < records.length; i++) {
+		if (i % PROGRESS_CHUNK === 0) yield { fraction: i / records.length };
+		let rec = records[i];
 		let player = rec.player;
 		let map_node_only = rec.subpackets.length > 0 &&
 			rec.subpackets.every(sub => MAP_NODE_TYPES.has(sub.type));
@@ -251,12 +274,18 @@ function build_tank_directions(records) {
  * tank position on a quit record, an LGM death position is trustworthy, so
  * the final walking span may run right up to the death event. */
 function build_lgm_positions(records) {
+	return drain(build_lgm_positions_steps(records));
+}
+
+function* build_lgm_positions_steps(records) {
 	let tracks = Array.from({ length: 16 }, () => []);
 	let active = Array.from({ length: 16 }, () => false);
 	let parachuting = Array.from({ length: 16 }, () => false);
 	let tanks = Array.from({ length: 16 }, () => null);
 
-	for (let rec of records) {
+	for (let i = 0; i < records.length; i++) {
+		if (i % PROGRESS_CHUNK === 0) yield { fraction: i / records.length };
+		let rec = records[i];
 		let pl = rec.player;
 		let map_node_only = rec.subpackets.length > 0 &&
 			rec.subpackets.every(sub => MAP_NODE_TYPES.has(sub.type));
@@ -2605,6 +2634,15 @@ function smooth_shell_chains(snapshots) {
  * renders conservatively as one shell disappearing and another appearing. */
 function build_shell_positions(records, terminals, pillbox_sources_by_record,
 	tank_sources_by_record, tank_positions = null) {
+	return drain(build_shell_positions_steps(records, terminals,
+		pillbox_sources_by_record, tank_sources_by_record, tank_positions));
+}
+
+/* Much the slowest pass of a load — four fifths of it — so it reports its
+ * two halves separately: matching each snapshot against the last, then the
+ * per-player chain work over the matches. */
+function* build_shell_positions_steps(records, terminals, pillbox_sources_by_record,
+	tank_sources_by_record, tank_positions = null) {
 	if (tank_positions) {
 		for (let terminal of terminals) {
 			if (terminal.event_type === "tank_hit" &&
@@ -2623,7 +2661,11 @@ function build_shell_positions(records, terminals, pillbox_sources_by_record,
 		}
 		record_terminals.push(terminal);
 	}
-	for (let rec of records) {
+	for (let i = 0; i < records.length; i++) {
+		if (i % PROGRESS_CHUNK === 0) {
+			yield { fraction: SHELL_MATCH_SHARE * i / records.length, label: "Matching shells" };
+		}
+		let rec = records[i];
 		let map_node_only = rec.subpackets.length > 0 &&
 			rec.subpackets.every(sub => MAP_NODE_TYPES.has(sub.type));
 		let shell_lists = rec.subpackets.filter(sub => sub.type === "shells");
@@ -2653,7 +2695,12 @@ function build_shell_positions(records, terminals, pillbox_sources_by_record,
 		mark_new_tank_shells(previous, snapshot);
 		client_snapshots.push(snapshot);
 	}
-	for (let client_snapshots of snapshots) {
+	for (let player = 0; player < snapshots.length; player++) {
+		yield {
+			fraction: SHELL_MATCH_SHARE + (1 - SHELL_MATCH_SHARE) * player / snapshots.length,
+			label: "Joining up shell paths",
+		};
+		let client_snapshots = snapshots[player];
 		stitch_shell_chains(client_snapshots);
 		resolve_residual_shell_fates(client_snapshots);
 		smooth_shell_chains(client_snapshots);
@@ -2882,6 +2929,8 @@ const BoloMotion = {
 	append_shell_list, add_shell_point_terminal, add_shell_box_terminal,
 	build_tank_positions, build_tank_directions, build_lgm_positions, track_pixel_at,
 	build_shell_positions, build_shell_births,
+	build_tank_positions_steps, build_tank_directions_steps,
+	build_lgm_positions_steps, build_shell_positions_steps,
 	tank_position_at, tank_direction_at, lgm_position_at, shell_position_at,
 	shell_birth_positions_at,
 };

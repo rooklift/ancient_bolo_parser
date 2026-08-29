@@ -49,6 +49,24 @@ if (!fs.existsSync(log1)) {
 	// outside the measured span.
 	check("network conditions skips the join ramp", game.network.from > game.t0, true);
 
+	// What the viewer's loading bar reads: build() is build_steps() drained,
+	// and the steps have to march forwards through every pass to be worth
+	// drawing. A slice of the log keeps this cheap; the passes are the same.
+	{
+		let previous = -1, backwards = 0, out_of_range = 0, steps = 0, label = null;
+		for (const step of BoloGame.build_steps(recs.slice(0, 20000))) {
+			if (step.fraction < previous) backwards++;
+			if (step.fraction < 0 || step.fraction > 1) out_of_range++;
+			previous = step.fraction;
+			steps++;
+			label = step.label;
+		}
+		check("progress never goes backwards", backwards, 0);
+		check("progress stays within 0 to 1", out_of_range, 0);
+		check("progress reported often enough to animate", steps > 100, true);
+		check("progress runs to the last pass", label, "Rating the network");
+	}
+
 	let shell_metrics = { total: 0, matched: 0, falls: 0 };
 	let matched_effect_terminals = new Set();
 	for (let snapshots of game.shell_positions) {

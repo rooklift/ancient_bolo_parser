@@ -22,6 +22,13 @@
 					<p>Open a Bolo game log (File → Open, or drop it here).</p>
 				</div>
 			</div>
+			<div id="loading" hidden>
+				<div>
+					<h1 id="loadingName">Loading log</h1>
+					<p id="loadingPhase"></p>
+					<div id="loadingBar"><div id="loadingFill"></div></div>
+				</div>
+			</div>
 			<div id="transport">
 				<button id="playBtn" title="Play / pause (space)">▶</button>
 				<span id="timeLabel">0:00 / 0:00</span>
@@ -58,6 +65,7 @@
 	</div>
 	<input type="file" id="filePick" hidden>
 	<script src="format.js"></script>
+	<script src="progress.js"></script>
 	<script src="sprites.js"></script>
 	<script src="logparse.js"></script>
 	<script src="network.js"></script>

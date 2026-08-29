@@ -65,6 +65,36 @@ body {
 #dropHint h1 { font-size: 20px; margin-bottom: 8px; color: #cfd6e4; }
 #dropHint.hidden { display: none; }
 
+/* Shown while a log is being read and analysed, which takes seconds for a
+ * long game; renderer.js drives the fill. */
+#loading {
+	position: absolute;
+	inset: 0 0 40px 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	color: #8b96ad;
+	pointer-events: none;
+}
+#loading h1 { font-size: 20px; margin-bottom: 8px; color: #cfd6e4; }
+#loading p { min-height: 1.45em; }
+#loadingBar {
+	width: 280px;
+	height: 6px;
+	margin: 10px auto 0;
+	background: #232b3d;
+	border: 1px solid #33405c;
+	border-radius: 3px;
+	overflow: hidden;
+}
+#loadingFill {
+	width: 0;
+	height: 100%;
+	background: #5b8def;
+	transition: width 0.1s linear;
+}
+
 #transport {
 	display: flex;
 	align-items: center;

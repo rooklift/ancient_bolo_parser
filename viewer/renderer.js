@@ -172,6 +172,10 @@ let coordinate_debug_el = document.getElementById("coordinateDebug");
 let coordinate_tile_el = document.getElementById("coordinateTile");
 let coordinate_pixel_el = document.getElementById("coordinatePixel");
 let drop_hint = document.getElementById("dropHint");
+let loading_el = document.getElementById("loading");
+let loading_name_el = document.getElementById("loadingName");
+let loading_phase_el = document.getElementById("loadingPhase");
+let loading_fill_el = document.getElementById("loadingFill");
 let map_name_el = document.getElementById("mapName");
 let game_meta_el = document.getElementById("gameMeta");
 let network_meta_el = document.getElementById("networkMeta");
@@ -870,31 +874,92 @@ function draw_effects() {
 const MAX_LOG_BYTES = 64 << 20;   /* larger than any plausible real log */
 const MAX_RECORDS = 2_000_000;    /* ~16x the 2h sample; caps memory */
 
-function load_log(bytes, name) {
-	/* Parse fully before touching viewer state, so a malformed file leaves
-	 * any currently loaded replay running. */
-	let recs, newGame;
+/* Analysing a log takes seconds, and nothing is drawn while our own code
+ * runs, so the passes are generators that stop for breath every few
+ * thousand records (progress.js) and the loop below gives the event loop a
+ * turn between chunks. */
+const { PROGRESS_CHUNK, sub_progress } = BoloProgress;
+
+/* Share of a load spent reading records rather than analysing them: 0.6 s
+ * of 4.9 s on the sample log. */
+const PARSE_SHARE = 0.12;
+
+/* Work done between turns given back to the event loop. The bar cannot
+ * move more often than this, and time spent waiting for the paint is time
+ * the load is not making progress, so it wants to be tens of ms, not one. */
+const PROGRESS_FRAME_MS = 50;
+
+let load_generation = 0;  /* bumped per load: a later one supersedes it */
+
+/* Reading and analysing, as one interruptible sequence. */
+function* analysis_steps(bytes) {
+	if (bytes.length > MAX_LOG_BYTES) {
+		throw new Error(`${bytes.length} bytes; not a Bolo log`);
+	}
+	BoloLog.parseHeader(bytes);
+	let recs = [];
+	for (const rec of BoloLog.records(bytes)) {
+		if (recs.length >= MAX_RECORDS) {
+			throw new Error(`more than ${MAX_RECORDS} records; refusing`);
+		}
+		recs.push(rec);
+		/* how many records a file holds is not known until it has been
+		 * read, so progress here is measured in bytes consumed */
+		if (recs.length % PROGRESS_CHUNK === 0) {
+			yield { fraction: PARSE_SHARE * rec.offset / bytes.length, label: "Reading records" };
+		}
+	}
+	if (recs.length === 0) {
+		throw new Error("no valid records in file");
+	}
+	return yield* sub_progress(BoloGame.build_steps(recs), PARSE_SHARE, 1);
+}
+
+/* Drive an analysis to its end, painting the bar and letting the event
+ * loop breathe every PROGRESS_FRAME_MS. Gives up where a later load
+ * superseded this one while it was suspended. */
+async function run_with_progress(steps, generation) {
+	let painted = performance.now();
+	let step = steps.next();
+	while (!step.done) {
+		if (performance.now() - painted >= PROGRESS_FRAME_MS) {
+			show_progress(step.value);
+			/* a full task boundary: resolving a promise here would only
+			 * queue a microtask, which runs before anything is drawn */
+			await new Promise(resolve => setTimeout(resolve, 0));
+			if (generation !== load_generation) return null;
+			painted = performance.now();
+		}
+		step = steps.next();
+	}
+	return step.value;
+}
+
+async function load_log(bytes, name) {
+	/* Analyse fully before touching viewer state, so a malformed file
+	 * leaves any currently loaded replay as it was. Playback pauses
+	 * meanwhile: the analysis now shares the event loop with it, and
+	 * neither wants the other's frames. */
+	let generation = ++load_generation;
+	let was_playing = playing;
+	set_playing(false);
+	begin_progress(name);
+	let newGame;
 	try {
-		if (bytes.length > MAX_LOG_BYTES) {
-			throw new Error(`${bytes.length} bytes; not a Bolo log`);
-		}
-		BoloLog.parseHeader(bytes);
-		recs = [];
-		for (const rec of BoloLog.records(bytes)) {
-			if (recs.length >= MAX_RECORDS) {
-				throw new Error(`more than ${MAX_RECORDS} records; refusing`);
-			}
-			recs.push(rec);
-		}
-		if (recs.length === 0) {
-			throw new Error("no valid records in file");
-		}
-		newGame = BoloGame.build(recs);
+		newGame = await run_with_progress(analysis_steps(bytes), generation);
 	} catch (err) {
+		if (generation === load_generation) {
+			end_progress();
+			set_playing(was_playing);
+		}
 		show_error("Could not load log", String(err.message || err));
 		return;
 	}
+	/* a later load started while this one was suspended: it owns the bar
+	 * and the viewer state now, so this one just drops out */
+	if (generation !== load_generation) return;
 	game = newGame;
+	end_progress();
 	player_locked = false;
 	viewpoint = -1;
 	last_viewpoint_html = null;
@@ -904,7 +969,6 @@ function load_log(bytes, name) {
 	effect_lo = 0;
 	set_clock(game.t0, true);
 
-	drop_hint.classList.add("hidden");
 	/* keep the source path/filename: shown in the window title and
 	 * available as ABV.filename in the dev console */
 	loaded_name = name || null;
@@ -926,6 +990,25 @@ function load_log(bytes, name) {
 	zoom_to_action();
 	set_playing(true);
 	if (window.api && name) window.api.file_loaded(name);
+}
+
+/* The loading panel: a name, the pass now running, and a bar. */
+function begin_progress(name) {
+	loading_name_el.textContent = name ?
+		`Loading ${name.split(/[\\/]/).pop()}` : "Loading log";
+	show_progress({ fraction: 0, label: "Reading records" });
+	drop_hint.classList.add("hidden");
+	loading_el.hidden = false;
+}
+
+function show_progress(step) {
+	loading_phase_el.textContent = step.label || "";
+	loading_fill_el.style.width = `${(100 * step.fraction).toFixed(1)}%`;
+}
+
+function end_progress() {
+	loading_el.hidden = true;
+	if (!game) drop_hint.classList.remove("hidden");
 }
 
 function show_error(title, message) {

@@ -9,6 +9,12 @@ const BoloNetwork = typeof module !== "undefined" && module.exports
 const BoloMotion = typeof module !== "undefined" && module.exports
 	? require("./motion.js") : window.BoloMotion;
 
+/* Each pass over the records comes in two forms: the plain synchronous
+ * function, and the _steps() generator it drains, which reports progress
+ * so the viewer can draw a loading bar. See progress.js. */
+const { PROGRESS_CHUNK, drain, sub_progress } = typeof module !== "undefined" && module.exports
+	? require("./progress.js") : window.BoloProgress;
+
 const MAP_SIZE = 256;
 const DEEP_SEA = 255;
 const TICKS_PER_SECOND = BoloMotion.TICKS_PER_SECOND;
@@ -33,11 +39,16 @@ const MAP_NODE_TYPES = new Set([
  * a join. This recovers admissions whose old slot occupant vanished in an
  * invisible ring split and therefore emitted no quit record. */
 function classify_node_joins(records) {
+	return drain(classify_node_joins_steps(records));
+}
+
+function* classify_node_joins_steps(records) {
 	let joins = new WeakSet();
 	let names = Array.from({ length: 16 }, () => null);
 	let active = Array.from({ length: 16 }, () => false);
 
 	for (let i = 0; i < records.length; i++) {
+		if (i % PROGRESS_CHUNK === 0) yield { fraction: i / records.length };
 		let rec = records[i];
 		let node = rec.subpackets.find(sub => sub.type === "node_id");
 		if (node && rec.tankStatus === 0x07) {
@@ -756,7 +767,7 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
  * later runs only fill squares never seen and never touched). Object
  * lists come from the first F102/F103/F104. Returns the shape
  * BoloMap.serialize_map expects. */
-function extract_initial_map_pass(records, death_pill_squares) {
+function* extract_initial_map_pass(records, death_pill_squares) {
 	const grid = new Uint8Array(MAP_SIZE * MAP_SIZE);
 	grid.fill(DEEP_SEA);
 	const written = new Uint8Array(MAP_SIZE * MAP_SIZE);
@@ -769,7 +780,9 @@ function extract_initial_map_pass(records, death_pill_squares) {
 		if (x >= 0 && y >= 0 && x < MAP_SIZE && y < MAP_SIZE) tainted[y * MAP_SIZE + x] = 1;
 	};
 
-	for (const rec of records) {
+	for (let i = 0; i < records.length; i++) {
+		if (i % PROGRESS_CHUNK === 0) yield { fraction: i / records.length };
+		const rec = records[i];
 		for (const sub of rec.subpackets) {
 			switch (sub.type) {
 				case "pillbox_list":
@@ -868,10 +881,18 @@ function extract_initial_map_pass(records, death_pill_squares) {
  * taint mask. Tank positions precede events within a record: pills dumped
  * by that record's F9 begin masking the following dying position. */
 function extract_initial_map(records, node_joins) {
-	const provisional = extract_initial_map_pass(records, null);
+	return drain(extract_initial_map_steps(records, node_joins));
+}
+
+/* Three passes over the records, of roughly equal cost: the provisional
+ * map, the replay that places the dumped pills, and the final map. */
+function* extract_initial_map_steps(records, node_joins) {
+	const provisional = yield* sub_progress(extract_initial_map_pass(records, null), 0, 0.3);
 	const state = initial_state(provisional);
 	const death_pill_squares = new WeakMap();
-	for (const rec of records) {
+	for (let i = 0; i < records.length; i++) {
+		if (i % PROGRESS_CHUNK === 0) yield { fraction: 0.3 + 0.4 * i / records.length };
+		const rec = records[i];
 		for (const sub of rec.subpackets) {
 			if (sub.type === "tank_position" && sub.dying) {
 				const occupied = new Set();
@@ -883,19 +904,35 @@ function extract_initial_map(records, node_joins) {
 		}
 		apply_record(state, rec, null, null, null, node_joins);
 	}
-	return extract_initial_map_pass(records, death_pill_squares);
+	return yield* sub_progress(extract_initial_map_pass(records, death_pill_squares), 0.7, 1);
 }
 
 /* Build a seekable game from parsed records. */
 function build(records) {
+	return drain(build_steps(records));
+}
+
+/* The passes below, with the share of build time each took on the sample
+ * log (2 MB, 121k records, 4.3 s): node joins 1%, initial map 6%, tank and
+ * man tracks 5%, the replay loop here 5%, shell reconstruction 78%, shot
+ * origins 1%, network 4%. The fractions handed to sub_progress() are those
+ * shares accumulated, so the bar tracks work done rather than passes done;
+ * they only need to be roughly right, and a wrong one makes the bar
+ * uneven, never wrong. */
+function* build_steps(records) {
 	const effects = [];
 	const chat = [];
 	const keyframes = []; /* {index, state} — state BEFORE records[index] */
-	let node_joins = classify_node_joins(records);
-	const seed = extract_initial_map(records, node_joins);
-	const tank_positions = BoloMotion.build_tank_positions(records);
-	let tank_directions = BoloMotion.build_tank_directions(records);
-	const lgm_positions = BoloMotion.build_lgm_positions(records);
+	let node_joins = yield* sub_progress(classify_node_joins_steps(records),
+		0, 0.01, "Tracking node joins");
+	const seed = yield* sub_progress(extract_initial_map_steps(records, node_joins),
+		0.01, 0.07, "Rebuilding the map");
+	const tank_positions = yield* sub_progress(BoloMotion.build_tank_positions_steps(records),
+		0.07, 0.08, "Tracking tanks");
+	let tank_directions = yield* sub_progress(BoloMotion.build_tank_directions_steps(records),
+		0.08, 0.10, "Tracking tanks");
+	const lgm_positions = yield* sub_progress(BoloMotion.build_lgm_positions_steps(records),
+		0.10, 0.12, "Tracking men");
 	let shell_terminals = [];
 	let pillbox_sources_by_record = new Map();
 	let tank_sources_by_record = new Map();
@@ -904,6 +941,9 @@ function build(records) {
 	for (let i = 0; i < records.length; i++) {
 		if (i % KEYFRAME_EVERY === 0) {
 			keyframes.push({ index: i, state: clone_state(s) });
+		}
+		if (i % PROGRESS_CHUNK === 0) {
+			yield { fraction: 0.12 + 0.05 * i / records.length, label: "Replaying the game" };
 		}
 		let rec = records[i];
 		let pillbox_sources = [];
@@ -944,10 +984,14 @@ function build(records) {
 		if (tank_sources.length) tank_sources_by_record.set(rec, tank_sources);
 		apply_record(s, rec, effects, chat, shell_terminals, node_joins);
 	}
-	let shell_positions = BoloMotion.build_shell_positions(records, shell_terminals,
-		pillbox_sources_by_record, tank_sources_by_record, tank_positions);
+	let shell_positions = yield* sub_progress(
+		BoloMotion.build_shell_positions_steps(records, shell_terminals,
+			pillbox_sources_by_record, tank_sources_by_record, tank_positions),
+		0.17, 0.95);
+	yield { fraction: 0.95, label: "Marking shots fired" };
 	let shell_births = BoloMotion.build_shell_births(shell_positions);
 	effects.sort((a, b) => a.time - b.time);
+	yield { fraction: 0.96, label: "Rating the network" };
 
 	return {
 		records,
@@ -1016,7 +1060,7 @@ const BoloGame = {
 	MAX_POSITION_INTERPOLATION_TICKS: BoloMotion.MAX_POSITION_INTERPOLATION_TICKS,
 	MAX_SHELL_INTERPOLATION_TICKS: BoloMotion.MAX_SHELL_INTERPOLATION_TICKS,
 	MAX_DIRECTION_INTERPOLATION_TICKS: BoloMotion.MAX_DIRECTION_INTERPOLATION_TICKS,
-	initial_state, clone_state, apply_record, build, state_at, team_of,
+	initial_state, clone_state, apply_record, build, build_steps, state_at, team_of,
 	classify_node_joins,
 	adjacent_change_time,
 	tank_position_at: BoloMotion.tank_position_at,
