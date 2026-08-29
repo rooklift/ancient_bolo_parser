@@ -170,6 +170,17 @@ Matched terminals also retime their explosion/splash effects to the shell's
 inferred arrival rather than the packet's timestamp. Birth segments draw
 shells from the muzzle before their first restatement.
 
+Between matching and drawing there is a smoothing pass: jittered on-path
+restatements are *absorbed* into their chain (with a temporal gate so a
+trailing shell on the same segment is never claimed), and each chain is
+drawn at constant velocity between its best-known anchors
+(`smooth_shell_chains`) — sender timestamp jitter otherwise visibly
+wobbles a large fraction of drawn links. Where identity is genuinely
+ambiguous but every candidate story draws the same line (dense same-ray
+pill streams), a *visual join* draws the continuation without believing
+it: the sprite flies on, but no identity, birth, or fate propagates
+across the link.
+
 ## Measurement
 
 `tools/report-interpolation-rates.cjs` scores an engine build against a
@@ -177,10 +188,20 @@ fixture (and `tools/corpus.cjs` against a corpus): fraction of shells
 matched forward, fraction unlinked (appeared and vanished unexplained —
 the clearest failure signal), fraction of terminals explained, and
 attribution counts. `docs/interpolation_tests.md` tracks these across
-commits; the current state matches ~98.0% of shells forward, leaves ~0.8%
-unlinked, and explains ~85% of terminals on the reference fixture. Every
-change to matching should be judged against those numbers, watching for
-trades between shell continuity and terminal matching.
+commits; the current state matches ~99.4% of shells forward, leaves
+~0.25% unlinked, and explains ~85.6% of terminals on the reference
+fixture (~92% of corpus impacts counting unseen-source attributions).
+Every change to matching should be judged against those numbers,
+watching for trades between shell continuity and terminal matching.
+
+The match rates count explanations, not what the viewer draws, and the
+two can move in opposite directions. `tools/audit-drawn-motion.cjs` is
+the second measurement axis: it samples the drawn link structure
+directly — link speeds (a perfect engine draws everything at 2 px/tick),
+hover and rush links, seam jumps at handoffs (an invariant), pop-outs
+and pop-ins, and backwards pops. Every matching change is judged on both
+axes; `docs/interpolation_tests_corpus.md` carries the corpus history of
+both.
 
 ## Known limits and open ideas
 
@@ -211,12 +232,16 @@ trades between shell continuity and terminal matching.
   happens), and a per-component maximum-flow pass
   (`resolve_residual_shell_fates`) makes every *forced* assignment among
   unaccounted chain ends, unconsumed shots, origin-less starts, and
-  unexplained impacts — an assignment is applied only when every maximum
-  assignment agrees on it. Impacts whose shell was never observed get
-  their firing pill or tank named (`unseen_*_source`), the beginnings of
-  shooter attribution. What remains genuinely ambiguous is left
-  unexplained by design; a full cost-ranked assignment over the ambiguous
-  remainder is the open frontier of #15.
+  unexplained impacts — an assignment is applied when every maximum
+  assignment agrees on it, or (cost-forcing) when every rival costs more
+  than the matcher's own three-pixel ambiguity margin. Impacts whose
+  shell was never observed get their firing pill or tank named
+  (`unseen_*_source`), the beginnings of shooter attribution. Chains
+  fragmented by sender clock *dilation* are additionally reconnected
+  under time-only widened windows at a penalty cost (dilated joins) —
+  the spatial physics is never relaxed. What remains genuinely ambiguous
+  is left unexplained by design, though where every ambiguous story
+  draws the same line it is drawn without being believed (visual joins).
 - Collision inference against terrain/objects currently only enters through
   terminal events; the orbit tables could in principle also *predict* where
   an unterminated pillbox shell must stop, which is only partially

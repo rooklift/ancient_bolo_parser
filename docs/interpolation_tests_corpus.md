@@ -61,10 +61,11 @@ rig against the *fixture* and reproduced the published v1.0.7 row exactly --
 `max_shell_interpolation_ticks` absent. The rig is therefore known to reproduce
 the older file before any new number below is trusted.
 
-**These numbers are current.** `git diff 926f391 HEAD -- viewer/ src/` is empty
-at the merge commit `4572cff`: the merge brought only `README.md`,
-`docs/viewer.png` and `docs/interpolation_tests.md`. The `926f391` row below is
-`main`'s row as it stands.
+**These numbers are current** as of the merge commit `380e333`, whose engine
+is byte-identical to `a74033a`; the last row of the table is `main`'s row as
+it stands. (The paragraph above described the file when it ended at `926f391`
+and merge `4572cff`; later sections were measured from live checkouts of the
+named commits, per their sections.)
 
 ## Corpus totals
 
@@ -94,11 +95,14 @@ Constant at all ten commits, and worth having once:
 | `5f9d86f` | one-sided | 0.973966 | 0.009100 | 0.813066 | 227,223 |
 | `926f391` | index 1+ | 0.975030 | 0.008829 | 0.816566 | 227,585 |
 | `0d181be` | bradian + stitching | 0.984399 | 0.005985 | 0.816888 | 228,016 |
-| `4c791a0` | forced assign + jitter | **0.988925** | **0.004020** | **0.827713** | **233,180** |
+| `4c791a0` | forced assign + jitter | 0.988925 | 0.004020 | 0.827713 | **233,180** |
 | `b345ef0` | temporal gate | 0.988826† | 0.004112† | 0.827709 | 233,180†† |
+| `a74033a` | cost-forcing + pop rescue | **0.993609** | **0.002202** | **0.828353** | 232,342 |
 
-`4c791a0` now holds all three headline records (superseding `926f391`, which held
-them when this table originally ended). `b345ef0` trades a hair of each back for
+`a74033a` holds the forward, unlinked and terminal records (the last with a
+caveat -- the unmeasured intermediate state `f340943` sat higher, see its
+section); `4c791a0` keeps the `tank_hit` record, part of the pop rescue's
+deliberate give-back. `b345ef0` trades a hair of each headline back for
 correctness the rate can't see -- see its section below.
 
 ## Tank and LGM tracks
@@ -445,6 +449,73 @@ events the audit's own pairing judges to be one shell continuing. They
 are the target for the next round of matching work, with this tool as
 the scorekeeper.
 
+## Branch -- cost-forced assignment and pop rescue, `f340943` + `a74033a`
+
+One corpus report covering the two engine commits since `b345ef0`:
+cost-forced residual assignment (`f340943`, accept an edge when every
+rival costs more than the three-pixel margin) and the pop rescue
+(`a74033a`, dilated joins for clock-dilated fragments plus draw-only
+visual joins for same-ray ambiguity). No corpus report was run at
+`f340943` alone, but the drawn-motion audit was, and its
+`terminal_links` figure lets the terminal movement be decomposed.
+Deltas against `b345ef0`:
+
+* `rate_shells_matched_forward` 0.993609 -- up from 0.988826, about
+  +47,000 shells, a new record; `shells_unmatched_forward` 62,747
+* `rate_shells_unlinked` 0.002202 -- down from 0.004112;
+  `shells_unlinked` 21,615, down from 40,367, nearly halved again, a new
+  record
+* `rate_terminals_matched` 0.828353 -- up from 0.827709, +1,255 net, the
+  best *recorded* figure. Decomposed via the `f340943` audit's
+  `terminal_links` 1,618,107: cost-forcing gained about +7,024 terminals
+  (the fixture predicted +35 -- another two-hundred-fold corpus
+  amplification of a residue concentrated in laggy games), then the pop
+  rescue gave back 5,769 (fixture -45) as continue-vs-die
+  reassignments. The unmeasured `f340943` peak, about 0.831256, was
+  higher than where we now stand.
+* `terminals_matched:tank_hit` 232,342 -- down 838 from the `4c791a0`
+  record; the give-back concentrates here, previously inferred tank-hit
+  deaths reassigned to rescued continuations
+* `shells_visual_joins` 5,240 -- about 12 draw-only links per game
+* `terminals_unseen_pillbox_source` 120,074 and
+  `terminals_unseen_tank_source` 64,215 -- up from 96,171 and 58,264.
+  Counting unseen attributions, 1,796,627 of 1,946,439 impacts now have
+  an explanation, 92.3% against 90.7% at `4c791a0`; the truly
+  unexplained residue is 149,812 (7.7%)
+* Birth identity exact: 652,247 + 964,248 = 1,616,495 = `shell_births`,
+  up 195; `shells_from_tank` down 49, `shells_from_pillbox` up 244
+* Non-shell tracks and corpus constants reproduce (122.8M tank ticks,
+  112.3M LGM ticks, byte-identical rates)
+
+## Drawn-motion audit at `a74033a`
+
+The rescue was built against this tool's baseline; here is its own
+verdict, against `f340943`:
+
+* `pops_paired_forward` 9,443 -- down from 44,652, a 78.9% collapse
+  (the fixture managed 89%); about 101 per game to about 21
+* `pop_outs` 62,561 -- down from 100,216 (1.02% of observations to
+  0.64%); `pops_paired_backwards` 5,588 -- down from 11,759, halved
+* `rate_links_steady` 0.964359 -- down from 0.966038; `rush_links`
+  4,860, down from 6,193
+* `hover_links` 3,562 -- up from 454, the visible cost. Dilated joins
+  draw below 1 px/tick across intervals the sender's clock stretched;
+  1,052 links sit below 0.5 px/tick. About 8 per game. The audit-side
+  follow-up is a floor on drawn speed (or a per-chain smoothing cap) so
+  a rescued identity never renders as a loitering shell.
+* `seam_jumps` 128 -- up from 5, `seam_jump_max` 3.16 unchanged. The
+  known rare handoff bug grew with the new join types; still tiny in
+  magnitude and count (128 of 8.1M links), on the books.
+* `terminal_links_rushed` 76,597 -- flat from 76,603
+
+Reading it together: the named target -- the four-fifths of visible
+vanish-and-reappear artifacts the audit judged to be one shell -- has
+collapsed, at the cost of a small terminal give-back, a hover class that
+needs a drawing-side floor, and two dozen more seam jumps. The 9,443
+that remain are chains whose dilation exceeds even the widened windows
+(the bradian audit's growing `no_model` class points the same way) plus
+true cross-client migrations, which draw as pops by design.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
@@ -505,6 +576,7 @@ the scorekeeper.
   bracketed to `9bc584d` or `ad6a3b6`, both named "Stuff". The corpus makes the
   regression far better characterised but does not locate it, since `9bc584d`
   was not among the ten commits measured.
-* **These are `main`'s current numbers.** The merge commit `4572cff` has an
-  engine byte-identical to `926f391`, so the last row stands until the next
-  engine change.
+* **These are `main`'s current numbers.** The merge commit `380e333` has an
+  engine byte-identical to `a74033a`, so the last row stands until the next
+  engine change. (When this file first closed, the equivalent pair was
+  `4572cff`/`926f391`.)
