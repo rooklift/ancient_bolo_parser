@@ -65,12 +65,8 @@ exactness untouched) and visual joins (draw-only links across genuine
 same-ray ambiguity -- no identity, birth or fate propagates). Corpus:
 pops 44,652 -> 9,443, pop-outs -38%, backwards pops halved, forward and
 unlinked records; costs on the books: 5,769 terminals given back to
-continue-vs-die reassignments, hover links 454 -> 3,562, seam jumps
-5 -> 128. Both drawing costs since resolved as acceptable: hover links
-are now re-timed at draw time as hold-then-fly (the tank lag rule --
-hold the last known point, then fly at true speed, arriving on time),
-and the owner ruled the seam jumps too rare and small (max 3.16 px) to
-chase.
+continue-vs-die reassignments, hover links 454 -> 3,562 (dilated joins
+drawn slow -- wants a drawing-side speed floor), seam jumps 5 -> 128.
 
 ## 3. Draw the unseen shots
 

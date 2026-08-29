@@ -578,21 +578,6 @@ Fixture, against `f340943`:
   genuinely clock-dilated ones, so the strict per-update model rejects
   more of them once they are long enough to test; expected
 
-## Hover re-timing -- hold-then-fly at draw time
-
-Renderer-only follow-up to the pop rescue: a link that would draw below
-1 px/tick (sender clock dilation -- the real shell always flies at 2)
-is re-timed in `shell_position_at` as hold-then-fly: hold the last
-known point through the dilated part of the gap, then cover the
-distance at true speed, arriving exactly on time. This is the rule
-tanks already follow under lag, and holding first keeps the handoff
-into the next link speed-continuous. Probing showed constant-velocity
-smoothing already rebalances slow links inside chains of three or more
-entries; the survivors are two-entry chains with no interior to move,
-which only a draw-time rule can reach. Every measured number is
-byte-identical (the change touches only the lerp): the audit's
-`hover_links` now counts dilation absorbed, not slow motion drawn.
-
 ## Findings
 
 * **The branch line now leads the branch point on every headline metric.** At

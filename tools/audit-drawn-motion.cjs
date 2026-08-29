@@ -12,9 +12,7 @@
  * characterised by the link structure the engine built:
  *
  *   - the SPEED of every drawn link (a perfect engine draws every link at
- *     2 px/tick; hovers and rushes are the jitter artifacts). Note the
- *     renderer re-times links below 1 px/tick as hold-then-fly, so
- *     hover_links counts dilation absorbed, not slow motion drawn;
+ *     2 px/tick; hovers and rushes are the jitter artifacts);
  *   - SEAM JUMPS: a link's target must equal its successor's draw source,
  *     or the sprite visibly jumps at the handoff (should be exactly zero);
  *   - POPS: shells with no forward link vanish, origin-less shells
