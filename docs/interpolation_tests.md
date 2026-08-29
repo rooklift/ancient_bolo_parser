@@ -578,6 +578,44 @@ Fixture, against `f340943`:
   genuinely clock-dilated ones, so the strict per-update model rejects
   more of them once they are long enough to test; expected
 
+## Leading impacts -- `ad2168d`
+
+Dilated joins covered the clock lie in one direction; this covers the
+other. A chain end whose restatement arrived late understates its
+remaining flight, so an authoritative impact record can arrive *before*
+the arrival estimate computed from the end's receiver timestamp, and the
+residual pass could build no end-to-fate edge at all. The motivating
+case (replay 072402.1, records ~10186-10195, two tank shots on one ray)
+showed the failure shape clearly: with the true fate edge missing, the
+maximum-flow story explained one fewer leftover, cost-forcing flew the
+*younger* shot's first observation straight into the fall, and that
+shot's real second restatement was left as a frozen orphan pop-in.
+
+The fix admits residual end-to-fate edges whose distance exceeds the
+receiver-clock window, with the lead bounded by the gap back to the
+sender's previous record (the most that timestamp can be lying by,
+capped at half a second) and carrying the dilated penalty so an
+in-window story is always preferred. No cost tuning was needed for the
+motivating case: once the missing edge exists, the true story explains
+strictly more of the residue and value-forcing picks it.
+
+Fixture, against `c41f6c7` (identical engine to `a74033a` for these
+numbers):
+
+* `rate_shells_matched_forward` 0.994427 -> 0.994888, a new best
+* `rate_shells_unlinked` 0.002535 -> 0.002291, a new best
+* `rate_terminals_matched` 0.856366 -> 0.857362, a new best -- +24
+  terminals (`tank_hit` +16, `pillbox_damage` +8), with no per-type
+  give-back
+* audit `pop_outs` 411 -> 377, backwards pops 6 -> 5, seam jumps still
+  zero
+* `terminal_links_rushed` 458 -> 478 and steady links 0.979004 ->
+  0.978496 -- a lead match caps its arrival at the fate record's time,
+  so the final link draws faster than 2 px/tick; the same capped-arrival
+  cost the matcher already accepted for lagging events, now paid by the
+  rescued chains too
+* Corpus not yet measured for this commit.
+
 ## Findings
 
 * **The branch line now leads the branch point on every headline metric.** At
