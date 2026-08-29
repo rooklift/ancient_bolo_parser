@@ -456,6 +456,27 @@ Cumulative for the branch line against `926f391`: forward matching
 0.980136 -> 0.990889, unlinked 0.008081 -> 0.004434 (nearly halved),
 terminals 0.849553 -> 0.856698.
 
+## Jitter absorption and constant-velocity drawing -- `4c791a0`
+
+Prompted by replay `122903.4` records 4264-4288: a lagging sender whose
+record timestamps drift several updates against its simulation, making a
+pill burst's per-hop speeds read 0.7 to 3.6 px/tick around the true 2.
+Stitches now absorb the on-path observations they bridge over (formerly
+phantom second shells -- the reported backwards motion), and a final
+pass re-times chains of three or more restatements to constant drawn
+velocity between their anchors. Drawing only; packet-exact state and
+matcher artifacts untouched.
+
+* `rate_shells_matched_forward` 0.991607 -- up from 0.990889, a new best
+* `rate_shells_unlinked` 0.003729 -- down from 0.004434, a new best; the
+  52 shells recovered are precisely the absorbed phantoms
+* `rate_terminals_matched` 0.856739 -- up 1 terminal
+* Bradian audit moves by two chains (the absorbed middles are by
+  definition the time-jittered ones); everything else flat
+
+`npm test` passes, 193 checks, including the reduced jittered-sender
+scene from the replay.
+
 ## Findings
 
 * **The branch line now leads the branch point on every headline metric.** At
