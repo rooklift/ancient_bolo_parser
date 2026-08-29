@@ -412,6 +412,34 @@ as that artifact:
 A reminder the headline rates measure matches, not truth: this commit
 makes the numbers fractionally worse and the replays visibly better.
 
+## Drawn-motion audit -- corpus baseline at `f340943`
+
+The first corpus run of `tools/audit-drawn-motion.cjs`, on the engine
+with cost-forced assignment. This is the baseline of record for the
+drawn-quality axis; historical values are recoverable through worktrees
+since the tool runs on old engine states (the fixture calibration in
+`interpolation_tests.md` anchors the history: pre-smoothing engines sat
+near 79% steady links there).
+
+* `links` 8,098,852; `rate_links_steady` 0.966038 -- 96.6% of all drawn
+  links move at 1.8-2.2 px/tick
+* `hover_links` 454 (0.006%); `rush_links` 6,193 (0.08%)
+* `pop_outs` 100,216 (1.02% of observations); `pops_paired_forward`
+  44,652; `pops_paired_backwards` 11,759 (~27 per game)
+* `terminal_links_rushed` 76,603 of 1,618,107 -- arrivals capped by an
+  event record that landed early; lag-related, cosmetically mild
+* `seam_jumps` 5 (max 3.16 px) -- five violations in 8.1M links of an
+  invariant the fixture holds exactly. A genuine rare bug, likely a
+  successor's orbit-exact pixel refined after its predecessor's link
+  target froze. On the books, low priority.
+* `audit_ms` 5,830 total across 443 replays -- about 13 ms each
+
+Reading it forward: the 44,652 forward-paired pops are the named,
+counted core of the remaining visible artifacts -- vanish-and-reappear
+events the audit's own pairing judges to be one shell continuing. They
+are the target for the next round of matching work, with this tool as
+the scorekeeper.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
