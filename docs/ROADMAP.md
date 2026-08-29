@@ -5,7 +5,7 @@ Written after the forced-assignment / jitter-absorption arc; see
 `INTERPOLATION.md` for the current state and the results files for the
 measurement history.
 
-## 1. A drawn-motion audit tool (prerequisite for everything below)
+## 1. A drawn-motion audit tool (prerequisite for everything below) -- DONE
 
 The absorption temporal gate taught the central lesson: the headline
 rates measure matches, not truth — a commit made the numbers fractionally

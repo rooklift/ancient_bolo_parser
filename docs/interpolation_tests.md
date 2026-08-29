@@ -477,6 +477,43 @@ matcher artifacts untouched.
 `npm test` passes, 193 checks, including the reduced jittered-sender
 scene from the replay.
 
+## The drawn-motion audit -- a second measurement axis
+
+The match rates count explanations; they cannot see what the renderer
+does with them. `tools/audit-drawn-motion.cjs` measures the drawn link
+structure directly: the speed of every interpolated link (a perfect
+engine draws all of them at 2 px/tick), hover (<1) and rush (>3) links,
+seam jumps (handoff discontinuities, an invariant that must be zero),
+pop-outs/pop-ins, and backwards pops (an origin-less appearance behind a
+same-direction vanish -- the perceptual backwards-moving shell).
+
+Calibration on the fixture across five engine states, current tool
+throughout:
+
+| state | steady links | pop-outs | backwards pops | hover | rush |
+| --- | --- | --- | --- | --- | --- |
+| `5455724` pre-branch | 0.787 | 1465 | 62 | 0 | 0 |
+| `0d181be` stitching | 0.780 | 881 | 42 | 0 | 0 |
+| `d10f153` resolver | 0.779 | 672 | 29 | 0 | 0 |
+| `4c791a0` smoothing, ungated | 0.983 | 619 | 23 | 1 | 13 |
+| `b345ef0` current | 0.983 | 622 | 25 | 0 | 7 |
+
+Every known event in the branch history is visible: stitching and the
+resolver halve the pops; smoothing lifts steady links from 79% to 98.3%
+(timestamp jitter wobbled a fifth of all drawn links, far beyond the
+extreme scenes that prompted the work); the false-absorption hover
+appears exactly at `4c791a0` and is removed by the temporal gate. The
+zero hover readings on older states are correct, not blind spots -- that
+artifact class arrived with stitching; the older pathology was pops and
+wobble, which the audit counts separately. Seam jumps are zero at every
+state, confirming the smoothing plumbing keeps handoffs continuous.
+
+Remaining on the fixture at current: 622 pop-outs (0.8% of
+observations), 25 backwards pops, 7 rush links, and 455 terminal links
+whose arrival is capped by an early event record. These are the
+truth-side numbers the cost-ranked assignment work (ROADMAP item 2)
+must improve without the match rates being allowed to lie about it.
+
 ## Findings
 
 * **The branch line now leads the branch point on every headline metric.** At
