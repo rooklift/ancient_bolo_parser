@@ -97,6 +97,7 @@ function empty_totals() {
 		terminals_matched: null,
 		terminals_unmatched: null,
 		terminals_unseen_pillbox_source: null,
+		terminals_unseen_tank_source: null,
 		terminals_by_type: null,
 		terminals_matched_by_type: null,
 
@@ -183,7 +184,8 @@ function count_shells(totals, game) {
 		"shells_matched_from_previous", "shells_unlinked", "shells_from_tank",
 		"shells_from_pillbox", "shells_with_birth",
 		"shells_with_pillbox_source", "terminals", "terminals_matched",
-		"terminals_unmatched", "terminals_unseen_pillbox_source"]) {
+		"terminals_unmatched", "terminals_unseen_pillbox_source",
+		"terminals_unseen_tank_source"]) {
 		add(totals, key, 0);
 	}
 	for (let snapshots of players) {
@@ -224,6 +226,9 @@ function count_shells(totals, game) {
 				}
 				if (terminal.unseen_pillbox_source) {
 					add(totals, "terminals_unseen_pillbox_source", 1);
+				}
+				if (terminal.unseen_tank_source) {
+					add(totals, "terminals_unseen_tank_source", 1);
 				}
 			}
 		}

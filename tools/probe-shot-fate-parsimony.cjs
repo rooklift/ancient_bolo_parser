@@ -319,7 +319,8 @@ function analyze_file(file, engines, metrics) {
 		return chain.needs_fate || !chain.has_origin;
 	});
 	let residual_fates = terminals.filter(terminal =>
-		terminal.match_time === undefined && !terminal.unseen_pillbox_source);
+		terminal.match_time === undefined && !terminal.unseen_pillbox_source &&
+		!terminal.unseen_tank_source);
 
 	metrics.files_creations_residual += residual_creations.length;
 	metrics.chains_total += chains.length;

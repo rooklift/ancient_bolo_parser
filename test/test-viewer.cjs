@@ -572,6 +572,50 @@ if (!fs.existsSync(log1)) {
 			!!stitch_start.stitched, stitch_start.birth_time !== undefined],
 		[156, 2157, 2026, true, true]);
 
+	/* A vanished chain and an unexplained impact past the pairwise terminal
+	 * window: the forced-assignment pass must pair them when no other
+	 * story exists, timing the impact at the shell's inferred arrival. */
+	let forced_late_impact = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 133, y: 126, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(90, [{
+			type: "tank_position", x: 126, y: 126,
+			pixelX: 1, pixelY: 2, direction: 4,
+			inBoat: false, hidden: false, dying: false,
+			speed: 0, motion: 0,
+		}]),
+		record(100, [
+			{ type: "shot_fired", direction: 4 },
+			shell_list(4, [[2045, 2020]]),
+		]),
+		record(112, [shell_list(4, [[2069, 2021]])]),
+		record(147, [{ type: "pillbox_damage", pillbox: 0 }]),
+	]);
+	let late_impact_shell = forced_late_impact.shell_positions[0][2].shells[0];
+	check("forced assignment recovers an impact past the pairwise window",
+		[!!late_impact_shell.next_terminal,
+			late_impact_shell.next_terminal_event_type],
+		[true, "pillbox_damage"]);
+
+	/* A shot with no observed shell at all, and an impact nothing else can
+	 * explain: the forced pass attributes the impact to the firing tank. */
+	let forced_unseen_tank = BoloGame.build([
+		record(90, [{
+			type: "tank_position", x: 126, y: 126,
+			pixelX: 1, pixelY: 2, direction: 4,
+			inBoat: false, hidden: false, dying: false,
+			speed: 0, motion: 0,
+		}]),
+		record(100, [{ type: "shot_fired", direction: 4 }]),
+		record(118, [{ type: "explosion", code: 0, x: 129, y: 126 }]),
+	]);
+	let unseen_terminal = forced_unseen_tank.shell_positions[0][2].terminals[0];
+	check("an impact with no seen shell is attributed to the firing tank",
+		[!!unseen_terminal.unseen_tank_source,
+			unseen_terminal.tank_source_direction],
+		[true, 4]);
+
 	let graze_with_successor = BoloGame.build([
 		record(100, [shell_list(12, [[2110, 1812]])]),
 		record(120, [shell_list(12, [[2071, 1814]])]),
