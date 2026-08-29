@@ -123,6 +123,7 @@ function build_menu() {
 				{ label: "Toggle simple terrain", accelerator: "CmdOrCtrl+T", click: () => send("toggle-simple-terrain") },
 				{ label: "Toggle simple LGM", accelerator: "CmdOrCtrl+M", click: () => send("toggle-lgm-sprites") },
 				{ label: "Toggle big shots", accelerator: "CmdOrCtrl+B", click: () => send("toggle-big-shots") },
+				{ label: "Toggle raw shell dots", accelerator: "CmdOrCtrl+R", click: () => send("toggle-raw-shells") },
 				{ type: "separator" },
 				{ label: "Toggle Full Screen", accelerator: "F11", click: toggle_fullscreen },
 				{ type: "separator" },

@@ -58,6 +58,7 @@ let use_simple_terrain = false;
 let coordinate_debug_enabled = false;
 let pillbox_ids_enabled = false;
 let pill_fire_flashes_enabled = false;
+let raw_shells_enabled = false;
 let obj_imgs = new Map();
 
 function load_obj_sprites() {
@@ -788,6 +789,28 @@ function draw_shells() {
 			draw_shell(birth, birth.direction);
 		}
 	}
+	if (raw_shells_enabled) draw_raw_shells();
+}
+
+/* Debug overlay: the raw packet-stated shell positions, drawn as red
+ * dots over the reconstructed sprites. The dot is the sender's last
+ * claim (delayed, quantised, jittered); the sprite is the reconstruction
+ * flying between restatements. The gap between them is exactly how far
+ * the interpolation departs from the literal log. */
+function draw_raw_shells() {
+	let z = view.zoom;
+	let radius = Math.max(1, z * 0.09);
+	ctx.fillStyle = "#f22";
+	for (let p = 0; p < 16; p++) {
+		for (let sh of cur.shells[p]) {
+			/* same pixel-to-tile centring as shell_position_at */
+			let cx = tile_to_screen_x((sh.x * 16 + sh.px) / 16 + 0.5);
+			let cy = tile_to_screen_y((sh.y * 16 + sh.py) / 16 + 0.5);
+			ctx.beginPath();
+			ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+			ctx.fill();
+		}
+	}
 }
 
 function draw_effects() {
@@ -964,6 +987,11 @@ function toggle_pillbox_ids() {
 	request_draw();
 }
 
+function toggle_raw_shells() {
+	raw_shells_enabled = !raw_shells_enabled;
+	request_draw();
+}
+
 function toggle_pill_fire_flashes() {
 	pill_fire_flashes_enabled = !pill_fire_flashes_enabled;
 	request_draw();
@@ -1096,6 +1124,9 @@ window.addEventListener("keydown", e => {
 	} else if (e.code === "KeyB" && (e.ctrlKey || e.metaKey)) {
 		e.preventDefault();
 		toggle_big_shots();
+	} else if (e.code === "KeyR" && (e.ctrlKey || e.metaKey)) {
+		e.preventDefault();
+		toggle_raw_shells();
 	} else if (e.code === "KeyT" && (e.ctrlKey || e.metaKey)) {
 		e.preventDefault();
 		toggle_simple_terrain();
@@ -1200,6 +1231,7 @@ if (window.api) {
 			case "toggle-coordinate-debug": toggle_coordinate_debug(); break;
 			case "toggle-pillbox-ids": toggle_pillbox_ids(); break;
 			case "toggle-pill-fire-flashes": toggle_pill_fire_flashes(); break;
+			case "toggle-raw-shells": toggle_raw_shells(); break;
 			case "save-map": save_initial_map(); break;
 		}
 	});
