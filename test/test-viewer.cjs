@@ -1240,9 +1240,16 @@ if (!fs.existsSync(log1)) {
 	check("tank direction interpolates anticlockwise across north",
 		direction_at(anticlockwise_wrap, 106), 0);
 
+	/* Facing has a longer window than position: a tank silent for more than
+	 * half a second was still turning at a bounded rate, so the intermediate
+	 * angles remain a safe reconstruction where an unseen path is not. */
+	let long_turn = BoloGame.build([position(100, 0), position(140, 12)]);
+	check("tank direction interpolates past the position window",
+		[direction_at(long_turn, 110), direction_at(long_turn, 130)], [15, 13]);
+
 	let lag = BoloGame.build([
 		position(100, 0),
-		position(100 + BoloGame.MAX_POSITION_INTERPOLATION_TICKS + 1, 4),
+		position(100 + BoloGame.MAX_DIRECTION_INTERPOLATION_TICKS + 1, 4),
 	]);
 	check("tank direction stops across lag", direction_at(lag, 110), 0);
 }

@@ -313,6 +313,42 @@ an uncertain origin still has a recoverable start point -- but it is the one
 number here whose direction is not obviously implied by the commit message, and
 `build_shell_births` in `viewer/motion.js` is where it would be confirmed.
 
+## Tank facing gets a window of its own
+
+Facing had always been bridged with the position limit of 25 ticks, so a tank
+that went quiet for longer snapped between angles instead of turning. Replay
+`062003.1` at 2:40 is the case that prompted the change: player 1 is logged at
+north on tick 8601710 and at west on tick 8601750, with no record of his own in
+between, and the viewer flipped the sprite a quarter turn in one frame.
+
+A turn rate is bounded in a way an unseen path across open ground is not, which
+is the argument for a longer window, but only as far as the logs support it.
+Measured over the whole corpus, on continuous facing segments, in ticks per
+sixteenth of a circle:
+
+| gap | segments | 1st pct | median |
+| --- | --- | --- | --- |
+| up to 25 ticks | 12759519 | 2.00 | 7.00 |
+| 26 to 50 | 71711 | 6.75 | 12.25 |
+| 51 to 100 | 44009 | 7.29 | 19.33 |
+| over 100 | 56054 | 16.29 | 109.00 |
+
+Nothing in the 26-50 band implies a turn faster than turns already seen inside
+the trusted window, so those spans are reconstructions rather than inventions.
+Past 50 the change sizes start clustering at seven or eight sixteenths -- 1263
+of the 51-100 segments, against 61 in the band below -- and at eight the shorter
+way round is a coin toss. `MAX_DIRECTION_INTERPOLATION_TICKS` is therefore 50,
+the same window shells get, and the report now carries the facing track and
+`max_direction_interpolation_ticks` alongside the position tracks.
+
+On the fixture, `rate_tank_direction_ticks_interpolated` 0.895421 -> 0.917236
+and `rate_tank_direction_segments_interpolated` 0.977480 -> 0.984905, with
+`tank_direction_segments_overlong` 1637 -> 757. Corpus-wide, over 443 replays,
+0.816613 -> 0.837266 tick-weighted, 171774 overlong segments down to 100063.
+Every shell, terminal, tank-position and LGM metric is byte-identical before and
+after, in both runs: facing feeds drawing only, and nothing in shell matching
+reads it.
+
 ## Findings
 
 * **The branch line now leads the branch point on every headline metric.** At
