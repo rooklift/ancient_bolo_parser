@@ -453,9 +453,23 @@ if (!fs.existsSync(log1)) {
 		record(112, [shell_list(4, [[184, 166]])]),
 		record(124, [{ type: "shell_falls", x: 13, y: 10, pixel: 0xc0 }]),
 	]);
-	check("shell interpolates to precise ground impact",
+	/* The fall record arrives a fraction of a tick before the shell's
+	 * 2 px/tick arrival. A splash has no coupled state change, so a fall's
+	 * arrival is not capped at its record: the link draws at true speed,
+	 * the splash is retimed to the arrival, and a fall segment carries the
+	 * sprite past the record that drops it from packet state. */
+	check("shell interpolates to precise ground impact at true speed",
 		[rounded(position(precise_impact, 118).x),
-			rounded(position(precise_impact, 118).y)], [12.75, 11.0625]);
+			rounded(position(precise_impact, 118).y)], [12.7276, 11.0569]);
+	check("splash effect is retimed to the shell's arrival",
+		rounded(precise_impact.effects.find(e => e.type === "splash").time),
+		124.3693);
+	let fall_positions = BoloGame.shell_fall_positions_at(precise_impact, 0, 124.2);
+	check("fall segment carries the shell past the fall record",
+		[fall_positions.length, rounded(fall_positions[0].x),
+			rounded(fall_positions[0].y)], [1, 13.4795, 11.2449]);
+	check("fall segment ends at the splash",
+		BoloGame.shell_fall_positions_at(precise_impact, 0, 124.4).length, 0);
 
 	let tile_impact = BoloGame.build([
 		record(100, [shell_list(4, [[160, 160]])]),
