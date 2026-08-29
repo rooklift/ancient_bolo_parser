@@ -392,6 +392,34 @@ bounded-successor test's hand-made coordinates violated the integer
 simulation (its y rose then fell, which no bradian can do) and were
 regenerated to follow it.
 
+## Chain stitching -- `0d181be`
+
+The issue #15 feasibility probe (`tools/probe-shot-fate-parsimony.cjs`)
+showed the unexplained residue's largest single cause is same-client
+chain fragmentation, not anything exotic: links failed on since-resolved
+margin ambiguities, and lag gaps past the pairwise window split every
+in-flight shell of a sender at once. This commit adds a per-client
+stitching pass reconnecting chain ends to origin-less chain starts under
+the ordinary physics tests, with discrete (orbit/bradian) evidence
+allowed to bridge up to a shell lifetime.
+
+The largest single movement in shell continuity measured in this file:
+
+* `rate_shells_matched_forward` 0.988055 -- up from 0.980448, a new best;
+  +561 links, against the +23 of `c4bf83c` and the +160 of `926f391`
+* `rate_shells_unlinked` 0.004990 -- down from 0.007864, a new best and
+  the first time under half a percent
+* `rate_terminals_matched` 0.850218 -- unchanged, as expected: stitching
+  joins restatements and does not touch terminal assignment
+* `shells_with_birth` 28178 -- up 97; `shells_with_pillbox_source` 44303
+  -- up 58: origins now flow across the joins
+* The bradian-consistency audit is flat (`no_model_s1` 70 vs 69), so the
+  new links are as physically sound as the old ones
+* The probe's fragment residue falls by roughly 40%: chains missing an
+  origin 1297 -> 830, missing a fate 1442 -> 881
+
+`npm test` passes, 189 checks, including a new lag-gap stitching case.
+
 ## Findings
 
 * **The branch line now leads the branch point on every headline metric.** At
