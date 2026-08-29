@@ -79,6 +79,10 @@ function show_file() {
 	if (loaded_file_path) shell.showItemInFolder(loaded_file_path);
 }
 
+function toggle_fullscreen() {
+	if (win) win.setFullScreen(!win.isFullScreen());
+}
+
 function build_menu() {
 	let template = [
 		{
@@ -120,8 +124,13 @@ function build_menu() {
 				{ label: "Toggle simple LGM", accelerator: "CmdOrCtrl+M", click: () => send("toggle-lgm-sprites") },
 				{ label: "Toggle big shots", accelerator: "CmdOrCtrl+B", click: () => send("toggle-big-shots") },
 				{ type: "separator" },
+				{ label: "Toggle Full Screen", accelerator: "F11", click: toggle_fullscreen },
+				{ type: "separator" },
 				{ label: "Dev tools", role: "toggleDevTools" },
 			],
+		},
+		{
+			label: app.getVersion(),
 		},
 	];
 	Menu.setApplicationMenu(Menu.buildFromTemplate(template));
@@ -215,6 +224,11 @@ ipcMain.on("file-loaded", (e, file_path) => {
 });
 
 ipcMain.on("show-file", show_file);
+
+ipcMain.on("exit-fullscreen", e => {
+	let sender_window = BrowserWindow.fromWebContents(e.sender);
+	if (sender_window && sender_window.isFullScreen()) sender_window.setFullScreen(false);
+});
 
 app.whenReady().then(() => {
 	build_menu();
