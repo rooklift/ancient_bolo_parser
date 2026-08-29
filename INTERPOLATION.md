@@ -239,7 +239,13 @@ both.
   (`unseen_*_source`), the beginnings of shooter attribution. Chains
   fragmented by sender clock *dilation* are additionally reconnected
   under time-only widened windows at a penalty cost (dilated joins) —
-  the spatial physics is never relaxed. What remains genuinely ambiguous
+  the spatial physics is never relaxed. The same clock lie runs the
+  other way for impacts: a chain end whose restatement arrived late
+  understates its remaining flight, so an impact record can *lead* the
+  receiver-clock arrival estimate. The residual pass admits such an
+  edge at the dilated penalty, with the lead bounded by the gap back to
+  the sender's previous record — the most that timestamp can be lying
+  by. What remains genuinely ambiguous
   is left unexplained by design, though where every ambiguous story
   draws the same line it is drawn without being believed (visual joins).
 - Collision inference against terrain/objects currently only enters through

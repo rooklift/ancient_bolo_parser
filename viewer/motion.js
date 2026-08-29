@@ -910,7 +910,15 @@ function ordinary_shell_position_variants(shell) {
 	return variants;
 }
 
-function shell_terminal_match(previous, terminal, duration, start_time) {
+/* `lead_pixels` admits an event record that arrives BEFORE the shell's
+ * receiver-clock arrival estimate: when the shell's own restatement was
+ * delayed, the estimate overshoots by the delay, and the event seems to
+ * demand impossibly fast flight. The residual pass passes the bound it
+ * can justify from the record gap; ordinary matching passes nothing and
+ * keeps the strict window. Lead matches carry the dilated penalty so an
+ * in-window story is always preferred. */
+function shell_terminal_match(previous, terminal, duration, start_time,
+	lead_pixels = 0) {
 	if (terminal.direction !== null && terminal.direction !== previous.direction) return null;
 	let pillbox_match = pillbox_shell_terminal_match(previous, terminal, duration,
 		start_time);
@@ -954,9 +962,12 @@ function shell_terminal_match(previous, terminal, duration, start_time) {
 			};
 		}
 		if (endpoint.distance > expected_distance +
-			SHELL_MATCH_ERROR_PIXELS) continue;
+			SHELL_MATCH_ERROR_PIXELS + lead_pixels) continue;
+		let lead_penalty = endpoint.distance > expected_distance +
+			SHELL_MATCH_ERROR_PIXELS ? DILATED_JOIN_PENALTY_PIXELS : 0;
 		matches.push({
-			cost: Math.abs(endpoint.distance - expected_distance) +
+			cost: lead_penalty +
+				Math.abs(endpoint.distance - expected_distance) +
 				angle_error * expected_distance +
 				(endpoint.graze_distance || 0),
 			pixel_x: endpoint.pixel_x,
@@ -2358,7 +2369,13 @@ function resolve_residual_shell_fates(snapshots) {
 		let final = index === snapshots.length - 1;
 		for (let shell of snapshot.shells) {
 			if (shell.next_time === undefined && !final) {
-				ends.push({ shell, time: snapshot.time });
+				/* The gap back to the sender's previous record bounds how
+				 * late this observation's timestamp can be, which is how far
+				 * an event record may legitimately lead the receiver-clock
+				 * arrival estimate below. */
+				let gap = index > 0
+					? snapshot.time - snapshots[index - 1].time : 0;
+				ends.push({ shell, time: snapshot.time, gap });
 			}
 			if (index > 0 && !shell.matched_from_previous &&
 				!shell.starts_at_tank && !shell.starts_at_pillbox) {
@@ -2414,8 +2431,17 @@ function resolve_residual_shell_fates(snapshots) {
 				let duration = right.fate.time - left.end.time;
 				if (duration <= 0 ||
 					duration > MAX_SHELL_INTERPOLATION_TICKS) continue;
+				/* The event may also LEAD the inferred arrival when the
+				 * end's own restatement was delayed: the shell was further
+				 * along than its timestamp implies. The lead is bounded by
+				 * how late that record can be, which is at most the gap
+				 * back to the sender's previous record. */
+				let lead_pixels = Math.min(left.end.gap,
+					MAX_POSITION_INTERPOLATION_TICKS) *
+					SHELL_SPEED_PIXELS_PER_TICK;
 				let match = shell_terminal_match(left.end.shell,
-					right.fate.terminals[0], duration, left.end.time);
+					right.fate.terminals[0], duration, left.end.time,
+					lead_pixels);
 				/* The event may trail the inferred arrival, but not by more
 				 * than ordinary event lag: a distant late event is more
 				 * likely another shell's than a record delayed this long. */
