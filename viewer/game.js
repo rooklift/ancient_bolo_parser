@@ -947,6 +947,7 @@ function build(records) {
 	let shell_positions = BoloMotion.build_shell_positions(records, shell_terminals,
 		pillbox_sources_by_record, tank_sources_by_record, tank_positions);
 	let shell_births = BoloMotion.build_shell_births(shell_positions);
+	let shell_fall_segments = BoloMotion.build_shell_fall_segments(shell_positions);
 	effects.sort((a, b) => a.time - b.time);
 
 	return {
@@ -960,6 +961,7 @@ function build(records) {
 		lgm_positions,
 		shell_positions,
 		shell_births,
+		shell_fall_segments,
 		badMapRuns: seed.badRuns,
 		network: BoloNetwork.network_conditions(records),
 		final: s,
@@ -1024,6 +1026,7 @@ const BoloGame = {
 	lgm_position_at: BoloMotion.lgm_position_at,
 	shell_position_at: BoloMotion.shell_position_at,
 	shell_birth_positions_at: BoloMotion.shell_birth_positions_at,
+	shell_fall_positions_at: BoloMotion.shell_fall_positions_at,
 	extract_initial_map,
 };
 

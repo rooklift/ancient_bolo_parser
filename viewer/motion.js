@@ -1508,10 +1508,16 @@ function match_shell_snapshots(previous, next) {
 				}
 			}
 			if (!match) continue;
-			match.end_time = target.terminal
-				? Math.min(next.time,
-					previous.time + match.distance / SHELL_SPEED_PIXELS_PER_TICK)
-				: next.time;
+			/* An arrival is normally capped at the event's record time: the
+			 * shell leaves packet state there, and an object impact's flash
+			 * belongs beside its authoritative state change. A splash has no
+			 * coupled state, so a shell fall keeps its physics arrival even
+			 * past the record — the fall segments draw the overhang. */
+			let arrival = previous.time +
+				match.distance / SHELL_SPEED_PIXELS_PER_TICK;
+			match.end_time = !target.terminal ? next.time
+				: target.event_type === "shell_falls" ? arrival
+				: Math.min(next.time, arrival);
 			let candidate = { previous_index, next_index, target, ...match };
 			by_previous[previous_index].push(candidate);
 			by_next[next_index].push(candidate);
@@ -2286,8 +2292,12 @@ function creation_fate_match(creation, fate) {
 function apply_forced_terminal(end, fate, match) {
 	let terminal = fate.terminals.find(item => item.match_time === undefined);
 	if (!terminal) return;
-	let end_time = Math.min(fate.time,
-		end.time + match.distance / SHELL_SPEED_PIXELS_PER_TICK);
+	/* Same cap rule as the pairwise matcher: only a shell fall, whose
+	 * splash is purely cosmetic, keeps a physics arrival later than the
+	 * record that reported it. */
+	let arrival = end.time + match.distance / SHELL_SPEED_PIXELS_PER_TICK;
+	let end_time = terminal.event_type === "shell_falls" ? arrival
+		: Math.min(fate.time, arrival);
 	let shell = end.shell;
 	shell.next_time = end_time;
 	shell.next_pixel_x = match.pixel_x;
@@ -2734,6 +2744,44 @@ function build_shell_births(shell_positions) {
 	});
 }
 
+/* The mirror of the birth segments, at the other end of a shell's life. A
+ * shell fall keeps its physics arrival even when that is later than the
+ * record reporting it (the sender's restatement clock was lying), but the
+ * renderer draws packet-state shells only, and the fall record drops the
+ * shell from state — so without help the sprite would vanish mid-flight,
+ * short of its own splash. Each segment is the tail of the drawn link,
+ * from the moment state loses the shell to the retimed splash, replaying
+ * exactly the lerp `shell_position_at` was drawing so the handoff is
+ * seamless. */
+function build_shell_fall_segments(shell_positions) {
+	return shell_positions.map(snapshots => {
+		let segments = [];
+		for (let index = 0; index + 1 < snapshots.length; index++) {
+			let snapshot = snapshots[index];
+			let drop_time = snapshots[index + 1].time;
+			for (let shell of snapshot.shells) {
+				if (!shell.next_terminal ||
+					shell.next_terminal_event_type !== "shell_falls" ||
+					!(shell.next_time > drop_time)) continue;
+				segments.push({
+					start_time: drop_time,
+					end_time: shell.next_time,
+					link_time: snapshot.time,
+					from_x: shell.smooth_pixel_x ?? shell.pillbox_orbit_pixel_x ??
+						shell.tank_exact_pixel_x ?? shell.pixel_x,
+					from_y: shell.smooth_pixel_y ?? shell.pillbox_orbit_pixel_y ??
+						shell.tank_exact_pixel_y ?? shell.pixel_y,
+					to_x: shell.smooth_next_pixel_x ?? shell.next_pixel_x,
+					to_y: shell.smooth_next_pixel_y ?? shell.next_pixel_y,
+					direction: shell.direction,
+				});
+			}
+		}
+		segments.sort((a, b) => a.end_time - b.end_time);
+		return segments;
+	});
+}
+
 /* Centre position of an object at a possibly fractional replay tick. State
  * reconstruction deliberately remains packet-exact; only this rendering
  * helper looks ahead to the next trustworthy restatement. */
@@ -2902,14 +2950,44 @@ function shell_birth_positions_at(game, player, tick) {
 	return positions;
 }
 
+function shell_fall_positions_at(game, player, tick) {
+	let segments = game.shell_fall_segments && game.shell_fall_segments[player];
+	if (!segments || !segments.length) return [];
+	let lo = 0, hi = segments.length;
+	while (lo < hi) {
+		let mid = (lo + hi) >> 1;
+		if (segments[mid].end_time <= tick) lo = mid + 1;
+		else hi = mid;
+	}
+	/* Sorted by end_time; a segment's span is bounded by the lead
+	 * allowance, so anything starting at or before `tick` ends soon. */
+	let latest_end = tick + MAX_POSITION_INTERPOLATION_TICKS * 2;
+	let positions = [];
+	for (let i = lo; i < segments.length &&
+		segments[i].end_time <= latest_end; i++) {
+		let segment = segments[i];
+		if (segment.start_time > tick) continue;
+		let amount = (tick - segment.link_time) /
+			(segment.end_time - segment.link_time);
+		positions.push({
+			x: (segment.from_x + (segment.to_x - segment.from_x) * amount) /
+				16 + 0.5,
+			y: (segment.from_y + (segment.to_y - segment.from_y) * amount) /
+				16 + 0.5,
+			direction: segment.direction,
+		});
+	}
+	return positions;
+}
+
 const BoloMotion = {
 	TICKS_PER_SECOND, MAX_POSITION_INTERPOLATION_TICKS,
 	MAX_SHELL_INTERPOLATION_TICKS, MAX_DIRECTION_INTERPOLATION_TICKS,
 	append_shell_list, add_shell_point_terminal, add_shell_box_terminal,
 	build_tank_positions, build_tank_directions, build_lgm_positions, track_pixel_at,
-	build_shell_positions, build_shell_births,
+	build_shell_positions, build_shell_births, build_shell_fall_segments,
 	tank_position_at, tank_direction_at, lgm_position_at, shell_position_at,
-	shell_birth_positions_at,
+	shell_birth_positions_at, shell_fall_positions_at,
 };
 
 if (typeof module !== "undefined" && module.exports) {

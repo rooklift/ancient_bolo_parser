@@ -168,7 +168,14 @@ still corresponds to the packet-exact object (guarding against
 death/respawn races), and lerping toward the matched successor or terminal.
 Matched terminals also retime their explosion/splash effects to the shell's
 inferred arrival rather than the packet's timestamp. Birth segments draw
-shells from the muzzle before their first restatement.
+shells from the muzzle before their first restatement. An arrival is
+normally capped at the event record's time — an object impact's flash
+belongs beside its authoritative state change, and the record drops the
+shell from packet state — but a *shell fall* has no coupled state, so its
+arrival stays on the 2 px/tick schedule even past the record: the splash
+moves with it, and fall segments (the mirror of birth segments) carry the
+sprite from the moment state loses it to the retimed splash. This is what
+keeps early-record falls from drawing as rushed final links.
 
 Between matching and drawing there is a smoothing pass: jittered on-path
 restatements are *absorbed* into their chain (with a temporal gate so a

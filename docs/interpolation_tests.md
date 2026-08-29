@@ -619,6 +619,31 @@ numbers):
   see the `ad2168d` entry in
   [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md).
 
+## Uncapped shell falls -- drawing only
+
+The first bite at the rushed-terminal class. An arrival is capped at the
+event record's time because the record drops the shell from packet state
+and an object impact's flash belongs beside its authoritative state
+change -- but a shell fall has no coupled state, so its splash time is
+purely cosmetic. Falls now keep their 2 px/tick physics arrival even
+past the record: the splash retimes with it (the effects array is
+sorted after all retiming, so later is as legal as earlier), and *fall
+segments* -- the mirror of birth segments -- carry the sprite from the
+moment state loses it to the retimed splash, replaying the link's own
+lerp so the handoff is seamless. Object impacts and blocking terrain
+stay capped.
+
+Fixture:
+
+* every line of the interpolation report is byte-identical -- the change
+  is drawing-only, as intended; matching decisions do not depend on the
+  cap
+* audit `terminal_links_rushed` 478 -> 473; on the motivating replay
+  072402.1 it is 267 -> 206. The falls share of the class is small on
+  the fixture and large on laggy replays; the corpus number is the one
+  to watch. The remainder is object impacts, capped by design.
+* everything else in the audit byte-identical
+
 ## Findings
 
 * **The branch line now leads the branch point on every headline metric.** At

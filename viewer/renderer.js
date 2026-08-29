@@ -788,6 +788,9 @@ function draw_shells() {
 		for (let birth of BoloGame.shell_birth_positions_at(game, p, clock)) {
 			draw_shell(birth, birth.direction);
 		}
+		for (let fall of BoloGame.shell_fall_positions_at(game, p, clock)) {
+			draw_shell(fall, fall.direction);
+		}
 	}
 	if (raw_shells_enabled) draw_raw_shells();
 }
