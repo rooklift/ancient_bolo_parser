@@ -24,6 +24,14 @@ function scale(bradian, distance) {
 	return (sine_value(bradian) * distance + 64) >> 7;
 }
 
+function internal_position_at(bradian, step) {
+	let opposite = (bradian + 192) & 0xff;
+	return [
+		scale(bradian, 128) + step * scale(bradian, 64),
+		scale(opposite, 128) + step * scale(opposite, 64),
+	];
+}
+
 function create_pillbox_shell_orbits() {
 	let orbits = [];
 	for (let bradian = 1; bradian < 256; bradian += 2) {
@@ -52,6 +60,7 @@ function create_pillbox_shell_orbits() {
 
 const PillboxShellOrbits = {
 	create_pillbox_shell_orbits,
+	internal_position_at,
 	orbits: create_pillbox_shell_orbits(),
 };
 
