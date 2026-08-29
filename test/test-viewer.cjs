@@ -1007,6 +1007,24 @@ if (!fs.existsSync(log1)) {
 	check("synthetic pillbox segment hands off at the real restatement",
 		BoloGame.shell_birth_positions_at(pillbox_muzzle, 0, 100), []);
 
+	let quantised_pillbox_muzzle = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 10, y: 10, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(90, []),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 13 },
+			{ type: "pillbox_fires", pillbox: 0, direction: 13 },
+			shell_list(13, [[145, 153], [144, 153]]),
+		]),
+	]);
+	check("quantised pillbox muzzle segment reaches exact orbit positions",
+		BoloGame.shell_birth_positions_at(quantised_pillbox_muzzle, 0,
+			99.999999).map(shell => [rounded(shell.x), rounded(shell.y)]), [
+			[9.5625, 10.0625],
+			[9.5625, 10.125],
+		]);
+
 	let tank_refinement = BoloGame.build([
 		record(90, [{
 			type: "tank_position", x: 10, y: 10, pixelX: 0, pixelY: 0,
