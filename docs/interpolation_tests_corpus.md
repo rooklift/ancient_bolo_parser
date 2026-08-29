@@ -312,6 +312,48 @@ Attribution and births:
 * `shells_from_pillbox` 961,636 and `terminals_unseen_pillbox_source` 37,361 --
   unchanged; `shells_with_pillbox_source` 5,811,709 -- up 37
 
+## Branch -- bradian tracking and chain stitching, `0d181be`
+
+The tank-shell bradian work (`c4bf83c`, see `docs/tank_shell_bradians.md`)
+plus the fragment-stitching pass (`0d181be`), run against the same corpus
+from a live checkout of the branch. The measuring tool is unchanged --
+`tools/report-interpolation-rates.cjs` still has exactly one commit -- and
+the corpus constants reproduce exactly (`shells` 9,817,361, `terminals`
+1,946,439 with the same five-class breakdown, `files_failed` 0), as do
+all tank, LGM and facing track numbers, byte for byte: the branch touched
+shell reconstruction and nothing else.
+
+All three headline records move, the forward-matching one by more than
+any commit in this file:
+
+* `rate_shells_matched_forward` 0.984399 -- up from 0.975030;
+  `shells_matched_forward` 9,664,200, **up 91,978**, closing 37.5% of all
+  links that remained unmatched at `926f391`
+* `rate_shells_unlinked` 0.005985 -- down from 0.008829;
+  `shells_unlinked` 58,756, down 27,919, a 32% reduction
+* `rate_terminals_matched` 0.816888 -- up 0.000322; 627 terminals
+* `shells_matched_to_snapshot` 8,074,178 -- up 91,351 (the stitching);
+  `shells_matched_to_terminal` 1,590,022 -- up 627
+
+The terminal breakdown gains in **all five classes** -- on the fixture
+`0d181be`'s span still showed a one-terminal `shell_falls` loss, which
+corpus scale erases:
+
+* `terminals_matched:tank_hit` 228,016 -- up 431
+* `terminals_matched:pillbox_damage` 530,682 -- up 105
+* `terminals_matched:base_damage` 59,852 -- up 52
+* `terminals_matched:explosion` 158,791 -- up 24
+* `terminals_matched:shell_falls` 612,681 -- up 15
+
+Attribution flows across the stitched joins at scale:
+
+* `shells_with_birth` 3,459,755 -- up 49,542
+* `shells_with_pillbox_source` 5,881,532 -- up 69,823
+* `shells_from_tank` 650,870 -- up 62; `shells_from_pillbox` 961,636 and
+  `terminals_unseen_pillbox_source` 37,361 -- unchanged
+* `shell_births` 1,612,506 = 650,870 + 961,636 **exactly**; the identity
+  holds
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
