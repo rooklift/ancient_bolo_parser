@@ -479,6 +479,69 @@ if (!fs.existsSync(log1)) {
 	check("corner miss outside one pixel remains unmatched",
 		wide_corner_miss.shell_positions[0][1].shells[0].next_time, undefined);
 
+	/* A tank shell at a chained list position has a one-sided coordinate
+	 * bound just like a pill shell. This is the first failing shot from
+	 * four-nix.dead.v.bers.sev reduced to its player-zero restatements: the
+	 * reconstructed ray misses the pill by 1.45px, while y + 1 is both inside
+	 * the member's two-pixel bound and a valid impact. */
+	let quantised_tank_impact = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 133, y: 127, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(90, [{
+			type: "tank_position", x: 125, y: 126,
+			pixelX: 12, pixelY: 2, direction: 4,
+			inBoat: false, hidden: false, dying: false,
+			speed: 0, motion: 0,
+		}]),
+		record(100, [
+			{ type: "shot_fired", direction: 4 },
+			shell_list(4, [[2037, 2020]]),
+		]),
+		record(111, [shell_list(4, [[2057, 2020]])]),
+		record(121, [shell_list(4, [[2077, 2021]])]),
+		record(133, [shell_list(4, [[2101, 2021]])]),
+		record(144, [shell_list(4, [
+			[2073, 2021], [2049, 2019], [2121, 2022],
+		])]),
+		record(156, [{ type: "pillbox_damage", pillbox: 0 }]),
+	]);
+	let quantised_tank_shell = quantised_tank_impact
+		.shell_positions[0][5].shells[2];
+	check("chained tank-shell uncertainty recovers a pill impact",
+		[quantised_tank_shell.position_uncertainty,
+			quantised_tank_shell.next_terminal_event_type],
+		[2, "pillbox_damage"]);
+
+	let bounded_tank_successor = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 132, y: 127, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(90, [{
+			type: "tank_position", x: 126, y: 126,
+			pixelX: 1, pixelY: 2, direction: 4,
+			inBoat: false, hidden: false, dying: false,
+			speed: 0, motion: 0,
+		}]),
+		record(100, [
+			{ type: "shot_fired", direction: 4 },
+			shell_list(4, [[2045, 2018]]),
+		]),
+		record(112, [shell_list(4, [[2069, 2020]])]),
+		record(123, [shell_list(4, [[2040, 2018], [2093, 2022]])]),
+		record(134, [
+			{ type: "pillbox_damage", pillbox: 0 },
+			shell_list(4, [[2113, 2021]]),
+		]),
+	]);
+	let bounded_successor_shell = bounded_tank_successor
+		.shell_positions[0][3].shells[1];
+	check("real tank successor wins over a bounded adjacent impact",
+		[!!bounded_successor_shell.next_terminal,
+			bounded_successor_shell.next_pixel_x,
+			bounded_successor_shell.next_pixel_y],
+		[false, 2113, 2021]);
+
 	let graze_with_successor = BoloGame.build([
 		record(100, [shell_list(12, [[2110, 1812]])]),
 		record(120, [shell_list(12, [[2071, 1814]])]),
