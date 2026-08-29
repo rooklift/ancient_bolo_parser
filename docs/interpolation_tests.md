@@ -496,7 +496,7 @@ throughout:
 | `0d181be` stitching | 0.780 | 881 | 42 | 0 | 0 |
 | `d10f153` resolver | 0.779 | 672 | 29 | 0 | 0 |
 | `4c791a0` smoothing, ungated | 0.983 | 619 | 23 | 1 | 13 |
-| `b345ef0` current | 0.983 | 622 | 25 | 0 | 7 |
+| `b345ef0` temporal gate | 0.983 | 622 | 25 | 0 | 7 |
 
 Every known event in the branch history is visible: stitching and the
 resolver halve the pops; smoothing lifts steady links from 79% to 98.3%
@@ -539,6 +539,44 @@ blind to same-ray identity swaps that draw identically, and the
 established ambiguity unit keeps the system explicable. The remaining
 gap between margin 3 and margin 1 (~25 pop-outs) is the measured price
 of that caution.
+
+## Pop rescue -- dilated and visual joins, `a74033a`
+
+The first change aimed squarely at the audit's headline artifact: the
+forward-paired pop, a shell vanishing and an origin-less shell appearing
+ahead of it on the same ray -- one shell drawn as two. Two mechanisms,
+both bounded by the recovered physics:
+
+* **Dilated joins**: stitching retried under time-only widened windows,
+  at a penalty cost, for chains fragmented by sender clock dilation.
+  Spatial exactness is untouched -- pill candidates must still sit on a
+  surviving orbit, tank candidates must still satisfy a reachable
+  bradian state; only the update-count window stretches.
+* **Visual joins**: where identity is genuinely ambiguous (same-ray
+  rivals inside the margin) but every candidate story draws the same
+  line, the link is drawn without being believed -- `visual_join`
+  continues the sprite but propagates no identity, no birth, no fate.
+  This replaces the old behaviour of freezing the sprite at its packet
+  position, a deliberate philosophy change: ambiguity about *which*
+  shell this is need not cost the certainty that *a* shell flies on.
+
+Fixture, against `f340943`:
+
+* audit `pops_paired_forward` 187 -> 20 (-89%); `pop_outs` 581 -> 411;
+  backwards pops 22 -> 6; seam jumps still zero
+* `rate_shells_matched_forward` 0.994427 -- up from 0.992122, a new best
+* `rate_shells_unlinked` 0.002535 -- down from 0.003620, a new best
+* `shells_visual_joins` 14
+* `rate_terminals_matched` 0.856366 -- down from 0.858193, a give-back
+  of 45 terminals: continue-vs-die reassignments, where a rescued
+  continuation now outranks a previously inferred death. Which story is
+  true is exactly what the record cannot say; the continuation is at
+  least *seen*. Flagged for judgment rather than tuned away.
+* steady links 0.983 -> 0.979, and 2 hover links appear -- dilated joins
+  draw slower than 2 px/tick across stretched intervals, by construction
+* bradian audit `no_model_s1` 73 -> 88 -- the rescued chains are the
+  genuinely clock-dilated ones, so the strict per-update model rejects
+  more of them once they are long enough to test; expected
 
 ## Findings
 

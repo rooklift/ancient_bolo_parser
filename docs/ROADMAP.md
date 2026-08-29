@@ -55,6 +55,19 @@ assignment within margin Δ of optimal":
   identically there, so the audit tool, not the match rate, is the
   arbiter of whether an aggressive Δ is safe.
 
+## 2b. Rescue the forward-paired pops -- DONE
+
+Not on the original list; the audit's first corpus run named the target
+(44,652 forward-paired pops -- one shell drawn as two) and the owner
+prioritised it above item 3. Done in `a74033a` via dilated joins
+(stitching under time-only widened windows at a penalty cost, spatial
+exactness untouched) and visual joins (draw-only links across genuine
+same-ray ambiguity -- no identity, birth or fate propagates). Corpus:
+pops 44,652 -> 9,443, pop-outs -38%, backwards pops halved, forward and
+unlinked records; costs on the books: 5,769 terminals given back to
+continue-vs-die reassignments, hover links 454 -> 3,562 (dilated joins
+drawn slow -- wants a drawing-side speed floor), seam jumps 5 -> 128.
+
 ## 3. Draw the unseen shots
 
 ~154k corpus impacts now carry an unseen pill or tank source but render
@@ -93,3 +106,7 @@ and is simply a delightful thing to reconstruct. Tool-only.
 * Risk appetite for Δ (item 2): conservative default with an aggressive
   measurement run, or hold at forced-only until the audit tool matures?
 * Unseen-shot drawing (item 3): always on, or toggleable?
+* Continue-vs-die (item 2b): the pop rescue prefers a seen continuation
+  over an inferred death when both fit, costing ~5,769 corpus terminal
+  matches. Keep the preference, or should an authoritative fate event
+  outrank a rescued continuation?
