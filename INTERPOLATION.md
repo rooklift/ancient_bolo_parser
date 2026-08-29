@@ -184,21 +184,22 @@ trades between shell continuity and terminal matching.
 
 ## Known limits and open ideas
 
-- **Tank shots are harder, but now provably tractable.** They fire from a
-  moving, interpolated origin at an unknown tick, so there is no finite
-  table of absolute positions to prune against. But corpus measurement
-  (`tools/measure-tank-shell-bradians.cjs`, results in
-  `docs/tank_shell_bradians.md`) proves tank shells run the same
+- **Tank shots now get discrete-simulation treatment too.** Corpus
+  measurement (`tools/measure-tank-shell-bradians.cjs`, results in
+  `docs/tank_shell_bradians.md`) proved tank shells run the same
   sine-table simulation as pillboxes, at all 256 integer bradians
   (pillboxes use only the odd 128), with the same round-to-nearest
   direction-nibble mapping: 96–98% of matched tank-shell chains are
   reproduced exactly by one of the 256 known integer velocity vectors,
   and the alternative-table controls lose by ratios of hundreds to one.
-  So displacements between restatements can be pruned against that table
-  much as pill shells are pruned against orbits, with only the origin's
-  fine position left free. Today none of this is exploited in the
-  matcher: tank shells get only the heading-refinement and uncertainty
-  treatment.
+  The matcher exploits this: a tank-born shell carries per-bradian
+  hypothesis states bounding its exact internal coordinate (the firing
+  tick and the tank's sub-pixel position are unknown, so unlike pill
+  orbits there is no absolute track — the boxes narrow as the chain
+  grows). Impossible continuations are vetoed outright, converging boxes
+  recover exact coordinates from quantised chained offsets, and a
+  uniquely surviving bradian yields an exact heading. Adopting this took
+  all three headline metrics to new records at once.
 - **Cross-client identity is never inferred.** A simulation migration draws
   as pop-out/pop-in by design.
 - **Matching is greedy and local** — pairs of consecutive snapshots, mutual
