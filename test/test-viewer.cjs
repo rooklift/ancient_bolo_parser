@@ -616,6 +616,37 @@ if (!fs.existsSync(log1)) {
 			unseen_terminal.tank_source_direction],
 		[true, 4]);
 
+	/* From replay 122903.4: a lagging sender whose record timestamps drift
+	 * against its simulation by several updates. Per-hop speeds read 1.4,
+	 * 2.8, 2.0, 0.7 and 3.6 px/tick while the shell flies at exactly 2.
+	 * The stitcher must bridge the failing hops, absorb the on-path
+	 * observations it skips (once drawn as phantom second shells), and
+	 * smoothing must re-time the chain to constant drawn velocity. */
+	let jittered_sender = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 66, y: 156, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 7 },
+			shell_list(7, [[1059, 2503]]),
+		]),
+		record(114, [shell_list(7, [[1068, 2520]])]),
+		record(124, [shell_list(7, [[1081, 2545]])]),
+		record(134, [shell_list(7, [[1090, 2563]])]),
+		record(146, [shell_list(7, [[1094, 2570]])]),
+		record(156, [shell_list(7, [[1110, 2602]])]),
+		record(167, [{ type: "explosion", code: 7, x: 70, y: 164 }]),
+	]);
+	let absorbed_observation = jittered_sender.shell_positions[0][4].shells[0];
+	check("jittered on-path observations are absorbed into the chain",
+		[!!absorbed_observation.matched_from_previous,
+			!!absorbed_observation.stitched],
+		[true, true]);
+	check("a jittered chain draws at constant velocity",
+		[rounded(position(jittered_sender, 146).x),
+			rounded(position(jittered_sender, 146).y)],
+		[69.3058, 162.0201]);
+
 	let graze_with_successor = BoloGame.build([
 		record(100, [shell_list(12, [[2110, 1812]])]),
 		record(120, [shell_list(12, [[2071, 1814]])]),

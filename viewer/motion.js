@@ -86,6 +86,11 @@ const TANK_SHELL_FLIGHT_LIMIT_TICKS = 72;
 /* 8.5 tiles: the pill orbit range, and the assumed tank-shot range from
  * the shared simulation. */
 const SHELL_RANGE_PIXELS = 136;
+/* A lagging sender's record timestamps drift against its simulation by a
+ * few updates in either direction, so an on-track restatement can sit
+ * this far from where a uniform-time reading of the chain puts it. */
+const MAX_SMOOTHING_DEVIATION_PIXELS = 24;
+const ABSORB_LATERAL_TOLERANCE_PIXELS = 2;
 /* An impact record normally trails the impact by well under a second. */
 const MAX_FATE_EVENT_LAG_TICKS = 30;
 
@@ -1743,6 +1748,69 @@ function apply_stitch(candidate) {
 	apply_tank_bradian_heading(start_shell);
 }
 
+/* A stitch may bridge over restatements of the very shell it reconnects:
+ * a lagging sender's record timestamps drift against its simulation, so
+ * an intermediate observation can fail every pairwise distance test while
+ * lying exactly on the stitched path. Left out, it renders as a phantom
+ * second shell. Claim every unmatched, origin-less observation between
+ * the stitch's endpoints that sits on the segment (within its one-sided
+ * quantisation bound), and thread it into the chain in time order. */
+function absorb_intermediate_observations(snapshots, end, start) {
+	let end_shell = end.shell;
+	let anchor_x = end_shell.pillbox_orbit_pixel_x ??
+		end_shell.tank_exact_pixel_x ?? end_shell.pixel_x;
+	let anchor_y = end_shell.pillbox_orbit_pixel_y ??
+		end_shell.tank_exact_pixel_y ?? end_shell.pixel_y;
+	let target_x = end_shell.next_pixel_x;
+	let target_y = end_shell.next_pixel_y;
+	let segment_x = target_x - anchor_x;
+	let segment_y = target_y - anchor_y;
+	let length = Math.hypot(segment_x, segment_y);
+	if (length <= 1e-9) return;
+
+	let absorbed = [];
+	for (let snapshot of snapshots) {
+		if (snapshot.time <= end.time) continue;
+		if (snapshot.time >= end_shell.next_time) break;
+		for (let shell of snapshot.shells) {
+			if (shell.next_time !== undefined || shell.matched_from_previous ||
+				shell.starts_at_tank || shell.starts_at_pillbox ||
+				shell.direction !== end_shell.direction) continue;
+			let relative_x = shell.pixel_x - anchor_x;
+			let relative_y = shell.pixel_y - anchor_y;
+			let along = (relative_x * segment_x + relative_y * segment_y) / length;
+			if (along < -4 || along > length + 4) continue;
+			let lateral = Math.abs(relative_x * segment_y -
+				relative_y * segment_x) / length;
+			if (lateral > ABSORB_LATERAL_TOLERANCE_PIXELS +
+				(shell.position_uncertainty || 0)) continue;
+			absorbed.push({ shell, time: snapshot.time });
+		}
+	}
+	if (!absorbed.length) return;
+	absorbed.sort((a, b) => a.time - b.time);
+
+	let final_time = end_shell.next_time;
+	let final_next_shell = end_shell.next_shell;
+	let previous = end_shell;
+	for (let observation of absorbed) {
+		previous.next_time = observation.time;
+		previous.next_pixel_x = observation.shell.pixel_x;
+		previous.next_pixel_y = observation.shell.pixel_y;
+		previous.next_terminal = false;
+		previous.next_shell = observation.shell;
+		observation.shell.matched_from_previous = true;
+		observation.shell.stitched = true;
+		propagate_identity_down_chain(end_shell, observation.shell);
+		previous = observation.shell;
+	}
+	previous.next_time = final_time;
+	previous.next_pixel_x = target_x;
+	previous.next_pixel_y = target_y;
+	previous.next_terminal = false;
+	previous.next_shell = final_next_shell;
+}
+
 /* Second pass over one client's snapshots: reconnect chain fragments the
  * pairwise matcher left apart. Fragments arise when a link failed on a
  * margin ambiguity that later assignments have since resolved, and when
@@ -1793,8 +1861,14 @@ function stitch_shell_chains(snapshots) {
 		changed = false;
 		for (let end of ends) {
 			if (used_ends.has(end)) continue;
+			/* Absorption may have consumed this end or a start already. */
+			if (end.shell.next_time !== undefined) {
+				used_ends.add(end);
+				continue;
+			}
 			let open = (by_end.get(end) || []).filter(candidate =>
-				!used_starts.has(candidate.start));
+				!used_starts.has(candidate.start) &&
+				!candidate.start.shell.matched_from_previous);
 			if (!open.length) continue;
 			/* The shell's true continuation is its next appearance; later
 			 * valid starts along the same track are the same shell again,
@@ -1807,10 +1881,12 @@ function stitch_shell_chains(snapshots) {
 			if (contenders[1] &&
 				contenders[1].cost - best.cost < SHELL_MATCH_MARGIN) continue;
 			let rivals = by_start.get(best.start).filter(candidate =>
-				candidate.end !== end && !used_ends.has(candidate.end));
+				candidate.end !== end && !used_ends.has(candidate.end) &&
+				candidate.end.shell.next_time === undefined);
 			if (rivals.some(rival =>
 				rival.cost - best.cost < SHELL_MATCH_MARGIN)) continue;
 			apply_stitch(best);
+			absorb_intermediate_observations(snapshots, end, best.start);
 			used_ends.add(end);
 			used_starts.add(best.start);
 			changed = true;
@@ -2216,13 +2292,84 @@ function resolve_residual_shell_fates(snapshots) {
 		let left = lefts[edge.left];
 		let right = rights[edge.right];
 		if (left.kind === "end" && right.kind === "start") {
+			if (left.end.shell.next_time !== undefined ||
+				right.start.shell.matched_from_previous) continue;
 			apply_stitch(edge.candidate);
+			absorb_intermediate_observations(snapshots, left.end, right.start);
 		} else if (left.kind === "end") {
+			if (left.end.shell.next_time !== undefined) continue;
 			apply_forced_terminal(left.end, right.fate, edge.match);
 		} else if (right.kind === "start") {
+			if (right.start.shell.matched_from_previous ||
+				right.start.shell.starts_at_tank ||
+				right.start.shell.starts_at_pillbox) continue;
 			apply_forced_origin(left.creation, right.start, edge.match);
 		} else {
 			apply_forced_unseen(left.creation, right.fate, units);
+		}
+	}
+}
+
+/* Shells fly at exactly one speed, so any unevenness along a chain is
+ * timestamp jitter or pixel quantisation, not motion. For drawing only,
+ * re-time each chain of three or more restatements to constant velocity
+ * between its end anchors: interior observations get a smoothed position
+ * on the anchor line at their timestamp, and each link aims at the
+ * successor's smoothed position. Packet-exact state, matcher artifacts
+ * and terminal endpoints are untouched; a chain whose interior strays
+ * further from the uniform reading than record lag explains is left
+ * as observed. */
+function smooth_shell_chains(snapshots) {
+	for (let snapshot of snapshots) {
+		for (let shell of snapshot.shells) {
+			if (shell.matched_from_previous) continue;
+			let entries = [{ shell, time: snapshot.time }];
+			let walk = shell;
+			while (walk.next_shell && !walk.next_terminal) {
+				entries.push({ shell: walk.next_shell, time: walk.next_time });
+				walk = walk.next_shell;
+			}
+			if (entries.length < 3) continue;
+			let first = entries[0].shell;
+			let last = entries[entries.length - 1].shell;
+			let anchor_x = first.pillbox_orbit_pixel_x ??
+				first.tank_exact_pixel_x ?? first.pixel_x;
+			let anchor_y = first.pillbox_orbit_pixel_y ??
+				first.tank_exact_pixel_y ?? first.pixel_y;
+			let final_x = last.pillbox_orbit_pixel_x ??
+				last.tank_exact_pixel_x ?? last.pixel_x;
+			let final_y = last.pillbox_orbit_pixel_y ??
+				last.tank_exact_pixel_y ?? last.pixel_y;
+			let total = entries[entries.length - 1].time - entries[0].time;
+			if (total <= 0) continue;
+
+			let smoothed = [];
+			let plausible = true;
+			for (let i = 1; i < entries.length - 1; i++) {
+				let amount = (entries[i].time - entries[0].time) / total;
+				let smooth_x = anchor_x + (final_x - anchor_x) * amount;
+				let smooth_y = anchor_y + (final_y - anchor_y) * amount;
+				let observed = entries[i].shell;
+				let observed_x = observed.pillbox_orbit_pixel_x ??
+					observed.tank_exact_pixel_x ?? observed.pixel_x;
+				let observed_y = observed.pillbox_orbit_pixel_y ??
+					observed.tank_exact_pixel_y ?? observed.pixel_y;
+				if (Math.hypot(smooth_x - observed_x, smooth_y - observed_y) >
+					MAX_SMOOTHING_DEVIATION_PIXELS) {
+					plausible = false;
+					break;
+				}
+				smoothed.push([smooth_x, smooth_y]);
+			}
+			if (!plausible) continue;
+			for (let i = 1; i < entries.length - 1; i++) {
+				entries[i].shell.smooth_pixel_x = smoothed[i - 1][0];
+				entries[i].shell.smooth_pixel_y = smoothed[i - 1][1];
+				entries[i - 1].shell.smooth_next_pixel_x = smoothed[i - 1][0];
+				entries[i - 1].shell.smooth_next_pixel_y = smoothed[i - 1][1];
+			}
+			entries[entries.length - 2].shell.smooth_next_pixel_x = final_x;
+			entries[entries.length - 2].shell.smooth_next_pixel_y = final_y;
 		}
 	}
 }
@@ -2285,6 +2432,7 @@ function build_shell_positions(records, terminals, pillbox_sources_by_record,
 	for (let client_snapshots of snapshots) {
 		stitch_shell_chains(client_snapshots);
 		resolve_residual_shell_fates(client_snapshots);
+		smooth_shell_chains(client_snapshots);
 	}
 	return snapshots;
 }
@@ -2458,10 +2606,10 @@ function shell_position_at(game, player, shell, index, tick) {
 		position.direction !== shell.direction) {
 		return packet_position();
 	}
-	pixel_x = position.pillbox_orbit_pixel_x ?? position.tank_exact_pixel_x ??
-		pixel_x;
-	pixel_y = position.pillbox_orbit_pixel_y ?? position.tank_exact_pixel_y ??
-		pixel_y;
+	pixel_x = position.smooth_pixel_x ?? position.pillbox_orbit_pixel_x ??
+		position.tank_exact_pixel_x ?? pixel_x;
+	pixel_y = position.smooth_pixel_y ?? position.pillbox_orbit_pixel_y ??
+		position.tank_exact_pixel_y ?? pixel_y;
 	let exact_position = () => ({
 		x: pixel_x / 16 + 0.5,
 		y: pixel_y / 16 + 0.5,
@@ -2472,8 +2620,10 @@ function shell_position_at(game, player, shell, index, tick) {
 	}
 
 	let amount = (tick - snapshot.time) / (position.next_time - snapshot.time);
-	pixel_x += (position.next_pixel_x - pixel_x) * amount;
-	pixel_y += (position.next_pixel_y - pixel_y) * amount;
+	let target_x = position.smooth_next_pixel_x ?? position.next_pixel_x;
+	let target_y = position.smooth_next_pixel_y ?? position.next_pixel_y;
+	pixel_x += (target_x - pixel_x) * amount;
+	pixel_y += (target_y - pixel_y) * amount;
 	return { x: pixel_x / 16 + 0.5, y: pixel_y / 16 + 0.5 };
 }
 
