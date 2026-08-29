@@ -93,6 +93,10 @@ const MAX_SMOOTHING_DEVIATION_PIXELS = 24;
 const ABSORB_LATERAL_TOLERANCE_PIXELS = 2;
 /* An impact record normally trails the impact by well under a second. */
 const MAX_FATE_EVENT_LAG_TICKS = 30;
+/* The resolver's cost-forced margin: an assignment is accepted when every
+ * rival story carries at least this much extra geometric error, the same
+ * ambiguity unit the pairwise matcher uses. */
+const RESIDUAL_COST_MARGIN = SHELL_MATCH_MARGIN;
 
 /* Standalone map/node records carry no player state or motion. */
 const MAP_NODE_TYPES = new Set([
@@ -1916,78 +1920,85 @@ function stitch_shell_chains(snapshots) {
  * reach because they cannot see that a rival candidate is itself needed
  * elsewhere. */
 
-/* Maximum flow on one small bipartite component: implicit source into the
- * left groups, implicit sink out of the right groups, unbounded edges
- * between (group capacities bound everything). `skip` excludes one edge
- * for the forced-edge test. */
-function bipartite_flow(left_caps, right_caps, edges, skip) {
-	let left_flow = left_caps.map(() => 0);
-	let right_flow = right_caps.map(() => 0);
-	let edge_flow = edges.map(() => 0);
-	let edges_by_left = left_caps.map(() => []);
-	let edges_by_right = right_caps.map(() => []);
+/* Minimum-cost maximum flow on one small component, by successive
+ * shortest augmenting paths (Bellman-Ford over the residual graph; the
+ * components are tiny, so no potentials are needed). Nodes are the left
+ * groups, the right groups, a source and a sink; costs sit on the
+ * left-to-right edges only. `skip` zeroes one edge's capacity for the
+ * counterfactual tests. */
+function component_min_cost_flow(left_caps, right_caps, edges, skip) {
+	let left_count = left_caps.length;
+	let node_count = left_count + right_caps.length + 2;
+	let source = node_count - 2;
+	let sink = node_count - 1;
+	let arcs = [];
+	let add_arc = (from, to, cap, cost) => {
+		arcs.push({ from, to, cap, cost, flow: 0 });
+		arcs.push({ from: to, to: from, cap: 0, cost: -cost, flow: 0 });
+	};
+	for (let l = 0; l < left_count; l++) add_arc(source, l, left_caps[l], 0);
+	for (let r = 0; r < right_caps.length; r++) {
+		add_arc(left_count + r, sink, right_caps[r], 0);
+	}
+	let middle = [];
 	for (let i = 0; i < edges.length; i++) {
-		if (i === skip) continue;
-		edges_by_left[edges[i].left].push(i);
-		edges_by_right[edges[i].right].push(i);
+		middle.push(arcs.length);
+		add_arc(edges[i].left, left_count + edges[i].right,
+			i === skip ? 0 : Math.min(left_caps[edges[i].left],
+				right_caps[edges[i].right]),
+			edges[i].cost || 0);
 	}
+
 	let value = 0;
+	let total_cost = 0;
 	for (;;) {
-		let left_seen = left_caps.map(() => false);
-		let right_via = right_caps.map(() => undefined);
-		let left_via = left_caps.map(() => undefined);
-		let queue = [];
-		for (let l = 0; l < left_caps.length; l++) {
-			if (left_flow[l] < left_caps[l]) {
-				left_seen[l] = true;
-				queue.push(l);
-			}
-		}
-		let found = -1;
-		while (queue.length && found < 0) {
-			let l = queue.shift();
-			for (let e of edges_by_left[l]) {
-				let r = edges[e].right;
-				if (right_via[r] !== undefined) continue;
-				right_via[r] = e;
-				if (right_flow[r] < right_caps[r]) {
-					found = r;
-					break;
+		let dist = new Array(node_count).fill(Infinity);
+		let via = new Array(node_count).fill(-1);
+		dist[source] = 0;
+		for (let iteration = 0; iteration < node_count; iteration++) {
+			let changed = false;
+			for (let a = 0; a < arcs.length; a++) {
+				let arc = arcs[a];
+				if (arc.cap - arc.flow <= 0 || dist[arc.from] === Infinity) {
+					continue;
 				}
-				/* Saturated right node: try rerouting its current flows. */
-				for (let back of edges_by_right[r]) {
-					if (edge_flow[back] <= 0) continue;
-					let other = edges[back].left;
-					if (left_seen[other]) continue;
-					left_seen[other] = true;
-					left_via[other] = back;
-					queue.push(other);
+				if (dist[arc.from] + arc.cost < dist[arc.to] - 1e-9) {
+					dist[arc.to] = dist[arc.from] + arc.cost;
+					via[arc.to] = a;
+					changed = true;
 				}
 			}
+			if (!changed) break;
 		}
-		if (found < 0) break;
-		let r = found;
-		for (;;) {
-			let e = right_via[r];
-			edge_flow[e]++;
-			let l = edges[e].left;
-			let back = left_via[l];
-			if (back === undefined) {
-				left_flow[l]++;
-				break;
-			}
-			edge_flow[back]--;
-			r = edges[back].right;
+		if (via[sink] < 0) break;
+		let bottleneck = Infinity;
+		for (let node = sink; node !== source;) {
+			let arc = arcs[via[node]];
+			bottleneck = Math.min(bottleneck, arc.cap - arc.flow);
+			node = arc.from;
 		}
-		right_flow[found]++;
-		value++;
+		for (let node = sink; node !== source;) {
+			let index = via[node];
+			arcs[index].flow += bottleneck;
+			arcs[index ^ 1].flow -= bottleneck;
+			node = arcs[index].from;
+		}
+		value += bottleneck;
+		total_cost += dist[sink] * bottleneck;
 	}
-	return { value, edge_flow };
+	return {
+		value,
+		cost: total_cost,
+		edge_flow: middle.map(a => arcs[a].flow),
+	};
 }
 
 /* Split the graph into connected components and, per component, keep the
- * edges whose removal reduces the maximum flow -- the assignments every
- * maximum assignment agrees on. */
+ * assignments every good story agrees on: an edge is accepted when
+ * removing it reduces the maximum number of explanations (forced), or
+ * when the best assignment without it costs more than the margin extra
+ * (cost-forced -- the rival stories are all strictly worse). What
+ * remains genuinely close stays unexplained. */
 function forced_bipartite_assignments(lefts, rights, edges) {
 	if (!edges.length) return [];
 	let parent = Array.from({ length: lefts.length + rights.length },
@@ -2023,17 +2034,25 @@ function forced_bipartite_assignments(lefts, rights, edges) {
 		let local_edges = edge_indices.map(i => ({
 			left: left_map.get(edges[i].left),
 			right: right_map.get(edges[i].right),
+			cost: edges[i].cost || 0,
 		}));
 		let left_caps = left_ids.map(id => lefts[id].count);
 		let right_caps = right_ids.map(id => rights[id].count);
-		let full = bipartite_flow(left_caps, right_caps, local_edges, -1);
+		let full = component_min_cost_flow(left_caps, right_caps,
+			local_edges, -1);
 		for (let i = 0; i < local_edges.length; i++) {
 			if (full.edge_flow[i] <= 0) continue;
-			let reduced = bipartite_flow(left_caps, right_caps, local_edges, i);
+			let reduced = component_min_cost_flow(left_caps, right_caps,
+				local_edges, i);
 			if (reduced.value < full.value) {
 				results.push({
 					edge: edges[edge_indices[i]],
 					units: full.value - reduced.value,
+				});
+			} else if (reduced.cost - full.cost > RESIDUAL_COST_MARGIN) {
+				results.push({
+					edge: edges[edge_indices[i]],
+					units: full.edge_flow[i],
 				});
 			}
 		}
@@ -2072,11 +2091,14 @@ function creation_start_match(creation, start) {
 			distance > SHELL_RANGE_PIXELS + SHELL_MATCH_ERROR_PIXELS ||
 			Math.abs(distance - duration * SHELL_SPEED_PIXELS_PER_TICK) >
 				SHELL_MATCH_ERROR_PIXELS * 2) continue;
+		let cost = Math.abs(distance -
+			duration * SHELL_SPEED_PIXELS_PER_TICK);
 		if (creation.kind === "pill") {
 			let states = pillbox_orbit_states_at(creation.direction,
 				delta_x, delta_y, shell.position_uncertainty || 0);
 			if (!states.length) continue;
-			return { origin_x, origin_y, distance, delta_x, delta_y, states };
+			return { origin_x, origin_y, distance, delta_x, delta_y, states,
+				cost };
 		}
 		let angle = creation.direction * Math.PI / 8;
 		let forward = delta_x * Math.sin(angle) - delta_y * Math.cos(angle);
@@ -2084,7 +2106,7 @@ function creation_start_match(creation, start) {
 			delta_y * Math.sin(angle));
 		if (forward <= 0 ||
 			Math.atan2(lateral, forward) > SHELL_DIRECTION_TOLERANCE) continue;
-		return { origin_x, origin_y, distance, delta_x, delta_y };
+		return { origin_x, origin_y, distance, delta_x, delta_y, cost };
 	}
 	return null;
 }
@@ -2103,7 +2125,8 @@ function creation_fate_match(creation, fate) {
 		if (distance === null || distance > reach) return null;
 		if (duration - distance / SHELL_SPEED_PIXELS_PER_TICK >
 			MAX_FATE_EVENT_LAG_TICKS) return null;
-		return { distance };
+		return { distance, cost: Math.abs(distance -
+			duration * SHELL_SPEED_PIXELS_PER_TICK) / 2 };
 	}
 	let target_x, target_y, slack;
 	if (terminal.type === "point") {
@@ -2129,7 +2152,8 @@ function creation_fate_match(creation, fate) {
 		if (forward <= 0 || Math.atan2(lateral, forward) >
 			SHELL_DIRECTION_TOLERANCE + Math.atan2(slack, distance)) return null;
 	}
-	return { distance };
+	return { distance, cost: Math.abs(distance -
+		duration * SHELL_SPEED_PIXELS_PER_TICK) / 2 };
 }
 
 function apply_forced_terminal(end, fate, match) {
@@ -2265,7 +2289,10 @@ function resolve_residual_shell_fates(snapshots) {
 			let right = rights[ri];
 			if (left.kind === "end" && right.kind === "start") {
 				let candidate = stitch_candidate(left.end, right.start);
-				if (candidate) edges.push({ left: li, right: ri, candidate });
+				if (candidate) {
+					edges.push({ left: li, right: ri, candidate,
+						cost: candidate.cost });
+				}
 			} else if (left.kind === "end") {
 				let duration = right.fate.time - left.end.time;
 				if (duration <= 0 ||
@@ -2278,14 +2305,18 @@ function resolve_residual_shell_fates(snapshots) {
 				if (match && duration -
 					match.distance / SHELL_SPEED_PIXELS_PER_TICK <=
 						MAX_FATE_EVENT_LAG_TICKS) {
-					edges.push({ left: li, right: ri, match });
+					edges.push({ left: li, right: ri, match, cost: match.cost });
 				}
 			} else if (right.kind === "start") {
 				let match = creation_start_match(left.creation, right.start);
-				if (match) edges.push({ left: li, right: ri, match });
+				if (match) {
+					edges.push({ left: li, right: ri, match, cost: match.cost });
+				}
 			} else {
 				let match = creation_fate_match(left.creation, right.fate);
-				if (match) edges.push({ left: li, right: ri, match });
+				if (match) {
+					edges.push({ left: li, right: ri, match, cost: match.cost });
+				}
 			}
 		}
 	}
