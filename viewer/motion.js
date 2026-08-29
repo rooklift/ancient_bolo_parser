@@ -1472,12 +1472,23 @@ function build_shell_births(shell_positions) {
 		let births = [];
 		for (let snapshot of snapshots) {
 			for (let shell of snapshot.shells) {
-				if (!shell.starts_at_tank || shell.birth_time >= snapshot.time) continue;
+				let start_time = shell.birth_time;
+				let pixel_x = shell.birth_pixel_x;
+				let pixel_y = shell.birth_pixel_y;
+				if (shell.starts_at_pillbox) {
+					start_time = snapshot.time - shell.pillbox_source_distance /
+						SHELL_SPEED_PIXELS_PER_TICK;
+					pixel_x = shell.pillbox_source_x;
+					pixel_y = shell.pillbox_source_y;
+				} else if (!shell.starts_at_tank) {
+					continue;
+				}
+				if (start_time >= snapshot.time || shell.heading_x === undefined) continue;
 				births.push({
-					start_time: shell.birth_time,
+					start_time,
 					end_time: snapshot.time,
-					pixel_x: shell.birth_pixel_x,
-					pixel_y: shell.birth_pixel_y,
+					pixel_x,
+					pixel_y,
 					heading_x: shell.heading_x,
 					heading_y: shell.heading_y,
 					direction: shell.direction,
