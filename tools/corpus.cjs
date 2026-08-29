@@ -8,8 +8,8 @@
  *   2. the BOLO_CORPUS environment variable
  *   3. the "root" field of corpus.json at the repo root
  *
- * corpus.json is gitignored. Copy corpus.example.json to corpus.json and set
- * its "root" to wherever the logs live.
+ * corpus.json is gitignored. Create it at the repo root as
+ * {"root": "/path/to/logs"} pointing at wherever the logs live.
  */
 "use strict";
 
@@ -21,8 +21,8 @@ const CONFIG = path.join(ROOT, "corpus.json");
 
 const ADVICE =
 	"no corpus directory configured -- pass one as an argument, set " +
-	"BOLO_CORPUS, or copy corpus.example.json to corpus.json and set its " +
-	"\"root\" field";
+	"BOLO_CORPUS, or create corpus.json at the repo root as " +
+	"{\"root\": \"/path/to/logs\"}";
 
 /* Returns the configured corpus directory. On any failure it explains what to
  * do and exits, since every caller is a command-line measurement tool with
