@@ -893,11 +893,40 @@ function draw_effects() {
 const MAX_LOG_BYTES = 64 << 20;   /* larger than any plausible real log */
 const MAX_RECORDS = 2_000_000;    /* ~16x the 2h sample; caps memory */
 
-function load_log(bytes, name) {
+function loading_stage(label, progress) {
+	return new Promise(resolve => requestAnimationFrame(() => {
+		let { w, h } = css_size();
+		let bar_width = Math.min(600, w * 0.75), bar_height = 56;
+		let x = (w - bar_width) / 2, y = (h - bar_height) / 2;
+		ctx.save();
+		ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+		ctx.fillStyle = "#161b26";
+		ctx.fillRect(x, y, bar_width, bar_height);
+		ctx.fillStyle = "#5b8def";
+		ctx.fillRect(x, y, bar_width * progress, bar_height);
+		ctx.strokeStyle = "#000000";
+		ctx.lineWidth = 2;
+		ctx.strokeRect(x, y, bar_width, bar_height);
+		ctx.fillStyle = "#ffffff";
+		ctx.font = "600 17px system-ui, sans-serif";
+		ctx.textAlign = "center";
+		ctx.textBaseline = "middle";
+		ctx.fillText(label, w / 2, h / 2);
+		ctx.restore();
+		requestAnimationFrame(resolve);
+	}));
+}
+
+async function load_log(bytes, name) {
 	/* Parse fully before touching viewer state, so a malformed file leaves
 	 * any currently loaded replay running. */
-	let recs, newGame;
+	let was_playing = playing;
+	let had_drop_hint = !drop_hint.classList.contains("hidden");
+	let recs, new_game;
+	set_playing(false);
+	drop_hint.classList.add("hidden");
 	try {
+		await loading_stage("Parsing log…", 1 / 3);
 		if (bytes.length > MAX_LOG_BYTES) {
 			throw new Error(`${bytes.length} bytes; not a Bolo log`);
 		}
@@ -912,12 +941,21 @@ function load_log(bytes, name) {
 		if (recs.length === 0) {
 			throw new Error("no valid records in file");
 		}
-		newGame = BoloGame.build(recs);
+		await loading_stage("Reconstructing game…", 2 / 3);
+		new_game = BoloGame.build(recs);
+		await loading_stage("Opening replay…", 1);
 	} catch (err) {
+		if (cur) draw();
+		else {
+			ctx.setTransform(1, 0, 0, 1, 0, 0);
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+		}
+		if (had_drop_hint) drop_hint.classList.remove("hidden");
+		set_playing(was_playing);
 		show_error("Could not load log", String(err.message || err));
 		return;
 	}
-	game = newGame;
+	game = new_game;
 	player_locked = false;
 	viewpoint = -1;
 	last_viewpoint_html = null;
