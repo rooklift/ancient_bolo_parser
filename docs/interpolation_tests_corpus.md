@@ -1,0 +1,377 @@
+# Interpolation coverage across versions -- full corpus
+
+The same ten commits measured in [`interpolation_tests.md`](interpolation_tests.md),
+re-run against the whole 443-log corpus instead of the single sample replay.
+Produced with `tools/report-interpolation-rates.cjs`, run once per checked-out
+commit:
+
+```
+node tools/report-interpolation-rates.cjs -r "<corpus root>"
+```
+
+Read this file alongside the fixture one rather than instead of it. The metric
+definitions in [`interpolation_tests.md`](interpolation_tests.md) ("What the
+numbers mean") apply unchanged and are not repeated here; what follows is the
+same experiment at roughly 113 times the data, and the interesting content is
+where the two disagree.
+
+## Method
+
+The corpus is the private 443-log set described in `FORMAT.md` (2001-2005, all
+Bolo 0.99.7), read recursively. It does not live in this repository and its
+location is deliberately not recorded anywhere in the tree. The measurement
+tools find it through `corpus.json` at the repo root, which is gitignored --
+copy `corpus.example.json` to it and set `"root"`, or set `BOLO_CORPUS` in the
+environment. **An agent re-running this should ask the user where the corpus
+is** rather than guessing, since `corpus.json` is absent from a fresh clone.
+The three logs known to be hacked or broken are excluded.
+
+* 443 files, 221,354,707 bytes. The one `.txt` in the tree is excluded by the
+  tool's own extension filter, so the file count the tool reports is the log
+  count.
+* Composition by year: 2001 132, 2002 92, 2003 52, 2004 122, 2005 34, plus 11
+  further logs held outside the year directories.
+* Manifest digest `f8eee92cd6ee1f2b8cec07fe82edc8972eec09e9b21348bc1cfa002432e672d4`
+  -- the sha256 of the sorted `sha256sum` listing of those 443 files, by path
+  relative to the corpus root. This pins the corpus the way the fixture file's
+  single sha256 pins its one replay.
+* `files_failed` is **0** at all ten commits and stderr is empty at all ten, so
+  every log parsed at every version. Nothing below is a survivorship figure.
+* The corpus is not in the repository, so its blobs are necessarily identical
+  at every commit measured.
+
+All ten runs were done in one throwaway detached worktree, checked out to each
+commit in turn, with `main`'s copy of the tool dropped in each time. The tool's
+sha256 was recorded per run and is
+`f2909fa6498a5e6e1725ef7372d9e6ddf1372895036fe1d637b7b6d3ac494160` at all ten,
+so the measuring code is provably identical and only the engine differs.
+`tools/report-interpolation-rates.cjs` still has exactly one commit, `76d8b8a`.
+Runs were sequential, one process at a time.
+
+Unlike the fixture file, no run here was taken from a live checkout: `main` has
+moved on to the merge commit, so all ten used the worktree, which makes the
+method uniform across the table rather than eight-of-ten.
+
+**Rig validation.** Before the corpus runs, `323c673` was replayed through this
+rig against the *fixture* and reproduced the published v1.0.7 row exactly --
+`rate_shells_matched_forward` 0.929101, `rate_shells_unlinked` 0.029667,
+`rate_terminals_matched` 0.771713, `terminals_matched:tank_hit` 2657,
+`shells_from_pillbox` 11661, `shells_with_pillbox_source` 41226,
+`shells_with_birth` 9021, `terminals_unseen_pillbox_source` 0,
+`max_shell_interpolation_ticks` absent. The rig is therefore known to reproduce
+the older file before any new number below is trusted.
+
+**These numbers are current.** `git diff 926f391 HEAD -- viewer/ src/` is empty
+at the merge commit `4572cff`: the merge brought only `README.md`,
+`docs/viewer.png` and `docs/interpolation_tests.md`. The `926f391` row below is
+`main`'s row as it stands.
+
+## Corpus totals
+
+Constant at all ten commits, and worth having once:
+
+* `shells` 9,817,361 shell observations; `shells_in_final_snapshot` 186
+* `terminals` 1,946,439, broken down `pillbox_damage` 716,235,
+  `shell_falls` 624,224, `tank_hit` 269,483, `explosion` 240,538,
+  `base_damage` 95,959
+* `tank_points` 9,914,126, `tank_ticks` 122,807,769
+* `lgm_points` 7,876,644, `lgm_ticks` 112,261,469
+* `max_position_interpolation_ticks` 25 throughout;
+  `max_shell_interpolation_ticks` 50 from `76d8b8a` on, absent at `323c673`
+
+## Headline table
+
+| commit | | `matched_forward` | `unlinked` | `terminals_matched` | `tank_hit` |
+| --- | --- | --- | --- | --- | --- |
+| `323c673` | v1.0.7 | 0.948521 | 0.018737 | 0.761484 | 201,999 |
+| `76d8b8a` | branch point | 0.961727 | 0.013738 | 0.791346 | 211,623 |
+| `e4582dc` | v1.0.8 | 0.961727 | 0.013738 | 0.791346 | 211,623 |
+| `ad6a3b6` | "Stuff" | 0.934635 | 0.032850 | 0.776327 | 197,958 |
+| `5e69318` | tolerance | 0.935831 | 0.032708 | 0.782268 | 209,485 |
+| `c848efd` | "Stuff" | 0.935831 | 0.032708 | 0.782268 | 209,485 |
+| `4f5dbe9` | bad assumption | 0.967669 | 0.011431 | 0.813086 | 227,331 |
+| `83cb132` | quantized shots | 0.972767 | 0.009576 | 0.813034 | 227,201 |
+| `5f9d86f` | one-sided | 0.973966 | 0.009100 | 0.813066 | 227,223 |
+| `926f391` | index 1+ | **0.975030** | **0.008829** | **0.816566** | **227,585** |
+
+Every headline record is held by `926f391`, as on the fixture.
+
+## Tank and LGM tracks
+
+Byte-identical at all ten commits, exactly as on the fixture -- nothing in this
+range touches position interpolation. For the record:
+
+* `rate_tank_segments_interpolated` 0.953363, `rate_tank_ticks_interpolated` 0.608462
+* `rate_lgm_segments_interpolated` 0.981653, `rate_lgm_ticks_interpolated` 0.528934
+
+The tick-weighted rates differ from the fixture's (0.687960 tank, 0.435824
+LGM): tanks interpolate worse across the corpus than in the sample, LGMs
+better. Neither is evidence about this range of commits.
+
+## v1.0.7 -- `323c673` "rejoin / alliance issues"
+
+* `rate_shells_matched_forward` 0.948521
+* `rate_shells_unlinked` 0.018737
+* `rate_terminals_matched` 0.761484
+* `terminals_matched:tank_hit` 201,999 of 269,483
+* `shells_from_pillbox` 960,505
+* `shells_with_pillbox_source` 5,183,572
+* `shells_with_birth` 650,855 -- equal to `shells_from_tank`, i.e. only tank
+  shells had a known birth, the same relationship the fixture shows
+* `terminals_unseen_pillbox_source` 0
+* `max_shell_interpolation_ticks` absent, reported `-`
+
+## Branch point -- `main` at `76d8b8a`
+
+The baseline the branch is judged against.
+
+* `rate_shells_matched_forward` 0.961727
+* `rate_shells_unlinked` 0.013738
+* `rate_terminals_matched` 0.791346
+* `terminals_matched:tank_hit` 211,623 of 269,483
+* `shells_from_pillbox` 960,505 -- unchanged from v1.0.7
+* `shells_with_pillbox_source` 5,262,988
+* `shells_with_birth` 3,405,148
+* `terminals_unseen_pillbox_source` 37,124 -- rises from v1.0.7's 0, the metric
+  having become meaningful
+* `shell_births` 650,858 -- tank shells only
+
+## v1.0.8 -- `e4582dc` "aesthetic improvement"
+
+The fixture file's claim that exactly one line moves between `76d8b8a` and
+`e4582dc` **holds on the corpus**. The entire report diff is:
+
+* `shell_births` 650,858 -> 1,611,362
+
+Everything else is identical, including all four headline rates, every
+`terminals_matched` class, `shells_with_pillbox_source` 5,262,988,
+`shells_with_birth` 3,405,148 and `terminals_unseen_pillbox_source` 37,124.
+
+One detail does *not* survive the scale-up. On the fixture the added births are
+pillbox shells exactly: 9020 + 11661 = 20681. On the corpus the identity is one
+short -- `shells_from_tank` 650,858 + `shells_from_pillbox` 960,505 = 1,611,363
+against `shell_births` 1,611,362. So across 443 logs there is exactly one shell
+with a known origin and no birth record. It is the only commit where the
+identity fails: it is exact at `5f9d86f` (1,612,510) and at `926f391`
+(1,612,444). See the findings.
+
+## Branch -- `ad6a3b6` "Stuff"
+
+The regression, and it is deeper on the corpus than on the fixture in the
+shell-linkage metrics.
+
+* `rate_shells_matched_forward` 0.934635 -- down 2.7 points from the branch point
+* `rate_shells_unlinked` 0.032850 -- up from 0.013738, 2.4x the branch point
+* `rate_terminals_matched` 0.776327 -- down 1.5 points
+* `terminals_matched:tank_hit` 197,958 -- down 13,665, and below even v1.0.7's
+  201,999
+* `shells_from_pillbox` 764,990 -- down 195,515 from 960,505
+* `shells_with_pillbox_source` 3,065,813 -- 58.3% of the branch point's
+  5,262,988
+* `shells_with_birth` 3,401,045
+* `terminals_unseen_pillbox_source` 39,222
+* `shell_births` 650,876
+
+## Branch -- `5e69318` "consider this tolerance rather than shell sprite size"
+
+* `rate_shells_matched_forward` 0.935831
+* `rate_shells_unlinked` 0.032708
+* `rate_terminals_matched` 0.782268 -- up 0.6 points from `ad6a3b6`
+* `terminals_matched:tank_hit` 209,485 -- **up 11,527** from `ad6a3b6`
+* `shells_from_pillbox` 764,990 -- unchanged
+* `shells_with_pillbox_source` 3,065,728 -- down 85, effectively unchanged
+* `shells_with_birth` 3,401,045 -- unchanged
+* `terminals_unseen_pillbox_source` 39,222 -- unchanged
+
+Same shape as the fixture: one metric moves and the rest hold. The caveat
+carries over unchanged -- this span is three commits (`422c5ff`, `18b51b9`,
+`5e69318`), so +11,527 is the trio's combined effect, not the tolerance commit
+measured alone.
+
+## Branch -- `c848efd` "Stuff"
+
+A confirmation run. **Every metric is identical to `5e69318`**, all the way
+through the file, which reproduces the fixture result at corpus scale and
+confirms that `c848efd` and `dd553c5` are tooling-only.
+
+## Branch -- `4f5dbe9` "Possible fix to a bad assumption", `using_the_pillbox_data` checkpoint
+
+The repair, and the largest single movement in the file.
+
+* `rate_shells_matched_forward` 0.967669 -- up 3.2 points from `5e69318`, and
+  0.6 points above the branch point
+* `rate_shells_unlinked` 0.011431 -- down from 0.032708, below the branch
+  point's 0.013738
+* `rate_terminals_matched` 0.813086 -- up 3.1 points from `5e69318`, 2.2 above
+  the branch point
+* `terminals_matched:tank_hit` 227,331 -- up 17,846 from `5e69318`, and 15,708
+  above the branch point
+* `shells_from_pillbox` 961,641 -- recovered from 764,990, and 1,136 above the
+  branch point's 960,505
+* `shells_with_pillbox_source` 5,833,694 -- recovered from 3,065,728, and
+  570,706 above the branch point's 5,262,988
+* `shells_with_birth` 3,406,344 -- up 5,299, and 1,196 above the branch point
+* `shells_from_tank` 650,874
+* `terminals_unseen_pillbox_source` 37,360
+* `shell_births` 650,874 -- tank only; the branch lacks `f4f15d9`, so this is
+  not comparable with v1.0.8
+* `max_shell_interpolation_ticks` 50
+
+The terminal breakdown moves the same way in every class:
+`explosion` 146,757 -> 158,534, `pillbox_damage` 501,560 -> 525,809,
+`shell_falls` 605,355 -> 611,487, `base_damage` 59,480 -> 59,461. On the corpus
+`base_damage` is again the one class that goes backwards, by 19 -- the fixture
+showed the same single-class regression, there by one terminal.
+
+`4f5dbe9` is the only commit in this span touching `viewer/motion.js`, so the
+whole gain is its own.
+
+## Branch of the branch -- `83cb132` "Try to determine true location from quantized pillbox shots", `using_the_pillbox_data_antifuzz` checkpoint
+
+The characteristic trade reproduces: shell matching up, terminal matching down
+by a hair.
+
+* `rate_shells_matched_forward` 0.972767 -- up 0.51 points from `4f5dbe9`
+* `rate_shells_unlinked` 0.009576 -- down from 0.011431, the first corpus figure
+  below 1%
+* `rate_terminals_matched` 0.813034 -- **down** 0.000052 from `4f5dbe9`, i.e.
+  100 terminals out of 1,946,439
+* `shells_matched_to_snapshot` 7,967,478 -- up 50,140
+* `shells_unmatched_forward` 267,361 -- down 50,040
+* `shells_unlinked` 94,009 -- down 12,217
+* `terminals_matched:tank_hit` 227,201 -- down 130
+* `terminals_matched:shell_falls` 611,547 -- up 60
+* `terminals_matched:base_damage` 59,466 -- up 5
+* `terminals_matched:explosion` 158,518 -- down 16
+* `terminals_matched:pillbox_damage` 525,790 -- down 19
+* `shells_with_pillbox_source` 5,823,632 -- down 10,062
+* `shells_with_birth` 3,406,335 -- down 9
+* `shells_from_pillbox` 961,641, `shells_from_tank` 650,874,
+  `terminals_unseen_pillbox_source` 37,360, `shell_births` 650,874 -- unchanged
+
+The reading in the fixture file holds: origins and births are untouched while
+snapshot-to-snapshot links get longer, which is what a better estimate of a
+quantised shot's position should do.
+
+## Branch after merging main -- `5f9d86f` "errors are one-sided"
+
+* `rate_shells_matched_forward` 0.973966 -- up from 0.972767, a new best
+* `shells_matched_forward` 9,561,777 -- up 11,777
+* `rate_shells_unlinked` 0.009100 -- down from 0.009576, a new best
+* `shells_unlinked` 89,340 -- down 4,669
+* `rate_terminals_matched` 0.813066 -- **up** 0.000032 from `83cb132`, i.e. 61
+  terminals recovered
+* `shells_matched_to_snapshot` 7,979,194 -- up 11,716
+* `shells_unmatched_forward` 255,584 -- down 11,777
+* `terminals_matched:shell_falls` 611,581 -- up 34
+* `terminals_matched:tank_hit` 227,223 -- up 22
+* `terminals_matched:explosion` 158,536 -- up 18
+* `terminals_matched:pillbox_damage` 525,780 -- down 10
+* `terminals_matched:base_damage` 59,463 -- down 3
+* `shells_with_pillbox_source` 5,811,672 -- down 11,960
+* `shells_from_pillbox` 961,636 -- down 5
+* `shells_from_tank` 650,874 and `terminals_unseen_pillbox_source` 37,361 --
+  effectively unchanged
+* `shells_with_birth` 3,406,339 -- up 4
+* `shell_births` 1,612,510 -- both tank and pillbox births after the merge;
+  650,874 + 961,636 = 1,612,510 exactly
+
+This is the one commit whose *direction* differs from the fixture. See the
+findings.
+
+## Branch -- `926f391` "Tank shots in index 1+ have uncertainty too", `using_the_pillbox_data_antifuzz` HEAD
+
+Holds all three headline records, and on the corpus it is cleaner than on the
+fixture: it gains in **all five** terminal classes with no regression at all.
+
+* `rate_shells_matched_forward` 0.975030 -- a new best
+* `rate_shells_unlinked` 0.008829 -- a new best
+* `rate_terminals_matched` 0.816566 -- up 0.003500 from `5f9d86f`, and 0.003480
+  above `4f5dbe9`'s 0.813086, taking a record that had stood since it was set
+* `shells_matched_forward` 9,572,222 -- up 10,445
+* `shells_matched_to_snapshot` 7,982,827 -- up 3,633
+* `shells_matched_to_terminal` 1,589,395 -- up 6,812
+* `shells_unmatched_forward` 245,139 -- down 10,445
+* `shells_unlinked` 86,675 -- down 2,665
+* `max_shell_interpolation_ticks` 50
+
+The terminal breakdown, all five up:
+
+* `terminals_matched:pillbox_damage` 530,577 -- up 4,797
+* `terminals_matched:shell_falls` 612,666 -- up 1,085
+* `terminals_matched:tank_hit` 227,585 -- up 362, and 254 above `4f5dbe9`
+* `terminals_matched:base_damage` 59,800 -- up 337
+* `terminals_matched:explosion` 158,767 -- up 231
+
+Attribution and births:
+
+* `shells_from_tank` 650,808 -- down 66
+* `shell_births` 1,612,444 -- down 66, the same shells:
+  650,808 + 961,636 = 1,612,444
+* `shells_with_birth` 3,410,213 -- up 3,874
+* `shells_from_pillbox` 961,636 and `terminals_unseen_pillbox_source` 37,361 --
+  unchanged; `shells_with_pillbox_source` 5,811,709 -- up 37
+
+## Findings
+
+* **The fixture's headline conclusions all survive the scale-up.** The branch
+  line leads the branch point on every headline metric (0.975030 against
+  0.961727, 0.008829 against 0.013738, 0.816566 against 0.791346); it was
+  behind from `ad6a3b6` to `c848efd`; every record is held by `926f391`; and
+  the pillbox-attribution regression and its repair are both there at full
+  size. None of this was an artefact of one hand-picked replay.
+* **The two confirmation-run claims reproduce exactly.** `e4582dc` differs from
+  `76d8b8a` in one line, and `c848efd` is identical to `5e69318` in every line,
+  across 443 logs. Those were the weakest claims in the fixture file -- a
+  single replay can easily fail to exercise a difference -- and they now have
+  113 times the evidence behind them.
+* **`5f9d86f` goes the other way on the corpus.** On the fixture it lost two
+  more terminals, continuing `83cb132`'s slide and leaving `4f5dbe9` holding
+  the terminal record. On the corpus it *recovers* 61 terminals, and the class
+  breakdown flips with it: `shell_falls`, `explosion` and `tank_hit` all gain
+  where the fixture had them flat or losing. The fixture's "at the cost of two
+  more matched terminals" does not generalise -- the one-sided bound is
+  very slightly terminal-positive over 443 logs. It still ends below `4f5dbe9`
+  on the terminal rate, by 39 terminals, so which commit holds the record at
+  that point is unaffected.
+* **`926f391` has no regression at corpus scale.** On the fixture it lost two
+  `explosion` terminals, the sole blemish on the commit. Over 443 logs
+  `explosion` gains 231 and every other class gains too. That two-terminal loss
+  was noise in a single replay, and the commit's claim to be the first to gain
+  on both axes at once is stronger than the fixture could show.
+* **The `shells_with_birth` loose end resolves in the same direction, larger.**
+  `shells_with_birth` rises 3,874 while `shells_from_tank` falls 66 at
+  `926f391` -- the same counter-intuitive pairing the fixture file flagged for
+  a look, at sixty times the magnitude, so it is not a small-sample effect. The
+  question is unchanged and still worth answering in `build_shell_births`: an
+  origin becoming uncertain does not cost a shell its birth, and apparently
+  helps others find one.
+* **One shell in the corpus has an origin and no birth, at v1.0.8 only.** The
+  identity `shells_from_tank + shells_from_pillbox = shell_births` holds
+  exactly at `5f9d86f` and `926f391` but is one short at `e4582dc`
+  (1,611,363 against 1,611,362). It is a single observation in 9.8 million, and
+  it is absent from the later states that carry the same `f4f15d9` birth code
+  plus the branch work -- so the likeliest reading is a shell whose pillbox
+  source is known but whose start point `f4f15d9` alone could not derive, since
+  fixed by the branch. Worth one look at `build_shell_births`, not worth alarm.
+* **`terminals_unseen_pillbox_source` does not return exactly to baseline.**
+  The fixture shows 393 -> 424 -> 393, a clean round trip at `4f5dbe9`. The
+  corpus shows 37,124 -> 39,222 -> 37,360: the repair recovers most of the
+  regression but leaves 236 terminals more than the branch point had, and the
+  figure then stays flat at 37,360/37,361 through `926f391`. The fixture's
+  "back to the branch point's value" was a small-sample coincidence.
+* **The absolute rates are lower than the fixture's throughout**, by 3-4 points
+  on terminal matching and around half a point on forward matching. The sample
+  replay is an easier log than the corpus average, which is what a hand-picked
+  sample would be expected to be. Only the deltas between commits should be
+  compared across the two files; the levels should not.
+* **Tank and LGM position tracks are untouched by all ten commits**, now
+  confirmed over 122.8M tank ticks and 112.3M LGM ticks rather than one
+  replay's worth.
+* **The regression's origin is still unpinned**, as in the fixture file:
+  bracketed to `9bc584d` or `ad6a3b6`, both named "Stuff". The corpus makes the
+  regression far better characterised but does not locate it, since `9bc584d`
+  was not among the ten commits measured.
+* **These are `main`'s current numbers.** The merge commit `4572cff` has an
+  engine byte-identical to `926f391`, so the last row stands until the next
+  engine change.
