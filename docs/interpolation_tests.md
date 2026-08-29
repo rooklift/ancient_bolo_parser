@@ -648,6 +648,12 @@ Fixture:
   in the matching numbers the fixture could not see -- see the
   `7b9030a` entry in
   [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md).
+* The wiggle exposed a real coupling: the candidate `end_time` fed both
+  the equivalence rule's time gate and the renderer. `70b1227` splits
+  them -- `end_time` stays the capped decision quantity, `draw_end_time`
+  (uncapped for falls only) is what gets drawn -- making the change
+  genuinely drawing-only. Fixture and replay metrics byte-identical
+  either side of the split.
 
 ## Findings
 

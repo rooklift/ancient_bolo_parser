@@ -602,6 +602,12 @@ whose timing is purely cosmetic. Deltas against `ad2168d`:
   endpoint -- an uncapped fall arrival flips a handful of equivalence
   decisions. Three in ten million, every one favourable, invisible on
   the fixture; recorded here so the coupling is on the books.
+  **Removed at `70b1227`**: pairwise candidates now carry the capped
+  `end_time` for decisions and a separate `draw_end_time` for the
+  renderer, so a re-run's report should be byte-identical to the
+  `ad2168d` run (giving the wiggle back) while the audit keeps the
+  rushed-terminal win. The residual path needed no split -- the flow
+  solver has decided everything before an assignment is applied.
 
 ## Findings
 
