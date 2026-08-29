@@ -1784,6 +1784,13 @@ function absorb_intermediate_observations(snapshots, end, start) {
 				relative_y * segment_x) / length;
 			if (lateral > ABSORB_LATERAL_TOLERANCE_PIXELS +
 				(shell.position_uncertainty || 0)) continue;
+			/* Being on the segment is not enough: a dense pill stream lays
+			 * trailing shells exactly on a leading shell's path. The same
+			 * shell must also be roughly where uniform time puts it. */
+			let expected_along = (snapshot.time - end.time) *
+				SHELL_SPEED_PIXELS_PER_TICK;
+			if (Math.abs(along - expected_along) >
+				MAX_SMOOTHING_DEVIATION_PIXELS) continue;
 			absorbed.push({ shell, time: snapshot.time });
 		}
 	}
