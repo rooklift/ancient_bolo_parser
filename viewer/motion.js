@@ -1508,16 +1508,23 @@ function match_shell_snapshots(previous, next) {
 				}
 			}
 			if (!match) continue;
-			/* An arrival is normally capped at the event's record time: the
-			 * shell leaves packet state there, and an object impact's flash
-			 * belongs beside its authoritative state change. A splash has no
-			 * coupled state, so a shell fall keeps its physics arrival even
-			 * past the record — the fall segments draw the overhang. */
-			let arrival = previous.time +
-				match.distance / SHELL_SPEED_PIXELS_PER_TICK;
-			match.end_time = !target.terminal ? next.time
-				: target.event_type === "shell_falls" ? arrival
-				: Math.min(next.time, arrival);
+			/* `end_time` is the decision quantity — the arrival capped at
+			 * the event's record time, as matching has always compared it —
+			 * and stays so, keeping the equivalence rule's time gate
+			 * independent of any drawing choice. `draw_end_time` is what the
+			 * viewer renders: for a shell fall, whose splash has no coupled
+			 * state change, the uncapped physics arrival even past the
+			 * record (the fall segments draw the overhang); an object
+			 * impact's flash belongs beside its authoritative state change,
+			 * so everything else draws the capped value too. */
+			match.end_time = target.terminal
+				? Math.min(next.time,
+					previous.time + match.distance / SHELL_SPEED_PIXELS_PER_TICK)
+				: next.time;
+			match.draw_end_time = target.terminal &&
+				target.event_type === "shell_falls"
+				? previous.time + match.distance / SHELL_SPEED_PIXELS_PER_TICK
+				: match.end_time;
 			let candidate = { previous_index, next_index, target, ...match };
 			by_previous[previous_index].push(candidate);
 			by_next[next_index].push(candidate);
@@ -1654,7 +1661,10 @@ function match_shell_snapshots(previous, next) {
 					old_shell.pillbox_source_y,
 					best.pillbox_orbit_states || []) ||
 				tank_states_exact_pixel(best.tank_bradian_states);
-			old_shell.next_time = best.end_time;
+			/* Everything persisted onto the shell, terminal, and effect is
+			 * the drawn timeline; the decision-side end_time was consumed
+			 * above and goes no further. */
+			old_shell.next_time = best.draw_end_time;
 			old_shell.next_pixel_x = exact_endpoint
 				? exact_endpoint[0] : best.pixel_x;
 			old_shell.next_pixel_y = exact_endpoint
@@ -1663,10 +1673,10 @@ function match_shell_snapshots(previous, next) {
 			if (best.target.terminal) {
 				old_shell.next_terminal_type = best.target.type;
 				let terminal = group.terminals[i];
-				terminal.match_time = best.end_time;
+				terminal.match_time = best.draw_end_time;
 				old_shell.next_terminal_event_type = terminal.event_type;
 				if (terminal.effect) {
-					terminal.effect.time = best.end_time;
+					terminal.effect.time = best.draw_end_time;
 					if (best.hitbox_pixel_x !== undefined) {
 						terminal.effect.x = Math.floor(best.hitbox_pixel_x / 16);
 						terminal.effect.y = Math.floor(best.hitbox_pixel_y / 16);
@@ -2292,9 +2302,11 @@ function creation_fate_match(creation, fate) {
 function apply_forced_terminal(end, fate, match) {
 	let terminal = fate.terminals.find(item => item.match_time === undefined);
 	if (!terminal) return;
-	/* Same cap rule as the pairwise matcher: only a shell fall, whose
+	/* Same draw rule as the pairwise matcher: only a shell fall, whose
 	 * splash is purely cosmetic, keeps a physics arrival later than the
-	 * record that reported it. */
+	 * record that reported it. No decision/draw split is needed here —
+	 * the flow solver has already made every decision by the time an
+	 * assignment is applied, so this value only ever reaches drawing. */
 	let arrival = end.time + match.distance / SHELL_SPEED_PIXELS_PER_TICK;
 	let end_time = terminal.event_type === "shell_falls" ? arrival
 		: Math.min(fate.time, arrival);
