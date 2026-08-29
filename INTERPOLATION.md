@@ -206,10 +206,16 @@ trades between shell continuity and terminal matching.
   best with margins. Issue #15 proposes the alternative: a *global maximum
   parsimony* analysis assigning every shot-creation event (5d/F4) to a
   shot-fate event (FB/FC/9n/An/7T) over the whole file, then fitting the
-  observed shell restatements to those constructed paths. Counts nearly
-  balance corpus-wide, so the assignment is plausibly recoverable; open
-  questions are path validity (a straight source-to-death line may pass
-  through blocking objects) and load-time cost.
+  observed shell restatements to those constructed paths. Feasibility has
+  been probed (`tools/probe-shot-fate-parsimony.cjs`): building the
+  constraint-pruned residual candidate graph costs ~0.4s on the fixture
+  against ~3s of parsing and matching already paid, and it decomposes
+  into hundreds of independent components of at most a few dozen nodes,
+  so solver cost is a non-issue. The probe also shows the residue's
+  largest single cause is *same-client chain fragmentation* — the
+  conservative matcher splitting one flight into an origin-less and a
+  fate-less fragment — with genuine cross-client migration contributing
+  almost nothing under the same constraints.
 - Collision inference against terrain/objects currently only enters through
   terminal events; the orbit tables could in principle also *predict* where
   an unterminated pillbox shell must stop, which is only partially
