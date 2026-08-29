@@ -1,6 +1,6 @@
 # Interpolation coverage across versions
 
-How much of a replay the motion code manages to explain, measured at seven
+How much of a replay the motion code manages to explain, measured at eight
 points in the history. Produced with `tools/report-interpolation-rates.cjs`
 (which lives on `main`), run once per checked-out commit:
 
@@ -8,12 +8,12 @@ points in the history. Produced with `tools/report-interpolation-rates.cjs`
 node tools/report-interpolation-rates.cjs -f <absolute path to the fixture>
 ```
 
-All seven runs read the same input, `fixtures/n20021018.2`
+All eight runs read the same input, `fixtures/n20021018.2`
 (sha256 `100d68e2c2679cbac40a09bedc7cddeed9e357eed8de9205cba96bfe5a511ba9`). The
 fixture blob is identical at every commit measured, so nothing here is an
 artefact of the sample changing underneath the engine. The tool writes nothing
 to disk; each historical run was done in a throwaway worktree with `main`'s copy
-of the tool dropped in, so the measuring code is the same in all seven runs and
+of the tool dropped in, so the measuring code is the same in all eight runs and
 only the engine differs. The v1.0.8 run needed no worktree: it was `main`'s own
 HEAD when this file was started, and `tools/report-interpolation-rates.cjs` has
 not changed since `76d8b8a`. `main` has since gained `12bc73d` and the three
@@ -37,7 +37,7 @@ commits before it, but they touch only `viewer/main.js`, `viewer/preload.js`,
   drawn from the moment it was fired rather than from the first snapshot showing
   it. Not the same as `shells_with_birth`; before v1.0.8 only tank shells
   qualified.
-* Tank and LGM track coverage is reported too, but is byte-identical at all seven
+* Tank and LGM track coverage is reported too, but is byte-identical at all eight
   commits, so it is omitted below. For the record: `rate_tank_ticks_interpolated`
   0.687960 and `rate_lgm_ticks_interpolated` 0.435824 throughout. Note that the
   tick-weighted rate is the honest measure of how much of the replay is actually
@@ -141,10 +141,11 @@ A confirmation run rather than a new data point. `c848efd` adds
 touches engine code. Every metric is identical to `5e69318`. Recorded so the
 next section's gain can be pinned to a single commit.
 
-## Branch -- `4f5dbe9` "Possible fix to a bad assumption", branch HEAD
+## Branch -- `4f5dbe9` "Possible fix to a bad assumption", `using_the_pillbox_data` HEAD
 
-The best state measured anywhere, on every headline metric -- ahead of the
-branch point as well as of the rest of the branch.
+The first state to beat the branch point on every headline metric. It still
+holds the best `rate_terminals_matched` of any commit measured; `83cb132` below
+has since taken the two shell-matching rates off it.
 
 * `rate_shells_matched_forward` 0.971011 -- up 5.7 points from `5e69318`, and
   1.0 point above the branch point, the previous best
@@ -172,13 +173,51 @@ The rest of the terminal breakdown moves the same way: `explosion` 1589 -> 1829,
 `4f5dbe9` is the only commit in this span touching `viewer/motion.js`, so the
 whole gain is its own -- no trio to disentangle this time.
 
+## Branch of the branch -- `83cb132` "Try to determine true location from quantized pillbox shots", `using_the_pillbox_data_antifuzz` HEAD
+
+`using_the_pillbox_data_antifuzz` is `using_the_pillbox_data` plus this one
+commit, so again the whole delta is attributable to it. It touches
+`viewer/motion.js` and `viewer/pillbox_shell_orbits.js`. Its message warns
+"possibly interrupted work", but the tree is not in a broken state: `npm test`
+passes at this commit, 181 checks, no failures.
+
+The trade is a real gain in shell matching against a rounding-error loss in
+terminal matching.
+
+* `rate_shells_matched_forward` 0.976801 -- up 0.58 points from `4f5dbe9`, the
+  best measured
+* `rate_shells_unlinked` 0.009342 -- down from 0.012094, the best measured and
+  the first time this metric has gone below 1%
+* `rate_terminals_matched` 0.845607 -- **down** 0.000084 from `4f5dbe9`, i.e.
+  two terminals out of 24075. `4f5dbe9` keeps the record here.
+* `shells_matched_to_snapshot` 51684 -- up 429; every shell gained is matched
+  onward to a later snapshot, not to a terminal
+* `shells_unmatched_forward` 1711 -- down 427
+* `shells_unlinked` 689 -- down 203
+* `terminals_matched:tank_hit` 3086 of 3879 -- down 3
+* `terminals_matched:pillbox_damage` 5933 -- up 2
+* `terminals_matched:shell_falls` 8397 -- down 1
+* `shells_with_pillbox_source` 44239 -- down 6
+* `shells_from_pillbox` 11663, `shells_from_tank` 9021, `shells_with_birth`
+  28006, `shell_births` 9021, `terminals_unseen_pillbox_source` 393,
+  `terminals_matched:base_damage` 1113, `terminals_matched:explosion` 1829 --
+  all unchanged from `4f5dbe9`
+* `max_shell_interpolation_ticks` 50
+
+Reading the shape of it: the commit does not find new shells or new pillbox
+attributions -- every origin and birth count is untouched -- it keeps existing
+shells alive across more snapshot-to-snapshot links. That is what a better
+estimate of a quantised shot's true position would be expected to do, and it is
+consistent with the commit's stated aim. The two lost terminals are the cost of
+those firmer chains occasionally preferring a snapshot successor to an impact.
+
 ## Findings
 
-* **The branch now leads the branch point on every headline metric.** At
-  `4f5dbe9` the forward match rate is 0.971011 against `main`'s 0.961100,
-  unlinked shells 0.012094 against 0.016596, and terminal matching 0.845691
+* **The branch line now leads the branch point on every headline metric.** At
+  `83cb132` the forward match rate is 0.976801 against `main`'s 0.961100,
+  unlinked shells 0.009342 against 0.016596, and terminal matching 0.845607
   against 0.817321. The branch spent `ad6a3b6` through `c848efd` behind the
-  baseline; it is now ahead of it.
+  baseline; it is now clear of it on all three.
 * **The pillbox-attribution regression is repaired.**
   `shells_with_pillbox_source` goes 22516 -> 44245 and `shells_from_pillbox`
   8666 -> 11663 at `4f5dbe9`, restoring what was lost between the branch point
@@ -195,16 +234,28 @@ whole gain is its own -- no trio to disentangle this time.
   (give shells a hitbox) and `5e69318` (the tolerance itself) -- so +201 is the
   trio's combined effect, not the tolerance commit measured alone. `4f5dbe9`
   adds a further +307, to 3089 of 3879, well past the branch point's 2826.
+* **The two branch commits improve different things, and neither undoes the
+  other.** `4f5dbe9` recovered pillbox attribution and won terminals;
+  `83cb132` leaves every attribution and birth count untouched and instead
+  lengthens shell chains, taking `rate_shells_unlinked` below 1% for the first
+  time. The one place they conflict is trivial: `83cb132` gives back two of
+  `4f5dbe9`'s matched terminals, 0.000084 of the rate.
+* **Nothing measured so far trades away a whole metric class.** Across the eight
+  commits the only backwards movements on the branch line are single-terminal:
+  `base_damage` -1 at `4f5dbe9`, and `tank_hit` -3 / `shell_falls` -1 at
+  `83cb132`. There is no sign yet of a change that buys shell matching at the
+  cost of terminal matching in any serious quantity.
 * **The regression's origin is still unpinned, and now only of historical
   interest.** It was bracketed to `9bc584d` or `ad6a3b6`, both named "Stuff";
   measuring `9bc584d` would still say which introduced it, but the symptom is
   gone, so this is archaeology rather than a fix that is owed.
 * **Tank and LGM position tracks are untouched** by anything in this range,
-  across all seven commits measured.
+  across all eight commits measured.
 * **`main` has moved since the branch point, but only in what it can draw.**
   v1.0.8 adds 11661 pillbox shell births and changes nothing else in the report,
-  and the four commits after it touch only the renderer, the Electron shell and
-  packaging. The branch-point numbers are still the right baseline.
+  and the five commits after it touch only the renderer, the Electron shell,
+  packaging and this file. The branch-point numbers are still the right
+  baseline.
 * **`shell_births` is not comparable across the two lines.** The branch reports
   9021 (tank shells only) because it does not carry `main`'s `f4f15d9`; that
   commit's 11661 extra pillbox births are a drawing improvement, not an
