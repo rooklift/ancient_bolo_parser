@@ -481,7 +481,8 @@ if (!fs.existsSync(log1)) {
 
 	/* A tank shell at a chained list position has a one-sided coordinate
 	 * bound just like a pill shell. This is the first failing shot from
-	 * four-nix.dead.v.bers.sev reduced to its player-zero restatements: the
+	 * corpus replay md5 72c58f0271542b3787da70278dfba4b5, reduced to its
+	 * player-zero restatements: the
 	 * reconstructed ray misses the pill by 1.45px, while y + 1 is both inside
 	 * the member's two-pixel bound and a valid impact. */
 	let quantised_tank_impact = BoloGame.build([
