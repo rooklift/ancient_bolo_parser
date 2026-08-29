@@ -643,6 +643,11 @@ Fixture:
   the fixture and large on laggy replays; the corpus number is the one
   to watch. The remainder is object impacts, capped by design.
 * everything else in the audit byte-identical
+* Corpus: `terminal_links_rushed` down 12.8%, landing below the
+  pre-lead-fix baseline, with a three-in-ten-million favourable wiggle
+  in the matching numbers the fixture could not see -- see the
+  `7b9030a` entry in
+  [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md).
 
 ## Findings
 

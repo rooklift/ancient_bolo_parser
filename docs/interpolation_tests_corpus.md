@@ -572,6 +572,31 @@ rushed final links. The rushed-terminal class remains the obvious
 drawing-side follow-up (a per-link speed cap at draw time), but it
 predates this change.
 
+## Uncapped shell falls -- `7b9030a`
+
+The promised drawing-side follow-up, taken for the one terminal type
+whose timing is purely cosmetic. Deltas against `ad2168d`:
+
+* `terminal_links_rushed` 69,351 -- down from 79,521, a 12.8% bite.
+  10,170 falls that used to slam into their splash now draw the whole
+  final leg at 2 px/tick, splash retimed to the true arrival, fall
+  segments carrying the sprite past the record. This lands the class
+  *below* the 76,597 of the pre-lead-fix baseline: the +2,924 that
+  `ad2168d` added are repaid two and a half times over.
+* The falls share of the class turns out to be ~13%. The remaining
+  69,351 are object impacts and blocking terrain, capped by design --
+  their flash belongs beside the authoritative state change.
+* Hover links, rush links, the steady rate, and the seam-jump pair
+  (128 / 3.16) are byte-identical; `pop_outs` down 2.
+* The fixture's "drawing-only, byte-identical" claim is *almost* true
+  at scale, but not exactly: +2 shells matched forward, +3 matched
+  `shell_falls` terminals, -1 unlinked, +1 birth (terminal rate
+  0.829538 -> 0.829539). The coupling is `equivalent_shell_candidates`,
+  which treats a restatement and an impact within one tick as the same
+  endpoint -- an uncapped fall arrival flips a handful of equivalence
+  decisions. Three in ten million, every one favourable, invisible on
+  the fixture; recorded here so the coupling is on the books.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
