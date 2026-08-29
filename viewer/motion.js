@@ -76,6 +76,13 @@ const TANK_BRADIAN_MAX_OFFSET = 11;
  * the fixture: one update vetoed a handful of real, merely-laggy links. */
 const TANK_BRADIAN_UPDATE_JITTER = 2;
 const TICKS_PER_SHELL_UPDATE = 2;
+/* Chain stitching bounds. A fragment gap can exceed the ordinary shell
+ * interpolation window when the sender lagged, but never the shell's own
+ * lifetime: 32 updates on the pill orbits, and the same distance for a
+ * tank shot measured from its birth. Fuzzy joins with no discrete
+ * evidence keep the ordinary window. */
+const MAX_STITCH_GAP_TICKS = 100;
+const TANK_SHELL_FLIGHT_LIMIT_TICKS = 72;
 
 /* Standalone map/node records carry no player state or motion. */
 const MAP_NODE_TYPES = new Set([
@@ -1646,8 +1653,146 @@ function match_shell_snapshots(previous, next) {
 			if (best.tank_bradian_states) {
 				set_tank_bradian_states(new_shell, best.tank_bradian_states);
 			}
+			old_shell.next_shell = new_shell;
 			refine_shell_heading(old_shell, new_shell);
 			apply_tank_bradian_heading(new_shell);
+		}
+	}
+}
+
+/* Carry a stitched-together identity down the continuation's whole chain:
+ * the fragments were one shell, so the head fragment's origin belongs to
+ * every later observation. Links made by ordinary matching and by earlier
+ * stitches both record next_shell, so the walk is direct. */
+function apply_stitch(candidate) {
+	let end_shell = candidate.end.shell;
+	let start_shell = candidate.start.shell;
+	let exact = null;
+	if (candidate.pillbox_orbit_states &&
+		end_shell.pillbox_source_x !== undefined) {
+		exact = common_pillbox_orbit_pixel(end_shell.pillbox_source_x,
+			end_shell.pillbox_source_y, candidate.pillbox_orbit_states);
+	}
+	if (!exact) exact = tank_states_exact_pixel(candidate.tank_bradian_states);
+	end_shell.next_time = candidate.start.time;
+	end_shell.next_pixel_x = exact ? exact[0] : start_shell.pixel_x;
+	end_shell.next_pixel_y = exact ? exact[1] : start_shell.pixel_y;
+	end_shell.next_terminal = false;
+	end_shell.next_shell = start_shell;
+	start_shell.matched_from_previous = true;
+	start_shell.stitched = true;
+
+	for (let walk = start_shell; walk; walk = walk.next_shell) {
+		if (end_shell.pillbox_source_x !== undefined &&
+			walk.pillbox_source_x === undefined) {
+			walk.pillbox_source_x = end_shell.pillbox_source_x;
+			walk.pillbox_source_y = end_shell.pillbox_source_y;
+			walk.pillbox_source_distance = Math.hypot(
+				walk.pixel_x - walk.pillbox_source_x,
+				walk.pixel_y - walk.pillbox_source_y);
+		}
+		if (end_shell.birth_pixel_x !== undefined &&
+			walk.birth_time === undefined) {
+			walk.birth_time = end_shell.birth_time;
+			walk.birth_pixel_x = end_shell.birth_pixel_x;
+			walk.birth_pixel_y = end_shell.birth_pixel_y;
+		}
+	}
+	if (candidate.pillbox_orbit_states) {
+		set_pillbox_orbit_states(start_shell, candidate.pillbox_orbit_states);
+	} else if (candidate.tank_bradian_states) {
+		set_tank_bradian_states(start_shell, candidate.tank_bradian_states);
+	}
+	refine_shell_heading(end_shell, start_shell);
+	apply_tank_bradian_heading(start_shell);
+}
+
+/* Second pass over one client's snapshots: reconnect chain fragments the
+ * pairwise matcher left apart. Fragments arise when a link failed on a
+ * margin ambiguity that later assignments have since resolved, and when
+ * packet lag stretched a restatement gap past the pairwise window, which
+ * splits every in-flight shell of that sender at once. Only chain ends
+ * and origin-less chain starts participate: a start with its own birth is
+ * a new shot, not a continuation. Physics decides compatibility through
+ * the ordinary match cost (orbit states, bradian states, or geometry);
+ * a fragment's true continuation is its next appearance, so each end
+ * considers only its earliest reachable starts, with the usual margin
+ * against same-time contenders and against rival ends. */
+function stitch_shell_chains(snapshots) {
+	let ends = [];
+	let starts = [];
+	for (let index = 0; index < snapshots.length; index++) {
+		let snapshot = snapshots[index];
+		let final = index === snapshots.length - 1;
+		for (let shell of snapshot.shells) {
+			if (shell.next_time === undefined && !final) {
+				ends.push({ shell, time: snapshot.time });
+			}
+			if (index > 0 && !shell.matched_from_previous &&
+				!shell.starts_at_tank && !shell.starts_at_pillbox) {
+				starts.push({ shell, time: snapshot.time });
+			}
+		}
+	}
+	if (!ends.length || !starts.length) return;
+	ends.sort((a, b) => a.time - b.time);
+
+	let by_end = new Map();
+	let by_start = new Map();
+	for (let end of ends) {
+		for (let start of starts) {
+			let duration = start.time - end.time;
+			if (duration <= 0 || duration > MAX_STITCH_GAP_TICKS) continue;
+			if (end.shell.birth_time !== undefined &&
+				start.time - end.shell.birth_time >
+					TANK_SHELL_FLIGHT_LIMIT_TICKS) continue;
+			/* A start already claimed by a different pill stream through
+			 * ambiguity propagation is not this shell's continuation. */
+			if (start.shell.pillbox_source_x !== undefined &&
+				(start.shell.pillbox_source_x !== end.shell.pillbox_source_x ||
+					start.shell.pillbox_source_y !== end.shell.pillbox_source_y)) {
+				continue;
+			}
+			let match = shell_match_cost(end.shell, start.shell, duration);
+			if (!match) continue;
+			if (!match.pillbox_orbit_states && !match.tank_bradian_states &&
+				duration > MAX_SHELL_INTERPOLATION_TICKS) continue;
+			let candidate = { end, start, duration, ...match };
+			if (!by_end.has(end)) by_end.set(end, []);
+			by_end.get(end).push(candidate);
+			if (!by_start.has(start)) by_start.set(start, []);
+			by_start.get(start).push(candidate);
+		}
+	}
+
+	let used_ends = new Set();
+	let used_starts = new Set();
+	let changed = true;
+	while (changed) {
+		changed = false;
+		for (let end of ends) {
+			if (used_ends.has(end)) continue;
+			let open = (by_end.get(end) || []).filter(candidate =>
+				!used_starts.has(candidate.start));
+			if (!open.length) continue;
+			/* The shell's true continuation is its next appearance; later
+			 * valid starts along the same track are the same shell again,
+			 * not competitors. */
+			let earliest = Math.min(...open.map(candidate => candidate.start.time));
+			let contenders = open.filter(candidate =>
+				candidate.start.time === earliest);
+			contenders.sort((a, b) => a.cost - b.cost);
+			let best = contenders[0];
+			if (contenders[1] &&
+				contenders[1].cost - best.cost < SHELL_MATCH_MARGIN) continue;
+			let rivals = by_start.get(best.start).filter(candidate =>
+				candidate.end !== end && !used_ends.has(candidate.end));
+			if (rivals.some(rival =>
+				rival.cost - best.cost < SHELL_MATCH_MARGIN)) continue;
+			apply_stitch(best);
+			used_ends.add(end);
+			used_starts.add(best.start);
+			changed = true;
 		}
 	}
 }
@@ -1706,6 +1851,9 @@ function build_shell_positions(records, terminals, pillbox_sources_by_record,
 		if (previous) match_shell_snapshots(previous, snapshot);
 		mark_new_tank_shells(previous, snapshot);
 		client_snapshots.push(snapshot);
+	}
+	for (let client_snapshots of snapshots) {
+		stitch_shell_chains(client_snapshots);
 	}
 	return snapshots;
 }

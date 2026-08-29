@@ -548,6 +548,30 @@ if (!fs.existsSync(log1)) {
 			bounded_successor_shell.next_pixel_y],
 		[false, 2113, 2023]);
 
+	/* Packet lag can stretch a restatement gap past the pairwise window,
+	 * splitting the shell into two fragments. The stitching pass must
+	 * rejoin them on bradian evidence (the path follows bradian 66 from
+	 * internal 32725,32332) and carry the birth across the join. */
+	let lag_gap_stitch = BoloGame.build([
+		record(90, [{
+			type: "tank_position", x: 126, y: 126,
+			pixelX: 1, pixelY: 2, direction: 4,
+			inBoat: false, hidden: false, dying: false,
+			speed: 0, motion: 0,
+		}]),
+		record(100, [
+			{ type: "shot_fired", direction: 4 },
+			shell_list(4, [[2045, 2020]]),
+		]),
+		record(156, [shell_list(4, [[2157, 2026]])]),
+	]);
+	let stitch_end = lag_gap_stitch.shell_positions[0][1].shells[0];
+	let stitch_start = lag_gap_stitch.shell_positions[0][2].shells[0];
+	check("lag-split shell fragments are stitched on bradian evidence",
+		[stitch_end.next_time, stitch_end.next_pixel_x, stitch_end.next_pixel_y,
+			!!stitch_start.stitched, stitch_start.birth_time !== undefined],
+		[156, 2157, 2026, true, true]);
+
 	let graze_with_successor = BoloGame.build([
 		record(100, [shell_list(12, [[2110, 1812]])]),
 		record(120, [shell_list(12, [[2071, 1814]])]),
