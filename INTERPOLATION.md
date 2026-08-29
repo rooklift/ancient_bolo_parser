@@ -184,10 +184,17 @@ trades between shell continuity and terminal matching.
 
 ## Known limits and open ideas
 
-- **Tank shots are harder.** They fire from a moving, interpolated origin at
-  arbitrary fine headings — there is no finite orbit table to prune against.
-  They get the heading-refinement and uncertainty treatment, but never the
-  impossibility proofs pillbox shells enjoy.
+- **Tank shots are harder, but perhaps not hopeless.** They fire from a
+  moving, interpolated origin at an unknown tick, so there is no finite
+  table of absolute positions to prune against. But the heading is
+  presumably at most one of the 256 integer bradians (pillboxes use only
+  the odd 128), most likely fed through the same sine-table simulation —
+  the half-tile muzzle offset observed for tank shots supports the shared
+  code path. If so, the per-tick velocity is one of 256 known integer
+  vectors, and displacements between restatements could be pruned against
+  that table much as pill shells are pruned against orbits, with only the
+  origin's fine position left free. Today none of this is exploited: tank
+  shells get only the heading-refinement and uncertainty treatment.
 - **Cross-client identity is never inferred.** A simulation migration draws
   as pop-out/pop-in by design.
 - **Matching is greedy and local** — pairs of consecutive snapshots, mutual
