@@ -31,7 +31,7 @@ pre-gate branch, current): the known artifact fixes must show up, or the
 metric is wrong. Then it becomes the second axis every future matching
 change is judged on.
 
-## 2. Cost-ranked assignment over the ambiguous residue (parsimony phase 2)
+## 2. Cost-ranked assignment over the ambiguous residue (parsimony phase 2) -- DONE at margin 3
 
 The forced-only resolver leaves ~180k corpus impacts (9.3%) and a
 similar order of fragment joins unexplained because two or more stories

@@ -514,6 +514,32 @@ whose arrival is capped by an early event record. These are the
 truth-side numbers the cost-ranked assignment work (ROADMAP item 2)
 must improve without the match rates being allowed to lie about it.
 
+## Cost-forced assignment -- `f340943`
+
+Parsimony phase 2: the residual resolver solves each component as
+minimum-cost maximum flow and accepts, beyond the forced edges, any edge
+whose rivals all cost more than `SHELL_MATCH_MARGIN` extra -- the
+pairwise matcher's own three-pixel ambiguity unit, applied with
+component-wide sight of which rivals are themselves needed elsewhere.
+The first change judged by the drawn-motion audit, and it gains on both
+axes:
+
+* `rate_terminals_matched` 0.858193 -- up from 0.856739 (+35), a new best
+* `rate_shells_matched_forward` 0.992122 -- up from 0.991566, a new best
+* `rate_shells_unlinked` 0.003620 -- down from 0.003769, a new best
+* unseen attributions +125 (pill 792 -> 864, tank 880 -> 933)
+* drawn-motion audit: `pop_outs` 622 -> 581, backwards pops 25 -> 22,
+  hovers and seam jumps still zero, steady-link rate flat
+* bradian audit `no_model_s1` 72 -> 73, within noise
+
+The margin dial was measured at 1, 3, 6 and 10: monotone, with margin 1
+best on every visible metric (556 pop-outs, terminals 0.858858). It was
+not taken: one pixel sits inside quantisation noise, where the audit is
+blind to same-ray identity swaps that draw identically, and the
+established ambiguity unit keeps the system explicable. The remaining
+gap between margin 3 and margin 1 (~25 pop-outs) is the measured price
+of that caution.
+
 ## Findings
 
 * **The branch line now leads the branch point on every headline metric.** At
