@@ -914,8 +914,27 @@ redistributing to their true labels (`no_candidate` 224 -> 304,
 The corpus's 22,092 should deflate the same way, which re-points the
 frontier at `end_continued` -- the impacts whose shot became an
 observed chain that was then continued past them: continue-vs-die,
-as the roadmap's standing question anticipated. Corpus verification
-pending.
+as the roadmap's standing question anticipated.
+
+Corpus verification at `71b2c83`, 443 files, reconciling to the digit:
+`terminals_unseen_pillbox_source` 163,396 -> 168,222,
+`terminals_unseen_tank_source` 78,460 -> 78,969 (+5,335 claims -- ten
+times the fixture's ratio; the corpus is richer in multi-shot
+same-source scenes), census 90,570 -> 84,955 (-5,615 = 5,335 claims
+plus exactly the 280 double-stamps the previous entry predicted; the
+both-flags overlap is now zero corpus-wide). Every other report line
+and the entire drawn-motion audit byte-identical yet again.
+`creation_unforced` deflates 22,092 -> 1,715 as the capacity-honest
+reading predicted, redistributing mostly into `no_candidate`
+(9,657 -> 17,914) and `orbit_miss` (7,845 -> 11,682).
+
+Item 6 running total, `20694f2`'s baseline -> here: unexplained
+terminals 148,056 -> 84,955 (-43%), unseen attributions +62,929, with
+zero movement anywhere else on either axis. The remaining frontier:
+`end_continued` 20,321 (23.9%), `no_candidate` 17,914 (21.1%),
+`orbit_miss` 11,682, `edge_unforced` 10,519 -- and the first of those
+is the continue-vs-die decision, which is not additive and gets the
+measure-first treatment.
 
 ## Findings
 
