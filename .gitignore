@@ -5,3 +5,4 @@ viewer/electron_zipped/
 test/expected/n20021018.2-interpolation.tsv
 corpus.json
 audit_to_desktop.bat
+describe_to_desktop.bat
