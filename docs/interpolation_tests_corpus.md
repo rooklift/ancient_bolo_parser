@@ -936,6 +936,40 @@ zero movement anywhere else on either axis. The remaining frontier:
 is the continue-vs-die decision, which is not additive and gets the
 measure-first treatment.
 
+## Continue-vs-die measured, and mostly acquitted -- `54f16d3`
+
+The measure-only cut subclassified the 20,321 `end_continued` corpus
+cases (non-census lines byte-identical, as a diagnostics-only commit
+must be): `.short` 17,855 (87.9%) -- the chain's continuation falls
+SHORT of the impact, still approaching the box -- against `.thru`
+2,466 (12.1%), the drawn fly-past. `+clps` 4,712 chains later claim an
+identical same-box terminal; pill chains 6,249 of which 6,245 have
+orbit-member continuations; tank chains 13,934.
+
+Then the raw-record arithmetic on collapse scenes acquitted the
+matcher: in the first scene, 13 fire events produced only 6 observed
+heads and 8 impacts on the box -- the sender fires faster than it
+restates, so nearly half the volley's shells were REAL BUT NEVER
+OBSERVED, and the unexplained impacts are theirs. The drawn chains are
+mostly correct single shells riding volleys with invisible siblings;
+"splitting" chains at the extra impacts would invent deaths that never
+happened, and even the `.thru` fly-past can be a correct rendering (the
+box was broken by an unseen sibling while the observed shell legally
+passed). The dense scenes are also multi-source (tank plus pills on
+one box), which is why the equivalence phase's single-identity test
+rightly refuses them: WHICH source caused impact #7 is genuinely
+ambiguous, and per the owner's adjacency call, attributing it buys
+nothing visible.
+
+Consequence: the census residue is largely an accounting residue in
+scenes whose drawing is already right. The watcher-visible remainder
+lives on the AUDIT side -- 3,253 backwards pops (~2,270 of them stream
+leaders vanishing mid-air with their fates unexplained), 61,421
+pop-outs -- and the dial worth designing is die-at-impact for CHAIN
+ENDS: give a popping-out leader its death at a fitting unexplained
+impact. That is not a split of any healthy link, and it is where the
+eye actually catches the error.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
