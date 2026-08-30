@@ -46,7 +46,7 @@ const EXPORT_SPEEDS = [0.5, 1, 1.5, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64];
 
 const EXPORT_OPTIONS_KEY = "bolo_export_options";
 const EXPORT_DEFAULTS = {
-	res: "1920x1080", speed: 1, fps: 60, mode: "quality", quality: "high",
+	res: "1920x1080", speed: 1, fps: 30, mode: "quality", quality: "standard",
 	mb_per_min: 60, sidebar: true,
 };
 
