@@ -91,6 +91,13 @@ body {
 	border-radius: 4px;
 	height: 26px;
 }
+/* Player lock active: the player selector takes the viewer's friendly
+ * green, in shades matched to the dark controls. */
+#viewpoint.locked {
+	background: #1e3d27;
+	border-color: #418a54;
+	color: #b5efc2;
+}
 #seek { flex: 1; accent-color: #5b8def; }
 
 /* Transport controls are mouse-driven (all keys are global), so never show
