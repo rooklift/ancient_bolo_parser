@@ -814,6 +814,86 @@ if (!fs.existsSync(log1)) {
 				.matched_from_previous],
 		[140, false]);
 
+	/* Unseen-shot births: a shell whose F4 was lost to packet loss used
+	 * to stay origin-less forever -- the corpus's backwards-pop anatomy
+	 * found these popping in one fire interval behind their dead stream
+	 * leaders. The orbit table is a complete list of every pixel a
+	 * pill's shells can occupy, so origin needs no F4 when geometry is
+	 * decisive: this chain (no pillbox_fires anywhere) lies on pill
+	 * (140,133)'s bradian-145 orbit at steps 5, 10, 15, and is claimed
+	 * as its shot -- source named, exact pixel recovered, and the birth
+	 * segment drawn from the muzzle. */
+	let no_f4_pill = (armour) => ({ type: "pillbox_list", items: [{
+		x: 140, y: 133, owner: 1, armour, speed: 100,
+	}] });
+	let unseen_birth = BoloGame.build([
+		record(60, [no_f4_pill(15)]),
+		record(80, [idle_tank]),
+		record(100, [shell_list(9, [[2229, 2153]])]),
+		record(110, [shell_list(9, [[2221, 2172]])]),
+		record(120, [shell_list(9, [[2213, 2190]])]),
+	]);
+	let unseen_head = unseen_birth.shell_positions[0][1].shells[0];
+	check("an origin-less chain on one live pill's orbit is claimed as " +
+		"its unseen shot",
+		[!!unseen_head.starts_at_pillbox, !!unseen_head.unseen_pillbox_shot,
+			[unseen_head.pillbox_source_x, unseen_head.pillbox_source_y],
+			unseen_head.pillbox_orbit_states,
+			unseen_birth.shell_positions[0][3].shells[0].pillbox_source_x],
+		[true, true, [2240, 2128], [{ bradian: 145, step: 5 }], 2240]);
+	check("the unseen shot draws its birth segment from the muzzle",
+		[unseen_birth.shell_births[0].length,
+			unseen_birth.shell_births[0][0].pixel_x,
+			unseen_birth.shell_births[0][0].pixel_y],
+		[1, 2240, 2128]);
+
+	/* A dead pill cannot fire: the same chain past an armour-0 pill
+	 * stays origin-less. */
+	let dead_pill_birth = BoloGame.build([
+		record(60, [no_f4_pill(0)]),
+		record(80, [idle_tank]),
+		record(100, [shell_list(9, [[2229, 2153]])]),
+		record(110, [shell_list(9, [[2221, 2172]])]),
+		record(120, [shell_list(9, [[2213, 2190]])]),
+	]);
+	check("a dead pill claims no unseen shots",
+		!!dead_pill_birth.shell_positions[0][1].shells[0].starts_at_pillbox,
+		false);
+
+	/* Off the orbit by a few pixels -- a plausible-looking chain that is
+	 * provably not this pill's -- stays origin-less too. */
+	let off_orbit_birth = BoloGame.build([
+		record(60, [no_f4_pill(15)]),
+		record(80, [idle_tank]),
+		record(100, [shell_list(9, [[2226, 2150]])]),
+		record(110, [shell_list(9, [[2225, 2169]])]),
+		record(120, [shell_list(9, [[2217, 2188]])]),
+	]);
+	check("a chain off every orbit point is not claimed",
+		!!off_orbit_birth.shell_positions[0][1].shells[0].starts_at_pillbox,
+		false);
+
+	/* A single sighting is claimable only exact and fresh from the
+	 * muzzle (step 2 here); one seen once in mid-flight (step 10) could
+	 * be anything and stays a pop. */
+	let single_muzzle = BoloGame.build([
+		record(60, [no_f4_pill(15)]),
+		record(80, [idle_tank]),
+		record(100, [shell_list(9, [[2233, 2142]])]),
+		record(110, [idle_tank]),
+	]);
+	let single_far = BoloGame.build([
+		record(60, [no_f4_pill(15)]),
+		record(80, [idle_tank]),
+		record(100, [shell_list(9, [[2221, 2172]])]),
+		record(110, [idle_tank]),
+	]);
+	check("a single sighting is claimed at the muzzle and refused mid-flight",
+		[!!single_muzzle.shell_positions[0][1].shells[0].unseen_pillbox_shot,
+			single_muzzle.shell_positions[0][1].shells[0].pillbox_orbit_states,
+			!!single_far.shell_positions[0][1].shells[0].starts_at_pillbox],
+		[true, [{ bradian: 145, step: 2 }], false]);
+
 	let graze_with_successor = BoloGame.build([
 		record(100, [shell_list(12, [[2110, 1812]])]),
 		record(120, [shell_list(12, [[2071, 1814]])]),

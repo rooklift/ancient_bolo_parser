@@ -96,6 +96,16 @@ A shell with a known birth gets drawn from the muzzle onward
 (`build_shell_births`), not just from its first restatement. Pill shots that
 died entirely between restatements (an F4 with no shell ever seen) can still
 claim strictly count-forced terrain explosions (`mark_unseen_pillbox_terminals`).
+The mirror case — a shell seen but its F4 lost to packet loss — is claimed
+from orbit membership alone (`claim_unseen_pillbox_births`, after all
+F4-backed and forced explanations have had first refusal): an origin-less
+chain whose every observation lies on ONE live pill's orbit at strictly
+increasing steps is that pill's shot. Two corroborated observations on an
+anchored discrete track don't happen by accident; a single sighting is
+claimed only exact and fresh from the muzzle, and if more than one pill's
+story survives, none is claimed. The corpus's backwards-pop anatomy
+motivated this: these were the shells popping in one fire interval behind
+their dead stream leaders.
 
 ### Quantisation: why nothing is quite where it says it is
 

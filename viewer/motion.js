@@ -2090,6 +2090,127 @@ function absorb_intermediate_observations(snapshots, end, start) {
 	previous.next_shell = final_next_shell;
 }
 
+/* Births claimed from orbit membership alone, for shells whose firing
+ * record never arrived. The corpus's backwards-pop anatomy showed the
+ * cost of a lost F4: the shell's first restatement pops in one fire
+ * interval behind its dead stream leader, never claimed by anything.
+ * But a pill's orbit table is a complete list of every pixel its shells
+ * can ever occupy, so origin needs no F4 when geometry is decisive: an
+ * origin-less chain whose every observation lies on ONE live pill's
+ * orbit, at strictly increasing steps within each observation's
+ * one-sided quantisation bound, is that pill's shot. Mirrors
+ * mark_unseen_pillbox_terminals, which claims impacts the same way.
+ *
+ * Confidence rules, against coincidental alignment (a passing shell can
+ * sit on an orbit point by chance): a chain of two or more corroborated
+ * observations is decisive -- consecutive exact hits on one anchored
+ * discrete track do not happen by accident -- while a single sighting
+ * is claimed only exact (list head) and fresh from the muzzle. If more
+ * than one pill's story survives, none is claimed. Liveness is read at
+ * the sighting, not the (unknown) firing tick: a pill destroyed with
+ * shells still in flight loses those claims, a conservative miss.
+ *
+ * Runs after matching, stitching and residual resolution, so every
+ * F4-backed and forced explanation has had first refusal. Claims add no
+ * links: they name a source, which draws the birth segment from the
+ * muzzle and carries attribution down the chain. */
+const UNSEEN_BIRTH_MUZZLE_STEP = 4;
+
+function pill_roster_at(pill_states, tick) {
+	let lo = 0, hi = pill_states.length;
+	while (lo < hi) {
+		let mid = (lo + hi) >> 1;
+		if (pill_states[mid].time <= tick) lo = mid + 1;
+		else hi = mid;
+	}
+	return lo > 0 ? pill_states[lo - 1].roster : [];
+}
+
+/* The head states (bradian and first-sighting step) of every story in
+ * which the chain is a shot from the given source; empty when there is
+ * none. */
+function unseen_birth_head_states(source_x, source_y, chain) {
+	let head = chain[0];
+	let head_x = head.pixel_x - source_x;
+	let head_y = head.pixel_y - source_y;
+	if (Math.abs(head_x) > SHELL_RANGE_PIXELS + 4 ||
+		Math.abs(head_y) > SHELL_RANGE_PIXELS + 4) return [];
+	let states = pillbox_orbit_states_at(head.direction, head_x, head_y,
+		head.position_uncertainty).map(state => ({ head: state, step: state.step }));
+	for (let i = 1; i < chain.length && states.length; i++) {
+		let relative_x = chain[i].pixel_x - source_x;
+		let relative_y = chain[i].pixel_y - source_y;
+		let advanced = [];
+		let seen = new Set();
+		for (let state of states) {
+			let orbit = PILLBOX_ORBITS_BY_BRADIAN.get(state.head.bradian);
+			for (let step = state.step + 1; step < orbit.positions.length; step++) {
+				if (!pillbox_orbit_position_matches(orbit.positions[step],
+					relative_x, relative_y,
+					chain[i].position_uncertainty)) continue;
+				let key = `${state.head.bradian}:${state.head.step}:${step}`;
+				if (seen.has(key)) continue;
+				seen.add(key);
+				advanced.push({ head: state.head, step });
+			}
+		}
+		states = advanced;
+	}
+	let unique = new Map();
+	for (let state of states) {
+		unique.set(`${state.head.bradian}:${state.head.step}`, state.head);
+	}
+	return [...unique.values()];
+}
+
+function claim_unseen_pillbox_births(snapshots, pill_states) {
+	if (!pill_states.length) return;
+	for (let snapshot of snapshots) {
+		for (let shell of snapshot.shells) {
+			if (shell.matched_from_previous || shell.starts_at_tank ||
+				shell.starts_at_pillbox ||
+				shell.pillbox_source_x !== undefined) continue;
+			let chain = [shell];
+			for (let walk = shell; walk.next_shell && !walk.next_terminal;
+				walk = walk.next_shell) {
+				chain.push(walk.next_shell);
+			}
+			let claims = [];
+			for (let pill of pill_roster_at(pill_states, snapshot.time)) {
+				if (!pill) continue;
+				let states = unseen_birth_head_states(pill.pixel_x,
+					pill.pixel_y, chain);
+				if (!states.length) continue;
+				if (chain.length < 2 &&
+					!(shell.position_uncertainty === 0 &&
+						states.every(state =>
+							state.step <= UNSEEN_BIRTH_MUZZLE_STEP))) continue;
+				claims.push({ pill, states });
+			}
+			if (claims.length !== 1) continue;
+			let claim = claims[0];
+			shell.starts_at_pillbox = true;
+			shell.unseen_pillbox_shot = true;
+			shell.pillbox_source_x = claim.pill.pixel_x;
+			shell.pillbox_source_y = claim.pill.pixel_y;
+			shell.heading_origin_x = claim.pill.pixel_x;
+			shell.heading_origin_y = claim.pill.pixel_y;
+			set_pillbox_orbit_states(shell, claim.states);
+			let target_x = shell.pillbox_orbit_pixel_x ?? shell.pixel_x;
+			let target_y = shell.pillbox_orbit_pixel_y ?? shell.pixel_y;
+			let delta_x = target_x - claim.pill.pixel_x;
+			let delta_y = target_y - claim.pill.pixel_y;
+			let distance = Math.hypot(delta_x, delta_y);
+			shell.pillbox_source_distance = distance;
+			if (distance > 0) {
+				shell.heading_x = delta_x / distance;
+				shell.heading_y = delta_y / distance;
+			}
+			propagate_identity_down_chain(shell, shell.next_shell);
+		}
+	}
+}
+
 /* Second pass over one client's snapshots: reconnect chain fragments the
  * pairwise matcher left apart. Fragments arise when a link failed on a
  * margin ambiguity that later assignments have since resolved, and when
@@ -2777,7 +2898,7 @@ function smooth_shell_chains(snapshots) {
  * especially convincing false identities. A possible migration therefore
  * renders conservatively as one shell disappearing and another appearing. */
 function build_shell_positions(records, terminals, pillbox_sources_by_record,
-	tank_sources_by_record, tank_positions = null) {
+	tank_sources_by_record, tank_positions = null, pill_states = []) {
 	if (tank_positions) {
 		for (let terminal of terminals) {
 			if (terminal.event_type === "tank_hit" &&
@@ -2829,6 +2950,7 @@ function build_shell_positions(records, terminals, pillbox_sources_by_record,
 	for (let client_snapshots of snapshots) {
 		stitch_shell_chains(client_snapshots);
 		resolve_residual_shell_fates(client_snapshots);
+		claim_unseen_pillbox_births(client_snapshots, pill_states);
 		smooth_shell_chains(client_snapshots);
 	}
 	return snapshots;
