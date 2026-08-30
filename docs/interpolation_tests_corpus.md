@@ -886,6 +886,37 @@ those wasted stamps to open siblings (fixture: no change; corpus:
 expected to convert up to ~280 double-stamps into explanations at the
 next measured commit).
 
+## Equivalence-forced attributions, and what `creation_unforced` really was
+
+The census's 22,092 `creation_unforced` suggested a third phase:
+per-edge forcing is defeated by interchangeable parallel stories (two
+identical shots explaining two identical impacts leave no single edge
+forced though the SOURCE is certain in every story -- the
+stream-provenance argument again), so attribute a fate when every
+creation story within the forcing margin names one source identity, no
+live shell story competes inside that margin, and the identity has
+unspent capacity. A shells-hidden fixture probe predicted ~213 claims;
+the implemented phase, which honours real capacity, found 16. The gap
+was the finding: 1,749 of the fixture's 2,357 creation groups are FULLY
+SPENT by phases one and two -- the diagnostics were reading the
+pre-residual unclaimed lists and dressing exhausted sources up as open
+stories. A shot that already explains a birth or an impact is not
+available to explain another.
+
+Two changes: the equivalence phase (small, capacity-safe, kept), and
+the residual pass now writes its spending back to the snapshots'
+unclaimed-source lists, so the census is capacity-honest. Fixture:
+unseen +16 (pill 1,209 -> 1,223, tank 1,125 -> 1,127), audit and all
+match counts byte-identical; census 1,103 -> 1,087, with
+`creation_unforced` collapsing 224 -> 4 and the spent stories
+redistributing to their true labels (`no_candidate` 224 -> 304,
+`direction` 18 -> 73, `ray_miss` 81 -> 112, `orbit_miss` 123 -> 149).
+The corpus's 22,092 should deflate the same way, which re-points the
+frontier at `end_continued` -- the impacts whose shot became an
+observed chain that was then continued past them: continue-vs-die,
+as the roadmap's standing question anticipated. Corpus verification
+pending.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch

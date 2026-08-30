@@ -2882,36 +2882,150 @@ function resolve_residual_shell_fates(snapshots) {
 	 * applied, so nothing it explained can degrade, and capacity it spent
 	 * is honoured. Forced winners get the same unseen-source marking as
 	 * phase-one leftovers. */
-	let leftover_fates = [];
-	for (let fate of fate_groups) {
-		let open = fate.terminals.filter(terminal =>
-			terminal.match_time === undefined &&
-			!terminal.unseen_pillbox_source &&
-			!terminal.unseen_tank_source).length;
-		if (open) leftover_fates.push({ fate, count: open });
-	}
+	let open_fates = () => {
+		let leftover = [];
+		for (let fate of fate_groups) {
+			let open = fate.terminals.filter(terminal =>
+				terminal.match_time === undefined &&
+				!terminal.unseen_pillbox_source &&
+				!terminal.unseen_tank_source).length;
+			if (open) leftover.push({ fate, count: open });
+		}
+		return leftover;
+	};
+	let leftover_fates = open_fates();
 	let leftover_creations = creation_groups
 		.map(creation => ({ creation, count:
 			creation.count - (creation_spent.get(creation) || 0) }))
 		.filter(item => item.count > 0 && item.creation.gap > 0);
-	if (!leftover_fates.length || !leftover_creations.length) return;
-	let second_edges = [];
-	for (let li = 0; li < leftover_creations.length; li++) {
-		let creation = leftover_creations[li].creation;
-		for (let ri = 0; ri < leftover_fates.length; ri++) {
-			let fate = leftover_fates[ri].fate;
-			if (fate.time !== creation.time) continue;
-			let match = creation_fate_match(creation, fate, creation.gap);
-			if (match) {
-				second_edges.push({ left: li, right: ri, match,
-					cost: match.cost });
+	if (leftover_fates.length && leftover_creations.length) {
+		let second_edges = [];
+		for (let li = 0; li < leftover_creations.length; li++) {
+			let creation = leftover_creations[li].creation;
+			for (let ri = 0; ri < leftover_fates.length; ri++) {
+				let fate = leftover_fates[ri].fate;
+				if (fate.time !== creation.time) continue;
+				let match = creation_fate_match(creation, fate, creation.gap);
+				if (match) {
+					second_edges.push({ left: li, right: ri, match,
+						cost: match.cost });
+				}
 			}
 		}
+		for (let { edge, units } of forced_bipartite_assignments(
+			leftover_creations, leftover_fates, second_edges)) {
+			let creation = leftover_creations[edge.left].creation;
+			apply_forced_unseen(creation,
+				leftover_fates[edge.right].fate, units);
+			creation_spent.set(creation,
+				(creation_spent.get(creation) || 0) + units);
+		}
 	}
-	for (let { edge, units } of forced_bipartite_assignments(
-		leftover_creations, leftover_fates, second_edges)) {
-		apply_forced_unseen(leftover_creations[edge.left].creation,
-			leftover_fates[edge.right].fate, units);
+
+	/* Phase three: equivalence-forced attributions. Interchangeable
+	 * parallel stories defeat per-edge forcing -- two identical shots
+	 * from one muzzle explaining two identical impacts leave no single
+	 * edge forced even though the SOURCE is certain in every story, the
+	 * same argument stream-provenance births rest on. For each fate
+	 * still open, gather every creation story left (same-record ones
+	 * with their gap widening), keep those within the forcing margin of
+	 * the cheapest, and attribute only when they all name one source
+	 * identity AND no live shell story competes inside that margin (a
+	 * costlier shell story was already beaten by phase-one cost-forcing
+	 * standards; a competing one keeps the fate open). Claims draw down
+	 * a shared per-identity capacity pool, cheapest fate first, so a
+	 * muzzle never explains more impacts than it has unspent shots. */
+	let identity_of = creation => `${creation.kind}:${creation.pixel_x},` +
+		`${creation.pixel_y},${creation.direction}`;
+	let live_end_cost = new Map();
+	for (let edge of edges) {
+		let left = lefts[edge.left];
+		let right = rights[edge.right];
+		if (left.kind !== "end" || right.kind !== "fate") continue;
+		if (left.end.shell.next_time !== undefined) continue;
+		let best = live_end_cost.get(right.fate);
+		if (best === undefined || edge.cost < best) {
+			live_end_cost.set(right.fate, edge.cost);
+		}
+	}
+	let pool = new Map();
+	for (let creation of creation_groups) {
+		let unspent = creation.count - (creation_spent.get(creation) || 0);
+		if (unspent <= 0) continue;
+		let identity = identity_of(creation);
+		pool.set(identity, (pool.get(identity) || 0) + unspent);
+	}
+	let eligible = [];
+	for (let { fate, count } of open_fates()) {
+		let candidates = [];
+		for (let creation of creation_groups) {
+			if (creation.count <= (creation_spent.get(creation) || 0)) continue;
+			let extra = fate.time === creation.time ? creation.gap : 0;
+			let match = creation_fate_match(creation, fate, extra);
+			if (match) candidates.push({ creation, cost: match.cost });
+		}
+		if (!candidates.length) continue;
+		let best = Math.min(...candidates.map(candidate => candidate.cost));
+		let end_cost = live_end_cost.get(fate);
+		if (end_cost !== undefined &&
+			end_cost < best + RESIDUAL_COST_MARGIN) continue;
+		let within = candidates.filter(candidate =>
+			candidate.cost < best + RESIDUAL_COST_MARGIN);
+		let identities = new Set(within.map(candidate =>
+			identity_of(candidate.creation)));
+		if (identities.size !== 1) continue;
+		eligible.push({ fate, count, best,
+			identity: [...identities][0],
+			creation: within[0].creation });
+	}
+	eligible.sort((a, b) => a.best - b.best);
+	let members_by_identity = new Map();
+	for (let creation of creation_groups) {
+		let identity = identity_of(creation);
+		if (!members_by_identity.has(identity)) {
+			members_by_identity.set(identity, []);
+		}
+		members_by_identity.get(identity).push(creation);
+	}
+	for (let { fate, count, identity, creation } of eligible) {
+		let capacity = pool.get(identity) || 0;
+		if (capacity <= 0) continue;
+		let units = Math.min(count, capacity);
+		apply_forced_unseen(creation, fate, units);
+		pool.set(identity, capacity - units);
+		/* Charge the spend across the identity's members greedily; the
+		 * pool never exceeds their remaining counts, so it always fits. */
+		let owed = units;
+		for (let member of members_by_identity.get(identity)) {
+			if (owed <= 0) break;
+			let unspent = member.count - (creation_spent.get(member) || 0);
+			if (unspent <= 0) continue;
+			let charge = Math.min(unspent, owed);
+			creation_spent.set(member,
+				(creation_spent.get(member) || 0) + charge);
+			owed -= charge;
+		}
+	}
+
+	/* Write the pass's own spending back to the snapshots, so downstream
+	 * readers (today the terminal-failure diagnostics; any later pass
+	 * tomorrow) see the capacity that actually remains. A shot the
+	 * resolver claimed for an origin or an impact is not available to
+	 * explain anything else, and counting it again would dress exhausted
+	 * sources up as open stories. */
+	for (let snapshot of snapshots) {
+		for (let [key, kind] of [
+			["unclaimed_pillbox_sources", "pill"],
+			["unclaimed_tank_sources", "tank"],
+		]) {
+			if (!snapshot[key]) continue;
+			snapshot[key] = creation_groups
+				.filter(creation => creation.kind === kind &&
+					creation.time === snapshot.time)
+				.map(creation => ({ ...creation, count: creation.count -
+					(creation_spent.get(creation) || 0) }))
+				.filter(creation => creation.count > 0);
+		}
 	}
 }
 
