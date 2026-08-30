@@ -1156,6 +1156,10 @@ function save_initial_map() {
 	}
 }
 
+/* F1-F8 speeds: fixed values, not menu positions, so they stay the same
+ * doubling ladder however many intermediate steps the speed menu offers. */
+const FKEY_SPEEDS = [0.5, 1, 2, 4, 8, 16, 32, 64];
+
 window.addEventListener("keydown", e => {
 	if (exporting) {
 		/* the overlay blocks the pointer; keys are blocked here, with Escape
@@ -1199,8 +1203,9 @@ window.addEventListener("keydown", e => {
 	}
 	if (/^F[1-8]$/.test(e.code)) {
 		e.preventDefault();
-		speed_el.selectedIndex = parseInt(e.code.slice(1), 10) - 1;
-		speed = parseFloat(speed_el.value);
+		/* the classic doubling ladder, whatever finer steps the menu grows */
+		speed = FKEY_SPEEDS[parseInt(e.code.slice(1), 10) - 1];
+		speed_el.value = String(speed);
 		speed_el.blur();
 	} else if (e.code === "Space") {
 		e.preventDefault();
