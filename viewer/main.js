@@ -1,7 +1,7 @@
 "use strict";
 /* Electron main process for the Ancient Bolo Log Viewer. Window/menu/dialog plumbing
  * duplicated from the lgm map editor and trimmed to viewer needs. */
-const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, Menu, dialog, ipcMain, shell, powerSaveBlocker } = require("electron");
 const fs = require("fs");
 const path = require("path");
 
@@ -180,7 +180,14 @@ function create_window() {
 			}
 		});
 	}
-	win.on("closed", () => { win = null; });
+	win.on("closed", () => {
+		win = null;
+		/* an export can't outlive its renderer: drop the partial file */
+		let p = close_export_file();
+		if (p) {
+			try { fs.unlinkSync(p); } catch { /* best effort */ }
+		}
+	});
 }
 
 ipcMain.handle("open-log", async () => {
@@ -225,12 +232,32 @@ ipcMain.handle("save-map", async (e, defaultName, data) => {
 /* Video export: the renderer streams the file as it encodes, then patches
  * the two header fields only known at the end. One export at a time. */
 let export_file = null; /* { fd, path } */
+let export_power_blocker = null;
+
+/* Backgrounding the app must not stall the export: hidden windows get
+ * their timers throttled (the renderer's export loop avoids timers, but
+ * this removes the class of problem outright), and an untouched machine
+ * would otherwise sleep mid-export. Both holds last exactly as long as
+ * the export's file is open. */
+function begin_export_holds() {
+	if (win) win.webContents.setBackgroundThrottling(false);
+	export_power_blocker = powerSaveBlocker.start("prevent-app-suspension");
+}
+
+function end_export_holds() {
+	if (win) win.webContents.setBackgroundThrottling(true);
+	if (export_power_blocker !== null) {
+		powerSaveBlocker.stop(export_power_blocker);
+		export_power_blocker = null;
+	}
+}
 
 function close_export_file() {
 	if (!export_file) return null;
 	let p = export_file.path;
 	try { fs.closeSync(export_file.fd); } catch { /* already gone */ }
 	export_file = null;
+	end_export_holds();
 	return p;
 }
 
@@ -245,6 +272,7 @@ ipcMain.handle("video-begin", async (e, default_name) => {
 	try {
 		export_file = { fd: fs.openSync(res.filePath, "w"), path: res.filePath };
 		remember_save_directory(res.filePath);
+		begin_export_holds();
 		return { canceled: false, path: res.filePath };
 	} catch (err) {
 		return { canceled: true, error: String(err) };
