@@ -75,6 +75,18 @@ const CONE_HALF_ANGLE = options.cone * Math.PI / 180;
 const { records } = await import(url.pathToFileURL(
 	path.join(ROOT, "src", "parse.js")));
 
+/* Pillbox shells are fully discrete: 8 fine bradians per coarse sector,
+ * each with a known orbit and terminal (expiry) point, and a constant
+ * 32-update (64-tick) lifetime. A pill shot that hits nothing can only
+ * fall on one of its sector's 8 terminal pixels, exactly. */
+const PILLBOX_ORBITS = createRequire(import.meta.url)(
+	path.join(ROOT, "viewer", "pillbox_shell_orbits.js")).orbits;
+const PILL_ORBITS_BY_DIRECTION = Array.from({ length: 16 }, () => []);
+for (const orbit of PILLBOX_ORBITS) {
+	PILL_ORBITS_BY_DIRECTION[orbit.coarse_direction].push(orbit);
+}
+const PILL_LIFETIME_TICKS = 64;
+
 /* ---- event collection ------------------------------------------------- */
 
 /* Everything below works in object-centre pixel coordinates. */
@@ -212,6 +224,7 @@ function collect_events(recs) {
 				}
 				creations.push({
 					kind: "tank", time: rec.time, player: rec.player,
+					ordinal: creations.length,
 					direction: sub.direction,
 					origins: [{ x: position.x, y: position.y,
 						slack: position.slack }],
@@ -241,6 +254,7 @@ function collect_events(recs) {
 				}
 				creations.push({
 					kind: "pill", time: rec.time, player: rec.player,
+					ordinal: creations.length,
 					direction: sub.direction,
 					origins,
 					class_key: `pill:${origins[0].x},${origins[0].y}` +
@@ -251,6 +265,7 @@ function collect_events(recs) {
 			case "shell_falls":
 				terminals.push({
 					event_type: "shell_falls", time: rec.time,
+					player: rec.player, ordinal: terminals.length,
 					cx: sub.x * 16 + (sub.pixel & 0x0f) + 8,
 					cy: sub.y * 16 + (sub.pixel >> 4) + 8,
 					halfw: 2, direction: null,
@@ -321,6 +336,70 @@ function collect_events(recs) {
 
 /* ---- feasibility edges ------------------------------------------------ */
 
+function cone_cost(origin, terminal, direction, dt) {
+	const dx = terminal.cx - origin.x;
+	const dy = terminal.cy - origin.y;
+	const dist = Math.hypot(dx, dy);
+	const slack = terminal.halfw + origin.slack;
+	if (dist > RANGE_PIXELS + DISTANCE_TOLERANCE + slack) return null;
+	const flight = dist / SPEED_PIXELS_PER_TICK;
+	if (dt < flight - options.early - slack / SPEED_PIXELS_PER_TICK) return null;
+	if (dt > flight + options.late) return null;
+	/* Direction sector: nibble 0 = north, clockwise 22.5deg steps. */
+	if (dist > slack) {
+		const angle = direction * Math.PI / 8;
+		const forward = dx * Math.sin(angle) - dy * Math.cos(angle);
+		if (forward <= 0) return null;
+		const lateral = Math.abs(dx * Math.cos(angle) + dy * Math.sin(angle));
+		if (Math.atan2(lateral, forward) >
+			CONE_HALF_ANGLE + Math.atan2(slack + 8, dist)) return null;
+		return Math.abs(dt - flight) + lateral / 4;
+	}
+	return Math.abs(dt - flight);
+}
+
+/* Discrete tests for exactly-placed pill origins, mirroring the engine's
+ * pillbox_source_terminal_entry: coordinates are compared raw (pill tile
+ * top-left base + centre-relative orbit offset = logged sprite pixel), so
+ * the half-tile centring convention cancels. A fall must land exactly on
+ * one of the sector's 8 orbit terminals, after exactly 64 ticks of
+ * flight; a box hit must have some sector orbit whose shell centre
+ * enters the box, at the step's own flight time. */
+function pill_orbit_cost(origin, terminal, direction, dt) {
+	const base_x = origin.x - 8;
+	const base_y = origin.y - 8;
+	if (terminal.event_type === "shell_falls") {
+		const target_x = terminal.cx - 8;
+		const target_y = terminal.cy - 8;
+		for (const orbit of PILL_ORBITS_BY_DIRECTION[direction]) {
+			if (base_x + orbit.terminal[0] !== target_x ||
+				base_y + orbit.terminal[1] !== target_y) continue;
+			if (dt < PILL_LIFETIME_TICKS - options.early ||
+				dt > PILL_LIFETIME_TICKS + options.late) return null;
+			return Math.abs(dt - PILL_LIFETIME_TICKS);
+		}
+		return null;
+	}
+	let best = null;
+	for (const orbit of PILL_ORBITS_BY_DIRECTION[direction]) {
+		for (let step = 0; step <= orbit.positions.length; step++) {
+			const position = step < orbit.positions.length
+				? orbit.positions[step] : orbit.terminal;
+			const centre_x = base_x + position[0] + 8;
+			const centre_y = base_y + position[1] + 8;
+			if (Math.abs(centre_x - terminal.cx) > terminal.halfw ||
+				Math.abs(centre_y - terminal.cy) > terminal.halfw) continue;
+			const flight = step * 2;
+			if (dt >= flight - options.early && dt <= flight + options.late) {
+				const cost = Math.abs(dt - flight);
+				if (best === null || cost < best) best = cost;
+			}
+			break;   /* first entry into the box on this orbit */
+		}
+	}
+	return best;
+}
+
 function edge_cost(creation, terminal) {
 	const dt = terminal.time - creation.time;
 	if (dt < -options.early || dt > 100) return null;
@@ -328,29 +407,10 @@ function edge_cost(creation, terminal) {
 		terminal.direction !== creation.direction) return null;
 	let best = null;
 	for (const origin of creation.origins) {
-		const dx = terminal.cx - origin.x;
-		const dy = terminal.cy - origin.y;
-		const dist = Math.hypot(dx, dy);
-		const slack = terminal.halfw + origin.slack;
-		if (dist > RANGE_PIXELS + DISTANCE_TOLERANCE + slack) continue;
-		const flight = dist / SPEED_PIXELS_PER_TICK;
-		if (dt < flight - options.early - slack / SPEED_PIXELS_PER_TICK) continue;
-		if (dt > flight + options.late) continue;
-		/* Direction sector: nibble 0 = north, clockwise 22.5deg steps. */
-		if (dist > slack) {
-			const angle = creation.direction * Math.PI / 8;
-			const forward = dx * Math.sin(angle) - dy * Math.cos(angle);
-			if (forward <= 0) continue;
-			const lateral = Math.abs(dx * Math.cos(angle) +
-				dy * Math.sin(angle));
-			if (Math.atan2(lateral, forward) >
-				CONE_HALF_ANGLE + Math.atan2(slack + 8, dist)) continue;
-			const cost = Math.abs(dt - flight) + lateral / 4;
-			if (best === null || cost < best) best = cost;
-		} else {
-			const cost = Math.abs(dt - flight);
-			if (best === null || cost < best) best = cost;
-		}
+		const cost = creation.kind === "pill" && origin.slack === 0
+			? pill_orbit_cost(origin, terminal, creation.direction, dt)
+			: cone_cost(origin, terminal, creation.direction, dt);
+		if (cost !== null && (best === null || cost < best)) best = cost;
 	}
 	return best;
 }
@@ -384,6 +444,14 @@ function build_edges(creations, terminals) {
 		}
 	}
 	return { edges, reverse };
+}
+
+function build_reverse(edges, terminal_count) {
+	const reverse = Array.from({ length: terminal_count }, () => []);
+	for (let c = 0; c < edges.length; c++) {
+		for (const { t, cost } of edges[c]) reverse[t].push({ c, cost });
+	}
+	return reverse;
 }
 
 /* ---- maximum matching (Hopcroft-Karp) --------------------------------- */
@@ -809,7 +877,8 @@ const bytes = new Uint8Array(fs.readFileSync(options.target));
 const started = Date.now();
 const recs = [...records(bytes)];
 const { creations, terminals, skipped } = collect_events(recs);
-const { edges, reverse } = build_edges(creations, terminals);
+const { edges } = build_edges(creations, terminals);
+let reverse = build_reverse(edges, terminals.length);
 
 const degree_histogram = list => {
 	const histogram = { "0": 0, "1": 0, "2": 0, "3-5": 0, "6-10": 0, "11+": 0 };
@@ -821,9 +890,65 @@ const degree_histogram = list => {
 	return histogram;
 };
 
-const { match_c, match_t, size } = maximum_matching(edges, terminals.length);
-const { scc, S, TN, creation_node, terminal_node } =
-	residual_sccs(edges, match_c, match_t);
+/* Same-sender FIFO for pill falls: pill shells all live exactly 64 ticks,
+ * so two pill shots fired and simulated on one machine that both fall must
+ * fall in fire order. Any candidate edge crossing a FORCED same-sender
+ * pill->fall pair is therefore impossible (assuming, as the verification
+ * measures, that forced pairs are true); prune and re-solve to fixpoint. */
+let fifo_iterations = 0;
+let fifo_pruned = 0;
+let M = maximum_matching(edges, terminals.length);
+let R = residual_sccs(edges, M.match_c, M.match_t);
+for (;;) {
+	const anchors_by_sender = new Map();
+	for (let c = 0; c < creations.length; c++) {
+		const t = M.match_c[c];
+		if (t < 0 || creations[c].kind !== "pill") continue;
+		if (terminals[t].event_type !== "shell_falls") continue;
+		if (terminals[t].player !== creations[c].player) continue;
+		if (R.scc[R.creation_node(c)] === R.scc[R.terminal_node(t)]) continue;
+		if (!anchors_by_sender.has(creations[c].player)) {
+			anchors_by_sender.set(creations[c].player, []);
+		}
+		anchors_by_sender.get(creations[c].player).push({
+			c, t, time: creations[c].time, ordinal: terminals[t].ordinal,
+		});
+	}
+	let removed = 0;
+	for (let c = 0; c < creations.length; c++) {
+		const creation = creations[c];
+		if (creation.kind !== "pill") continue;
+		const anchors = anchors_by_sender.get(creation.player);
+		if (!anchors) continue;
+		const kept = edges[c].filter(({ t }) => {
+			const terminal = terminals[t];
+			if (terminal.event_type !== "shell_falls" ||
+				terminal.player !== creation.player) return true;
+			for (const anchor of anchors) {
+				if (anchor.c === c) continue;
+				/* The anchored fall belongs to the anchor in every maximum
+				 * matching; and a pair crossing the anchor breaks FIFO. */
+				if (anchor.t === t) return false;
+				if (creation.time === anchor.time) continue;
+				if (Math.sign(creation.time - anchor.time) *
+					Math.sign(terminal.ordinal - anchor.ordinal) < 0) {
+					return false;
+				}
+			}
+			return true;
+		});
+		removed += edges[c].length - kept.length;
+		edges[c] = kept;
+	}
+	if (!removed || fifo_iterations >= 20) break;
+	fifo_pruned += removed;
+	fifo_iterations++;
+	reverse = build_reverse(edges, terminals.length);
+	M = maximum_matching(edges, terminals.length);
+	R = residual_sccs(edges, M.match_c, M.match_t);
+}
+const { match_c, match_t, size } = M;
+const { scc, S, TN, creation_node, terminal_node } = R;
 
 let forced_pairs = 0;
 let essential_creations = 0;
@@ -913,6 +1038,8 @@ const lines = [
 	`terminal_degrees\t${JSON.stringify(degree_histogram(reverse))}`,
 	`component_sizes\t${JSON.stringify(components.histogram)} ` +
 		`largest=${components.largest}`,
+	`fifo_pruning\t${fifo_pruned} crossing pill-fall edges removed in ` +
+		`${fifo_iterations} iteration(s)`,
 	`max_matching\t${size} ` +
 		`(${pct(size, creations.length)} of creations, ` +
 		`${pct(size, terminals.length)} of terminals)`,
