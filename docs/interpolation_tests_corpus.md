@@ -617,6 +617,206 @@ whose timing is purely cosmetic. Deltas against `ad2168d`:
   `terminal_links_rushed` holds at 69,351 -- the drawing win survives
   the decision revert in full.
 
+## Orbit-backed absorption and its guards -- `33e1ee5` + `90925b0`
+
+The branch's absorption work at full scale: `33e1ee5` lets pill-orbit
+evidence absorb a stitch-skipped restatement however far the sender's
+clock drifted (the 101202.10 pillbox-3 case), and `90925b0` guards it
+for dense streams -- at most one candidate per snapshot, and an
+observation the surviving orbits rule out is refused outright. Measured
+by the corpus owner at the branch tip `c26595b` (engine identical to
+`90925b0`; `c26595b` is tooling only). Deltas against the `70b1227`
+re-run. The guards fired roughly a hundred times more often than on the
+fixture: an angry pillbox fires every five or six ticks, so the
+multiple-candidate configuration the fixture shows seven times is
+routine in laggy games.
+
+The report:
+
+* `rate_shells_matched_forward` 0.993725 -- down from 0.993965,
+  `shells_unmatched_forward` 61,607 (+2,361); `rate_shells_unlinked`
+  0.002190 -- up from 0.002019 (21,500, +1,677). Both give back part of
+  the records set at `ad2168d`, landing between `a74033a` and
+  `ad2168d`. The give-back is the double-absorbed stream-mate pairs no
+  longer counted as matches: each was one zero-duration link plus one
+  stolen identity, so this is invented explanations leaving the ledger.
+* `rate_terminals_matched` 0.829357 -- 1,614,293, down 352 of 1.6M,
+  essentially flat. Counting unseen attributions, 1,798,555 of
+  1,946,439 impacts have an explanation, still 92.4%.
+* `terminals_matched:shell_falls` 619,140 (+7);
+  `terminals_matched:tank_hit` 233,450 (-31).
+* `shells_visual_joins` 5,435 -- up 223: some of the refused ambiguity
+  re-enters as draw-only continuations, believed by nothing.
+* Birth identity exact: 652,279 + 964,272 = 1,616,551 = `shell_births`,
+  up 31.
+* Corpus constants reproduce: 443 files, no failures, 9,817,361 shell
+  observations, 122.8M tank ticks, 112.3M LGM ticks.
+
+The drawn-motion audit:
+
+* `rush_links` 3,995 -- down from 4,841, a 17.5% collapse. This was the
+  point: the same-time double-absorb links drew as instant sideways
+  blips, and they are gone from the drawn output.
+* `pop_outs` 61,421 -- up from 59,060 by exactly the 2,361 newly
+  unmatched shells, the audit's usual identity.
+* `pops_paired_backwards` 5,792 (+278) and `pops_paired_forward` 9,292
+  (+130) -- the visible cost: a refused observation pops at its stale
+  position, behind the drawn chain. `hover_links` 4,163 (+521), the
+  same neighbourhood as every rescue so far. `rate_links_steady`
+  0.963579, from 0.963885.
+* `terminal_links_rushed` 69,384 -- +33, flat.
+* `seam_jumps` 129, `seam_jump_max` 3.16 -- one more instance of the
+  known on-the-books family, magnitude unchanged.
+
+Reading it together: the degenerate-link class collapsed as designed and
+terminals held, paid for in the residue classes -- honest pops where
+invented threads used to be. The one number pointing at more work is the
+backwards-pop rise: refused stream-mate observations in multi-snapshot
+gaps pair as reappear-behind artifacts, and they are exactly the shape
+the visual-join machinery exists for -- every candidate story draws the
+same ray. Extending draw-only joins to refused absorption candidates is
+the follow-up.
+
+**The follow-up measured null.** `9471365` rank-pairs equal-sized
+refusal groups on consecutive snapshots of one stitch's gap into
+draw-only joins; a clean re-run at `a8538fa` (the first with the commit
+line in the header, ruling out a stale checkout) is byte-identical on
+both axes -- zero activations in 9.8M observations. Consecutive stale
+records are stale by similar amounts, so they pairwise-match each other
+into fragments; orphans arise at staleness *transitions*, one bad
+record between good ones, which is a single-snapshot shape the rank
+pass deliberately does not touch. So the backwards-pop residue lives in
+configurations not yet identified: the audit's `--describe-backwards`
+mode (with `absorption_refused` / `absorption_contradicted` breadcrumbs
+in the engine) exists to name them from data. First reading, on replay
+101202.10: its backwards pops are matched pill-stream chain ends
+pairing with unclaimed observations a few pixels behind -- no refusal
+involvement at all. The corpus tally is the one to run.
+
+## The backwards-pop anatomy -- diagnostic at `ab7e4e9`
+
+The `--describe-backwards` tally over the full corpus (5,792 backwards
+pops, examples from 366 of 443 files -- a corpus-wide phenomenon at
+about thirteen per game, not a few pathological logs):
+
+* 92.2% of the pop-outs are MATCHED chain ends (`m...`): established,
+  often pill- or bradian-attributed chains that stop without an
+  explained fate. Only 410 involve a stitch.
+* 70.1% of the pop-ins are chained list members (`...q`), 25.0% bare
+  unflagged heads: observations with no predecessor and no claimed
+  birth.
+* The absorption guards are largely exonerated: `R` appears in 5.4% of
+  pairs and `C` in 3.9% -- together about the size of the +278 the
+  guard commit added, and no more. The base phenomenon predates
+  absorption entirely.
+* The reappearance distance is the give-away: median 13 px behind the
+  vanish point, p10 48 px -- one angry-pill fire interval (five to
+  seven ticks at 2 px/tick) and multiples of it, at ordinary
+  restatement cadence (dt mostly under 20 ticks). Not quantisation
+  (which would sit at a pixel or two), not lag gaps.
+
+Reading: a backwards pop is STREAM TURNOVER, not a motion error. The
+leading shell of a same-ray stream dies with its terminal unexplained
+(the 17% of impacts still unmatched), and a follower that was never
+birth-claimed -- its shot record lost, or fired capacity mis-assigned --
+first appears one fire interval behind. The audit pairs the two as a
+reappear-behind artifact; the eye mostly reads a continuing stream. The
+two real targets are therefore upstream and already-known weaknesses
+that compound here: terminal matching for stream leaders, and birth
+attribution that survives a lost F4 -- an observation lying on a known
+pill's orbit at a plausible step is claimable as an unseen-shot birth
+the same way `unseen_pillbox_source` already claims impacts.
+
+The rank-pairing rescue (`9471365`), aimed at refused-group pairs this
+tally shows barely exist, is reverted with this entry: zero activations
+in 9.8M observations, and the R classes it targeted are single-snapshot
+shapes it could never touch. The absorption guards, the visually-claimed
+census rule, and the diagnostic breadcrumbs stay.
+
+## Unseen-shot births -- `775fe4b`
+
+The backwards-pop anatomy's named target, measured at `f1e7624` (a
+gitignore line on top of `775fe4b`; engine identical). An origin-less
+chain whose every observation lies on one live pill's orbit at strictly
+increasing steps is claimed as that pill's shot -- no F4 required --
+after every F4-backed and forced explanation has had first refusal.
+Deltas against the guard run:
+
+* `shells_unseen_pillbox_birth` 14,352: lost-F4 shells recovered, each
+  now drawn from the muzzle with its shooter named.
+  `shells_from_pillbox` 964,272 + 14,352 = 978,624 exactly;
+  652,279 + 978,624 = 1,630,903 = `shell_births`, the birth identity
+  exact as ever. `shells_with_pillbox_source` +104,285 -- about 7.3
+  observations of attribution carried down each claimed chain, matching
+  the three-to-seven chain lengths inspected on 101202.10.
+* `pop_ins` 59,352 -> 45,001, down 24% -- one less than the claim
+  count, one claim sitting in a first snapshot where it never counted.
+  `pops_paired_backwards` 5,792 -> 3,908, down 32.5% and now well BELOW
+  the pre-guard 5,514: the claimed shells were the reappearing-behind
+  side of the pairs, exactly as the anatomy said.
+  `pops_paired_forward` 9,292 -> 6,579.
+* Every matching metric is byte-identical -- matched forward, unlinked,
+  terminals, every track number -- as a claims-only change must be.
+  `pop_outs`, `terminal_links_rushed` and the seam pair (129 / 3.16)
+  likewise. The only other audit movement is a small speed-bucket
+  shuffle (`rush_links` +34 of 8.1M links) from smoothing re-anchoring
+  on claimed heads' exact orbit pixels.
+
+Confidence rules held up: raw orbit membership alone would have claimed
+half again as many on 101202.10 (50 against the 37 claimed); chains of
+two or more corroborated observations, single sightings only exact and
+at most four steps from the muzzle, and the one-surviving-pill rule
+trim the coincidences. Claimed heads sit at steps 3-10 -- first seen
+one or two restatements after firing, the lost-F4 profile.
+
+Branch total on the drawn axis, against the pre-branch `70b1227`
+baseline: `rush_links` 4,841 -> 4,029, `pops_paired_backwards`
+5,514 -> 3,908, `pops_paired_forward` 9,162 -> 6,579, `hover_links`
+3,642 -> 4,164, at a matching-ledger give-back of 0.000240 forward and
++1,677 unlinked -- the guard entry's invented explanations leaving. The
+remaining 3,908 backwards pairs are unnamed; a `--describe-backwards`
+run at this commit would show what survives now that the `U` class is
+visible.
+
+## Stream-provenance births -- `a78253b`
+
+The residual backwards tally at `709ca93` had said `any U: zero` -- the
+orbit-membership claims removed their family completely -- and named one
+remaining class as a gap rather than a frontier: 655 pairs whose pop-in
+already carried a pillbox source. `propagate_ambiguous_pillbox_orbits`
+names a head's pill and orbit states without claiming which stream-mate
+it is (the only path that stores a source on an unclaimed head), but
+nothing marked it birth-drawable. Which slot it holds does not matter
+for its birth: in every candidate story it flew from that muzzle.
+Measured at `7050c31` (a gitignore line on `a78253b`; engine identical),
+against the `775fe4b` run:
+
+* `shells_stream_birth` 2,785; `pop_ins` 45,001 -> 42,216, exactly the
+  claim count. `shells_from_pillbox` 978,624 + 2,785 = 981,409 and
+  `shell_births` +2,785, both exact; `shells_with_pillbox_source`
+  unchanged -- these heads already carried their source, which was the
+  point.
+* `pops_paired_backwards` 3,908 -> 3,253: minus 655, precisely the
+  in-`P` class the previous tally counted, and the new tally confirms
+  `in has P: 0` -- the class is extinct. `pops_paired_forward`
+  6,579 -> 5,917.
+* Everything else on both axes is byte-identical, seam pair included.
+
+What remains of the backwards class, 3,253 pairs, is now purely the two
+known frontiers: tank-stream turnover (`out k`, 982 -- a lost 5d has no
+orbit anchor, so a tank-birth analogue would need the bradian
+hypothesis machinery, with far weaker constraints), and stream leaders
+dying with unexplained terminals (`out P` 889, unattributed 1,382),
+which is the terminal-matching frontier by another name.
+
+Branch total on the drawn axis, `70b1227` -> here:
+`pops_paired_backwards` 5,514 -> 3,253 (-41%), `pops_paired_forward`
+9,162 -> 5,917 (-35%), `rush_links` 4,841 -> 4,029 (-17%),
+`hover_links` 3,642 -> 4,164 (+14%), with 17,137 shells claimed to
+their muzzles and shooters, at a matching-ledger give-back of 0.000240
+forward and +1,677 unlinked -- the invented explanations the guard
+entry removed.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch

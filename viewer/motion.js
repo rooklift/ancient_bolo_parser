@@ -1822,6 +1822,10 @@ function apply_visual_join(candidate) {
 	start_shell.matched_from_previous = true;
 	start_shell.stitched = true;
 	start_shell.visual_join = true;
+	/* visual_join marks targets only (the report counts it per shell);
+	 * sources carry their own flag so absorption can recognise a
+	 * visually-claimed observation on either end of a join. */
+	end_shell.visual_join_source = true;
 }
 
 /* Carry an origin down a chain: the linked observations are one shell, so
@@ -1895,6 +1899,66 @@ function apply_stitch(candidate) {
 	apply_tank_bradian_heading(start_shell);
 }
 
+/* Discrete evidence that an intermediate observation is the very shell a
+ * stitch reconnects, for a pill shot whose orbit is known at both ends.
+ * The observation must be an exact orbit point -- within its one-sided
+ * quantisation bound -- on a bradian that survives at BOTH ends of the
+ * stitch, at a step strictly between the two.
+ *
+ * This is the widen-in-time-only principle `pill_states_reachable` uses
+ * for dilated joins. A lagging sender's record clock can put a
+ * restatement far off the uniform-time schedule the geometric test below
+ * demands, but no clock can move it off its orbit, so the discrete test
+ * subsumes that test rather than relaxing it: the orbit is a straight
+ * line at constant velocity, so a point strictly between two of its own
+ * steps is on the segment by construction.
+ *
+ * `floor_step` keeps a run of absorbed observations strictly forward
+ * along the orbit; pass -1 for the first.
+ *
+ * List index is irrelevant to any of this. A chained list member carries
+ * a wider bound and so yields several states where a list head yields
+ * one, but the shared-bradian and strictly-between tests still bite, and
+ * a state set that agrees on one pixel recovers the exact coordinate the
+ * quantised offsets lost.
+ *
+ * Three-way return: null when the discrete evidence is unavailable
+ * (either end of the stitch lacks orbit states, or the end has no
+ * source), leaving the decision to the geometric gate; an EMPTY array
+ * when the evidence exists and rules the observation out -- it sits on
+ * no surviving orbit point, or names another pill's stream, so it is
+ * provably not this shell however well its geometry reads; otherwise
+ * the surviving states. */
+function pillbox_absorption_states(end_shell, target_shell, shell, floor_step) {
+	let end_states = end_shell.pillbox_orbit_states;
+	let target_states = target_shell && target_shell.pillbox_orbit_states;
+	if (!end_states || !end_states.length ||
+		!target_states || !target_states.length ||
+		end_shell.pillbox_source_x === undefined) return null;
+	/* A start already claimed by a different pill stream is not this
+	 * shell, the same rule stitch_candidate applies to chain starts. */
+	if (shell.pillbox_source_x !== undefined &&
+		(shell.pillbox_source_x !== end_shell.pillbox_source_x ||
+			shell.pillbox_source_y !== end_shell.pillbox_source_y)) return [];
+	let relative_x = shell.pixel_x - end_shell.pillbox_source_x;
+	let relative_y = shell.pixel_y - end_shell.pillbox_source_y;
+	let uncertainty = shell.position_uncertainty || 0;
+	let states = [];
+	for (let target_state of target_states) {
+		let orbit = PILLBOX_ORBITS_BY_BRADIAN.get(target_state.bradian);
+		let last = Math.min(target_state.step - 1, orbit.positions.length - 1);
+		for (let step = Math.max(floor_step + 1, 0); step <= last; step++) {
+			if (!end_states.some(state =>
+				state.bradian === target_state.bradian &&
+				state.step < step)) continue;
+			if (!pillbox_orbit_position_matches(orbit.positions[step],
+				relative_x, relative_y, uncertainty)) continue;
+			states.push({ bradian: target_state.bradian, step });
+		}
+	}
+	return unique_pillbox_orbit_states(states);
+}
+
 /* A stitch may bridge over restatements of the very shell it reconnects:
  * a lagging sender's record timestamps drift against its simulation, so
  * an intermediate observation can fail every pairwise distance test while
@@ -1915,14 +1979,47 @@ function absorb_intermediate_observations(snapshots, end, start) {
 	let length = Math.hypot(segment_x, segment_y);
 	if (length <= 1e-9) return;
 
+	let final_time = end_shell.next_time;
+	let final_next_shell = end_shell.next_shell;
 	let absorbed = [];
+	let floor_step = -1;
 	for (let snapshot of snapshots) {
 		if (snapshot.time <= end.time) continue;
-		if (snapshot.time >= end_shell.next_time) break;
+		if (snapshot.time >= final_time) break;
+		let candidates = [];
+		let visually_claimed = 0;
 		for (let shell of snapshot.shells) {
-			if (shell.next_time !== undefined || shell.matched_from_previous ||
-				shell.starts_at_tank || shell.starts_at_pillbox ||
-				shell.direction !== end_shell.direction) continue;
+			/* A shell an earlier stitch visually joined was claimed
+			 * without identity: it cannot be absorbed, but if it still
+			 * fits this chain's window it is proof the snapshot is
+			 * ambiguous -- without this, a later overlapping stitch
+			 * would see a thinned census and "uniquely" absorb a
+			 * stream-mate. */
+			let joined = shell.visual_join || shell.visual_join_source;
+			if (!joined && (shell.next_time !== undefined ||
+				shell.matched_from_previous ||
+				shell.starts_at_tank || shell.starts_at_pillbox)) continue;
+			if (shell.direction !== end_shell.direction) continue;
+			/* The orbit table rules first when it can, in both
+			 * directions: an exact point strictly between the stitch's
+			 * own two steps is a candidate however far the sender's
+			 * clock has drifted, and an observation the surviving orbits
+			 * rule out is not this shell however well its geometry
+			 * reads. */
+			let orbit_states = pillbox_absorption_states(end_shell,
+				final_next_shell, shell, floor_step);
+			if (orbit_states !== null) {
+				if (orbit_states.length) {
+					if (joined) visually_claimed++;
+					else candidates.push({ shell, time: snapshot.time,
+						orbit_states });
+				} else {
+					/* Diagnostic breadcrumb, read by the audit tool: some
+					 * stitch's surviving orbits ruled this observation out. */
+					shell.absorption_contradicted = true;
+				}
+				continue;
+			}
 			let relative_x = shell.pixel_x - anchor_x;
 			let relative_y = shell.pixel_y - anchor_y;
 			let along = (relative_x * segment_x + relative_y * segment_y) / length;
@@ -1938,24 +2035,52 @@ function absorb_intermediate_observations(snapshots, end, start) {
 				SHELL_SPEED_PIXELS_PER_TICK;
 			if (Math.abs(along - expected_along) >
 				MAX_SMOOTHING_DEVIATION_PIXELS) continue;
-			absorbed.push({ shell, time: snapshot.time });
+			if (joined) visually_claimed++;
+			else candidates.push({ shell, time: snapshot.time });
 		}
+		/* An angry pillbox fires every five or six ticks, so stream-mates
+		 * ride only two or three orbit steps apart and a fragmented
+		 * stream can drop several of them, each individually consistent,
+		 * into one snapshot of the gap. The chain's own restatement is
+		 * among them, but nothing in the snapshot says which it is, and
+		 * absorbing more than one would thread same-time restatements
+		 * into the chain as a zero-duration link. When the candidate is
+		 * not unique, none is absorbed: an unmatched pop is safer than a
+		 * smooth but invented path. */
+		if (visually_claimed || candidates.length !== 1) {
+			/* Diagnostic breadcrumb, read by the audit tool: qualified for
+			 * some stitch's gap but was refused as ambiguous. */
+			for (let candidate of candidates) {
+				candidate.shell.absorption_refused = true;
+			}
+			continue;
+		}
+		let candidate = candidates[0];
+		if (candidate.orbit_states) {
+			floor_step = Math.min(...candidate.orbit_states.map(state =>
+				state.step));
+		}
+		absorbed.push(candidate);
 	}
 	if (!absorbed.length) return;
 	absorbed.sort((a, b) => a.time - b.time);
 
-	let final_time = end_shell.next_time;
-	let final_next_shell = end_shell.next_shell;
 	let previous = end_shell;
 	for (let observation of absorbed) {
-		previous.next_time = observation.time;
-		previous.next_pixel_x = observation.shell.pixel_x;
-		previous.next_pixel_y = observation.shell.pixel_y;
-		previous.next_terminal = false;
-		previous.next_shell = observation.shell;
 		observation.shell.matched_from_previous = true;
 		observation.shell.stitched = true;
+		/* Identity first: the exact pixel is measured from the pill. */
 		propagate_identity_down_chain(end_shell, observation.shell);
+		if (observation.orbit_states) {
+			set_pillbox_orbit_states(observation.shell, observation.orbit_states);
+		}
+		previous.next_time = observation.time;
+		previous.next_pixel_x = observation.shell.pillbox_orbit_pixel_x ??
+			observation.shell.pixel_x;
+		previous.next_pixel_y = observation.shell.pillbox_orbit_pixel_y ??
+			observation.shell.pixel_y;
+		previous.next_terminal = false;
+		previous.next_shell = observation.shell;
 		previous = observation.shell;
 	}
 	previous.next_time = final_time;
@@ -1963,6 +2088,142 @@ function absorb_intermediate_observations(snapshots, end, start) {
 	previous.next_pixel_y = target_y;
 	previous.next_terminal = false;
 	previous.next_shell = final_next_shell;
+}
+
+/* Births claimed from orbit membership alone, for shells whose firing
+ * record never arrived. The corpus's backwards-pop anatomy showed the
+ * cost of a lost F4: the shell's first restatement pops in one fire
+ * interval behind its dead stream leader, never claimed by anything.
+ * But a pill's orbit table is a complete list of every pixel its shells
+ * can ever occupy, so origin needs no F4 when geometry is decisive: an
+ * origin-less chain whose every observation lies on ONE live pill's
+ * orbit, at strictly increasing steps within each observation's
+ * one-sided quantisation bound, is that pill's shot. Mirrors
+ * mark_unseen_pillbox_terminals, which claims impacts the same way.
+ *
+ * Confidence rules, against coincidental alignment (a passing shell can
+ * sit on an orbit point by chance): a chain of two or more corroborated
+ * observations is decisive -- consecutive exact hits on one anchored
+ * discrete track do not happen by accident -- while a single sighting
+ * is claimed only exact (list head) and fresh from the muzzle. If more
+ * than one pill's story survives, none is claimed. Liveness is read at
+ * the sighting, not the (unknown) firing tick: a pill destroyed with
+ * shells still in flight loses those claims, a conservative miss.
+ *
+ * Runs after matching, stitching and residual resolution, so every
+ * F4-backed and forced explanation has had first refusal. Claims add no
+ * links: they name a source, which draws the birth segment from the
+ * muzzle and carries attribution down the chain. */
+const UNSEEN_BIRTH_MUZZLE_STEP = 4;
+
+function pill_roster_at(pill_states, tick) {
+	let lo = 0, hi = pill_states.length;
+	while (lo < hi) {
+		let mid = (lo + hi) >> 1;
+		if (pill_states[mid].time <= tick) lo = mid + 1;
+		else hi = mid;
+	}
+	return lo > 0 ? pill_states[lo - 1].roster : [];
+}
+
+/* The head states (bradian and first-sighting step) of every story in
+ * which the chain is a shot from the given source; empty when there is
+ * none. */
+function unseen_birth_head_states(source_x, source_y, chain) {
+	let head = chain[0];
+	let head_x = head.pixel_x - source_x;
+	let head_y = head.pixel_y - source_y;
+	if (Math.abs(head_x) > SHELL_RANGE_PIXELS + 4 ||
+		Math.abs(head_y) > SHELL_RANGE_PIXELS + 4) return [];
+	let states = pillbox_orbit_states_at(head.direction, head_x, head_y,
+		head.position_uncertainty).map(state => ({ head: state, step: state.step }));
+	for (let i = 1; i < chain.length && states.length; i++) {
+		let relative_x = chain[i].pixel_x - source_x;
+		let relative_y = chain[i].pixel_y - source_y;
+		let advanced = [];
+		let seen = new Set();
+		for (let state of states) {
+			let orbit = PILLBOX_ORBITS_BY_BRADIAN.get(state.head.bradian);
+			for (let step = state.step + 1; step < orbit.positions.length; step++) {
+				if (!pillbox_orbit_position_matches(orbit.positions[step],
+					relative_x, relative_y,
+					chain[i].position_uncertainty)) continue;
+				let key = `${state.head.bradian}:${state.head.step}:${step}`;
+				if (seen.has(key)) continue;
+				seen.add(key);
+				advanced.push({ head: state.head, step });
+			}
+		}
+		states = advanced;
+	}
+	let unique = new Map();
+	for (let state of states) {
+		unique.set(`${state.head.bradian}:${state.head.step}`, state.head);
+	}
+	return [...unique.values()];
+}
+
+function claim_unseen_pillbox_births(snapshots, pill_states) {
+	if (!pill_states.length) return;
+	for (let snapshot of snapshots) {
+		for (let shell of snapshot.shells) {
+			if (shell.matched_from_previous || shell.starts_at_tank ||
+				shell.starts_at_pillbox) continue;
+			if (shell.pillbox_source_x !== undefined) {
+				/* Ambiguity propagation already named this head's pill and
+				 * orbit states without claiming which stream-mate it is
+				 * (propagate_ambiguous_pillbox_orbits) -- the only path
+				 * that stores a source on an unclaimed head. Which slot it
+				 * holds does not matter for its birth: in every candidate
+				 * story it flew here from that muzzle, so claim the drawn
+				 * birth rather than leaving the sprite to pop in
+				 * mid-flight. */
+				if (shell.pillbox_orbit_states &&
+					shell.pillbox_orbit_states.length) {
+					shell.starts_at_pillbox = true;
+					shell.stream_birth = true;
+				}
+				continue;
+			}
+			let chain = [shell];
+			for (let walk = shell; walk.next_shell && !walk.next_terminal;
+				walk = walk.next_shell) {
+				chain.push(walk.next_shell);
+			}
+			let claims = [];
+			for (let pill of pill_roster_at(pill_states, snapshot.time)) {
+				if (!pill) continue;
+				let states = unseen_birth_head_states(pill.pixel_x,
+					pill.pixel_y, chain);
+				if (!states.length) continue;
+				if (chain.length < 2 &&
+					!(shell.position_uncertainty === 0 &&
+						states.every(state =>
+							state.step <= UNSEEN_BIRTH_MUZZLE_STEP))) continue;
+				claims.push({ pill, states });
+			}
+			if (claims.length !== 1) continue;
+			let claim = claims[0];
+			shell.starts_at_pillbox = true;
+			shell.unseen_pillbox_shot = true;
+			shell.pillbox_source_x = claim.pill.pixel_x;
+			shell.pillbox_source_y = claim.pill.pixel_y;
+			shell.heading_origin_x = claim.pill.pixel_x;
+			shell.heading_origin_y = claim.pill.pixel_y;
+			set_pillbox_orbit_states(shell, claim.states);
+			let target_x = shell.pillbox_orbit_pixel_x ?? shell.pixel_x;
+			let target_y = shell.pillbox_orbit_pixel_y ?? shell.pixel_y;
+			let delta_x = target_x - claim.pill.pixel_x;
+			let delta_y = target_y - claim.pill.pixel_y;
+			let distance = Math.hypot(delta_x, delta_y);
+			shell.pillbox_source_distance = distance;
+			if (distance > 0) {
+				shell.heading_x = delta_x / distance;
+				shell.heading_y = delta_y / distance;
+			}
+			propagate_identity_down_chain(shell, shell.next_shell);
+		}
+	}
 }
 
 /* Second pass over one client's snapshots: reconnect chain fragments the
@@ -2652,7 +2913,7 @@ function smooth_shell_chains(snapshots) {
  * especially convincing false identities. A possible migration therefore
  * renders conservatively as one shell disappearing and another appearing. */
 function build_shell_positions(records, terminals, pillbox_sources_by_record,
-	tank_sources_by_record, tank_positions = null) {
+	tank_sources_by_record, tank_positions = null, pill_states = []) {
 	if (tank_positions) {
 		for (let terminal of terminals) {
 			if (terminal.event_type === "tank_hit" &&
@@ -2704,6 +2965,7 @@ function build_shell_positions(records, terminals, pillbox_sources_by_record,
 	for (let client_snapshots of snapshots) {
 		stitch_shell_chains(client_snapshots);
 		resolve_residual_shell_fates(client_snapshots);
+		claim_unseen_pillbox_births(client_snapshots, pill_states);
 		smooth_shell_chains(client_snapshots);
 	}
 	return snapshots;
