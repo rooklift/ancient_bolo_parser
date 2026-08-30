@@ -617,6 +617,66 @@ whose timing is purely cosmetic. Deltas against `ad2168d`:
   `terminal_links_rushed` holds at 69,351 -- the drawing win survives
   the decision revert in full.
 
+## Orbit-backed absorption and its guards -- `33e1ee5` + `90925b0`
+
+The branch's absorption work at full scale: `33e1ee5` lets pill-orbit
+evidence absorb a stitch-skipped restatement however far the sender's
+clock drifted (the 101202.10 pillbox-3 case), and `90925b0` guards it
+for dense streams -- at most one candidate per snapshot, and an
+observation the surviving orbits rule out is refused outright. Measured
+by the corpus owner at the branch tip `c26595b` (engine identical to
+`90925b0`; `c26595b` is tooling only). Deltas against the `70b1227`
+re-run. The guards fired roughly a hundred times more often than on the
+fixture: an angry pillbox fires every five or six ticks, so the
+multiple-candidate configuration the fixture shows seven times is
+routine in laggy games.
+
+The report:
+
+* `rate_shells_matched_forward` 0.993725 -- down from 0.993965,
+  `shells_unmatched_forward` 61,607 (+2,361); `rate_shells_unlinked`
+  0.002190 -- up from 0.002019 (21,500, +1,677). Both give back part of
+  the records set at `ad2168d`, landing between `a74033a` and
+  `ad2168d`. The give-back is the double-absorbed stream-mate pairs no
+  longer counted as matches: each was one zero-duration link plus one
+  stolen identity, so this is invented explanations leaving the ledger.
+* `rate_terminals_matched` 0.829357 -- 1,614,293, down 352 of 1.6M,
+  essentially flat. Counting unseen attributions, 1,798,555 of
+  1,946,439 impacts have an explanation, still 92.4%.
+* `terminals_matched:shell_falls` 619,140 (+7);
+  `terminals_matched:tank_hit` 233,450 (-31).
+* `shells_visual_joins` 5,435 -- up 223: some of the refused ambiguity
+  re-enters as draw-only continuations, believed by nothing.
+* Birth identity exact: 652,279 + 964,272 = 1,616,551 = `shell_births`,
+  up 31.
+* Corpus constants reproduce: 443 files, no failures, 9,817,361 shell
+  observations, 122.8M tank ticks, 112.3M LGM ticks.
+
+The drawn-motion audit:
+
+* `rush_links` 3,995 -- down from 4,841, a 17.5% collapse. This was the
+  point: the same-time double-absorb links drew as instant sideways
+  blips, and they are gone from the drawn output.
+* `pop_outs` 61,421 -- up from 59,060 by exactly the 2,361 newly
+  unmatched shells, the audit's usual identity.
+* `pops_paired_backwards` 5,792 (+278) and `pops_paired_forward` 9,292
+  (+130) -- the visible cost: a refused observation pops at its stale
+  position, behind the drawn chain. `hover_links` 4,163 (+521), the
+  same neighbourhood as every rescue so far. `rate_links_steady`
+  0.963579, from 0.963885.
+* `terminal_links_rushed` 69,384 -- +33, flat.
+* `seam_jumps` 129, `seam_jump_max` 3.16 -- one more instance of the
+  known on-the-books family, magnitude unchanged.
+
+Reading it together: the degenerate-link class collapsed as designed and
+terminals held, paid for in the residue classes -- honest pops where
+invented threads used to be. The one number pointing at more work is the
+backwards-pop rise: refused stream-mate observations in multi-snapshot
+gaps pair as reappear-behind artifacts, and they are exactly the shape
+the visual-join machinery exists for -- every candidate story draws the
+same ray. Extending draw-only joins to refused absorption candidates is
+the follow-up.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
