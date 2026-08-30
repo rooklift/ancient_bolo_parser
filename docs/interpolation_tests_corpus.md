@@ -1002,6 +1002,33 @@ else moves on either axis. Corpus verification pending -- this commit
 is MEANT to move the audit, and the prediction is pop-outs down by
 several thousand with hover/rush/seam untouched.
 
+Corpus verification at `60e52b1`, 443 files: 5,396 deaths.
+`terminals_matched` 1,614,293 -> 1,619,689 and pop-outs
+61,421 -> 56,025, exactly complementary; forward-paired pops
+5,917 -> 5,733, backwards 3,253 -> 3,096; hover, rush, seam and the
+whole link-speed histogram untouched; 337 unseen claims ceded to live
+observed shells (the intended preference); `fate_open` 10,580 -> 4,097
+with the un-applied remainder reclassified as contention.
+
+The backwards question got its answer: only -157. The vanishing stream
+leaders are NOT in `fate_open` -- the post-dial census is dominated by
+`fate_taken` (25,893, led by `fate_taken:shell_falls:P` at 8,045):
+ends whose fitting event was claimed by a sibling chain, the stream
+collapse seen from the end side, plus range-end falls whose events
+never arrived. Note the perceptual reading of that residue: a shell
+vanishing AT ITS RANGE END is what really happened (it fell), so much
+of the remaining pop-out count may be visually correct already; the
+audit's pop_outs metric does not yet distinguish mid-flight vanishes
+(the true artifact) from range-end ones. That subdivision is the next
+instrument to build before chasing the number further.
+
+Item 6 running total, `20694f2`'s baseline -> here: unexplained
+terminals 148,056 -> 79,896 (-46%), terminals_matched +5,396 (real
+matches, not attributions), unseen attributions +62,592 net, pop-outs
+-8.8%, and on the whole branch's drawn axis backwards pops now stand
+at 3,096 against `70b1227`'s 5,514 (-44%) and forward-paired at 5,733
+against 9,162 (-37%).
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
