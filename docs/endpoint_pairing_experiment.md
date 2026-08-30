@@ -38,7 +38,21 @@ Edges are feasibility-tested per kind:
   Candidate edges crossing a *forced* same-sender pill→fall pair are
   pruned, and the graph re-solved to fixpoint (649 edges in 3 rounds at
   default windows). The mirror argument is deliberately NOT applied to
-  tanks: adjustable range breaks fall ordering for them.
+  tanks: adjustable range breaks fall ordering for them. The constraint
+  compares stream order (record and subpacket order within one sender),
+  never timestamps, so record-time jitter cannot upset it.
+
+How trustworthy is the 64-tick gate under real network conditions?
+`tools/measure-pill-fall-timing.mjs` measures the F4→FB record-time gap
+on assumption-free pairs — falls whose exact pixel names exactly one
+(pill, sector) story with exactly one F4 candidate in ±300 ticks, no
+timing gate applied. On 534 such pairs: median 63 ticks, 89% inside
+[60, 72], 99.6% inside [44, 124], and 533/534 have the same sender for
+F4 and FB (mid-flight migration really doesn't happen). The spread is
+just the record cadence: an event waits for the sender's next outgoing
+record (up to ~17 ticks at 4/s), so the gap is 64 ± one record interval
+either way, with rare genuine stalls beyond (4 of 534 exceed 80, max
+288). The default −20/+60 gate is exactly the 99.6% band.
 
 The graph is then read as a unit-capacity flow problem, and the residual
 graph's strongly connected components classify every edge exactly:
