@@ -693,6 +693,46 @@ in the engine) exists to name them from data. First reading, on replay
 pairing with unclaimed observations a few pixels behind -- no refusal
 involvement at all. The corpus tally is the one to run.
 
+## The backwards-pop anatomy -- diagnostic at `ab7e4e9`
+
+The `--describe-backwards` tally over the full corpus (5,792 backwards
+pops, examples from 366 of 443 files -- a corpus-wide phenomenon at
+about thirteen per game, not a few pathological logs):
+
+* 92.2% of the pop-outs are MATCHED chain ends (`m...`): established,
+  often pill- or bradian-attributed chains that stop without an
+  explained fate. Only 410 involve a stitch.
+* 70.1% of the pop-ins are chained list members (`...q`), 25.0% bare
+  unflagged heads: observations with no predecessor and no claimed
+  birth.
+* The absorption guards are largely exonerated: `R` appears in 5.4% of
+  pairs and `C` in 3.9% -- together about the size of the +278 the
+  guard commit added, and no more. The base phenomenon predates
+  absorption entirely.
+* The reappearance distance is the give-away: median 13 px behind the
+  vanish point, p10 48 px -- one angry-pill fire interval (five to
+  seven ticks at 2 px/tick) and multiples of it, at ordinary
+  restatement cadence (dt mostly under 20 ticks). Not quantisation
+  (which would sit at a pixel or two), not lag gaps.
+
+Reading: a backwards pop is STREAM TURNOVER, not a motion error. The
+leading shell of a same-ray stream dies with its terminal unexplained
+(the 17% of impacts still unmatched), and a follower that was never
+birth-claimed -- its shot record lost, or fired capacity mis-assigned --
+first appears one fire interval behind. The audit pairs the two as a
+reappear-behind artifact; the eye mostly reads a continuing stream. The
+two real targets are therefore upstream and already-known weaknesses
+that compound here: terminal matching for stream leaders, and birth
+attribution that survives a lost F4 -- an observation lying on a known
+pill's orbit at a plausible step is claimable as an unseen-shot birth
+the same way `unseen_pillbox_source` already claims impacts.
+
+The rank-pairing rescue (`9471365`), aimed at refused-group pairs this
+tally shows barely exist, is reverted with this entry: zero activations
+in 9.8M observations, and the R classes it targeted are single-snapshot
+shapes it could never touch. The absorption guards, the visually-claimed
+census rule, and the diagnostic breadcrumbs stay.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
