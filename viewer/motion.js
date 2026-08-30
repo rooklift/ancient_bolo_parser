@@ -2645,14 +2645,19 @@ function apply_forced_unseen(creation, fate, units) {
 	for (let terminal of fate.terminals) {
 		if (applied >= units) break;
 		if (terminal.match_time !== undefined) continue;
+		/* One terminal is one shell's impact: a terminal already given an
+		 * unseen source of EITHER kind is spoken for, and stamping it
+		 * again would waste this claim on it while an identical sibling
+		 * stays unexplained. */
+		if (terminal.unseen_pillbox_source || terminal.unseen_tank_source) {
+			continue;
+		}
 		if (creation.kind === "pill") {
-			if (terminal.unseen_pillbox_source) continue;
 			terminal.unseen_pillbox_source = true;
 			terminal.pillbox_source_x = creation.pixel_x;
 			terminal.pillbox_source_y = creation.pixel_y;
 			terminal.pillbox_source_direction = creation.direction;
 		} else {
-			if (terminal.unseen_tank_source) continue;
 			terminal.unseen_tank_source = true;
 			terminal.tank_source_x = creation.pixel_x;
 			terminal.tank_source_y = creation.pixel_y;

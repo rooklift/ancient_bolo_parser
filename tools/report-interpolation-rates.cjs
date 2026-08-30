@@ -454,6 +454,7 @@ function main() {
 	let totals = empty_totals();
 	let diagnostics = describe_terminals
 		? { classes: new Map(), examples: [], unsupported: false } : null;
+	let done = 0;
 	for (let file of files) {
 		try {
 			count_file(totals, engines, file, diagnostics);
@@ -462,6 +463,8 @@ function main() {
 			totals.files_failed++;
 			console.error(`warning: ${path.relative(ROOT, file)}: ${error.message}`);
 		}
+		done++;
+		if (done % 10 === 0) console.error(`progress: ${done}/${files.length}`);
 	}
 	process.stdout.write(build_report(totals, {
 		mode,
