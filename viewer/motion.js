@@ -2240,6 +2240,22 @@ function claim_unseen_pillbox_births(snapshots, pill_states) {
 	}
 }
 
+/* First index in a time-sorted array whose entry is at or after `time`.
+ * The stitching and residual passes pair items across snapshots, but
+ * every pairing predicate rejects a gap outside the stitch window, so
+ * each item need only scan that time slice instead of the whole replay.
+ * The lists involved are built in snapshot order and therefore already
+ * sorted. */
+function first_at_or_after(items, time, time_of = item => item.time) {
+	let lo = 0, hi = items.length;
+	while (lo < hi) {
+		let mid = (lo + hi) >> 1;
+		if (time_of(items[mid]) < time) lo = mid + 1;
+		else hi = mid;
+	}
+	return lo;
+}
+
 /* Second pass over one client's snapshots: reconnect chain fragments the
  * pairwise matcher left apart. Fragments arise when a link failed on a
  * margin ambiguity that later assignments have since resolved, and when
@@ -2273,7 +2289,10 @@ function stitch_shell_chains(snapshots) {
 	let by_end = new Map();
 	let by_start = new Map();
 	for (let end of ends) {
-		for (let start of starts) {
+		for (let i = first_at_or_after(starts, end.time);
+			i < starts.length &&
+			starts[i].time - end.time <= MAX_STITCH_GAP_TICKS; i++) {
+			let start = starts[i];
 			let candidate = stitch_candidate(end, start);
 			if (!candidate) continue;
 			if (!by_end.has(end)) by_end.set(end, []);
@@ -2690,6 +2709,8 @@ function resolve_residual_shell_fates(snapshots) {
 	let starts = [];
 	let fate_groups = [];
 	let creation_groups = [];
+	let fate_run_time = null;
+	let fate_run_start = 0;
 	for (let index = 0; index < snapshots.length; index++) {
 		let snapshot = snapshots[index];
 		let final = index === snapshots.length - 1;
@@ -2707,10 +2728,17 @@ function resolve_residual_shell_fates(snapshots) {
 				starts.push({ shell, time: snapshot.time });
 			}
 		}
+		/* Snapshot times never decrease, so every group sharing this
+		 * snapshot's time sits in the contiguous tail run; only that run
+		 * can satisfy the find's time test. */
+		if (fate_run_time !== snapshot.time) {
+			fate_run_time = snapshot.time;
+			fate_run_start = fate_groups.length;
+		}
 		for (let terminal of snapshot.terminals) {
 			if (terminal.match_time !== undefined ||
 				terminal.unseen_pillbox_source) continue;
-			let group = fate_groups.find(item => item.time === snapshot.time &&
+			let group = fate_groups.slice(fate_run_start).find(item =>
 				same_shell_terminal(item.terminals[0], terminal));
 			if (group) group.terminals.push(terminal);
 			else fate_groups.push({ time: snapshot.time, terminals: [terminal] });
@@ -2742,10 +2770,26 @@ function resolve_residual_shell_fates(snapshots) {
 		rights.push({ kind: "fate", fate, count: fate.terminals.length });
 	}
 
+	/* `rights` is two time-sorted runs (starts, then fate groups), and no
+	 * edge kind accepts a right behind its left or beyond the stitch gap
+	 * ahead, so each left scans only those windows. Scanning each run in
+	 * index order keeps the edge list identical, entry for entry, to the
+	 * all-pairs construction. */
 	let edges = [];
 	for (let li = 0; li < lefts.length; li++) {
 		let left = lefts[li];
-		for (let ri = 0; ri < rights.length; ri++) {
+		let left_time = left.kind === "end" ? left.end.time
+			: left.creation.time;
+		let window = [];
+		for (let [items, first_ri] of [[starts, 0],
+			[fate_groups, starts.length]]) {
+			for (let i = first_at_or_after(items, left_time);
+				i < items.length &&
+				items[i].time - left_time <= MAX_STITCH_GAP_TICKS; i++) {
+				window.push(first_ri + i);
+			}
+		}
+		for (let ri of window) {
 			let right = rights[ri];
 			if (left.kind === "end" && right.kind === "start") {
 				let candidate = stitch_candidate(left.end, right.start) ||
@@ -3001,9 +3045,13 @@ function resolve_residual_shell_fates(snapshots) {
 		let second_edges = [];
 		for (let li = 0; li < leftover_creations.length; li++) {
 			let creation = leftover_creations[li].creation;
-			for (let ri = 0; ri < leftover_fates.length; ri++) {
+			/* These edges are same-record by definition, so only the
+			 * equal-time run of the (time-sorted) leftover fates applies. */
+			for (let ri = first_at_or_after(leftover_fates, creation.time,
+				item => item.fate.time);
+				ri < leftover_fates.length &&
+				leftover_fates[ri].fate.time === creation.time; ri++) {
 				let fate = leftover_fates[ri].fate;
-				if (fate.time !== creation.time) continue;
 				let match = creation_fate_match(creation, fate, creation.gap);
 				if (match) {
 					second_edges.push({ left: li, right: ri, match,
@@ -3057,7 +3105,14 @@ function resolve_residual_shell_fates(snapshots) {
 	let eligible = [];
 	for (let { fate, count } of open_fates()) {
 		let candidates = [];
-		for (let creation of creation_groups) {
+		/* A shot explains a fate only from behind it and within the
+		 * stitch gap, so only that slice of the (time-sorted) creation
+		 * groups can produce a story. */
+		for (let ci = first_at_or_after(creation_groups,
+			fate.time - MAX_STITCH_GAP_TICKS);
+			ci < creation_groups.length &&
+			creation_groups[ci].time <= fate.time; ci++) {
+			let creation = creation_groups[ci];
 			if (creation.count <= (creation_spent.get(creation) || 0)) continue;
 			let extra = fate.time === creation.time ? creation.gap : 0;
 			let match = creation_fate_match(creation, fate, extra);
