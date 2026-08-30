@@ -86,6 +86,16 @@ const TANK_SHELL_FLIGHT_LIMIT_TICKS = 72;
 /* 8.5 tiles: the pill orbit range, and the assumed tank-shot range from
  * the shared simulation. */
 const SHELL_RANGE_PIXELS = 136;
+/* The longest drawable birth segment. A birth replays the flight from the
+ * muzzle to the shell's first restatement, and no claiming path puts that
+ * first sighting further out than a full shell range plus the residual
+ * matcher's distance allowance (creation_start_match); the pairwise
+ * tank-birth window sits well inside that. The birth sampler must scan at
+ * least this far ahead of the clock, or a long-range claim pops in
+ * mid-flight -- the corpus already carries a 57.7-tick span, right
+ * against the 58-tick window this replaces. */
+const MAX_SHELL_BIRTH_SPAN_TICKS = (SHELL_RANGE_PIXELS +
+	SHELL_MATCH_ERROR_PIXELS * 2) / SHELL_SPEED_PIXELS_PER_TICK;
 /* A lagging sender's record timestamps drift against its simulation by a
  * few updates in either direction, so an on-track restatement can sit
  * this far from where a uniform-time reading of the chain puts it. */
@@ -3859,8 +3869,7 @@ function shell_birth_positions_at(game, player, tick) {
 		if (births[mid].end_time <= tick) lo = mid + 1;
 		else hi = mid;
 	}
-	let latest_end = tick + MAX_POSITION_INTERPOLATION_TICKS * 2 +
-		SHELL_TANK_BIRTH_ERROR_PIXELS / SHELL_SPEED_PIXELS_PER_TICK;
+	let latest_end = tick + MAX_SHELL_BIRTH_SPAN_TICKS;
 	let positions = [];
 	for (let i = lo; i < births.length && births[i].end_time <= latest_end; i++) {
 		let birth = births[i];
