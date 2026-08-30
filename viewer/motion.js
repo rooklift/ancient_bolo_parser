@@ -675,7 +675,8 @@ function pillbox_shell_successor_states(previous, next, duration) {
 	return [...states_by_key.values()];
 }
 
-function pillbox_shell_terminal_match(previous, terminal, duration, start_time) {
+function pillbox_shell_terminal_match(previous, terminal, duration, start_time,
+	lead_pixels = 0) {
 	if (!previous.pillbox_orbit_states) return undefined;
 	let matches = [];
 	for (let previous_state of previous.pillbox_orbit_states) {
@@ -756,7 +757,8 @@ function pillbox_shell_terminal_match(previous, terminal, duration, start_time) 
 		match.cost = Math.abs(match.distance - expected_distance);
 	}
 	matches = matches.filter(match =>
-		match.distance <= expected_distance + SHELL_MATCH_ERROR_PIXELS);
+		match.distance <= expected_distance + SHELL_MATCH_ERROR_PIXELS +
+			lead_pixels);
 	if (!matches.length) return null;
 	matches.sort((a, b) => a.cost - b.cost);
 	let best = matches[0];
@@ -918,10 +920,14 @@ function ordinary_shell_position_variants(shell) {
  * keeps the strict window. Lead matches carry the dilated penalty so an
  * in-window story is always preferred. */
 function shell_terminal_match(previous, terminal, duration, start_time,
-	lead_pixels = 0) {
+	lead_pixels = 0, pillbox_lead_pixels = 0) {
 	if (terminal.direction !== null && terminal.direction !== previous.direction) return null;
+	/* Production matching gives orbit-tracked shells no lead allowance: their
+	 * distances are discrete, so lead has never been needed there. The extra
+	 * parameter exists for the terminal-failure diagnostics only, which relax
+	 * one constraint at a time to name the one that killed a story. */
 	let pillbox_match = pillbox_shell_terminal_match(previous, terminal, duration,
-		start_time);
+		start_time, pillbox_lead_pixels);
 	if (pillbox_match !== undefined) return pillbox_match;
 	let expected_distance = duration * SHELL_SPEED_PIXELS_PER_TICK;
 	/* A recovered exact trajectory can miss an authoritative object hit by
@@ -2515,22 +2521,37 @@ function creation_start_match(creation, start) {
 	return null;
 }
 
-/* Can this unconsumed shot have flown, unobserved, into this impact? */
-function creation_fate_match(creation, fate) {
+/* Can this unconsumed shot have flown, unobserved, into this impact?
+ * `extra_flight_ticks` widens the flight-time window for a fire event
+ * whose true moment predates its record: a shot and its impact reported
+ * in the SAME record (duration zero) is the normal case for point-blank
+ * flights shorter than one record gap, and the fire then happened up to
+ * that gap before the shared timestamp. The expected flight is an
+ * interval, [duration, duration + extra], and cost measures the distance
+ * outside it; extra = 0 reproduces the exact original behaviour. */
+function creation_fate_match(creation, fate, extra_flight_ticks = 0) {
 	let terminal = fate.terminals[0];
 	let duration = fate.time - creation.time;
-	if (duration <= 0 || duration > MAX_STITCH_GAP_TICKS) return null;
+	if (duration < 0 || duration + extra_flight_ticks <= 0 ||
+		duration > MAX_STITCH_GAP_TICKS) return null;
 	if (terminal.direction !== null && terminal.direction !== undefined &&
 		terminal.direction !== creation.direction) return null;
-	let reach = Math.min(duration * SHELL_SPEED_PIXELS_PER_TICK,
+	let reach = Math.min(
+		(duration + extra_flight_ticks) * SHELL_SPEED_PIXELS_PER_TICK,
 		SHELL_RANGE_PIXELS) + SHELL_MATCH_ERROR_PIXELS;
+	let flight_cost = distance => {
+		let low = duration * SHELL_SPEED_PIXELS_PER_TICK;
+		let high = (duration + extra_flight_ticks) *
+			SHELL_SPEED_PIXELS_PER_TICK;
+		return (distance < low ? low - distance
+			: distance > high ? distance - high : 0) / 2;
+	};
 	if (creation.kind === "pill") {
 		let distance = pillbox_source_terminal_distance(creation, terminal);
 		if (distance === null || distance > reach) return null;
 		if (duration - distance / SHELL_SPEED_PIXELS_PER_TICK >
 			MAX_FATE_EVENT_LAG_TICKS) return null;
-		return { distance, cost: Math.abs(distance -
-			duration * SHELL_SPEED_PIXELS_PER_TICK) / 2 };
+		return { distance, cost: flight_cost(distance) };
 	}
 	let target_x, target_y, slack;
 	if (terminal.type === "point") {
@@ -2556,8 +2577,7 @@ function creation_fate_match(creation, fate) {
 		if (forward <= 0 || Math.atan2(lateral, forward) >
 			SHELL_DIRECTION_TOLERANCE + Math.atan2(slack, distance)) return null;
 	}
-	return { distance, cost: Math.abs(distance -
-		duration * SHELL_SPEED_PIXELS_PER_TICK) / 2 };
+	return { distance, cost: flight_cost(distance) };
 }
 
 function apply_forced_terminal(end, fate, match) {
@@ -2625,14 +2645,19 @@ function apply_forced_unseen(creation, fate, units) {
 	for (let terminal of fate.terminals) {
 		if (applied >= units) break;
 		if (terminal.match_time !== undefined) continue;
+		/* One terminal is one shell's impact: a terminal already given an
+		 * unseen source of EITHER kind is spoken for, and stamping it
+		 * again would waste this claim on it while an identical sibling
+		 * stays unexplained. */
+		if (terminal.unseen_pillbox_source || terminal.unseen_tank_source) {
+			continue;
+		}
 		if (creation.kind === "pill") {
-			if (terminal.unseen_pillbox_source) continue;
 			terminal.unseen_pillbox_source = true;
 			terminal.pillbox_source_x = creation.pixel_x;
 			terminal.pillbox_source_y = creation.pixel_y;
 			terminal.pillbox_source_direction = creation.direction;
 		} else {
-			if (terminal.unseen_tank_source) continue;
 			terminal.unseen_tank_source = true;
 			terminal.tank_source_x = creation.pixel_x;
 			terminal.tank_source_y = creation.pixel_y;
@@ -2650,14 +2675,13 @@ function resolve_residual_shell_fates(snapshots) {
 	for (let index = 0; index < snapshots.length; index++) {
 		let snapshot = snapshots[index];
 		let final = index === snapshots.length - 1;
+		/* The gap back to the sender's previous record bounds how late
+		 * this record's timestamps can be: how far an event may lead an
+		 * end's receiver-clock arrival estimate, and how long before its
+		 * record a same-record shot can have been fired. */
+		let gap = index > 0 ? snapshot.time - snapshots[index - 1].time : 0;
 		for (let shell of snapshot.shells) {
 			if (shell.next_time === undefined && !final) {
-				/* The gap back to the sender's previous record bounds how
-				 * late this observation's timestamp can be, which is how far
-				 * an event record may legitimately lead the receiver-clock
-				 * arrival estimate below. */
-				let gap = index > 0
-					? snapshot.time - snapshots[index - 1].time : 0;
 				ends.push({ shell, time: snapshot.time, gap });
 			}
 			if (index > 0 && !shell.matched_from_previous &&
@@ -2676,12 +2700,14 @@ function resolve_residual_shell_fates(snapshots) {
 		let pill_sources = snapshot.unclaimed_pillbox_sources ??
 			group_shot_sources(snapshot.pillbox_sources);
 		for (let source of pill_sources) {
-			creation_groups.push({ kind: "pill", time: snapshot.time, ...source });
+			creation_groups.push({ kind: "pill", time: snapshot.time, gap,
+				...source });
 		}
 		let tank_sources = snapshot.unclaimed_tank_sources ??
 			group_shot_sources(snapshot.tank_sources);
 		for (let source of tank_sources) {
-			creation_groups.push({ kind: "tank", time: snapshot.time, ...source });
+			creation_groups.push({ kind: "tank", time: snapshot.time, gap,
+				...source });
 		}
 	}
 	if ((!ends.length && !creation_groups.length) ||
@@ -2752,9 +2778,14 @@ function resolve_residual_shell_fates(snapshots) {
 	assignments.sort((a, b) =>
 		(lefts[a.edge.left].kind === "creation") -
 		(lefts[b.edge.left].kind === "creation"));
+	let creation_spent = new Map();
 	for (let { edge, units } of assignments) {
 		let left = lefts[edge.left];
 		let right = rights[edge.right];
+		if (left.kind === "creation") {
+			creation_spent.set(left.creation,
+				(creation_spent.get(left.creation) || 0) + units);
+		}
 		if (left.kind === "end" && right.kind === "start") {
 			if (left.end.shell.next_time !== undefined ||
 				right.start.shell.matched_from_previous) continue;
@@ -2841,6 +2872,184 @@ function resolve_residual_shell_fates(snapshots) {
 		if (divergent) continue;
 		apply_visual_join(best_candidate);
 	}
+
+	/* Phase two: same-record shots onto the fates that remain. A shell
+	 * fired and dead inside one record gap has its shot and its impact
+	 * reported in the same record -- duration zero, which the graph above
+	 * never admits -- and that is the NORMAL case for point-blank flights
+	 * (adjacent-pill crossfire, ramming duels). These edges compete only
+	 * with each other, never with observed shells: phase one is already
+	 * applied, so nothing it explained can degrade, and capacity it spent
+	 * is honoured. Forced winners get the same unseen-source marking as
+	 * phase-one leftovers. */
+	let leftover_fates = [];
+	for (let fate of fate_groups) {
+		let open = fate.terminals.filter(terminal =>
+			terminal.match_time === undefined &&
+			!terminal.unseen_pillbox_source &&
+			!terminal.unseen_tank_source).length;
+		if (open) leftover_fates.push({ fate, count: open });
+	}
+	let leftover_creations = creation_groups
+		.map(creation => ({ creation, count:
+			creation.count - (creation_spent.get(creation) || 0) }))
+		.filter(item => item.count > 0 && item.creation.gap > 0);
+	if (!leftover_fates.length || !leftover_creations.length) return;
+	let second_edges = [];
+	for (let li = 0; li < leftover_creations.length; li++) {
+		let creation = leftover_creations[li].creation;
+		for (let ri = 0; ri < leftover_fates.length; ri++) {
+			let fate = leftover_fates[ri].fate;
+			if (fate.time !== creation.time) continue;
+			let match = creation_fate_match(creation, fate, creation.gap);
+			if (match) {
+				second_edges.push({ left: li, right: ri, match,
+					cost: match.cost });
+			}
+		}
+	}
+	for (let { edge, units } of forced_bipartite_assignments(
+		leftover_creations, leftover_fates, second_edges)) {
+		apply_forced_unseen(leftover_creations[edge.left].creation,
+			leftover_fates[edge.right].fate, units);
+	}
+}
+
+/* Terminal-failure diagnostics: why is each still-unexplained terminal
+ * unexplained? Post-hoc and read-only. For every terminal that finished
+ * the pipeline with no matched shell and no unseen-source attribution,
+ * probe the nearby shell observations and unclaimed shots with the same
+ * predicates the residual pass used, relaxing one constraint at a time,
+ * and name the constraint that killed the nearest-to-viable story. This
+ * is measurement, not reconstruction: nothing here writes to shells or
+ * terminals, and the classes feed the report tool's tally, which is the
+ * starting data for terminal-matching work. Failure reasons in rank
+ * order, nearest-to-explained first; a terminal takes the best rank any
+ * candidate achieves. */
+const TERMINAL_FAILURE_RANK = new Map([
+	"edge_unforced",          /* a legal edge existed; the flow declined it */
+	"end_continued",          /* a matching shell was continued past it */
+	"end_claimed_other_fate", /* a matching shell took a different terminal */
+	"creation_unforced",      /* an unclaimed shot reaches it; not forced */
+	"timing_lag",             /* geometry fine; event trails arrival too far */
+	"timing_lead",            /* geometry fine; event leads beyond the gap */
+	"window_expired",         /* geometry fine; end older than the edge window */
+	"orbit_miss",             /* orbit-tracked ends nearby; no orbit enters */
+	"ray_miss",               /* ordinary ends nearby; every ray misses */
+	"direction",              /* only wrong-direction ends nearby */
+	"no_candidate",           /* nothing at all to probe */
+].map((reason, rank) => [reason, rank]));
+
+function classify_terminal_candidate(shell, end_time, gap, terminal,
+	terminal_time) {
+	let duration = terminal_time - end_time;
+	if (terminal.direction !== null && terminal.direction !== undefined &&
+		terminal.direction !== shell.direction) {
+		return "direction";
+	}
+	let lead_pixels = Math.min(gap, MAX_POSITION_INTERPOLATION_TICKS) *
+		SHELL_SPEED_PIXELS_PER_TICK;
+	let match = shell_terminal_match(shell, terminal, duration, end_time,
+		lead_pixels);
+	if (!match) {
+		/* Unreachable under the pass's own bounds. Re-test with the lead
+		 * widened to the shell's whole flight range, purely to separate a
+		 * timing failure from a geometric one. */
+		match = shell_terminal_match(shell, terminal, duration, end_time,
+			SHELL_RANGE_PIXELS, SHELL_RANGE_PIXELS);
+		if (match && match.distance <=
+			SHELL_RANGE_PIXELS + SHELL_MATCH_ERROR_PIXELS) {
+			return duration > MAX_SHELL_INTERPOLATION_TICKS
+				? "window_expired" : "timing_lead";
+		}
+		return shell.pillbox_orbit_states ? "orbit_miss" : "ray_miss";
+	}
+	if (duration > MAX_SHELL_INTERPOLATION_TICKS) return "window_expired";
+	if (duration - match.distance / SHELL_SPEED_PIXELS_PER_TICK >
+		MAX_FATE_EVENT_LAG_TICKS) return "timing_lag";
+	if (shell.next_time !== undefined) {
+		return shell.next_terminal ? "end_claimed_other_fate" : "end_continued";
+	}
+	return "edge_unforced";
+}
+
+function terminal_candidate_kind(shell) {
+	if (shell.pillbox_source_x !== undefined ||
+		shell.pillbox_orbit_states) return "P";
+	if (shell.starts_at_tank || shell.birth_time !== undefined) return "T";
+	return "?";
+}
+
+function describe_terminal_failure(snapshots, index, terminal) {
+	let time = snapshots[index].time;
+	let best = null;
+	let consider = (reason, kind, candidate) => {
+		let rank = TERMINAL_FAILURE_RANK.get(reason);
+		if (!best || rank < best.rank) best = { reason, rank, kind, candidate };
+	};
+	for (let j = index; j >= 0; j--) {
+		let snapshot = snapshots[j];
+		let duration = time - snapshot.time;
+		if (duration > MAX_STITCH_GAP_TICKS) break;
+		if (duration < 0) continue;
+		let gap = j > 0 ? snapshot.time - snapshots[j - 1].time : 0;
+		for (let shell of duration > 0 ? snapshot.shells : []) {
+			let reason = classify_terminal_candidate(shell, snapshot.time, gap,
+				terminal, time);
+			consider(reason, terminal_candidate_kind(shell), {
+				time: snapshot.time, pixel_x: shell.pixel_x,
+				pixel_y: shell.pixel_y, direction: shell.direction,
+			});
+		}
+		/* Unclaimed shots are the residual pass's other explainer,
+		 * including a same-record shot probed with the fire-time window
+		 * the pass's second phase grants it. The unclaimed lists predate
+		 * that pass's own consumption, so a source it forced elsewhere
+		 * can still appear here; the class is read as "a fired shot could
+		 * reach it", not "one remains unspent". */
+		for (let [kind, sources, creation_kind] of [
+			["P", snapshot.unclaimed_pillbox_sources, "pill"],
+			["T", snapshot.unclaimed_tank_sources, "tank"],
+		]) {
+			for (let source of sources || []) {
+				let creation = { kind: creation_kind, time: snapshot.time,
+					...source };
+				if (creation_fate_match(creation, { time,
+					terminals: [terminal] }, duration > 0 ? 0 : gap)) {
+					consider("creation_unforced", kind, {
+						time: snapshot.time, pixel_x: source.pixel_x,
+						pixel_y: source.pixel_y, direction: source.direction,
+					});
+				}
+			}
+		}
+	}
+	return {
+		time,
+		event_type: terminal.event_type || "unknown",
+		terminal_type: terminal.type,
+		pixel_x: terminal.type === "point" ? terminal.pixel_x : terminal.min_x,
+		pixel_y: terminal.type === "point" ? terminal.pixel_y : terminal.min_y,
+		direction: terminal.direction,
+		reason: best ? best.reason : "no_candidate",
+		kind: best ? best.kind : "-",
+		candidate: best ? best.candidate : null,
+	};
+}
+
+function describe_unmatched_terminals(snapshots) {
+	let described = [];
+	for (let index = 0; index < snapshots.length; index++) {
+		let snapshot = snapshots[index];
+		for (let terminal of snapshot.terminals) {
+			if (terminal.match_time !== undefined ||
+				terminal.unseen_pillbox_source ||
+				terminal.unseen_tank_source) continue;
+			described.push(describe_terminal_failure(snapshots, index,
+				terminal));
+		}
+	}
+	return described;
 }
 
 /* Shells fly at exactly one speed, so any unevenness along a chain is
@@ -3262,6 +3471,7 @@ const BoloMotion = {
 	build_shell_positions, build_shell_births, build_shell_fall_segments,
 	tank_position_at, tank_direction_at, lgm_position_at, shell_position_at,
 	shell_birth_positions_at, shell_fall_positions_at,
+	describe_unmatched_terminals,
 };
 
 if (typeof module !== "undefined" && module.exports) {

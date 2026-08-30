@@ -836,6 +836,75 @@ their muzzles and shooters, at a matching-ledger give-back of 0.000240
 forward and +1,677 unlinked -- the invented explanations the guard
 entry removed.
 
+## The terminal-failure census -- diagnostic at `adb0537`
+
+Item 6 opened like the backwards-pop work did, with a census before any
+dial: `--describe-terminals` classifies every terminal that ends the
+pipeline unexplained (no matched shell, no unseen source) by the one
+constraint that killed its nearest-to-viable story. Corpus run at
+`adb0537`, 443 files: 148,056 classified, reconciling exactly with
+332,146 unmatched minus the unseen-attributed (172 terminals carry both
+unseen flags, hence the apparent off-by-172 in naive subtraction).
+
+* By reason: `end_continued` 34,277 (23.2%), `no_candidate` 31,723
+  (21.4%), `orbit_miss` 19,602 (13.2%), `edge_unforced` 13,263 (9.0%),
+  `end_claimed_other_fate` 12,639 (8.5%), `direction` 9,854,
+  `ray_miss` 8,629, `creation_unforced` 7,114, and timing classes
+  under 4% each. Largest single signature:
+  `pillbox_damage:end_continued:T`, 19,725.
+* Dissecting that signature on the fixture found not stream turnover
+  but **adjacent-pill crossfire**: a pill returning fire at a tank
+  sends shells through its neighbour pill one tile away (~25px,
+  ~12 ticks -- shorter than a record gap), so the shells are never
+  restated and the `pillbox_fires` shot and the neighbour's
+  `pillbox_damage` arrive in the same record. `creation_fate_match`
+  required `duration > 0`, so a same-record shot could never explain a
+  same-record impact -- the commonest case for point-blank flights was
+  unexplainable by construction. The nearby tank stream then wins the
+  census label as a geometric red herring (the classifier ranks end
+  stories above creation stories).
+* Fixture-side measurement of the hole: admitting same-record sources
+  raises creation-explainable unexplained terminals from 154 to 991 of
+  1,639 -- 60%, an upper bound but the dominant structural gap by far.
+
+## Same-record unseen shots -- second residual phase
+
+The fix: after the residual flow runs untouched, a second forced
+assignment matches same-record shots (fire-time window widened by the
+sender's record gap, `creation_fate_match` interval cost) onto the
+fates that remain unexplained. Strictly additive by construction --
+the edges compete only with each other, phase one is already applied,
+and its spent creation capacity is honoured.
+
+Fixture: unexplained 1,639 -> 1,103 (-33%);
+`terminals_unseen_pillbox_source` 864 -> 1,209,
+`terminals_unseen_tank_source` 934 -> 1,125 (sum +536, exactly the
+census drop). Everything else in the report and the entire drawn-motion
+audit are byte-identical. The census red herrings deflate with the hole:
+`direction` 208 -> 18, `no_candidate` 406 -> 224, `end_continued`
+354 -> 244.
+
+Corpus verification at `20694f2`, 443 files: the additivity argument
+held exactly at scale. `terminals_unseen_pillbox_source`
+120,077 -> 163,396, `terminals_unseen_tank_source` 64,185 -> 78,460
+(+57,594 attributions); every other line of the report and the entire
+drawn-motion audit byte-identical to the `adb0537` run. The census
+falls 148,056 -> 90,570 (-39%), and the red herrings deflate as on the
+fixture: `no_candidate` 31,723 -> 9,657, `orbit_miss` 19,602 -> 7,845,
+`direction` 9,854 -> 1,048. What leads now is `end_continued` 22,629
+(25.0%) and `creation_unforced` 22,092 (24.4%) -- the latter being
+shots that reach their impacts but lose to rival stories inside the
+forcing margin, the near-claims the next dial has to arbitrate.
+
+One footnote the corpus exposed: the both-flags overlap grew 172 -> 280,
+because `apply_forced_unseen` only skipped terminals already stamped by
+its OWN kind, so a pill claim and a tank claim could stamp the same
+terminal while an identical sibling stayed unexplained. One terminal is
+one shell's impact; the skip now covers either kind, which redirects
+those wasted stamps to open siblings (fixture: no change; corpus:
+expected to convert up to ~280 double-stamps into explanations at the
+next measured commit).
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
