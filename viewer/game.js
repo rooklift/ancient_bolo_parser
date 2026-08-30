@@ -218,11 +218,17 @@ function superboom(s, x, y) {
 	}
 }
 
-/* Terrain a dumped (dead) pill can sit on: not a wall, not water. */
+/* Terrain a dumped (dead) pill can sit on: everything except a building,
+ * a shot building, or (provisionally) a boat. River is verified — a tank
+ * that died fording dropped both its pills in the water, straight down the
+ * path with nothing skipped — and across every observed dump no terrain
+ * square has ever been seen refused. Deep sea rests on gameplay
+ * experience, as does the boat refusal (unverified: no dump has yet been
+ * observed reaching one) [E:dump-terrain]. */
 function pill_dumpable(s, x, y) {
 	if (x < 0 || y < 0 || x >= MAP_SIZE || y >= MAP_SIZE) return false;
 	const t = s.grid[y * MAP_SIZE + x];
-	if (t === DEEP_SEA || t === 0 || t === 1 || t === 8 || t === 9) return false;
+	if (t === 0 || t === 8 || t === 9) return false;
 	return !pill_at(s, x, y) && !base_at(s, x, y);
 }
 
