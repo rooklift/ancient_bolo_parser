@@ -733,6 +733,51 @@ in 9.8M observations, and the R classes it targeted are single-snapshot
 shapes it could never touch. The absorption guards, the visually-claimed
 census rule, and the diagnostic breadcrumbs stay.
 
+## Unseen-shot births -- `775fe4b`
+
+The backwards-pop anatomy's named target, measured at `f1e7624` (a
+gitignore line on top of `775fe4b`; engine identical). An origin-less
+chain whose every observation lies on one live pill's orbit at strictly
+increasing steps is claimed as that pill's shot -- no F4 required --
+after every F4-backed and forced explanation has had first refusal.
+Deltas against the guard run:
+
+* `shells_unseen_pillbox_birth` 14,352: lost-F4 shells recovered, each
+  now drawn from the muzzle with its shooter named.
+  `shells_from_pillbox` 964,272 + 14,352 = 978,624 exactly;
+  652,279 + 978,624 = 1,630,903 = `shell_births`, the birth identity
+  exact as ever. `shells_with_pillbox_source` +104,285 -- about 7.3
+  observations of attribution carried down each claimed chain, matching
+  the three-to-seven chain lengths inspected on 101202.10.
+* `pop_ins` 59,352 -> 45,001, down 24% -- one less than the claim
+  count, one claim sitting in a first snapshot where it never counted.
+  `pops_paired_backwards` 5,792 -> 3,908, down 32.5% and now well BELOW
+  the pre-guard 5,514: the claimed shells were the reappearing-behind
+  side of the pairs, exactly as the anatomy said.
+  `pops_paired_forward` 9,292 -> 6,579.
+* Every matching metric is byte-identical -- matched forward, unlinked,
+  terminals, every track number -- as a claims-only change must be.
+  `pop_outs`, `terminal_links_rushed` and the seam pair (129 / 3.16)
+  likewise. The only other audit movement is a small speed-bucket
+  shuffle (`rush_links` +34 of 8.1M links) from smoothing re-anchoring
+  on claimed heads' exact orbit pixels.
+
+Confidence rules held up: raw orbit membership alone would have claimed
+half again as many on 101202.10 (50 against the 37 claimed); chains of
+two or more corroborated observations, single sightings only exact and
+at most four steps from the muzzle, and the one-surviving-pill rule
+trim the coincidences. Claimed heads sit at steps 3-10 -- first seen
+one or two restatements after firing, the lost-F4 profile.
+
+Branch total on the drawn axis, against the pre-branch `70b1227`
+baseline: `rush_links` 4,841 -> 4,029, `pops_paired_backwards`
+5,514 -> 3,908, `pops_paired_forward` 9,162 -> 6,579, `hover_links`
+3,642 -> 4,164, at a matching-ledger give-back of 0.000240 forward and
++1,677 unlinked -- the guard entry's invented explanations leaving. The
+remaining 3,908 backwards pairs are unnamed; a `--describe-backwards`
+run at this commit would show what survives now that the `U` class is
+visible.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
