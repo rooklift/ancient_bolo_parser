@@ -11,10 +11,20 @@
  *
  * The log itself can settle it, model-independently.  A dumped pill's
  * true square shows up at its NEXT PICKUP: a `FF 0n` names the pill
- * outright, and the picker's own position rides the same record — the
- * tank's centre square ([E:centre-square]) or the LGM's (+8-centred,
- * [E:centring]).  Matching that square against the serpentine path from
- * the death square identifies the path position the pill really occupied.
+ * outright, and the picker's tank position rides the same record.  Could
+ * that position be a tile stale — the pickup happening mid-interval and
+ * the record restating a tank already past the square?  The EVENTED
+ * pills answer that as a control: a pill sitting where the initial list,
+ * a `FF 50` plant or a `FF 51` LGM dump put it has a known square, so
+ * every pickup of one calibrates the method.  The control says the
+ * restated tank centre ([E:centre-square]) IS the pill's square, exactly,
+ * in every observed case — while the LGM position riding the same record
+ * is noise (stale by up to dozens of tiles), so LGM subpackets are not
+ * used as candidates at all.  The control is re-tallied on every run;
+ * a nonzero off-square count is the method's noise floor.
+ *
+ * Matching the tank square against the serpentine path from the death
+ * square then identifies the path position the pill really occupied.
  * With several pills dumped at once the observed positions must be
  * strictly increasing in pill-index order (shared iterator, lowest index
  * first) — a violation would falsify the ORDER, so it is reported loudly
@@ -92,6 +102,7 @@ const totals = {
 	unobserved: 0, same_record: 0, order_violations: 0,
 	used: {}, skipped: {}, skipped_occupied: 0, skipped_tainted: 0,
 	skipped_offmap: 0,
+	control_exact: 0, control_off: {}, /* evented-position pickups: tank tile vs known pill tile */
 };
 
 function bump(table, terrain) {
@@ -128,6 +139,21 @@ function process_log(file) {
 			pills: state.pills.map((p, k) => ({ x: p.x, y: p.y, ground: p.inTank === null, modelled: modelled[k] })),
 			bases: state.bases.map(b => ({ x: b.x, y: b.y })),
 		} : null;
+
+		/* control: a pickup of a pill whose position is EVENTED tests
+		 * whether the restated tank tile really is the pill's tile */
+		const tp = rec.subpackets.find(s => s.type === "tank_position");
+		if (tp) {
+			for (const sub of rec.subpackets) {
+				if (sub.type !== "pill_pickup") continue;
+				const p = state.pills[sub.pillbox];
+				if (!p || p.inTank !== null || modelled[sub.pillbox]) continue;
+				const [cx, cy] = centre_square(tp);
+				const d = Math.max(Math.abs(cx - p.x), Math.abs(cy - p.y));
+				if (d === 0) totals.control_exact++;
+				else totals.control_off[d] = (totals.control_off[d] || 0) + 1;
+			}
+		}
 
 		const effects = [];
 		BoloGame.apply_record(state, rec, effects, null);
@@ -190,9 +216,11 @@ function process_log(file) {
 		const rec = recs[i];
 		const pp = rec.subpackets.filter(s => s.type === "pill_pickup");
 		if (!pp.length) continue;
+		/* tank tile only: the same-record LGM position is stale noise
+		 * (the control above would show it off by up to dozens of tiles) */
 		const cands = [];
 		for (const s of rec.subpackets) {
-			if (s.type === "tank_position" || s.type === "lgm_position") cands.push(centre_square(s));
+			if (s.type === "tank_position") cands.push(centre_square(s));
 		}
 		pickups.push({ rec: i, pills: pp.map(s => s.pillbox), cands, multi: pp.length > 1 });
 	}
@@ -256,6 +284,9 @@ for (const root of roots) {
 	else process_log(root);
 }
 
+const offs = Object.keys(totals.control_off).sort((a, b) => a - b).map(d => `${totals.control_off[d]}x off-by-${d}`);
+console.log(`control (evented-position pickups): ${totals.control_exact} exact` +
+	(offs.length ? `, ${offs.join(", ")}` : ", 0 off-square"));
 console.log(`logs: ${totals.logs}   serpentine dumps: ${totals.dumps} (${totals.dumped_pills} pills)`);
 console.log(`pill squares observed via pickup: ${totals.observed}` +
 	`   (ambiguous ${totals.ambiguous}, multi-pickup ${totals.same_record}, unobservable ${totals.unobserved})`);
