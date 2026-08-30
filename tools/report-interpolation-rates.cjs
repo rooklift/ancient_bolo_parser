@@ -289,8 +289,8 @@ function describe_terminals(diagnostics, engines, game, file) {
 		if (!Array.isArray(snapshots)) continue;
 		for (let record of engines.motion.describe_unmatched_terminals(
 			snapshots)) {
-			let signature =
-				`${record.event_type}:${record.reason}:${record.kind}`;
+			let signature = `${record.event_type}:${record.reason}` +
+				`${record.detail || ""}:${record.kind}`;
 			diagnostics.classes.set(signature,
 				(diagnostics.classes.get(signature) || 0) + 1);
 			if (examples < TERMINAL_EXAMPLES_PER_FILE) {
