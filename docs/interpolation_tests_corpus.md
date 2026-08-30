@@ -75,7 +75,10 @@ after the `90925b0` guard run (`775fe4b`, `a78253b`) leave every matching
 metric byte-identical, so the guard run remains the measured state of record.
 The last row is no longer `main`'s row, though: `main` has since gained the
 death-dump terrain commits (`72adf37`, `b805f2c`), which touch
-`viewer/game.js` -- a module the report loads -- and are unmeasured. (Earlier
+`viewer/game.js` -- a module the report loads -- and were unmeasured until
+the `97fa412` run recorded in the headline table: `main`'s HEAD is now
+measured, and the current measured state of record is the subsumed-joins
+branch at `029acac` (see its section). (Earlier
 revisions of this paragraph pinned the file at `926f391`/`4572cff`, then at
 `a74033a`/`380e333`; later sections were measured from live checkouts of the
 named commits, per their sections.)
@@ -111,10 +114,23 @@ Constant at all ten commits, and worth having once:
 | `4c791a0` | forced assign + jitter | 0.988925 | 0.004020 | 0.827713 | 233,180 |
 | `b345ef0` | temporal gate | 0.988826† | 0.004112† | 0.827709 | 233,180†† |
 | `a74033a` | cost-forcing + pop rescue, v1.0.9 | 0.993609 | 0.002202 | 0.828353 | 232,342 |
-| `ad2168d` | leading impacts | **0.993965** | **0.002019** | **0.829538** | **233,481** |
+| `ad2168d` | leading impacts | 0.993965 | 0.002019 | 0.829538 | 233,481 |
 | `90925b0` | absorption guards | 0.993725 | 0.002190 | 0.829357 | 233,450 |
+| `97fa412` | main, death dumps in | 0.994274 | 0.002143 | 0.832129 | 234,701 |
+| `029acac` | subsumed joins | **0.994671** | **0.001949** | **0.833354** | **236,059** |
 
-`ad2168d` holds all four headline records (the terminal one with a caveat --
+The two rows below the guard run were measured later, from the corpus
+holder's live checkouts: `97fa412` closes the unmeasured-`main` gap the
+currency notes tracked (death-dump terrain and everything since the guard
+run included), and `029acac` -- the subsumed-joins branch, see its section
+-- takes all four headline records at once. Those runs report
+`files_failed 1` where the campaign runs report 0: one extra, unparseable
+file now sits in the corpus tree and contributes nothing, and every
+per-corpus total (shells, terminals by class, tank and LGM points and
+ticks) is byte-identical to the pinned 443-log corpus, so the rows are
+comparable.
+
+Before those rows, `ad2168d` held all four headline records (the terminal one with a caveat --
 the unmeasured intermediate state `f340943` sat higher, see its section).
 `90925b0` deliberately gives part of each rate record back -- invented
 explanations leaving the ledger, see its section -- and lands between
@@ -1048,7 +1064,62 @@ matches, not attributions), unseen attributions +62,592 net, pop-outs
 at 3,096 against `70b1227`'s 5,514 (-44%) and forward-paired at 5,733
 against 9,162 (-37%).
 
-## Findings
+## Subsumed joins in the residual flow -- `029acac`
+
+Origin: a replay outside the corpus (031403.1), where a pillbox shot
+that visibly hits a stationary tank popped mid-air with the tank hit
+unexplained. The shell's last restatement arrived with the sender's
+clock lying by six ticks; the pairwise matcher rightly refused the hop,
+and in the residual flow the dilated join to that orphan restatement
+(cost 11.18) and the fate edge to the impact (9.93) then sat within the
+forcing margin of each other -- two rival consumers of one chain end
+that are really halves of one story, each vetoing the other. The
+`edge_unforced` census class, in other words, seen from inside.
+
+Three changes, all residual-layer (the pairwise matcher, its margins,
+and the absorption census are untouched; a first attempt that admitted
+off-clock continuations in the pairwise successor gate was abandoned
+after it broke three designed guarantees -- it poisoned long stitches
+into hover-and-rush and let the stitcher claim ambiguous stream-mates
+around the census): a join edge to a lone orphan start that is provably
+an intermediate of a fate edge's flight (exact orbit point, surviving
+bradian, strictly between the end's step and the fate's entry step) is
+*subsumed* -- kept out of the flow so it cannot cost the fate its
+forcing; a forced terminal then absorbs such intermediates through
+`absorb_intermediate_observations` and its census, re-timing the
+arrival from the last absorbed observation; and `shell_terminal_match`
+extends the residual pass's gap-bounded lead allowance to orbit-tracked
+ends (previously diagnostics-only on the assumption discrete distances
+never need it -- false for an end whose restatement was delayed: one
+fixture fall was being refused by 0.016px), with the ordinary branch's
+dilated penalty mirrored.
+
+Fixture: unlinked 169 -> 158, terminals_matched 20,672 -> 20,692
+(tank hits +15), matched forward 0.995254 -> 0.995634, pop-outs
+350 -> 322, at the cost of twelve more rushed terminal links
+(477 -> 489). The new synthetic test reproduces the mutual veto
+bit-exactly and fails on the previous engine.
+
+Corpus, `97fa412` -> `029acac`, both runs by the corpus holder:
+`shells_matched_forward` +3,892 (0.994274 -> 0.994671), unlinked
+21,037 -> 19,134 (-9.0%), `terminals_matched` +2,383
+(0.832129 -> 0.833354) with **every class gaining** -- `tank_hit`
++1,358, `explosion` +371, `pillbox_damage` +355, `shell_falls` +297,
+`base_damage` +2 -- the first commit since `926f391` with no class
+paying for another. The attribution ledger trades upward in kind:
+unseen-source marks -126 and orbit-membership/stream birth claims -143
+(with `shells_with_birth` +1,168), orphans that used to need a claim of
+their own now absorbed into chains that already carry one.
+
+Drawn axis: pop-outs 56,025 -> 52,133 -- exactly the -3,892 the match
+gains predict, the same complementarity the die-at-impact section saw
+-- pop-ins -1,357, forward-paired pops -643, hover links -169, seam
+jumps 129 -> 119. The costs: `terminal_links_rushed` +1,674 (+2.4%,
+the same proportion as the fixture -- a lead-admitted death draws
+slightly fast from a late-stamped anchor, traded against a pop plus an
+unexplained impact), rush links +190, and backwards pops 3,096 -> 3,116
+(+20 on a metric whose absolute base shrank 7%; flat, but the one
+number worth re-checking on the next run).
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
   line leads the branch point on every headline metric (0.975030 against
@@ -1115,6 +1186,8 @@ against 9,162 (-37%).
   moved past it: the death-dump terrain commits (`72adf37`, `b805f2c`) touch
   `viewer/game.js`, which the report loads, so `main`'s own HEAD is unmeasured
   until the next run. (When this file first closed the current pair was
-  `4572cff`/`926f391`, later `380e333`/`a74033a`.)
+  `4572cff`/`926f391`, later `380e333`/`a74033a`. Since resolved: `main`'s
+  HEAD was measured at `97fa412` and the line extended by the subsumed-joins
+  branch at `029acac` -- see the headline table and its section.)
 
 <!-- Remember to update the "headline table" at top! -->

@@ -771,6 +771,12 @@ function pillbox_shell_terminal_match(previous, terminal, duration, start_time,
 				match.pixel_y - previous.pixel_y);
 		}
 		match.cost = Math.abs(match.distance - expected_distance);
+		/* Same rule as the ordinary branch below: a match only reachable
+		 * through the lead allowance carries the dilated penalty, so an
+		 * in-window story is always preferred. */
+		if (match.distance > expected_distance + SHELL_MATCH_ERROR_PIXELS) {
+			match.cost += DILATED_JOIN_PENALTY_PIXELS;
+		}
 	}
 	matches = matches.filter(match =>
 		match.distance <= expected_distance + SHELL_MATCH_ERROR_PIXELS +
@@ -936,12 +942,14 @@ function ordinary_shell_position_variants(shell) {
  * keeps the strict window. Lead matches carry the dilated penalty so an
  * in-window story is always preferred. */
 function shell_terminal_match(previous, terminal, duration, start_time,
-	lead_pixels = 0, pillbox_lead_pixels = 0) {
+	lead_pixels = 0, pillbox_lead_pixels = lead_pixels) {
 	if (terminal.direction !== null && terminal.direction !== previous.direction) return null;
-	/* Production matching gives orbit-tracked shells no lead allowance: their
-	 * distances are discrete, so lead has never been needed there. The extra
-	 * parameter exists for the terminal-failure diagnostics only, which relax
-	 * one constraint at a time to name the one that killed a story. */
+	/* The caller's lead allowance extends to orbit-tracked shells too: their
+	 * distances are discrete, but a chain end reached through a dilated link
+	 * carries the very timestamp lie the lead exists to forgive, so its
+	 * remaining flight is understated the same way. Pairwise matching passes
+	 * no lead and keeps the strict window for both branches; the diagnostics
+	 * still pass the two leads separately to relax one constraint at a time. */
 	let pillbox_match = pillbox_shell_terminal_match(previous, terminal, duration,
 		start_time, pillbox_lead_pixels);
 	if (pillbox_match !== undefined) return pillbox_match;
@@ -2001,8 +2009,20 @@ function pillbox_absorption_states(end_shell, target_shell, shell, floor_step) {
  * lying exactly on the stitched path. Left out, it renders as a phantom
  * second shell. Claim every unmatched, origin-less observation between
  * the stitch's endpoints that sits on the segment (within its one-sided
- * quantisation bound), and thread it into the chain in time order. */
-function absorb_intermediate_observations(snapshots, end, start) {
+ * quantisation bound), and thread it into the chain in time order.
+ *
+ * A forced terminal spans a gap the same way a stitch does -- the shell
+ * flew from the chain end to the impact, and its restatements in between
+ * are the same phantom-second-shell class -- so the caller may pass the
+ * terminal's entry orbit states as `target_orbit_states` in place of the
+ * far shell a stitch would supply, plus the stamped `terminal` and its
+ * `event_time`, and the tail then preserves the terminal linkage
+ * apply_forced_terminal recorded and re-times the arrival from the last
+ * absorbed observation -- the best-known anchor -- under the same cap
+ * rule, so the final drawn link is not compressed by the chain end's
+ * lying timestamp. */
+function absorb_intermediate_observations(snapshots, end, start,
+	target_orbit_states, terminal, event_time) {
 	let end_shell = end.shell;
 	let anchor_x = end_shell.pillbox_orbit_pixel_x ??
 		end_shell.tank_exact_pixel_x ?? end_shell.pixel_x;
@@ -2017,6 +2037,9 @@ function absorb_intermediate_observations(snapshots, end, start) {
 
 	let final_time = end_shell.next_time;
 	let final_next_shell = end_shell.next_shell;
+	let final_terminal = end_shell.next_terminal;
+	let orbit_target = final_next_shell ?? (target_orbit_states
+		? { pillbox_orbit_states: target_orbit_states } : null);
 	let absorbed = [];
 	let floor_step = -1;
 	for (let snapshot of snapshots) {
@@ -2043,7 +2066,7 @@ function absorb_intermediate_observations(snapshots, end, start) {
 			 * rule out is not this shell however well its geometry
 			 * reads. */
 			let orbit_states = pillbox_absorption_states(end_shell,
-				final_next_shell, shell, floor_step);
+				orbit_target, shell, floor_step);
 			if (orbit_states !== null) {
 				if (orbit_states.length) {
 					if (joined) visually_claimed++;
@@ -2119,10 +2142,30 @@ function absorb_intermediate_observations(snapshots, end, start) {
 		previous.next_shell = observation.shell;
 		previous = observation.shell;
 	}
+	if (final_terminal && terminal) {
+		let last = absorbed[absorbed.length - 1];
+		let anchor2_x = last.shell.pillbox_orbit_pixel_x ?? last.shell.pixel_x;
+		let anchor2_y = last.shell.pillbox_orbit_pixel_y ?? last.shell.pixel_y;
+		let arrival = last.time + Math.hypot(target_x - anchor2_x,
+			target_y - anchor2_y) / SHELL_SPEED_PIXELS_PER_TICK;
+		final_time = terminal.event_type === "shell_falls" ? arrival
+			: Math.min(event_time, arrival);
+		terminal.match_time = final_time;
+		if (terminal.effect) terminal.effect.time = final_time;
+	}
 	previous.next_time = final_time;
 	previous.next_pixel_x = target_x;
 	previous.next_pixel_y = target_y;
-	previous.next_terminal = false;
+	previous.next_terminal = final_terminal;
+	if (final_terminal) {
+		previous.next_terminal_type = end_shell.next_terminal_type;
+		previous.next_terminal_event_type = end_shell.next_terminal_event_type;
+		if (previous !== end_shell) {
+			end_shell.next_terminal = false;
+			delete end_shell.next_terminal_type;
+			delete end_shell.next_terminal_event_type;
+		}
+	}
 	previous.next_shell = final_next_shell;
 }
 
@@ -2648,7 +2691,7 @@ function creation_fate_match(creation, fate, extra_flight_ticks = 0) {
 
 function apply_forced_terminal(end, fate, match) {
 	let terminal = fate.terminals.find(item => item.match_time === undefined);
-	if (!terminal) return;
+	if (!terminal) return null;
 	/* Same draw rule as the pairwise matcher: only a shell fall, whose
 	 * splash is purely cosmetic, keeps a physics arrival later than the
 	 * record that reported it. No decision/draw split is needed here —
@@ -2674,6 +2717,7 @@ function apply_forced_terminal(end, fate, match) {
 			terminal.effect.py = match.hitbox_pixel_y - terminal.effect.y * 16;
 		}
 	}
+	return terminal;
 }
 
 function apply_forced_origin(creation, start, match) {
@@ -2872,7 +2916,47 @@ function resolve_residual_shell_fates(snapshots) {
 		}
 	}
 
-	let assignments = forced_bipartite_assignments(lefts, rights, edges);
+	/* A restatement on the way to an impact is part of the impact's own
+	 * story, not a rival for it. When one end holds both a fate edge and a
+	 * join edge to a lone orphan start that is provably an intermediate of
+	 * that fate's flight -- an exact orbit point (within its quantisation
+	 * bound) on a bradian surviving at the end, strictly between the end's
+	 * step and the fate's entry step -- the join is subsumed: kept out of
+	 * the flow so it cannot cost the fate its forcing, and the observation
+	 * is absorbed into the terminal segment when the fate is applied.
+	 * Without this the two halves of one true story veto each other --
+	 * the join and the fate land within the margin of each other, neither
+	 * is forced, and the shell pops mid-air with its impact unexplained.
+	 * The subsumed edge stays visible to the visual-join pass below, so a
+	 * fate the flow ends up not applying still leaves the pop rescuable. */
+	let edges_by_left = new Map();
+	for (let edge of edges) {
+		if (lefts[edge.left].kind !== "end") continue;
+		if (!edges_by_left.has(edge.left)) edges_by_left.set(edge.left, []);
+		edges_by_left.get(edge.left).push(edge);
+	}
+	for (let left_edges of edges_by_left.values()) {
+		let fates = left_edges.filter(edge =>
+			rights[edge.right].kind === "fate" && edge.match &&
+			edge.match.pillbox_orbit_states);
+		if (!fates.length) continue;
+		for (let edge of left_edges) {
+			let right = rights[edge.right];
+			if (right.kind !== "start") continue;
+			if (right.start.shell.next_time !== undefined) continue;
+			let end_shell = lefts[edge.left].end.shell;
+			if (fates.some(fate =>
+				right.start.time < rights[fate.right].fate.time &&
+				(pillbox_absorption_states(end_shell,
+					{ pillbox_orbit_states: fate.match.pillbox_orbit_states },
+					right.start.shell, -1) || []).length)) {
+				edge.subsumed = true;
+			}
+		}
+	}
+
+	let assignments = forced_bipartite_assignments(lefts, rights,
+		edges.filter(edge => !edge.subsumed));
 	/* Observed shells claim terminals before unseen shots mark leftovers. */
 	assignments.sort((a, b) =>
 		(lefts[a.edge.left].kind === "creation") -
@@ -2892,7 +2976,16 @@ function resolve_residual_shell_fates(snapshots) {
 			absorb_intermediate_observations(snapshots, left.end, right.start);
 		} else if (left.kind === "end") {
 			if (left.end.shell.next_time !== undefined) continue;
-			apply_forced_terminal(left.end, right.fate, edge.match);
+			let terminal = apply_forced_terminal(left.end, right.fate,
+				edge.match);
+			/* The flight to a forced terminal spans a gap the way a stitch
+			 * does: restatements inside it -- subsumed-join orphans among
+			 * them -- are this shell's, under the same census. */
+			if (terminal) {
+				absorb_intermediate_observations(snapshots, left.end, null,
+					edge.match.pillbox_orbit_states, terminal,
+					right.fate.time);
+			}
 		} else if (right.kind === "start") {
 			if (right.start.shell.matched_from_previous ||
 				right.start.shell.starts_at_tank ||
