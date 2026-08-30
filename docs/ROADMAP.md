@@ -1,7 +1,8 @@
 # Interpolation roadmap
 
 Planned next steps for the shell-reconstruction work, in intended order.
-Written after the forced-assignment / jitter-absorption arc; see
+Written after the forced-assignment / jitter-absorption arc and refreshed
+after the absorption-override / birth-claiming arc; see
 `INTERPOLATION.md` for the current state and the results files for the
 measurement history.
 
@@ -68,6 +69,27 @@ unlinked records; costs on the books: 5,769 terminals given back to
 continue-vs-die reassignments, hover links 454 -> 3,562 (dilated joins
 drawn slow -- wants a drawing-side speed floor), seam jumps 5 -> 128.
 
+## 2c. Absorption clock-override, dense-stream guards, orbit births -- DONE
+
+The 101202.10 clock-spike arc, measured commit by commit in the corpus
+results file. Pill-orbit evidence now overrides the sender's clock in
+jitter absorption, both ways (an exact orbit point strictly between a
+stitch's steps is absorbed however the timestamps lie; an observation
+the surviving orbits rule out is refused however well its geometry
+reads), guarded for dense streams by candidate uniqueness per snapshot.
+The audit gained `--describe-backwards`, whose corpus tally reframed
+the backwards-pop class as STREAM TURNOVER -- dead leaders paired with
+never-claimed followers -- and pointed at two birth-claiming
+mechanisms: unseen shots recovered from orbit membership when the F4
+was lost (14,352 corpus claims), and stream-provenance heads claimed
+where ambiguity propagation had already named their pill (2,785).
+Corpus, whole arc: backwards pops -41%, forward-paired pops -35%, rush
+links -17%, ~17k shells drawn from their muzzles with shooters named;
+hover +14% and a 0.000240 forward-match give-back of invented
+explanations on the books. A rank-pairing rescue for refused groups
+measured a corpus-wide null and was reverted; the account is in the
+results file. Tools now stamp their output with the measuring commit.
+
 ## 3. Draw the unseen shots
 
 ~154k corpus impacts now carry an unseen pill or tank source but render
@@ -100,6 +122,36 @@ updates-vs-ticks slope and jitter amplitude over time; report per
 replay. Explains residual `no_model` chains, could annotate the viewer,
 and is simply a delightful thing to reconstruct. Tool-only.
 
+## 6. Terminal matching for stream leaders
+
+The largest residue, two ways of naming one thing: 17% of corpus
+impacts still unmatched, and ~2,270 of the remaining 3,253 backwards
+pops are pill-stream leaders dying with unexplained fates (their
+followers now claimed, the leaders still pop out). The anatomy says the
+wins are here, not in more motion work. No design yet; the
+`--describe-backwards` examples and the terminal-match failure reasons
+are the starting data.
+
+## 7. Tank-stream turnover (maybe)
+
+The other 982 backwards pairs are tank streams: a lost 5d has no orbit
+anchor (unknown firing tick and sub-pixel origin), so a tank-birth
+analogue of the orbit-membership claim would run on the bradian
+hypothesis machinery with far weaker constraints. Uncertain payoff;
+measure the false-claim risk before believing it. Explicitly optional.
+
+## 8. Small engine debts
+
+* `propagate_identity_down_chain` carries source and birth but not
+  orbit states, so exactness is silently dropped downstream of every
+  stitch.
+* The hover class (4,164 corpus links drawn slow, mostly dilated joins)
+  still wants the drawing-side speed floor item 2b promised; the
+  smoothing pass's own 24px plausibility gate is the other half of it.
+* The seam-jump family (129 links, max 3.16 px, stable since
+  `a74033a`) is on the books but unexplained; small enough to ignore,
+  annoying enough to root-cause someday.
+
 ## Standing questions for the project owner
 
 * Stats surface (item 4): where should it live in the viewer?
@@ -109,4 +161,5 @@ and is simply a delightful thing to reconstruct. Tool-only.
 * Continue-vs-die (item 2b): the pop rescue prefers a seen continuation
   over an inferred death when both fit, costing ~5,769 corpus terminal
   matches. Keep the preference, or should an authoritative fate event
-  outrank a rescued continuation?
+  outrank a rescued continuation? (Item 6 will reopen this.)
+* Tank-birth analogue (item 7): worth the false-claim risk at all?
