@@ -578,6 +578,21 @@ Fixture, against `f340943`:
   genuinely clock-dilated ones, so the strict per-update model rejects
   more of them once they are long enough to test; expected
 
+## v1.0.9 -- `8f6fe27` "Update builder.py"
+
+The release is engine-identical to `a74033a` above, so the pop-rescue numbers
+are the release's numbers: `rate_shells_matched_forward` 0.994427,
+`rate_shells_unlinked` 0.002535, `rate_terminals_matched` 0.856366. Between
+the two commits sit only docs, two audit tools (`find-seam-jumps`,
+`find-hover-links`), packaging (`viewer/builder.py`) and UI-only work in
+`viewer/main.js` and `viewer/renderer.js` (loading bar, menu rearrange,
+raw-shell-dots overlay) -- nothing the report loads, which is `logparse.js`,
+`game.js`, `motion.js` and `network.js`, all byte-identical across the span.
+The one engine change in between, `dd9d730`'s hold-then-fly re-timing, was
+reverted by `c2e1d7f` before the tag, and `git diff dd9d730~1 c2e1d7f` is
+empty, so the revert is clean. Everything measured after `a74033a`
+(`ad2168d` onward) is post-release.
+
 ## Leading impacts -- `ad2168d`
 
 Dilated joins covered the clock lie in one direction; this covers the
