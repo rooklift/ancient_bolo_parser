@@ -156,6 +156,35 @@ if (!fs.existsSync(log1)) {
 		check("fixture same-record unseen shots claimed without cost", [
 			matched, unseen.pill, unseen.tank,
 		], [20638, 1223, 1127]);
+
+		/* The end-side mirror: every chain end with no forward story gets
+		 * a class; the census must equal the unmatched-forward count less
+		 * final-snapshot ends, and the fate_open class (a valid edge to a
+		 * still-unexplained impact -- the die-at-impact target) is
+		 * frozen. */
+		let end_known = new Set(["fate_open", "fate_unseen", "fate_taken",
+			"timing_lag", "timing_lead", "window_expired", "orbit_miss",
+			"ray_miss", "direction", "no_candidate"]);
+		let unfated = 0;
+		let ends_described = 0;
+		let end_reasons_sound = true;
+		let fate_open = 0;
+		for (let snapshots of game.shell_positions) {
+			for (let index = 0; index + 1 < snapshots.length; index++) {
+				for (let shell of snapshots[index].shells) {
+					if (shell.next_time === undefined) unfated++;
+				}
+			}
+			for (let record of BoloMotion.describe_unfated_ends(snapshots)) {
+				ends_described++;
+				if (!end_known.has(record.reason)) end_reasons_sound = false;
+				if (record.reason === "fate_open") fate_open++;
+			}
+		}
+		check("fixture end-side census reconciles", [
+			ends_described, ends_described === unfated, end_reasons_sound,
+			fate_open,
+		], [384, true, true, 63]);
 	}
 
 	let pill_burst = { total: 0, matched: 0 };
