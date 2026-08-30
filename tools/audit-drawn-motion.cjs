@@ -312,6 +312,23 @@ function repo_commit() {
 	}
 }
 
+/* One line summarising every result line above it, excluding provenance
+ * and timing (commit, input, *_ms), so identical results hash identically
+ * across checkouts, invocation paths, and machines: a re-run is declared
+ * byte-identical by comparing this one line instead of diffing files.
+ * Duplicated in report-interpolation-rates.cjs for the same single-file
+ * reason as repo_commit. */
+function content_hash_line(lines) {
+	const { createHash } = require("node:crypto");
+	let stable = lines.filter(line => {
+		let key = line.split("\t")[0];
+		return key !== "commit" && key !== "input" &&
+			key !== "content_hash" && !key.endsWith("_ms");
+	});
+	return `content_hash\t${createHash("sha256")
+		.update(`${stable.join("\n")}\n`).digest("hex")}`;
+}
+
 function print_report(metrics, input) {
 	let lines = [
 		"# GENERATED - drawn shell motion audit; nothing written to disk.",
@@ -337,6 +354,7 @@ function print_report(metrics, input) {
 		`${rate(metrics.pop_outs, metrics.shell_observations)}`);
 	lines.push(`rate_backwards_pops\t` +
 		`${rate(metrics.pops_paired_backwards, metrics.shell_observations)}`);
+	lines.push(content_hash_line(lines));
 	process.stdout.write(`${lines.join("\n")}\n`);
 }
 
