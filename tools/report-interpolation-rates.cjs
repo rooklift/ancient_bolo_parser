@@ -7,9 +7,15 @@
  * series of checked-out historical versions and the outputs compared.
  *
  * Usage (exactly one of):
+ *   node tools/report-interpolation-rates.cjs                  (whole corpus)
  *   node tools/report-interpolation-rates.cjs -f <replay>
  *   node tools/report-interpolation-rates.cjs -d <directory>   (files within)
  *   node tools/report-interpolation-rates.cjs -r <directory>   (recursive)
+ *
+ * With no arguments the corpus is read recursively, found the same way the
+ * other measurement tools find it (BOLO_CORPUS or corpus.json at the repo
+ * root); unconfigured, the tool explains how to configure it rather than
+ * silently measuring something smaller.
  *
  * Every metric is a "key<TAB>value" line. A value of "-" means this repo state
  * does not carry the data at all, which is not the same as a count of zero;
@@ -28,13 +34,19 @@ const REPORT_FORMAT = 1;
 function usage(message) {
 	if (message) console.error(`error: ${message}`);
 	console.error("usage: node tools/report-interpolation-rates.cjs " +
-		"(-f <replay> | -d <directory> | -r <directory>)");
+		"[-f <replay> | -d <directory> | -r <directory>]  " +
+		"(no arguments: the whole corpus)");
 	process.exit(2);
 }
 
 function parse_args(argv) {
 	let modes = { "-f": "file", "-d": "directory", "-r": "recursive" };
-	if (argv.length === 0) usage("no argument given");
+	if (argv.length === 0) {
+		/* Corpus runs are the usual case. corpus_root() exits with advice
+		 * when nothing is configured. */
+		let { corpus_root } = require("./corpus.cjs");
+		return { mode: "recursive", target: corpus_root() };
+	}
 	if (argv.length !== 2) usage("exactly one flag and one path are required");
 	let mode = modes[argv[0]];
 	if (!mode) usage(`unknown flag ${argv[0]}`);
