@@ -26,6 +26,13 @@
  * lines). Reasons rank nearest-to-explained first; see
  * describe_unmatched_terminals in viewer/motion.js.
  *
+ * --describe-ends is the mirror: for every chain end with no forward
+ * story (the engine population behind the audit's drawn pop-outs), a
+ * tally over "reason:event_type:kind" signatures saying what fate was
+ * available and what blocked it (end_class / end_example lines); see
+ * describe_unfated_ends in viewer/motion.js. The two flags can be
+ * combined.
+ *
  * Every metric is a "key<TAB>value" line. A value of "-" means this repo state
  * does not carry the data at all, which is not the same as a count of zero;
  * an older version without shell births reports "-", not "0". Rate lines are
@@ -50,9 +57,14 @@ function usage(message) {
 
 function parse_args(argv) {
 	let describe_terminals = false;
+	let describe_ends = false;
 	argv = argv.filter(arg => {
 		if (arg === "--describe-terminals") {
 			describe_terminals = true;
+			return false;
+		}
+		if (arg === "--describe-ends") {
+			describe_ends = true;
 			return false;
 		}
 		return true;
@@ -62,12 +74,14 @@ function parse_args(argv) {
 		/* Corpus runs are the usual case. corpus_root() exits with advice
 		 * when nothing is configured. */
 		let { corpus_root } = require("./corpus.cjs");
-		return { mode: "recursive", target: corpus_root(), describe_terminals };
+		return { mode: "recursive", target: corpus_root(),
+			describe_terminals, describe_ends };
 	}
 	if (argv.length !== 2) usage("exactly one flag and one path are required");
 	let mode = modes[argv[0]];
 	if (!mode) usage(`unknown flag ${argv[0]}`);
-	return { mode, target: path.resolve(argv[1]), describe_terminals };
+	return { mode, target: path.resolve(argv[1]),
+		describe_terminals, describe_ends };
 }
 
 /* Directory listings are sorted so a corpus is visited in the same order on
@@ -301,11 +315,35 @@ function describe_terminals(diagnostics, engines, game, file) {
 	}
 }
 
+function describe_ends(diagnostics, engines, game, file) {
+	if (typeof engines.motion?.describe_unfated_ends !== "function") {
+		diagnostics.unsupported = true;
+		return;
+	}
+	let examples = 0;
+	for (let snapshots of game.shell_positions || []) {
+		if (!Array.isArray(snapshots)) continue;
+		for (let record of engines.motion.describe_unfated_ends(snapshots)) {
+			let signature =
+				`${record.reason}:${record.event_type}:${record.kind}`;
+			diagnostics.classes.set(signature,
+				(diagnostics.classes.get(signature) || 0) + 1);
+			if (examples < TERMINAL_EXAMPLES_PER_FILE) {
+				examples++;
+				diagnostics.examples.push({ file, record });
+			}
+		}
+	}
+}
+
 function count_file(totals, engines, file, diagnostics) {
 	let bytes = new Uint8Array(fs.readFileSync(file));
 	let records = [...engines.log.records(bytes)];
 	let game = engines.game.build(records);
-	if (diagnostics) describe_terminals(diagnostics, engines, game, file);
+	if (diagnostics?.terminals) {
+		describe_terminals(diagnostics.terminals, engines, game, file);
+	}
+	if (diagnostics?.ends) describe_ends(diagnostics.ends, engines, game, file);
 	let max_ticks = engines.game.MAX_POSITION_INTERPOLATION_TICKS;
 	/* Repo states from before facing had a limit of its own bridged it with
 	 * the position limit, so reporting that keeps their numbers honest. */
@@ -396,34 +434,38 @@ function build_report(totals, meta) {
 	return `${lines.join("\n")}\n`;
 }
 
-function terminal_class_report(diagnostics) {
+function terminal_class_report(diagnostics, label) {
 	let lines = [];
 	if (diagnostics.unsupported) {
-		lines.push("terminal_class\t-");
+		lines.push(`${label}_class\t-`);
 		return lines;
 	}
 	let classes = [...diagnostics.classes.entries()]
 		.sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
 	for (let [signature, count] of classes) {
-		lines.push(`terminal_class\t${signature}\t${count}`);
+		lines.push(`${label}_class\t${signature}\t${count}`);
 	}
 	for (let { file, record } of diagnostics.examples) {
 		let candidate = record.candidate
 			? `candidate=(${record.candidate.time},` +
-				`${record.candidate.pixel_x},${record.candidate.pixel_y},` +
-				`d${record.candidate.direction})`
+				`${record.candidate.pixel_x},${record.candidate.pixel_y}` +
+				`${record.candidate.direction !== undefined
+					? `,d${record.candidate.direction}` : ""})`
 			: "candidate=-";
-		lines.push(`terminal_example\t${path.basename(file)}` +
-			`\tt${record.time}\t${record.event_type}\t${record.terminal_type}` +
+		lines.push(`${label}_example\t${path.basename(file)}` +
+			`\tt${record.time}\t${record.event_type}` +
+			`${record.terminal_type ? `\t${record.terminal_type}` : ""}` +
 			`\t(${record.pixel_x},${record.pixel_y})` +
 			`\td${record.direction === null ? "-" : record.direction}` +
-			`\t${record.reason}:${record.kind}\t${candidate}`);
+			`\t${record.reason}${record.detail || ""}:${record.kind}` +
+			`\t${candidate}`);
 	}
 	return lines;
 }
 
 function main() {
-	let { mode, target, describe_terminals } = parse_args(process.argv.slice(2));
+	let { mode, target, describe_terminals, describe_ends } =
+		parse_args(process.argv.slice(2));
 	let engines;
 	try {
 		engines = {
@@ -434,7 +476,7 @@ function main() {
 		console.error(`error: this repo state has no loadable viewer engine: ${error.message}`);
 		process.exit(3);
 	}
-	if (describe_terminals) {
+	if (describe_terminals || describe_ends) {
 		/* Kept a separate, guarded require so the tool still measures the
 		 * repo states from before the diagnostics existed. */
 		try {
@@ -452,8 +494,12 @@ function main() {
 	let files = replay_files(mode, target);
 	if (!files.length) usage(`no replay files found at ${target}`);
 	let totals = empty_totals();
-	let diagnostics = describe_terminals
-		? { classes: new Map(), examples: [], unsupported: false } : null;
+	let empty_diagnostics = () =>
+		({ classes: new Map(), examples: [], unsupported: false });
+	let diagnostics = describe_terminals || describe_ends ? {
+		terminals: describe_terminals ? empty_diagnostics() : null,
+		ends: describe_ends ? empty_diagnostics() : null,
+	} : null;
 	let done = 0;
 	for (let file of files) {
 		try {
@@ -474,8 +520,12 @@ function main() {
 		max_direction_interpolation_ticks:
 			engines.game.MAX_DIRECTION_INTERPOLATION_TICKS,
 	}));
-	if (diagnostics) {
-		let lines = terminal_class_report(diagnostics);
+	for (let [part, label] of [
+		[diagnostics?.terminals, "terminal"],
+		[diagnostics?.ends, "end"],
+	]) {
+		if (!part) continue;
+		let lines = terminal_class_report(part, label);
 		if (lines.length) process.stdout.write(`${lines.join("\n")}\n`);
 	}
 }
