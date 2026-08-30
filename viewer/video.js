@@ -6,10 +6,10 @@
  * window size and dropped frames. Frames go through a WebCodecs encoder
  * into the hand-rolled muxer (webm.js) and stream to disk over IPC.
  *
- * A setup dialog fronts the export: resolution, frame rate, constant
- * quality vs a target size, and whether the sidebar is painted into the
- * frame. Choices persist in localStorage, so a repeat export is Enter,
- * Enter. The dialog also states the two things the export inherits
+ * A setup dialog fronts the export: resolution (pixel density only — every
+ * resolution frames the same patch of world), frame rate, constant quality
+ * vs a target size, and whether the sidebar is painted into the frame.
+ * Choices persist in localStorage, so a repeat export is Enter, Enter. The dialog also states the two things the export inherits
  * invisibly from the viewer: it starts at the chosen tick, and the current
  * playback speed becomes the video's time compression.
  *
@@ -247,11 +247,15 @@ async function export_video(start_tick) {
 		return;
 	}
 
-	let sidebar_scale = options.h / EX_DESIGN_H;
-	let sidebar_w = options.sidebar ? Math.round(EX_SIDEBAR_W * sidebar_scale) : 0;
+	/* The frame is laid out in the 1080p design space and rendered at
+	 * `scale`, the way a hi-dpi display renders css pixels: resolution
+	 * choices change the output's pixel density, never how much of the
+	 * world is in frame. */
+	let scale = options.h / EX_DESIGN_H;
+	let sidebar_w = options.sidebar ? Math.round(EX_SIDEBAR_W * scale) : 0;
 	EX = {
 		w: options.w, h: options.h, fps: options.fps,
-		sidebar_w, sidebar_scale,
+		scale, sidebar_w,
 		world_w: options.w - sidebar_w,
 		keyframe_every: options.fps * EXPORT_KEYFRAME_SECONDS,
 		quantizer: picked.quantizer,
@@ -288,18 +292,20 @@ async function export_video(start_tick) {
 	let ok = false;
 	try {
 		/* keep the live framing: same zoom, same world centre, recentred for
-		 * the export's world viewport (player lock re-centres per frame) */
+		 * the export's world viewport (player lock re-centres per frame);
+		 * all in css units, the space the view and draw path work in */
 		let live = { w: canvas.clientWidth, h: canvas.clientHeight };
+		let css = { w: EX.world_w / EX.scale, h: EX_DESIGN_H };
 		view = {
 			zoom: view.zoom,
-			ox: view.ox + (live.w - EX.world_w) / (2 * view.zoom),
-			oy: view.oy + (live.h - EX.h) / (2 * view.zoom),
+			ox: view.ox + (live.w - css.w) / (2 * view.zoom),
+			oy: view.oy + (live.h - css.h) / (2 * view.zoom),
 		};
 		let export_canvas = document.createElement("canvas");
 		export_canvas.width = EX.w;
 		export_canvas.height = EX.h;
 		ctx = export_canvas.getContext("2d", { alpha: false });
-		export_target = { w: EX.world_w, h: EX.h };
+		export_target = { w: css.w, h: css.h, dpr: EX.scale };
 
 		let at = BoloGame.state_at(game, start_tick);
 		cur = at.state;
@@ -524,7 +530,7 @@ function ex_backpressure(encoder) {
 
 function draw_export_sidebar() {
 	if (EX.sidebar_w === 0) return;
-	ctx.setTransform(EX.sidebar_scale, 0, 0, EX.sidebar_scale, EX.world_w, 0);
+	ctx.setTransform(EX.scale, 0, 0, EX.scale, EX.world_w, 0);
 	ctx.fillStyle = "#141925";
 	ctx.fillRect(0, 0, EX_SIDEBAR_W, EX_DESIGN_H);
 	ctx.fillStyle = "#262d3d"; /* border-left */

@@ -162,7 +162,8 @@ let last_viewpoint_html = null;
  * frame via export_target, and sets exporting so live inputs and queued
  * draws leave the swapped state alone until it is restored. */
 let exporting = false;
-let export_target = null; /* { w, h } of the export's world viewport */
+let export_target = null; /* { w, h, dpr }: the export's world viewport in
+                             css units, and its device-pixel scale */
 
 const ZOOMS = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64];
 let view = { zoom: 3, ox: 0, oy: 0 };
@@ -229,10 +230,12 @@ function css_size() {
 	return { w: canvas.clientWidth, h: canvas.clientHeight };
 }
 
-/* The export canvas is exact output pixels; only the live canvas draws at
- * the display's device-pixel scale. */
+/* The export renders a fixed css-unit viewport at the output's own scale,
+ * exactly like a hi-dpi display, so its resolution sets pixel density
+ * without changing how much world is in frame; the live canvas draws at
+ * the real display's device-pixel scale. */
 function render_dpr() {
-	return export_target ? 1 : devicePixelRatio;
+	return export_target ? export_target.dpr : devicePixelRatio;
 }
 function tile_to_screen_x(tx) { return (tx - view.ox) * view.zoom; }
 function tile_to_screen_y(ty) { return (ty - view.oy) * view.zoom; }
