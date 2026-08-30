@@ -1008,7 +1008,7 @@ function same_shell_terminal(first, second) {
  * exact point terminal or a discrete shell-centre entry into an object/tile
  * box. The exact firing tick is unknown, so the caller separately limits
  * the result to the interval's maximum travel distance. */
-function pillbox_source_terminal_distance(source, terminal) {
+function pillbox_source_terminal_entry(source, terminal) {
 	if (terminal.direction !== null && terminal.direction !== source.direction) {
 		return null;
 	}
@@ -1031,7 +1031,13 @@ function pillbox_source_terminal_distance(source, terminal) {
 						origin_y + position[1] + 8 < terminal.max_y;
 				if (!matches) continue;
 				let distance = Math.hypot(position[0], position[1]);
-				if (best === null || distance < best) best = distance;
+				if (best === null || distance < best.distance) {
+					best = {
+						distance, origin_x, origin_y,
+						pixel_x: origin_x + position[0],
+						pixel_y: origin_y + position[1],
+					};
+				}
 				break;
 			}
 		}
@@ -1057,28 +1063,34 @@ function mark_unseen_pillbox_terminals(source_groups, terminals,
 		if (terminal.event_type !== "explosion") continue;
 		let candidates = [];
 		for (let group of active_groups) {
-			let distance = pillbox_source_terminal_distance(group, terminal);
-			if (distance === null || distance > maximum_distance) continue;
+			let entry = pillbox_source_terminal_entry(group, terminal);
+			if (entry === null || entry.distance > maximum_distance) continue;
 			candidates.push(group);
-			candidates_by_group.get(group).push(terminal);
+			candidates_by_group.get(group).push({ terminal, entry });
 		}
 		candidates_by_terminal.set(terminal, candidates);
 	}
 
 	for (let group of active_groups) {
 		let remaining = group.capacity - group.assigned;
-		let candidates = candidates_by_group.get(group).filter(terminal =>
-			candidates_by_terminal.get(terminal).length === 1);
+		let candidates = candidates_by_group.get(group).filter(candidate =>
+			candidates_by_terminal.get(candidate.terminal).length === 1);
 		if (!candidates.length) continue;
-		let equivalent = candidates.every(terminal =>
-			same_shell_terminal(candidates[0], terminal));
+		let equivalent = candidates.every(candidate =>
+			same_shell_terminal(candidates[0].terminal, candidate.terminal));
 		if (!equivalent && candidates.length !== remaining) continue;
 		let count = Math.min(remaining, candidates.length);
 		for (let i = 0; i < count; i++) {
-			candidates[i].unseen_pillbox_source = true;
-			candidates[i].pillbox_source_x = group.pixel_x;
-			candidates[i].pillbox_source_y = group.pixel_y;
-			candidates[i].pillbox_source_direction = group.direction;
+			let { terminal, entry } = candidates[i];
+			terminal.unseen_pillbox_source = true;
+			/* The entry's origin, not the group's: for a direction-0 F4 the
+			 * orbit walk may only reach the impact from the alternate pill,
+			 * the same evidence that reassigns observed shells. */
+			terminal.pillbox_source_x = entry.origin_x;
+			terminal.pillbox_source_y = entry.origin_y;
+			terminal.pillbox_source_direction = group.direction;
+			terminal.unseen_entry_x = entry.pixel_x;
+			terminal.unseen_entry_y = entry.pixel_y;
 		}
 		group.assigned += count;
 	}
@@ -2584,11 +2596,12 @@ function creation_fate_match(creation, fate, extra_flight_ticks = 0) {
 			: distance > high ? distance - high : 0) / 2;
 	};
 	if (creation.kind === "pill") {
-		let distance = pillbox_source_terminal_distance(creation, terminal);
-		if (distance === null || distance > reach) return null;
-		if (duration - distance / SHELL_SPEED_PIXELS_PER_TICK >
+		let entry = pillbox_source_terminal_entry(creation, terminal);
+		if (entry === null || entry.distance > reach) return null;
+		if (duration - entry.distance / SHELL_SPEED_PIXELS_PER_TICK >
 			MAX_FATE_EVENT_LAG_TICKS) return null;
-		return { distance, cost: flight_cost(distance) };
+		return { distance: entry.distance, entry,
+			cost: flight_cost(entry.distance) };
 	}
 	let target_x, target_y, slack;
 	if (terminal.type === "point") {
@@ -2614,7 +2627,13 @@ function creation_fate_match(creation, fate, extra_flight_ticks = 0) {
 		if (forward <= 0 || Math.atan2(lateral, forward) >
 			SHELL_DIRECTION_TOLERANCE + Math.atan2(slack, distance)) return null;
 	}
-	return { distance, cost: flight_cost(distance) };
+	/* Sprite coordinates for the drawn segment: a tank shot has no orbit
+	 * table, so the entry is simply the aim point the cost was measured
+	 * against, converted from centre to sprite coordinates. */
+	return { distance, cost: flight_cost(distance),
+		entry: { distance, origin_x: creation.pixel_x,
+			origin_y: creation.pixel_y,
+			pixel_x: target_x - 8, pixel_y: target_y - 8 } };
 }
 
 function apply_forced_terminal(end, fate, match) {
@@ -2676,9 +2695,13 @@ function apply_forced_origin(creation, start, match) {
 
 /* An impact with no observed shell, forced onto a fired shot: mark the
  * terminal's source the way count-forced pill terminals already are, so
- * it stops being an open question without claiming a drawn shell. */
-function apply_forced_unseen(creation, fate, units) {
+ * it stops being an open question without claiming a drawn shell. The
+ * match's entry carries the origin the geometry actually reached from
+ * (a direction-0 F4 may only work from the alternate pill) and the
+ * impact-side point, for any later drawing of the unseen flight. */
+function apply_forced_unseen(creation, fate, units, match) {
 	let applied = 0;
+	let entry = match && match.entry;
 	for (let terminal of fate.terminals) {
 		if (applied >= units) break;
 		if (terminal.match_time !== undefined) continue;
@@ -2691,14 +2714,18 @@ function apply_forced_unseen(creation, fate, units) {
 		}
 		if (creation.kind === "pill") {
 			terminal.unseen_pillbox_source = true;
-			terminal.pillbox_source_x = creation.pixel_x;
-			terminal.pillbox_source_y = creation.pixel_y;
+			terminal.pillbox_source_x = entry ? entry.origin_x : creation.pixel_x;
+			terminal.pillbox_source_y = entry ? entry.origin_y : creation.pixel_y;
 			terminal.pillbox_source_direction = creation.direction;
 		} else {
 			terminal.unseen_tank_source = true;
 			terminal.tank_source_x = creation.pixel_x;
 			terminal.tank_source_y = creation.pixel_y;
 			terminal.tank_source_direction = creation.direction;
+		}
+		if (entry) {
+			terminal.unseen_entry_x = entry.pixel_x;
+			terminal.unseen_entry_y = entry.pixel_y;
 		}
 		applied++;
 	}
@@ -2862,7 +2889,7 @@ function resolve_residual_shell_fates(snapshots) {
 				right.start.shell.starts_at_pillbox) continue;
 			apply_forced_origin(left.creation, right.start, edge.match);
 		} else {
-			apply_forced_unseen(left.creation, right.fate, units);
+			apply_forced_unseen(left.creation, right.fate, units, edge.match);
 		}
 	}
 
@@ -3063,7 +3090,7 @@ function resolve_residual_shell_fates(snapshots) {
 			leftover_creations, leftover_fates, second_edges)) {
 			let creation = leftover_creations[edge.left].creation;
 			apply_forced_unseen(creation,
-				leftover_fates[edge.right].fate, units);
+				leftover_fates[edge.right].fate, units, edge.match);
 			creation_spent.set(creation,
 				(creation_spent.get(creation) || 0) + units);
 		}
@@ -3116,7 +3143,7 @@ function resolve_residual_shell_fates(snapshots) {
 			if (creation.count <= (creation_spent.get(creation) || 0)) continue;
 			let extra = fate.time === creation.time ? creation.gap : 0;
 			let match = creation_fate_match(creation, fate, extra);
-			if (match) candidates.push({ creation, cost: match.cost });
+			if (match) candidates.push({ creation, cost: match.cost, match });
 		}
 		if (!candidates.length) continue;
 		let best = Math.min(...candidates.map(candidate => candidate.cost));
@@ -3130,7 +3157,8 @@ function resolve_residual_shell_fates(snapshots) {
 		if (identities.size !== 1) continue;
 		eligible.push({ fate, count, best,
 			identity: [...identities][0],
-			creation: within[0].creation });
+			creation: within[0].creation,
+			match: within[0].match });
 	}
 	eligible.sort((a, b) => a.best - b.best);
 	let members_by_identity = new Map();
@@ -3141,11 +3169,11 @@ function resolve_residual_shell_fates(snapshots) {
 		}
 		members_by_identity.get(identity).push(creation);
 	}
-	for (let { fate, count, identity, creation } of eligible) {
+	for (let { fate, count, identity, creation, match } of eligible) {
 		let capacity = pool.get(identity) || 0;
 		if (capacity <= 0) continue;
 		let units = Math.min(count, capacity);
-		apply_forced_unseen(creation, fate, units);
+		apply_forced_unseen(creation, fate, units, match);
 		pool.set(identity, capacity - units);
 		/* Charge the spend across the identity's members greedily; the
 		 * pool never exceeds their remaining counts, so it always fits. */
