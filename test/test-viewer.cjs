@@ -354,6 +354,27 @@ if (!fs.existsSync(log1)) {
 	check("dumped dead near the tank", p.armour === 0 && Math.abs(p.x - 10) <= 1 && Math.abs(p.y - 10) <= 1, true);
 }
 
+// A tank dying in a river dumps its pills into the water: the search
+// refuses buildings, shot buildings and boats, NOT water. Verified by
+// pickups: a tank that died fording dropped pills on the death square and
+// the square north of it, both river, lowest pill index first, and the
+// collector's tank centre entered each square exactly at its pickup
+// record [E:dump-terrain].
+{
+	const st = BoloGame.initial_state();
+	st.present[0] = true; st.names[0] = "p0";
+	st.grid.fill(1, 0, 256 * 20); /* river rows 0-19 */
+	st.grid[9 * 256 + 10] = 0; /* a building one square north of the tank */
+	st.tanks[0] = { x: 10, y: 10, px: 0, py: 0, dir: 0, inBoat: false, hidden: false, dying: false, speed: 0, lastSeen: 0, dead: false };
+	st.pills = [
+		{ x: 0, y: 0, owner: 0, armour: 15, speed: 50, inTank: 0 },
+		{ x: 0, y: 0, owner: 0, armour: 15, speed: 50, inTank: 0 },
+	];
+	BoloGame.apply_record(st, { time: 0, seq: 0, status: 0, player: 0, tankStatus: 7, tankDir: 0, subpackets: [{ type: "tank_death", code: 1 }] }, null, null);
+	check("first pill dumped on the river death square", [st.pills[0].x, st.pills[0].y], [10, 10]);
+	check("second pill skips the building, takes the next river square", [st.pills[1].x, st.pills[1].y], [11, 9]);
+}
+
 // Shell-list offsets are CHAINED (each relative to the previous shell),
 // not relative to the list's first shell.
 {
