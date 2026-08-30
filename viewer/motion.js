@@ -2054,6 +2054,10 @@ function absorb_intermediate_observations(snapshots, end, start) {
 					if (joined) visually_claimed++;
 					else candidates.push({ shell, time: snapshot.time, along,
 						orbit_states });
+				} else {
+					/* Diagnostic breadcrumb, read by the audit tool: some
+					 * stitch's surviving orbits ruled this observation out. */
+					shell.absorption_contradicted = true;
 				}
 				continue;
 			}
@@ -2082,6 +2086,11 @@ function absorb_intermediate_observations(snapshots, end, start) {
 		 * not unique, none is absorbed: an unmatched pop is safer than a
 		 * smooth but invented path. */
 		if (visually_claimed || candidates.length !== 1) {
+			/* Diagnostic breadcrumb, read by the audit tool: qualified for
+			 * some stitch's gap but was refused as ambiguous. */
+			for (let candidate of candidates) {
+				candidate.shell.absorption_refused = true;
+			}
 			if (candidates.length > 1) {
 				refused_groups.push({ time: snapshot.time,
 					candidates: candidates.sort((a, b) => a.along - b.along) });

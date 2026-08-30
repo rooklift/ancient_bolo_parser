@@ -677,6 +677,22 @@ the visual-join machinery exists for -- every candidate story draws the
 same ray. Extending draw-only joins to refused absorption candidates is
 the follow-up.
 
+**The follow-up measured null.** `9471365` rank-pairs equal-sized
+refusal groups on consecutive snapshots of one stitch's gap into
+draw-only joins; a clean re-run at `a8538fa` (the first with the commit
+line in the header, ruling out a stale checkout) is byte-identical on
+both axes -- zero activations in 9.8M observations. Consecutive stale
+records are stale by similar amounts, so they pairwise-match each other
+into fragments; orphans arise at staleness *transitions*, one bad
+record between good ones, which is a single-snapshot shape the rank
+pass deliberately does not touch. So the backwards-pop residue lives in
+configurations not yet identified: the audit's `--describe-backwards`
+mode (with `absorption_refused` / `absorption_contradicted` breadcrumbs
+in the engine) exists to name them from data. First reading, on replay
+101202.10: its backwards pops are matched pill-stream chain ends
+pairing with unclaimed observations a few pixels behind -- no refusal
+involvement at all. The corpus tally is the one to run.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
