@@ -778,6 +778,45 @@ remaining 3,908 backwards pairs are unnamed; a `--describe-backwards`
 run at this commit would show what survives now that the `U` class is
 visible.
 
+## Stream-provenance births -- `a78253b`
+
+The residual backwards tally at `709ca93` had said `any U: zero` -- the
+orbit-membership claims removed their family completely -- and named one
+remaining class as a gap rather than a frontier: 655 pairs whose pop-in
+already carried a pillbox source. `propagate_ambiguous_pillbox_orbits`
+names a head's pill and orbit states without claiming which stream-mate
+it is (the only path that stores a source on an unclaimed head), but
+nothing marked it birth-drawable. Which slot it holds does not matter
+for its birth: in every candidate story it flew from that muzzle.
+Measured at `7050c31` (a gitignore line on `a78253b`; engine identical),
+against the `775fe4b` run:
+
+* `shells_stream_birth` 2,785; `pop_ins` 45,001 -> 42,216, exactly the
+  claim count. `shells_from_pillbox` 978,624 + 2,785 = 981,409 and
+  `shell_births` +2,785, both exact; `shells_with_pillbox_source`
+  unchanged -- these heads already carried their source, which was the
+  point.
+* `pops_paired_backwards` 3,908 -> 3,253: minus 655, precisely the
+  in-`P` class the previous tally counted, and the new tally confirms
+  `in has P: 0` -- the class is extinct. `pops_paired_forward`
+  6,579 -> 5,917.
+* Everything else on both axes is byte-identical, seam pair included.
+
+What remains of the backwards class, 3,253 pairs, is now purely the two
+known frontiers: tank-stream turnover (`out k`, 982 -- a lost 5d has no
+orbit anchor, so a tank-birth analogue would need the bradian
+hypothesis machinery, with far weaker constraints), and stream leaders
+dying with unexplained terminals (`out P` 889, unattributed 1,382),
+which is the terminal-matching frontier by another name.
+
+Branch total on the drawn axis, `70b1227` -> here:
+`pops_paired_backwards` 5,514 -> 3,253 (-41%), `pops_paired_forward`
+9,162 -> 5,917 (-35%), `rush_links` 4,841 -> 4,029 (-17%),
+`hover_links` 3,642 -> 4,164 (+14%), with 17,137 shells claimed to
+their muzzles and shooters, at a matching-ledger give-back of 0.000240
+forward and +1,677 unlinked -- the invented explanations the guard
+entry removed.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
