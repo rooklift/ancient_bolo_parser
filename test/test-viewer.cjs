@@ -104,7 +104,7 @@ if (!fs.existsSync(log1)) {
 	}
 	check("fixture orbit-membership and stream-provenance birth claims",
 		[orbit_births.unseen, orbit_births.stream, orbit_births.sound],
-		[27, 8, true]);
+		[26, 6, true]);
 
 	/* Terminal-failure diagnostics: read-only classification of every
 	 * terminal that ends the pipeline with no matched shell and no
@@ -152,10 +152,10 @@ if (!fs.existsSync(log1)) {
 			described, described === unexplained, reasons_sound,
 			classes.get("explosion:no_candidate:-"),
 			classes.get("pillbox_damage:end_continued:T"),
-		], [1054, true, true, 240, 90]);
+		], [1035, true, true, 240, 89]);
 		check("fixture same-record unseen shots claimed without cost", [
 			matched, unseen.pill, unseen.tank,
-		], [20672, 1222, 1127]);
+		], [20692, 1222, 1126]);
 
 		/* The end-side mirror: every chain end with no forward story gets
 		 * a class; the census must equal the unmatched-forward count less
@@ -184,7 +184,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture end-side census reconciles", [
 			ends_described, ends_described === unfated, end_reasons_sound,
 			fate_open,
-		], [350, true, true, 26]);
+		], [322, true, true, 21]);
 	}
 
 	let pill_burst = { total: 0, matched: 0 };
@@ -939,6 +939,46 @@ if (!fs.existsSync(log1)) {
 			!!orbit_contradiction.shell_positions[0][3].shells[0]
 				.matched_from_previous],
 		[140, false]);
+
+	/* The two halves of one true story must not veto each other. From the
+	 * 031403.1 replay, pill 12 firing at a stationary tank: the shell's
+	 * last restatement arrived with the sender's clock lying by several
+	 * ticks (four orbit steps across a fourteen-tick record gap), so the
+	 * pairwise matcher refused the hop, and the impact followed. In the
+	 * residual flow the dilated join to that orphan restatement and the
+	 * fate edge to the impact then land within the margin of each other:
+	 * neither is forced, and the shell pops mid-air with its impact
+	 * unexplained -- though together they describe one flight. The orphan
+	 * is a provable intermediate of the fate's story (an exact orbit
+	 * point on a surviving bradian, strictly between the end's step and
+	 * the fate's entry step), so the join is subsumed, the fate is
+	 * forced, and the observation is absorbed into the terminal segment
+	 * with the arrival re-timed from it. */
+	let subsumed_intermediate = BoloGame.build([
+		record(60, [{ type: "pillbox_list", items: [
+			{ x: 140, y: 133, owner: 1, armour: 15, speed: 100 },
+			{ x: 138, y: 139, owner: 1, armour: 15, speed: 100 },
+		] }]),
+		record(80, [idle_tank]),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 9 },
+			shell_list(9, [[2229, 2153]]),
+		]),
+		record(110, [shell_list(9, [[2221, 2172]])]),
+		record(124, [shell_list(9, [[2214, 2186]])]),
+		record(139, [{ type: "pillbox_damage", pillbox: 1 }]),
+	]);
+	let subsumed_observation =
+		subsumed_intermediate.shell_positions[0][3].shells[0];
+	let subsumed_terminal =
+		subsumed_intermediate.shell_positions[0][4].terminals[0];
+	check("a restatement on the way to an impact joins the impact's own story",
+		[!!subsumed_observation.matched_from_previous,
+			subsumed_observation.pillbox_orbit_states,
+			!!subsumed_observation.next_terminal,
+			subsumed_observation.next_terminal_event_type,
+			subsumed_terminal.match_time],
+		[true, [{ bradian: 145, step: 14 }], true, "pillbox_damage", 139]);
 
 	/* Unseen-shot births: a shell whose F4 was lost to packet loss used
 	 * to stay origin-less forever -- the corpus's backwards-pop anatomy
