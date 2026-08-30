@@ -248,6 +248,18 @@ body {
 #exportSetupOk { background: #2c4a7c; border-color: #5b8def; }
 #exportSetupOk:hover { background: #365a94; }
 
+/* Unlike the transport (mouse-only, focus ring suppressed outright), the
+ * dialog is keyboard-navigable — but the UA ring is platform-coloured and
+ * lingers on a control after a mouse pick. Hide it for pointer use and
+ * draw a themed ring only for keyboard focus. */
+#exportSetup select:focus, #exportSetup input:focus,
+#exportSetup button:focus { outline: none; }
+#exportSetup select:focus-visible, #exportSetup input:focus-visible,
+#exportSetup button:focus-visible {
+	outline: 1px solid #5b8def;
+	outline-offset: 1px;
+}
+
 /* Video export progress: a modal that also blocks pointer input while the
  * export borrows the renderer's state (keys are blocked in renderer.js). */
 #exportOverlay {
