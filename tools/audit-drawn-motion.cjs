@@ -241,9 +241,29 @@ function rate(part, whole) {
 	return whole ? (part / whole).toFixed(6) : "-";
 }
 
+
+/* The commit the measuring engine was built from, for output provenance:
+ * short hash, "-dirty" appended when tracked files carry uncommitted
+ * changes (untracked files are ignored -- report outputs and corpus.json
+ * live beside the tree), "unknown" outside a git checkout. Duplicated in
+ * report-interpolation-rates.cjs so each tool stays a single file
+ * droppable into historical worktrees for baseline re-runs. */
+function repo_commit() {
+	const { execSync } = require("node:child_process");
+	const run = (command) => execSync(command,
+		{ cwd: ROOT, stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+	try {
+		let hash = run("git rev-parse --short HEAD");
+		return run("git status --porcelain -uno") ? `${hash}-dirty` : hash;
+	} catch {
+		return "unknown";
+	}
+}
+
 function print_report(metrics, input) {
 	let lines = [
 		"# GENERATED - drawn shell motion audit; nothing written to disk.",
+		`commit\t${repo_commit()}`,
 		`input\t${input}`,
 	];
 	for (let key of ["files", "files_failed", "build_ms", "audit_ms",
