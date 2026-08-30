@@ -114,14 +114,14 @@ function build_interpolation_report(game, metadata = {}) {
 		}
 	}
 
-	lines.push("# shell_birth\tplayer\tbirth\tstart_time\tend_time\tpixel_x\tpixel_y\theading_x\theading_y\tdirection");
+	lines.push("# shell_birth\tplayer\tbirth\tstart_time\tend_time\tpixel_x\tpixel_y\theading_x\theading_y\tdirection\tunseen");
 	for (let player = 0; player < game.shell_births.length; player++) {
 		let births = game.shell_births[player];
 		for (let birth_index = 0; birth_index < births.length; birth_index++) {
 			let birth = births[birth_index];
 			add_line(lines, "shell_birth", player, birth_index, birth.start_time,
 				birth.end_time, birth.pixel_x, birth.pixel_y, birth.heading_x,
-				birth.heading_y, birth.direction);
+				birth.heading_y, birth.direction, birth.unseen);
 		}
 	}
 

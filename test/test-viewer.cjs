@@ -1479,6 +1479,55 @@ if (!fs.existsSync(log1)) {
 			[9.5625, 10.125],
 		]);
 
+	/* An impact whose shell was never restated (unseen_*_source) still
+	 * draws: a muzzle-to-impact segment arriving at the event record's
+	 * time, its length set by the distance at 2 px/tick. The pill case is
+	 * the count-forced F4-with-no-shell; the exact entry pixel comes from
+	 * the orbit walk. */
+	let unseen_pill_drawn = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 117, y: 138, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(88, [shell_list(4, [[1794, 2220]])]),
+		record(100, [shell_list(4, [[1818, 2218]])]),
+		record(112, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 12 },
+			{ type: "pillbox_fires", pillbox: 0, direction: 12 },
+			shell_list(4, [[1846, 2217]]),
+			shell_list(12, [[1852, 2208]]),
+			{ type: "explosion", code: 0, x: 115, y: 138 },
+		]),
+	]);
+	check("unseen pill shot draws from the muzzle toward its impact",
+		BoloGame.shell_birth_positions_at(unseen_pill_drawn, 0, 106)
+			.filter(shell => shell.unseen)
+			.map(shell => [rounded(shell.x), rounded(shell.y), shell.direction]),
+		[[116.5, 138.5, 12]]);
+	check("unseen pill shot arrives exactly at its event record",
+		BoloGame.shell_birth_positions_at(unseen_pill_drawn, 0, 112)
+			.filter(shell => shell.unseen), []);
+
+	/* The tank case reaches drawing through the residual flow pass: a 5d
+	 * with no shell ever seen, forced onto the only impact that can
+	 * explain it. */
+	let unseen_tank_drawn = BoloGame.build([
+		record(90, [{
+			type: "tank_position", x: 111, y: 138, pixelX: 0, pixelY: 8,
+			direction: 4, inBoat: false, hidden: false, dying: false,
+			speed: 0, motion: 0,
+		}]),
+		record(100, [{ type: "shot_fired", direction: 4 }]),
+		record(124, [{ type: "explosion", code: 0, x: 114, y: 138 }]),
+	]);
+	check("unseen tank shot draws its whole forced flight",
+		BoloGame.shell_birth_positions_at(unseen_tank_drawn, 0, 112)
+			.filter(shell => shell.unseen)
+			.map(shell => [rounded(shell.x), rounded(shell.y), shell.direction]),
+		[[113.0204, 138.7466, 4]]);
+	check("unseen tank shot vanishes at its event record",
+		BoloGame.shell_birth_positions_at(unseen_tank_drawn, 0, 124)
+			.filter(shell => shell.unseen), []);
+
 	let tank_refinement = BoloGame.build([
 		record(90, [{
 			type: "tank_position", x: 10, y: 10, pixelX: 0, pixelY: 0,

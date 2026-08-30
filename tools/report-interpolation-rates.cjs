@@ -145,7 +145,11 @@ function empty_totals() {
 		tank_direction_ticks: null,
 		tank_direction_ticks_interpolated: null,
 
+		/* shell_births keeps its historical meaning (segments for observed
+		 * shells with a known muzzle); the drawn unseen-shot flights are
+		 * counted on their own line. */
 		shell_births: null,
+		shell_births_unseen: null,
 	};
 }
 
@@ -274,8 +278,13 @@ function count_file(totals, engines, file) {
 		max_direction_ticks);
 	if (Array.isArray(game.shell_births)) {
 		add(totals, "shell_births", 0);
+		add(totals, "shell_births_unseen", 0);
 		for (let births of game.shell_births) {
-			add(totals, "shell_births", Array.isArray(births) ? births.length : 0);
+			if (!Array.isArray(births)) continue;
+			for (let birth of births) {
+				add(totals, birth.unseen ? "shell_births_unseen"
+					: "shell_births", 1);
+			}
 		}
 	}
 }
