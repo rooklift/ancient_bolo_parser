@@ -152,10 +152,10 @@ if (!fs.existsSync(log1)) {
 			described, described === unexplained, reasons_sound,
 			classes.get("explosion:no_candidate:-"),
 			classes.get("pillbox_damage:end_continued:T"),
-		], [1087, true, true, 240, 90]);
+		], [1054, true, true, 240, 90]);
 		check("fixture same-record unseen shots claimed without cost", [
 			matched, unseen.pill, unseen.tank,
-		], [20638, 1223, 1127]);
+		], [20672, 1222, 1127]);
 
 		/* The end-side mirror: every chain end with no forward story gets
 		 * a class; the census must equal the unmatched-forward count less
@@ -184,7 +184,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture end-side census reconciles", [
 			ends_described, ends_described === unfated, end_reasons_sound,
 			fate_open,
-		], [384, true, true, 63]);
+		], [350, true, true, 26]);
 	}
 
 	let pill_burst = { total: 0, matched: 0 };

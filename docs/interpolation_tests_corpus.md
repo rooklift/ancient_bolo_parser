@@ -970,6 +970,38 @@ ENDS: give a popping-out leader its death at a fitting unexplained
 impact. That is not a split of any healthy link, and it is where the
 eye actually catches the error.
 
+## The end-side census, and die-at-impact -- `0b60520` + the dial
+
+`--describe-ends` mirrors the terminal census from the watcher's side:
+for every chain end with no forward story (61,421 corpus, exactly the
+audit's pop-outs), what fate was available and what blocked it? Corpus
+at `0b60520`: `fate_taken` 24,624 (40.1%), `fate_open` 10,580 (17.2% --
+a valid edge to a still-unexplained impact, blocked only by ambiguity),
+`ray_miss` 9,396, `window_expired` 4,714, `fate_unseen` 3,681 (the
+impact went to an unseen-shot attribution while an observed shell
+vanished), `no_candidate` 2,840.
+
+The dial: die-at-impact, the drawn-side twin of the visual join. When
+every within-margin story for an unfated end is a death at one
+geometry -- no continuation candidate survives inside the margin --
+the end takes the cheapest still-open fate and the mid-air vanish
+becomes a death at the wall. It runs before the unseen-shot phases, so
+an observed shell outranks an invisible sibling for the same impact.
+Building it exposed an ordering gap worth remembering: the residual's
+edges are built before its assignments run, and a forced origin gives
+a chain its heading DURING application, so box-terminal edges that
+need the ray never existed -- the dial therefore re-probes current
+shell state rather than reusing the graph's edges (on the fixture that
+was the difference between 9 deaths and 34).
+
+Fixture: 34 deaths (`terminals_matched` 20,638 -> 20,672, the arc's
+first real match gains), pop-outs 384 -> 350, one forward-paired pop
+gone, one unseen claim ceded to a live shell, `fate_open` 63 -> 26
+(the rest are contention and start-rival blocks, honest), and nothing
+else moves on either axis. Corpus verification pending -- this commit
+is MEANT to move the audit, and the prediction is pop-outs down by
+several thousand with hover/rush/seam untouched.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
