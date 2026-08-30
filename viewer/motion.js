@@ -1828,43 +1828,6 @@ function apply_visual_join(candidate) {
 	end_shell.visual_join_source = true;
 }
 
-/* Refused absorption candidates from consecutive snapshots of one
- * stitch's gap, rank-paired for drawing only. Each refused group holds
- * several same-ray observations -- the chain's own stale restatement
- * and its stream-mates, with nothing to say which is which. Identity
- * stays unclaimed, but motion is decidable anyway: shells fly at one
- * speed, so stream-mates can never pass each other, and in EVERY
- * candidate story the k-th observation of one snapshot (ordered along
- * the ray) continues as the k-th of the next. Left as pops, these
- * orphans pair with each other as reappear-behind artifacts -- the
- * corpus's backwards-pop rise at the guard commit; joined by rank, the
- * same observations draw as sprites flying the ray. Groups of unequal
- * size are left alone: some story then has a shell dying or appearing
- * mid-gap, and the ranks stop corresponding. */
-function visually_join_refused_groups(refused_groups) {
-	for (let index = 0; index + 1 < refused_groups.length; index++) {
-		let group = refused_groups[index];
-		let next_group = refused_groups[index + 1];
-		if (group.candidates.length !== next_group.candidates.length) continue;
-		let duration = next_group.time - group.time;
-		if (duration <= 0) continue;
-		let advance_limit = duration * SHELL_SPEED_PIXELS_PER_TICK +
-			DILATED_CATCHUP_PIXELS;
-		let pairs = [];
-		for (let rank = 0; rank < group.candidates.length; rank++) {
-			let from = group.candidates[rank];
-			let to = next_group.candidates[rank];
-			let advance = to.along - from.along;
-			if (advance <= 0 || advance > advance_limit) { pairs = null; break; }
-			if (from.shell.next_time !== undefined ||
-				to.shell.matched_from_previous) { pairs = null; break; }
-			pairs.push({ end: from, start: to });
-		}
-		if (!pairs) continue;
-		for (let pair of pairs) apply_visual_join(pair);
-	}
-}
-
 /* Carry an origin down a chain: the linked observations are one shell, so
  * the origin belongs to every one of them. Links made by ordinary
  * matching and by stitches both record next_shell, so the walk is direct. */
@@ -2019,7 +1982,6 @@ function absorb_intermediate_observations(snapshots, end, start) {
 	let final_time = end_shell.next_time;
 	let final_next_shell = end_shell.next_shell;
 	let absorbed = [];
-	let refused_groups = [];
 	let floor_step = -1;
 	for (let snapshot of snapshots) {
 		if (snapshot.time <= end.time) continue;
@@ -2044,15 +2006,12 @@ function absorb_intermediate_observations(snapshots, end, start) {
 			 * clock has drifted, and an observation the surviving orbits
 			 * rule out is not this shell however well its geometry
 			 * reads. */
-			let relative_x = shell.pixel_x - anchor_x;
-			let relative_y = shell.pixel_y - anchor_y;
-			let along = (relative_x * segment_x + relative_y * segment_y) / length;
 			let orbit_states = pillbox_absorption_states(end_shell,
 				final_next_shell, shell, floor_step);
 			if (orbit_states !== null) {
 				if (orbit_states.length) {
 					if (joined) visually_claimed++;
-					else candidates.push({ shell, time: snapshot.time, along,
+					else candidates.push({ shell, time: snapshot.time,
 						orbit_states });
 				} else {
 					/* Diagnostic breadcrumb, read by the audit tool: some
@@ -2061,6 +2020,9 @@ function absorb_intermediate_observations(snapshots, end, start) {
 				}
 				continue;
 			}
+			let relative_x = shell.pixel_x - anchor_x;
+			let relative_y = shell.pixel_y - anchor_y;
+			let along = (relative_x * segment_x + relative_y * segment_y) / length;
 			if (along < -4 || along > length + 4) continue;
 			let lateral = Math.abs(relative_x * segment_y -
 				relative_y * segment_x) / length;
@@ -2074,7 +2036,7 @@ function absorb_intermediate_observations(snapshots, end, start) {
 			if (Math.abs(along - expected_along) >
 				MAX_SMOOTHING_DEVIATION_PIXELS) continue;
 			if (joined) visually_claimed++;
-			else candidates.push({ shell, time: snapshot.time, along });
+			else candidates.push({ shell, time: snapshot.time });
 		}
 		/* An angry pillbox fires every five or six ticks, so stream-mates
 		 * ride only two or three orbit steps apart and a fragmented
@@ -2091,10 +2053,6 @@ function absorb_intermediate_observations(snapshots, end, start) {
 			for (let candidate of candidates) {
 				candidate.shell.absorption_refused = true;
 			}
-			if (candidates.length > 1) {
-				refused_groups.push({ time: snapshot.time,
-					candidates: candidates.sort((a, b) => a.along - b.along) });
-			}
 			continue;
 		}
 		let candidate = candidates[0];
@@ -2104,7 +2062,6 @@ function absorb_intermediate_observations(snapshots, end, start) {
 		}
 		absorbed.push(candidate);
 	}
-	visually_join_refused_groups(refused_groups);
 	if (!absorbed.length) return;
 	absorbed.sort((a, b) => a.time - b.time);
 
