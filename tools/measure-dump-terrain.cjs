@@ -101,7 +101,7 @@ const totals = {
 	logs: 0, dumps: 0, dumped_pills: 0, observed: 0, ambiguous: 0,
 	unobserved: 0, same_record: 0, order_violations: 0,
 	used: {}, skipped: {}, skipped_occupied: 0, skipped_tainted: 0,
-	skipped_offmap: 0,
+	skipped_offmap: 0, raced: 0,
 	control_exact: 0, control_off: {}, /* evented-position pickups: tank tile vs known pill tile */
 };
 
@@ -200,6 +200,11 @@ function process_log(file) {
 			return {
 				x, y,
 				terrain: gridSnap[y * MAP_SIZE + x],
+				/* the dump happens mid-record, between the pre-record
+				 * snapshot and this: a disagreement means the terrain
+				 * changed within the dump record itself, and the square's
+				 * evidence is quarantined rather than tallied */
+				after: state.grid[y * MAP_SIZE + x],
 				pill: !!pill,
 				tainted: !!(pill && pill.modelled),
 				base: occSnap.bases.some(b => b.x === x && b.y === y),
@@ -236,7 +241,7 @@ function process_log(file) {
 				const idx = dump.squares.findIndex(sq => sq.x === cx && sq.y === cy);
 				if (idx >= 0 && !matches.includes(idx)) matches.push(idx);
 			}
-			if (matches.length === 1) { observed.push({ id, index: matches[0] }); totals.observed++; }
+			if (matches.length === 1) { observed.push({ id, index: matches[0], pkRec: pk.rec }); totals.observed++; }
 			else if (matches.length > 1) { observed.push({ id, index: null, why: "ambiguous" }); totals.ambiguous++; }
 			else { observed.push({ id, index: null, why: "picker off path" }); totals.unobserved++; }
 		}
@@ -266,13 +271,26 @@ function process_log(file) {
 					if (sq.offmap) { totals.skipped_offmap++; continue; }
 					if (sq.tainted) { totals.skipped_tainted++; continue; }
 					if (sq.pill || sq.base) { totals.skipped_occupied++; continue; }
+					if (sq.terrain !== sq.after) { totals.raced++; continue; }
 					bump(totals.skipped, sq.terrain);
 					if (VERBOSE) console.log(`  skip ${path.basename(dump.file)} rec ${dump.rec} path[${k}] (${sq.x},${sq.y}) ${NAMES[sq.terrain]}`);
 				}
 			}
 			const sq = dump.squares[o.index];
-			bump(totals.used, sq.terrain);
-			if (VERBOSE) console.log(`  used ${path.basename(dump.file)} rec ${dump.rec} pill ${o.id} path[${o.index}] (${sq.x},${sq.y}) ${NAMES[sq.terrain]}`);
+			if (sq.terrain !== sq.after) {
+				totals.raced++;
+				console.log(`RACED USE ${path.basename(dump.file)} dump rec ${dump.rec} pill ${o.id} path[${o.index}] (${sq.x},${sq.y}): ` +
+					`${NAMES[sq.terrain]} before the dump record, ${NAMES[sq.after]} after it (picked up rec ${o.pkRec})`);
+			} else {
+				bump(totals.used, sq.terrain);
+				/* a rest on refused terrain is either method noise (see the
+				 * control) or a hole in the predicate: always shown */
+				if (sq.terrain === 0 || sq.terrain === 8 || sq.terrain === 9) {
+					console.log(`REFUSED-TERRAIN USE ${path.basename(dump.file)} dump rec ${dump.rec} pill ${o.id} path[${o.index}] (${sq.x},${sq.y}) ` +
+						`${NAMES[sq.terrain]} (picked up rec ${o.pkRec})`);
+				}
+				if (VERBOSE) console.log(`  used ${path.basename(dump.file)} rec ${dump.rec} pill ${o.id} path[${o.index}] (${sq.x},${sq.y}) ${NAMES[sq.terrain]}`);
+			}
 			floor = o.index + 1;
 		}
 	}
@@ -292,6 +310,7 @@ console.log(`pill squares observed via pickup: ${totals.observed}` +
 	`   (ambiguous ${totals.ambiguous}, multi-pickup ${totals.same_record}, unobservable ${totals.unobserved})`);
 console.log(`order violations: ${totals.order_violations}`);
 console.log(`skips excluded: ${totals.skipped_occupied} occupied, ${totals.skipped_tainted} tainted by modelled pills, ${totals.skipped_offmap} off-map`);
+console.log(`squares quarantined (terrain changed within the dump record): ${totals.raced}`);
 console.log("");
 console.log("terrain            used   skipped");
 const seen = new Set([...Object.keys(totals.used), ...Object.keys(totals.skipped)].map(Number));

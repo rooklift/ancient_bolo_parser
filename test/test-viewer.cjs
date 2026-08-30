@@ -331,7 +331,7 @@ if (!fs.existsSync(log1)) {
 }
 
 // A tank dying in a river dumps its pills into the water: the search
-// refuses buildings (and, provisionally, boats), NOT river. Verified by
+// refuses buildings, shot buildings and boats, NOT water. Verified by
 // pickups: a tank that died fording dropped pills on the death square and
 // the square north of it, both river, lowest pill index first, and the
 // collector's tank centre entered each square exactly at its pickup
