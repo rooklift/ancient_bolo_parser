@@ -106,6 +106,58 @@ if (!fs.existsSync(log1)) {
 		[orbit_births.unseen, orbit_births.stream, orbit_births.sound],
 		[27, 8, true]);
 
+	/* Terminal-failure diagnostics: read-only classification of every
+	 * terminal that ends the pipeline with no matched shell and no
+	 * unseen-source attribution. The census must reconcile exactly with
+	 * the report's unmatched counts, every reason must come from the
+	 * known set, and the fixture's two headline classes are frozen.
+	 * The unseen-source counters lock the same-record phase of the fate
+	 * resolver: a shot and its impact reported in one record (the normal
+	 * case for point-blank flights, e.g. adjacent-pill crossfire) is
+	 * claimed as an unseen shot when count-forcing allows, and every
+	 * previously matched terminal stays matched. */
+	{
+		const BoloMotion = require("../viewer/motion.js");
+		let known_reasons = new Set(["edge_unforced", "end_continued",
+			"end_claimed_other_fate", "creation_unforced", "timing_lag",
+			"timing_lead", "window_expired", "orbit_miss", "ray_miss",
+			"direction", "no_candidate"]);
+		let unexplained = 0;
+		let matched = 0;
+		let unseen = { pill: 0, tank: 0 };
+		let described = 0;
+		let classes = new Map();
+		let reasons_sound = true;
+		for (let snapshots of game.shell_positions) {
+			for (let snapshot of snapshots) {
+				for (let terminal of snapshot.terminals) {
+					if (terminal.match_time !== undefined) matched++;
+					if (terminal.unseen_pillbox_source) unseen.pill++;
+					if (terminal.unseen_tank_source) unseen.tank++;
+					if (terminal.match_time === undefined &&
+						!terminal.unseen_pillbox_source &&
+						!terminal.unseen_tank_source) unexplained++;
+				}
+			}
+			for (let record of BoloMotion.describe_unmatched_terminals(
+				snapshots)) {
+				described++;
+				if (!known_reasons.has(record.reason)) reasons_sound = false;
+				let signature =
+					`${record.event_type}:${record.reason}:${record.kind}`;
+				classes.set(signature, (classes.get(signature) || 0) + 1);
+			}
+		}
+		check("fixture terminal-failure census reconciles", [
+			described, described === unexplained, reasons_sound,
+			classes.get("explosion:no_candidate:-"),
+			classes.get("pillbox_damage:end_continued:T"),
+		], [1103, true, true, 221, 91]);
+		check("fixture same-record unseen shots claimed without cost", [
+			matched, unseen.pill, unseen.tank,
+		], [20638, 1209, 1125]);
+	}
+
 	let pill_burst = { total: 0, matched: 0 };
 	for (let snapshot of game.shell_positions[1]) {
 		let seconds = (snapshot.time - game.t0) / BoloLog.TICKS_PER_SECOND;

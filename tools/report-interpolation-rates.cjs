@@ -17,6 +17,15 @@
  * root); unconfigured, the tool explains how to configure it rather than
  * silently measuring something smaller.
  *
+ * --describe-terminals appends diagnostic lines for the terminals that end
+ * the pipeline with no matched shell and no unseen-source attribution: a
+ * tally over "event_type:reason:kind" signatures naming the constraint
+ * that killed each terminal's nearest-to-viable story (terminal_class
+ * lines; kind is P/T/? for the best candidate's origin, "-" when nothing
+ * was near), and a few example terminals per file (terminal_example
+ * lines). Reasons rank nearest-to-explained first; see
+ * describe_unmatched_terminals in viewer/motion.js.
+ *
  * Every metric is a "key<TAB>value" line. A value of "-" means this repo state
  * does not carry the data at all, which is not the same as a count of zero;
  * an older version without shell births reports "-", not "0". Rate lines are
@@ -34,23 +43,31 @@ const REPORT_FORMAT = 1;
 function usage(message) {
 	if (message) console.error(`error: ${message}`);
 	console.error("usage: node tools/report-interpolation-rates.cjs " +
-		"[-f <replay> | -d <directory> | -r <directory>]  " +
-		"(no arguments: the whole corpus)");
+		"[--describe-terminals] [-f <replay> | -d <directory> | -r <directory>]  " +
+		"(no path arguments: the whole corpus)");
 	process.exit(2);
 }
 
 function parse_args(argv) {
+	let describe_terminals = false;
+	argv = argv.filter(arg => {
+		if (arg === "--describe-terminals") {
+			describe_terminals = true;
+			return false;
+		}
+		return true;
+	});
 	let modes = { "-f": "file", "-d": "directory", "-r": "recursive" };
 	if (argv.length === 0) {
 		/* Corpus runs are the usual case. corpus_root() exits with advice
 		 * when nothing is configured. */
 		let { corpus_root } = require("./corpus.cjs");
-		return { mode: "recursive", target: corpus_root() };
+		return { mode: "recursive", target: corpus_root(), describe_terminals };
 	}
 	if (argv.length !== 2) usage("exactly one flag and one path are required");
 	let mode = modes[argv[0]];
 	if (!mode) usage(`unknown flag ${argv[0]}`);
-	return { mode, target: path.resolve(argv[1]) };
+	return { mode, target: path.resolve(argv[1]), describe_terminals };
 }
 
 /* Directory listings are sorted so a corpus is visited in the same order on
@@ -258,10 +275,37 @@ function count_shells(totals, game) {
 	}
 }
 
-function count_file(totals, engines, file) {
+/* One tally entry per unexplained terminal, plus a few examples per file
+ * so the classes stay attached to scenes a human can open. */
+const TERMINAL_EXAMPLES_PER_FILE = 3;
+
+function describe_terminals(diagnostics, engines, game, file) {
+	if (typeof engines.motion?.describe_unmatched_terminals !== "function") {
+		diagnostics.unsupported = true;
+		return;
+	}
+	let examples = 0;
+	for (let snapshots of game.shell_positions || []) {
+		if (!Array.isArray(snapshots)) continue;
+		for (let record of engines.motion.describe_unmatched_terminals(
+			snapshots)) {
+			let signature =
+				`${record.event_type}:${record.reason}:${record.kind}`;
+			diagnostics.classes.set(signature,
+				(diagnostics.classes.get(signature) || 0) + 1);
+			if (examples < TERMINAL_EXAMPLES_PER_FILE) {
+				examples++;
+				diagnostics.examples.push({ file, record });
+			}
+		}
+	}
+}
+
+function count_file(totals, engines, file, diagnostics) {
 	let bytes = new Uint8Array(fs.readFileSync(file));
 	let records = [...engines.log.records(bytes)];
 	let game = engines.game.build(records);
+	if (diagnostics) describe_terminals(diagnostics, engines, game, file);
 	let max_ticks = engines.game.MAX_POSITION_INTERPOLATION_TICKS;
 	/* Repo states from before facing had a limit of its own bridged it with
 	 * the position limit, so reporting that keeps their numbers honest. */
@@ -352,8 +396,34 @@ function build_report(totals, meta) {
 	return `${lines.join("\n")}\n`;
 }
 
+function terminal_class_report(diagnostics) {
+	let lines = [];
+	if (diagnostics.unsupported) {
+		lines.push("terminal_class\t-");
+		return lines;
+	}
+	let classes = [...diagnostics.classes.entries()]
+		.sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
+	for (let [signature, count] of classes) {
+		lines.push(`terminal_class\t${signature}\t${count}`);
+	}
+	for (let { file, record } of diagnostics.examples) {
+		let candidate = record.candidate
+			? `candidate=(${record.candidate.time},` +
+				`${record.candidate.pixel_x},${record.candidate.pixel_y},` +
+				`d${record.candidate.direction})`
+			: "candidate=-";
+		lines.push(`terminal_example\t${path.basename(file)}` +
+			`\tt${record.time}\t${record.event_type}\t${record.terminal_type}` +
+			`\t(${record.pixel_x},${record.pixel_y})` +
+			`\td${record.direction === null ? "-" : record.direction}` +
+			`\t${record.reason}:${record.kind}\t${candidate}`);
+	}
+	return lines;
+}
+
 function main() {
-	let { mode, target } = parse_args(process.argv.slice(2));
+	let { mode, target, describe_terminals } = parse_args(process.argv.slice(2));
 	let engines;
 	try {
 		engines = {
@@ -364,6 +434,15 @@ function main() {
 		console.error(`error: this repo state has no loadable viewer engine: ${error.message}`);
 		process.exit(3);
 	}
+	if (describe_terminals) {
+		/* Kept a separate, guarded require so the tool still measures the
+		 * repo states from before the diagnostics existed. */
+		try {
+			engines.motion = require(path.join(ROOT, "viewer", "motion.js"));
+		} catch {
+			engines.motion = null;
+		}
+	}
 	if (typeof engines.game.build !== "function" ||
 		typeof engines.log.records !== "function") {
 		console.error("error: this repo state has no viewer engine to report on");
@@ -373,14 +452,19 @@ function main() {
 	let files = replay_files(mode, target);
 	if (!files.length) usage(`no replay files found at ${target}`);
 	let totals = empty_totals();
+	let diagnostics = describe_terminals
+		? { classes: new Map(), examples: [], unsupported: false } : null;
+	let done = 0;
 	for (let file of files) {
 		try {
-			count_file(totals, engines, file);
+			count_file(totals, engines, file, diagnostics);
 			totals.files++;
 		} catch (error) {
 			totals.files_failed++;
 			console.error(`warning: ${path.relative(ROOT, file)}: ${error.message}`);
 		}
+		done++;
+		if (done % 10 === 0) console.error(`progress: ${done}/${files.length}`);
 	}
 	process.stdout.write(build_report(totals, {
 		mode,
@@ -390,6 +474,10 @@ function main() {
 		max_direction_interpolation_ticks:
 			engines.game.MAX_DIRECTION_INTERPOLATION_TICKS,
 	}));
+	if (diagnostics) {
+		let lines = terminal_class_report(diagnostics);
+		if (lines.length) process.stdout.write(`${lines.join("\n")}\n`);
+	}
 }
 
 main();
