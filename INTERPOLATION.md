@@ -96,6 +96,19 @@ A shell with a known birth gets drawn from the muzzle onward
 (`build_shell_births`), not just from its first restatement. Pill shots that
 died entirely between restatements (an F4 with no shell ever seen) can still
 claim strictly count-forced terrain explosions (`mark_unseen_pillbox_terminals`).
+The mirror case — a shell seen but its F4 lost to packet loss — is claimed
+from orbit membership alone (`claim_unseen_pillbox_births`, after all
+F4-backed and forced explanations have had first refusal): an origin-less
+chain whose every observation lies on ONE live pill's orbit at strictly
+increasing steps is that pill's shot. Two corroborated observations on an
+anchored discrete track don't happen by accident; a single sighting is
+claimed only exact and fresh from the muzzle, and if more than one pill's
+story survives, none is claimed. The same pass claims births for heads
+whose pill was already named by ambiguity propagation — which stream-mate
+they are is unknown, but in every candidate story they flew from that
+muzzle. The corpus's backwards-pop anatomy
+motivated this: these were the shells popping in one fire interval behind
+their dead stream leaders.
 
 ### Quantisation: why nothing is quite where it says it is
 
@@ -187,11 +200,39 @@ restatements are *absorbed* into their chain (with a temporal gate so a
 trailing shell on the same segment is never claimed), and each chain is
 drawn at constant velocity between its best-known anchors
 (`smooth_shell_chains`) — sender timestamp jitter otherwise visibly
-wobbles a large fraction of drawn links. Where identity is genuinely
-ambiguous but every candidate story draws the same line (dense same-ray
-pill streams), a *visual join* draws the continuation without believing
-it: the sprite flies on, but no identity, birth, or fate propagates
-across the link.
+wobbles a large fraction of drawn links. That temporal gate assumes the
+sender's clock lags by at most a dozen ticks, and a worse spike used to
+strand the restatement outside the chain that flies straight through it —
+drawn as a jump backwards, a hover and a rush. For a pill shot the orbit
+table overrules the clock in both directions
+(`pillbox_absorption_states`, the same widen-in-time-only principle as
+`pill_states_reachable`): an observation that is an exact orbit point, on
+a bradian surviving at both ends of the stitch, at a step strictly
+between their two, is a candidate whatever its timestamp claims — and one
+the surviving orbits rule out is refused however well its geometry reads,
+since with the orbit known it is provably some other shell, and the
+temporal gate is never consulted. What the discrete evidence cannot
+settle is which of two stream-mates is which: an angry pillbox fires
+every five or six ticks, putting same-ray neighbours only two or three
+steps apart, so a fragmented stream can drop several of them, each
+individually consistent, into one snapshot of the gap. When more than one
+observation in a snapshot qualifies, none is absorbed — the chain's own
+restatement is among them, but nothing says which, and an unmatched pop
+is safer than a smooth but invented path. (A rank-pairing rescue for
+refused groups on consecutive snapshots was tried and measured a
+corpus-wide null — consecutive stale records match each other into
+fragments, so the configuration never arises — and was reverted; the
+measurement docs carry the account.) A visually-joined observation
+keeps counting toward a stitch's ambiguity, so a later overlapping
+chain cannot mistake the thinned census for uniqueness. All of this holds for chained
+list members as well as list heads — a wider quantisation bound just
+admits several candidate bradians, which the shared-bradian and
+strictly-between tests then narrow, usually to one, recovering the exact
+pixel the offsets had lost.
+Where identity is genuinely ambiguous but every candidate story draws the
+same line (dense same-ray pill streams), a *visual join* draws the
+continuation without believing it: the sprite flies on, but no identity,
+birth, or fate propagates across the link.
 
 ## Measurement
 

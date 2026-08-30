@@ -655,6 +655,35 @@ Fixture:
   genuinely drawing-only. Fixture and replay metrics byte-identical
   either side of the split.
 
+## Orbit-backed absorption and its guards -- `33e1ee5` + `90925b0`
+
+A pill shot's orbit can absorb a stitch-skipped restatement the
+temporal gate strands: an exact orbit point, on a bradian surviving at
+both ends of the stitch, strictly between their steps, is absorbed
+however badly the sender's clock lied (`33e1ee5`, from replay
+101202.10's pillbox 3, where the gate lost by 0.372 px and the shell
+drew a 19 px backwards jump, a ten-tick hover and a 41 px rush).
+`90925b0` guards it both ways for dense streams: at most one candidate
+per snapshot -- an angry pillbox fires every five or six ticks, so
+stream-mates ride two or three steps apart and nothing in one snapshot
+says which observation is the reconnected shell -- and an observation
+the surviving orbits rule out is refused before the geometric gate can
+absorb it.
+
+Fixture:
+
+* `33e1ee5`: shells matched forward 73,376 -> 73,379, unlinked
+  169 -> 166, terminals unchanged; audit hover 2 -> 3 and rush 7 -> 8,
+  observations entering the link structure that used to pop invisibly.
+* `90925b0`: matched forward -> 73,369, unlinked -> 172, terminals
+  20,641 -> 20,638 -- the same-time double-absorbed pairs (seven
+  snapshots on the fixture) leaving the ledger; audit rush links
+  8 -> 1 and the 3.0+ speed bucket 8 -> 1, `pop_outs` 374 -> 384.
+* Seam jumps 0 throughout on the fixture.
+* Corpus: rush links down 17.5%, terminals flat, backwards pops up 278
+  -- see the branch entry in
+  [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md).
+
 ## Findings
 
 * **The branch line now leads the branch point on every headline metric.** At

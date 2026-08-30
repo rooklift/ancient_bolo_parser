@@ -899,6 +899,12 @@ function build(records) {
 	let shell_terminals = [];
 	let pillbox_sources_by_record = new Map();
 	let tank_sources_by_record = new Map();
+	/* Timeline of which pills are alive and where, for orbit-membership
+	 * birth claims: an entry per record after which the placed-and-armed
+	 * roster changed. Sparse -- pickups, plants, kills and revives are
+	 * rare next to records. */
+	let pill_states = [];
+	let last_pill_key = null;
 	let s = initial_state(seed);
 
 	for (let i = 0; i < records.length; i++) {
@@ -943,9 +949,18 @@ function build(records) {
 		}
 		if (tank_sources.length) tank_sources_by_record.set(rec, tank_sources);
 		apply_record(s, rec, effects, chat, shell_terminals, node_joins);
+		let roster = s.pills.map(p => p.inTank === null && p.armour > 0
+			? { pixel_x: p.x * 16, pixel_y: p.y * 16 } : null);
+		let pill_key = roster.map(p =>
+			p ? `${p.pixel_x},${p.pixel_y}` : "-").join(";");
+		if (pill_key !== last_pill_key) {
+			pill_states.push({ time: rec.time, roster });
+			last_pill_key = pill_key;
+		}
 	}
 	let shell_positions = BoloMotion.build_shell_positions(records, shell_terminals,
-		pillbox_sources_by_record, tank_sources_by_record, tank_positions);
+		pillbox_sources_by_record, tank_sources_by_record, tank_positions,
+		pill_states);
 	let shell_births = BoloMotion.build_shell_births(shell_positions);
 	let shell_fall_segments = BoloMotion.build_shell_fall_segments(shell_positions);
 	effects.sort((a, b) => a.time - b.time);
