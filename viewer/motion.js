@@ -2873,6 +2873,87 @@ function resolve_residual_shell_fates(snapshots) {
 		apply_visual_join(best_candidate);
 	}
 
+	/* Die-at-impact: the drawn-side twin of the visual join, for chain
+	 * ends the flow left with nothing. A shell that vanishes mid-air with
+	 * an unexplained impact inside its physics window is the audit's
+	 * pop-out class; when every story within the forcing margin for that
+	 * end is a death at ONE place -- no continuation candidate survives
+	 * inside the margin, and every within-margin open fate shares one
+	 * geometry -- the stories differ only in which identical event it
+	 * was, so the end takes the cheapest still-open one and the vanish
+	 * becomes a death at the wall. This pass re-probes CURRENT shell
+	 * state rather than reusing the graph's edges: the flow's own
+	 * forced-origin assignments give chains headings after the edges were
+	 * built, and a box terminal needs that ray. It runs before the
+	 * unseen-shot phases so an observed shell outranks an invisible
+	 * sibling for the same impact; ends are served cheapest-first and
+	 * re-checked so capacity is never exceeded. */
+	let terminal_open = terminal => terminal.match_time === undefined &&
+		!terminal.unseen_pillbox_source && !terminal.unseen_tank_source;
+	let deaths = [];
+	for (let index = 0; index + 1 < snapshots.length; index++) {
+		let snapshot = snapshots[index];
+		let gap = index > 0 ? snapshot.time - snapshots[index - 1].time : 0;
+		let lead_pixels = Math.min(gap, MAX_POSITION_INTERPOLATION_TICKS) *
+			SHELL_SPEED_PIXELS_PER_TICK;
+		for (let shell of snapshot.shells) {
+			if (shell.next_time !== undefined) continue;
+			let end = { shell, time: snapshot.time, gap };
+			let fates = [];
+			let continuation_cost = Infinity;
+			for (let j = index + 1; j < snapshots.length; j++) {
+				let duration = snapshots[j].time - snapshot.time;
+				if (duration <= 0) continue;
+				if (duration > MAX_STITCH_GAP_TICKS) break;
+				for (let other of snapshots[j].shells) {
+					if (other.matched_from_previous || other.starts_at_tank ||
+						other.starts_at_pillbox) continue;
+					let start = { shell: other, time: snapshots[j].time };
+					let candidate = stitch_candidate(end, start) ||
+						dilated_join_candidate(end, start);
+					if (candidate) {
+						continuation_cost = Math.min(continuation_cost,
+							candidate.cost);
+					}
+				}
+				if (duration > MAX_SHELL_INTERPOLATION_TICKS) continue;
+				for (let terminal of snapshots[j].terminals) {
+					if (!terminal_open(terminal)) continue;
+					let match = shell_terminal_match(shell, terminal,
+						duration, snapshot.time, lead_pixels);
+					if (!match || duration -
+						match.distance / SHELL_SPEED_PIXELS_PER_TICK >
+							MAX_FATE_EVENT_LAG_TICKS) continue;
+					fates.push({ terminal, match, cost: match.cost,
+						time: snapshots[j].time,
+						geometry: terminal.type === "point"
+							? `p${terminal.pixel_x},${terminal.pixel_y}`
+							: `b${terminal.min_x},${terminal.min_y}` });
+				}
+			}
+			if (!fates.length) continue;
+			let best = Math.min(...fates.map(fate => fate.cost));
+			if (continuation_cost < best + RESIDUAL_COST_MARGIN) continue;
+			let within = fates.filter(fate =>
+				fate.cost < best + RESIDUAL_COST_MARGIN);
+			if (new Set(within.map(fate => fate.geometry)).size !== 1) {
+				continue;
+			}
+			within.sort((a, b) => a.cost - b.cost);
+			deaths.push({ end, within, best });
+		}
+	}
+	deaths.sort((a, b) => a.best - b.best);
+	for (let { end, within } of deaths) {
+		if (end.shell.next_time !== undefined) continue;
+		for (let { terminal, match, time } of within) {
+			if (!terminal_open(terminal)) continue;
+			apply_forced_terminal(end, { time, terminals: [terminal] },
+				match);
+			break;
+		}
+	}
+
 	/* Phase two: same-record shots onto the fates that remain. A shell
 	 * fired and dead inside one record gap has its shot and its impact
 	 * reported in the same record -- duration zero, which the graph above
