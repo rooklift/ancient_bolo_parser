@@ -269,6 +269,9 @@ ipcMain.handle("video-begin", async (e, default_name) => {
 		filters: [{ name: "WebM video", extensions: ["webm"] }],
 	});
 	if (res.canceled || !res.filePath) return { canceled: true };
+	/* the guard above ran before the dialog's await: a second begin issued
+	 * while the dialog was open must not open a second file */
+	if (export_file) return { canceled: true, error: "an export is already in progress" };
 	try {
 		export_file = { fd: fs.openSync(res.filePath, "w"), path: res.filePath };
 		remember_save_directory(res.filePath);
