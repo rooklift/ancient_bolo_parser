@@ -127,15 +127,31 @@ updates-vs-ticks slope and jitter amplitude over time; report per
 replay. Explains residual `no_model` chains, could annotate the viewer,
 and is simply a delightful thing to reconstruct. Tool-only.
 
-## 6. Terminal matching for stream leaders
+## 6. Terminal matching for stream leaders -- DONE, closed at the knee
 
-The largest residue, two ways of naming one thing: 17% of corpus
-impacts still unmatched, and ~2,270 of the remaining 3,253 backwards
-pops are pill-stream leaders dying with unexplained fates (their
-followers now claimed, the leaders still pop out). The anatomy says the
-wins are here, not in more motion work. No design yet; the
-`--describe-backwards` examples and the terminal-match failure reasons
-are the starting data.
+Ran as a census-first arc (`--describe-terminals`, `--describe-ends`),
+four measured dials, every one corpus-verified with zero cost on the
+untouched axes: the same-record unseen-shot phase, the
+equivalence-forced attributions, capacity-honest accounting, and
+die-at-impact (5,396 mid-air vanishes became deaths at the wall -- the
+arc's only real match gains, the rest being attributions). Closing
+tally against the arc's baseline: unexplained impacts -46% (148k ->
+80k), backwards pops -44% and forward-paired -37% against the
+pre-branch baseline. What remains is dominated by information the log
+never carried (senders fire faster than they restate, so volley
+siblings are real but unobserved; fall events get lost) and by
+vanishes that are visually CORRECT (a shell disappearing at range end
+fell -- the pop-out metric does not distinguish that from a mid-flight
+vanish). Deliberately closed here rather than polished further; the
+full account is in the corpus results file.
+
+**The mode from here is complaint-driven**: the owner watches replays
+and reports scenes that look wrong ("this shell should have
+interpolated better", with replay, rough time, and where to look);
+each report gets the record-level scene dump, a census classification
+of what blocked it, and a measured fix. That instrument has better
+resolution than any corpus metric now -- it is how this branch started,
+and the diagnostics built this arc exist to service it.
 
 ## 7. Tank-stream turnover (maybe)
 
@@ -167,5 +183,9 @@ measure the false-claim risk before believing it. Explicitly optional.
 * Continue-vs-die (item 2b): the pop rescue prefers a seen continuation
   over an inferred death when both fit, costing ~5,769 corpus terminal
   matches. Keep the preference, or should an authoritative fate event
-  outrank a rescued continuation? (Item 6 will reopen this.)
+  outrank a rescued continuation? (Item 6 reopened and largely
+  answered this: the measurement acquitted the continuations -- most
+  are correct single shells riding volleys with unobserved siblings --
+  and die-at-impact now settles the chain-END case in the fate's
+  favour when no continuation story survives the margin.)
 * Tank-birth analogue (item 7): worth the false-claim risk at all?
