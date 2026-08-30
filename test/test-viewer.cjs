@@ -669,6 +669,94 @@ if (!fs.existsSync(log1)) {
 			rounded(position(jittered_sender, 146).y)],
 		[69.3058, 162.0201]);
 
+	/* From replay 101202.10, pillbox 3 firing coarse direction 9 around
+	 * record 305. The sender's packet at the third restatement carried
+	 * simulation state twelve ticks stale, so the shell advanced four
+	 * orbit steps across a twenty-tick record gap and ten across the next
+	 * ten-tick one. Every restatement is an exact point on one orbit
+	 * (bradian 145, steps 5, 10, 14, 24, 29), but the timing put the
+	 * middle one 24.37px off the uniform-time schedule -- past the 24px
+	 * geometric gate by a third of a pixel -- and it drew as a backwards
+	 * jump, a ten-tick hover and a forty-pixel rush. The orbit is
+	 * authoritative over the clock: a point strictly between the stitch's
+	 * own two steps is the shell. A shell-less record precedes the shot so
+	 * that birth attribution has a predecessor snapshot to work from. */
+	let idle_tank = {
+		type: "tank_position", x: 100, y: 100, pixelX: 0, pixelY: 0,
+		direction: 0, inBoat: false, hidden: false, dying: false,
+		speed: 0, motion: 0,
+	};
+	let dilated_pill_stream = BoloGame.build([
+		record(60, [{ type: "pillbox_list", items: [{
+			x: 140, y: 133, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(80, [idle_tank]),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 9 },
+			shell_list(9, [[2229, 2153]]),
+		]),
+		record(109, [shell_list(9, [[2221, 2172]])]),
+		record(129, [shell_list(9, [[2214, 2186]])]),
+		record(139, [shell_list(9, [[2199, 2223]])]),
+		record(149, [shell_list(9, [[2191, 2242]])]),
+	]);
+	let dilated_observation = dilated_pill_stream.shell_positions[0][3].shells[0];
+	check("an orbit point between a stitch's steps is absorbed however " +
+		"badly the sender's clock lies",
+		[!!dilated_observation.matched_from_previous,
+			!!dilated_observation.stitched,
+			dilated_observation.pillbox_orbit_states],
+		[true, true, [{ bradian: 145, step: 14 }]]);
+	/* The whole flight, not just the absorbed link: min and max drawn
+	 * speed are equal, so nothing hovers and nothing rushes. */
+	let dilated_speeds = [];
+	for (let tick = 101; tick <= 149; tick++) {
+		let from = position(dilated_pill_stream, tick - 1);
+		let to = position(dilated_pill_stream, tick);
+		dilated_speeds.push(rounded(Math.hypot(to.x - from.x, to.y - from.y) * 16));
+	}
+	check("the absorbed chain draws at one constant speed end to end",
+		[Math.min(...dilated_speeds), Math.max(...dilated_speeds)],
+		[1.975, 1.975]);
+
+	/* The orbit test is not restricted to list heads. A chained member's
+	 * coordinate is only bounded -- the exact point lies between the
+	 * reconstruction and the reconstruction plus the member's index -- so
+	 * it starts with several candidate bradians and narrows. Here the
+	 * tracked shell rides at index 1 behind a decoy from another pill,
+	 * and its middle offset quantised one pixel short on both axes: it is
+	 * still absorbed, its bradian is pinned, and the exact orbit pixel is
+	 * recovered a pixel away from where the offsets put it. */
+	let chained_member = BoloGame.build([
+		record(60, [{ type: "pillbox_list", items: [
+			{ x: 140, y: 133, owner: 1, armour: 15, speed: 100 },
+			{ x: 120, y: 133, owner: 1, armour: 15, speed: 100 },
+		] }]),
+		record(80, [idle_tank]),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 9 },
+			{ type: "pillbox_fires", pillbox: 1, direction: 9 },
+			shell_list(9, [[1909, 2153], [2229, 2153]]),
+		]),
+		record(109, [shell_list(9, [[1901, 2172], [2221, 2172]])]),
+		record(129, [shell_list(9, [[1894, 2186], [2213, 2185]])]),
+		record(139, [shell_list(9, [[1879, 2223], [2199, 2223]])]),
+		record(149, [shell_list(9, [[1871, 2242], [2191, 2242]])]),
+	]);
+	check("a chained list member starts with several candidate bradians",
+		chained_member.shell_positions[0][1].shells[1].pillbox_orbit_states,
+		[{ bradian: 143, step: 5 }, { bradian: 145, step: 5 }]);
+	let chained_observation = chained_member.shell_positions[0][3].shells[1];
+	check("a chained member is absorbed too, its bradian pinned and its " +
+		"exact pixel recovered from the quantisation bound",
+		[chained_observation.position_uncertainty,
+			!!chained_observation.matched_from_previous,
+			chained_observation.pillbox_orbit_states,
+			[chained_observation.pixel_x, chained_observation.pixel_y],
+			[chained_observation.pillbox_orbit_pixel_x,
+				chained_observation.pillbox_orbit_pixel_y]],
+		[1, true, [{ bradian: 145, step: 14 }], [2213, 2185], [2214, 2186]]);
+
 	let graze_with_successor = BoloGame.build([
 		record(100, [shell_list(12, [[2110, 1812]])]),
 		record(120, [shell_list(12, [[2071, 1814]])]),

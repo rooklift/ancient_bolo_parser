@@ -1895,6 +1895,58 @@ function apply_stitch(candidate) {
 	apply_tank_bradian_heading(start_shell);
 }
 
+/* Discrete evidence that an intermediate observation is the very shell a
+ * stitch reconnects, for a pill shot whose orbit is known at both ends.
+ * The observation must be an exact orbit point -- within its one-sided
+ * quantisation bound -- on a bradian that survives at BOTH ends of the
+ * stitch, at a step strictly between the two.
+ *
+ * This is the widen-in-time-only principle `pill_states_reachable` uses
+ * for dilated joins. A lagging sender's record clock can put a
+ * restatement far off the uniform-time schedule the geometric test below
+ * demands, but no clock can move it off its orbit, so the discrete test
+ * subsumes that test rather than relaxing it: the orbit is a straight
+ * line at constant velocity, so a point strictly between two of its own
+ * steps is on the segment by construction.
+ *
+ * `floor_step` keeps a run of absorbed observations strictly forward
+ * along the orbit; pass -1 for the first.
+ *
+ * List index is irrelevant to any of this. A chained list member carries
+ * a wider bound and so yields several states where a list head yields
+ * one, but the shared-bradian and strictly-between tests still bite, and
+ * a state set that agrees on one pixel recovers the exact coordinate the
+ * quantised offsets lost. */
+function pillbox_absorption_states(end_shell, target_shell, shell, floor_step) {
+	let end_states = end_shell.pillbox_orbit_states;
+	let target_states = target_shell && target_shell.pillbox_orbit_states;
+	if (!end_states || !end_states.length ||
+		!target_states || !target_states.length ||
+		end_shell.pillbox_source_x === undefined) return null;
+	/* A start already claimed by a different pill stream is not this
+	 * shell, the same rule stitch_candidate applies to chain starts. */
+	if (shell.pillbox_source_x !== undefined &&
+		(shell.pillbox_source_x !== end_shell.pillbox_source_x ||
+			shell.pillbox_source_y !== end_shell.pillbox_source_y)) return null;
+	let relative_x = shell.pixel_x - end_shell.pillbox_source_x;
+	let relative_y = shell.pixel_y - end_shell.pillbox_source_y;
+	let uncertainty = shell.position_uncertainty || 0;
+	let states = [];
+	for (let target_state of target_states) {
+		let orbit = PILLBOX_ORBITS_BY_BRADIAN.get(target_state.bradian);
+		let last = Math.min(target_state.step - 1, orbit.positions.length - 1);
+		for (let step = Math.max(floor_step + 1, 0); step <= last; step++) {
+			if (!end_states.some(state =>
+				state.bradian === target_state.bradian &&
+				state.step < step)) continue;
+			if (!pillbox_orbit_position_matches(orbit.positions[step],
+				relative_x, relative_y, uncertainty)) continue;
+			states.push({ bradian: target_state.bradian, step });
+		}
+	}
+	return states.length ? unique_pillbox_orbit_states(states) : null;
+}
+
 /* A stitch may bridge over restatements of the very shell it reconnects:
  * a lagging sender's record timestamps drift against its simulation, so
  * an intermediate observation can fail every pairwise distance test while
@@ -1915,14 +1967,27 @@ function absorb_intermediate_observations(snapshots, end, start) {
 	let length = Math.hypot(segment_x, segment_y);
 	if (length <= 1e-9) return;
 
+	let final_time = end_shell.next_time;
+	let final_next_shell = end_shell.next_shell;
 	let absorbed = [];
+	let floor_step = -1;
 	for (let snapshot of snapshots) {
 		if (snapshot.time <= end.time) continue;
-		if (snapshot.time >= end_shell.next_time) break;
+		if (snapshot.time >= final_time) break;
 		for (let shell of snapshot.shells) {
 			if (shell.next_time !== undefined || shell.matched_from_previous ||
 				shell.starts_at_tank || shell.starts_at_pillbox ||
 				shell.direction !== end_shell.direction) continue;
+			/* The orbit table settles this outright when it can: an
+			 * exact point strictly between the stitch's own two steps is
+			 * this shell, however far the sender's clock has drifted. */
+			let orbit_states = pillbox_absorption_states(end_shell,
+				final_next_shell, shell, floor_step);
+			if (orbit_states) {
+				floor_step = Math.min(...orbit_states.map(state => state.step));
+				absorbed.push({ shell, time: snapshot.time, orbit_states });
+				continue;
+			}
 			let relative_x = shell.pixel_x - anchor_x;
 			let relative_y = shell.pixel_y - anchor_y;
 			let along = (relative_x * segment_x + relative_y * segment_y) / length;
@@ -1944,18 +2009,22 @@ function absorb_intermediate_observations(snapshots, end, start) {
 	if (!absorbed.length) return;
 	absorbed.sort((a, b) => a.time - b.time);
 
-	let final_time = end_shell.next_time;
-	let final_next_shell = end_shell.next_shell;
 	let previous = end_shell;
 	for (let observation of absorbed) {
-		previous.next_time = observation.time;
-		previous.next_pixel_x = observation.shell.pixel_x;
-		previous.next_pixel_y = observation.shell.pixel_y;
-		previous.next_terminal = false;
-		previous.next_shell = observation.shell;
 		observation.shell.matched_from_previous = true;
 		observation.shell.stitched = true;
+		/* Identity first: the exact pixel is measured from the pill. */
 		propagate_identity_down_chain(end_shell, observation.shell);
+		if (observation.orbit_states) {
+			set_pillbox_orbit_states(observation.shell, observation.orbit_states);
+		}
+		previous.next_time = observation.time;
+		previous.next_pixel_x = observation.shell.pillbox_orbit_pixel_x ??
+			observation.shell.pixel_x;
+		previous.next_pixel_y = observation.shell.pillbox_orbit_pixel_y ??
+			observation.shell.pixel_y;
+		previous.next_terminal = false;
+		previous.next_shell = observation.shell;
 		previous = observation.shell;
 	}
 	previous.next_time = final_time;
