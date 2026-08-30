@@ -1581,6 +1581,25 @@ if (!fs.existsSync(log1)) {
 			[9.5625, 10.125],
 		]);
 
+	/* A shot whose first restatement arrives a whole flight later: the
+	 * residual pass claims it to the unclaimed F4 (131px on an exact
+	 * direction-4 orbit point, a 65.5-tick birth span). The sampler's
+	 * forward scan must cover such long spans, or the shell is invisible
+	 * for the early part of its drawn flight and pops in mid-air. */
+	let late_first_restatement = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 10, y: 10, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(100, [{ type: "pillbox_fires", pillbox: 0, direction: 4 }]),
+		record(166, [shell_list(4, [[291, 157]])]),
+	]);
+	check("long-span birth segment is drawn right from the muzzle",
+		BoloGame.shell_birth_positions_at(late_first_restatement, 0, 102)
+			.map(shell => [rounded(shell.x), rounded(shell.y), shell.direction]),
+		[[10.6896, 10.4957, 4]]);
+	check("long-span birth segment hands off at the real restatement",
+		BoloGame.shell_birth_positions_at(late_first_restatement, 0, 166), []);
+
 	let tank_refinement = BoloGame.build([
 		record(90, [{
 			type: "tank_position", x: 10, y: 10, pixelX: 0, pixelY: 0,
