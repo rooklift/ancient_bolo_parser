@@ -164,7 +164,7 @@ let last_viewpoint_html = null;
 let exporting = false;
 let export_target = null; /* { w, h } of the export's world viewport */
 
-const ZOOMS = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32];
+const ZOOMS = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64];
 let view = { zoom: 3, ox: 0, oy: 0 };
 
 /* ---------- DOM ---------- */
