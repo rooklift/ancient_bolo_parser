@@ -218,11 +218,16 @@ function superboom(s, x, y) {
 	}
 }
 
-/* Terrain a dumped (dead) pill can sit on: not a wall, not water. */
+/* Terrain a dumped (dead) pill can sit on: everything except a building,
+ * a shot building, or a boat. Corpus-verified against pickups: the search
+ * was observed skipping building 20 times, shot building 28 and boat 2,
+ * and no other terrain ever — deep sea included, which is accepted like
+ * any land square (60 observed rests, none skipped), so there is no
+ * river-over-deep-sea preference [E:dump-terrain]. */
 function pill_dumpable(s, x, y) {
 	if (x < 0 || y < 0 || x >= MAP_SIZE || y >= MAP_SIZE) return false;
 	const t = s.grid[y * MAP_SIZE + x];
-	if (t === DEEP_SEA || t === 0 || t === 1 || t === 8 || t === 9) return false;
+	if (t === 0 || t === 8 || t === 9) return false;
 	return !pill_at(s, x, y) && !base_at(s, x, y);
 }
 
