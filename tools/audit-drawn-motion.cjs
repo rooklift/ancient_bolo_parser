@@ -27,7 +27,13 @@
  *
  * Usage:
  *   node tools/audit-drawn-motion.cjs [replay-or-directory]
- *       [--workers=N] [--max-files=N]
+ *       [--workers=N] [--max-files=N] [--describe-backwards]
+ *
+ * --describe-backwards appends diagnostic lines for the backwards-pop
+ * class: a tally of every backwards-paired pop by the state-flag
+ * signature of the two shells involved (backwards_class lines), and a
+ * few example events per file (backwards_example lines). Without the
+ * flag the output is byte-identical to before the flag existed.
  */
 "use strict";
 
@@ -68,6 +74,27 @@ function draw_source(shell) {
 	];
 }
 
+/* Compact state signature of one shell observation, for classifying pop
+ * pairs: m matched_from_previous, s stitched, v visually joined (either
+ * end), B/T pillbox/tank birth, P pillbox source known, k tank bradian
+ * states, R refused by absorption as ambiguous, C ruled out by some
+ * stitch's orbits, q chained list member. "-" when none apply (also the
+ * shape older engine states produce). */
+function shell_flags(shell) {
+	let flags = "";
+	if (shell.matched_from_previous) flags += "m";
+	if (shell.stitched) flags += "s";
+	if (shell.visual_join || shell.visual_join_source) flags += "v";
+	if (shell.starts_at_pillbox) flags += "B";
+	if (shell.starts_at_tank) flags += "T";
+	if (shell.pillbox_source_x !== undefined) flags += "P";
+	if (shell.tank_bradian_states) flags += "k";
+	if (shell.absorption_refused) flags += "R";
+	if (shell.absorption_contradicted) flags += "C";
+	if (shell.position_uncertainty > 0) flags += "q";
+	return flags || "-";
+}
+
 function draw_target(shell) {
 	return [
 		shell.smooth_next_pixel_x ?? shell.next_pixel_x,
@@ -91,13 +118,16 @@ function empty_metrics() {
 		seam_jump_max: 0,
 		pop_outs: 0,
 		pop_ins: 0,
+		backwards_classes: {},
 		pops_paired_forward: 0,
 		pops_paired_backwards: 0,
 		link_speeds: {},
 	};
 }
 
-function analyze_file(file, engines, metrics) {
+const EXAMPLES_PER_FILE = 3;
+
+function analyze_file(file, engines, metrics, examples = null) {
 	let bytes = new Uint8Array(fs.readFileSync(file));
 	let build_start = Date.now();
 	let records = [...engines.log.records(bytes)];
@@ -152,6 +182,7 @@ function analyze_file(file, engines, metrics) {
 					metrics.pop_outs++;
 					pop_outs.push({
 						x: source_x, y: source_y, direction: shell.direction,
+						shell,
 					});
 				}
 
@@ -177,12 +208,29 @@ function analyze_file(file, engines, metrics) {
 							if (lateral > POP_PAIR_LATERAL_PIXELS) continue;
 							if (along > dt * 2 + POP_PAIR_SLACK_PIXELS) continue;
 							if (!best || Math.abs(along) < Math.abs(best.along)) {
-								best = { along };
+								best = { along, lateral, out };
 							}
 						}
 						if (best) {
 							if (best.along < -BACKWARDS_TOLERANCE_PIXELS) {
 								metrics.pops_paired_backwards++;
+								let signature = shell_flags(best.out.shell) +
+									">" + shell_flags(shell);
+								metrics.backwards_classes[signature] =
+									(metrics.backwards_classes[signature] || 0) + 1;
+								if (examples && examples.length < EXAMPLES_PER_FILE) {
+									examples.push({
+										file: path.basename(file),
+										time: snapshot.time,
+										direction: shell.direction,
+										dt,
+										along: +best.along.toFixed(2),
+										lateral: +best.lateral.toFixed(2),
+										out: [best.out.x, best.out.y,
+											shell_flags(best.out.shell)],
+										in: [source_x, source_y, shell_flags(shell)],
+									});
+								}
 							} else {
 								metrics.pops_paired_forward++;
 							}
@@ -289,12 +337,14 @@ function print_report(metrics, input) {
 }
 
 function parse_args(argv) {
-	let options = { target: null, workers: null, max_files: Infinity };
+	let options = { target: null, workers: null, max_files: Infinity,
+		describe_backwards: false };
 	for (let arg of argv) {
 		let workers = arg.match(/^--workers=(\d+)$/);
 		let max_files = arg.match(/^--max-files=(\d+)$/);
 		if (workers) options.workers = Math.max(1, parseInt(workers[1], 10));
 		else if (max_files) options.max_files = parseInt(max_files[1], 10);
+		else if (arg === "--describe-backwards") options.describe_backwards = true;
 		else if (arg.startsWith("--")) {
 			console.error(`error: unknown option ${arg}`);
 			process.exit(2);
@@ -321,15 +371,16 @@ function run_worker() {
 	let engines = load_engines();
 	parentPort.on("message", file => {
 		let metrics = empty_metrics();
+		let examples = [];
 		let failed = null;
 		try {
-			analyze_file(file, engines, metrics);
+			analyze_file(file, engines, metrics, examples);
 			metrics.files = 1;
 		} catch (error) {
 			metrics.files_failed = 1;
 			failed = error.message;
 		}
-		parentPort.postMessage({ file, metrics, failed });
+		parentPort.postMessage({ file, metrics, failed, examples });
 	});
 }
 
@@ -347,16 +398,32 @@ function main() {
 	let done = 0;
 	let active = 0;
 
+	let all_examples = [];
+
 	let finish = () => {
 		print_report(totals, path.relative(ROOT, options.target)
 			.replace(/\\/g, "/") || options.target);
+		if (!options.describe_backwards) return;
+		let classes = Object.entries(totals.backwards_classes)
+			.sort((a, b) => b[1] - a[1]);
+		for (let [signature, count] of classes) {
+			console.log(`backwards_class\t${signature}\t${count}`);
+		}
+		for (let example of all_examples) {
+			console.log(`backwards_example\t${example.file}` +
+				`\tt=${example.time}\tdir=${example.direction}` +
+				`\tdt=${example.dt}\talong=${example.along}` +
+				`\tlateral=${example.lateral}` +
+				`\tout=(${example.out[0]},${example.out[1]})${example.out[2]}` +
+				`\tin=(${example.in[0]},${example.in[1]})${example.in[2]}`);
+		}
 	};
 
 	if (worker_count === 1) {
 		let engines = load_engines();
 		for (let file of files) {
 			try {
-				analyze_file(file, engines, totals);
+				analyze_file(file, engines, totals, all_examples);
 				totals.files++;
 			} catch (error) {
 				totals.files_failed++;
@@ -385,6 +452,7 @@ function main() {
 			active--;
 			done++;
 			merge_metrics(totals, result.metrics);
+			if (result.examples) all_examples.push(...result.examples);
 			if (result.failed) {
 				console.error(`warning: ${path.basename(result.file)}: ${result.failed}`);
 			}
