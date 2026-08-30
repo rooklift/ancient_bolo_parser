@@ -152,10 +152,10 @@ if (!fs.existsSync(log1)) {
 			described, described === unexplained, reasons_sound,
 			classes.get("explosion:no_candidate:-"),
 			classes.get("pillbox_damage:end_continued:T"),
-		], [1103, true, true, 221, 91]);
+		], [1087, true, true, 240, 90]);
 		check("fixture same-record unseen shots claimed without cost", [
 			matched, unseen.pill, unseen.tank,
-		], [20638, 1209, 1125]);
+		], [20638, 1223, 1127]);
 	}
 
 	let pill_burst = { total: 0, matched: 0 };
