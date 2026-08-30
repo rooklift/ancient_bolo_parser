@@ -175,6 +175,91 @@ body {
 #chat .msg .who { font-weight: 600; }
 #chat .msg.sys { color: #8b96ad; font-style: italic; }
 
+/* Video export setup: the options dialog shown before the save dialog.
+ * Same modal pattern as the progress overlay below. */
+#exportSetup {
+	position: fixed;
+	inset: 0;
+	z-index: 10;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(10, 14, 22, 0.7);
+}
+#exportSetup.hidden { display: none; }
+#exportSetupBox {
+	width: 440px;
+	background: #161b26;
+	border: 1px solid #33405c;
+	border-radius: 6px;
+	padding: 18px 20px;
+	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+#exportSetupBox h1 { font-size: 15px; margin-bottom: 6px; }
+#exportSetupCamera { margin-bottom: 12px; }
+.exportRow {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 8px 0;
+}
+.exportRow > label {
+	width: 160px;
+	flex: none;
+	display: flex;
+	align-items: center;
+	gap: 7px;
+}
+.exportRow select, .exportRow input[type="number"] {
+	background: #232b3d;
+	border: 1px solid #33405c;
+	color: #cfd6e4;
+	border-radius: 4px;
+	height: 26px;
+}
+.exportRow input[type="number"] { width: 64px; padding: 0 6px; }
+.exportRow select:disabled, .exportRow input[type="number"]:disabled { opacity: 0.45; }
+.exportRow input[type="radio"], .exportRow input[type="checkbox"] { accent-color: #5b8def; }
+.exportField { display: flex; align-items: center; gap: 7px; color: #8b96ad; }
+#exportSetupEstimate { color: #8b96ad; font-size: 12px; margin-top: 10px; }
+#exportSetupWarning {
+	color: #e7c46a;
+	font-size: 12px;
+	margin-top: 8px;
+}
+#exportSetupWarning.hidden { display: none; }
+.exportButtons {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 14px;
+}
+.exportButtons button {
+	background: #232b3d;
+	border: 1px solid #33405c;
+	color: #cfd6e4;
+	border-radius: 4px;
+	height: 26px;
+	padding: 0 14px;
+	font-size: 13px;
+	cursor: pointer;
+}
+.exportButtons button:hover { background: #2c3650; }
+#exportSetupOk { background: #2c4a7c; border-color: #5b8def; }
+#exportSetupOk:hover { background: #365a94; }
+
+/* Unlike the transport (mouse-only, focus ring suppressed outright), the
+ * dialog is keyboard-navigable — but the UA ring is platform-coloured and
+ * lingers on a control after a mouse pick. Hide it for pointer use and
+ * draw a themed ring only for keyboard focus. */
+#exportSetup select:focus, #exportSetup input:focus,
+#exportSetup button:focus { outline: none; }
+#exportSetup select:focus-visible, #exportSetup input:focus-visible,
+#exportSetup button:focus-visible {
+	outline: 1px solid #5b8def;
+	outline-offset: 1px;
+}
+
 /* Video export progress: a modal that also blocks pointer input while the
  * export borrows the renderer's state (keys are blocked in renderer.js). */
 #exportOverlay {
