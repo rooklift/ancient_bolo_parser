@@ -1916,7 +1916,15 @@ function apply_stitch(candidate) {
  * a wider bound and so yields several states where a list head yields
  * one, but the shared-bradian and strictly-between tests still bite, and
  * a state set that agrees on one pixel recovers the exact coordinate the
- * quantised offsets lost. */
+ * quantised offsets lost.
+ *
+ * Three-way return: null when the discrete evidence is unavailable
+ * (either end of the stitch lacks orbit states, or the end has no
+ * source), leaving the decision to the geometric gate; an EMPTY array
+ * when the evidence exists and rules the observation out -- it sits on
+ * no surviving orbit point, or names another pill's stream, so it is
+ * provably not this shell however well its geometry reads; otherwise
+ * the surviving states. */
 function pillbox_absorption_states(end_shell, target_shell, shell, floor_step) {
 	let end_states = end_shell.pillbox_orbit_states;
 	let target_states = target_shell && target_shell.pillbox_orbit_states;
@@ -1927,7 +1935,7 @@ function pillbox_absorption_states(end_shell, target_shell, shell, floor_step) {
 	 * shell, the same rule stitch_candidate applies to chain starts. */
 	if (shell.pillbox_source_x !== undefined &&
 		(shell.pillbox_source_x !== end_shell.pillbox_source_x ||
-			shell.pillbox_source_y !== end_shell.pillbox_source_y)) return null;
+			shell.pillbox_source_y !== end_shell.pillbox_source_y)) return [];
 	let relative_x = shell.pixel_x - end_shell.pillbox_source_x;
 	let relative_y = shell.pixel_y - end_shell.pillbox_source_y;
 	let uncertainty = shell.position_uncertainty || 0;
@@ -1944,7 +1952,7 @@ function pillbox_absorption_states(end_shell, target_shell, shell, floor_step) {
 			states.push({ bradian: target_state.bradian, step });
 		}
 	}
-	return states.length ? unique_pillbox_orbit_states(states) : null;
+	return unique_pillbox_orbit_states(states);
 }
 
 /* A stitch may bridge over restatements of the very shell it reconnects:
@@ -1974,18 +1982,23 @@ function absorb_intermediate_observations(snapshots, end, start) {
 	for (let snapshot of snapshots) {
 		if (snapshot.time <= end.time) continue;
 		if (snapshot.time >= final_time) break;
+		let candidates = [];
 		for (let shell of snapshot.shells) {
 			if (shell.next_time !== undefined || shell.matched_from_previous ||
 				shell.starts_at_tank || shell.starts_at_pillbox ||
 				shell.direction !== end_shell.direction) continue;
-			/* The orbit table settles this outright when it can: an
-			 * exact point strictly between the stitch's own two steps is
-			 * this shell, however far the sender's clock has drifted. */
+			/* The orbit table rules first when it can, in both
+			 * directions: an exact point strictly between the stitch's
+			 * own two steps is a candidate however far the sender's
+			 * clock has drifted, and an observation the surviving orbits
+			 * rule out is not this shell however well its geometry
+			 * reads. */
 			let orbit_states = pillbox_absorption_states(end_shell,
 				final_next_shell, shell, floor_step);
-			if (orbit_states) {
-				floor_step = Math.min(...orbit_states.map(state => state.step));
-				absorbed.push({ shell, time: snapshot.time, orbit_states });
+			if (orbit_states !== null) {
+				if (orbit_states.length) {
+					candidates.push({ shell, time: snapshot.time, orbit_states });
+				}
 				continue;
 			}
 			let relative_x = shell.pixel_x - anchor_x;
@@ -2003,8 +2016,24 @@ function absorb_intermediate_observations(snapshots, end, start) {
 				SHELL_SPEED_PIXELS_PER_TICK;
 			if (Math.abs(along - expected_along) >
 				MAX_SMOOTHING_DEVIATION_PIXELS) continue;
-			absorbed.push({ shell, time: snapshot.time });
+			candidates.push({ shell, time: snapshot.time });
 		}
+		/* An angry pillbox fires every five or six ticks, so stream-mates
+		 * ride only two or three orbit steps apart and a fragmented
+		 * stream can drop several of them, each individually consistent,
+		 * into one snapshot of the gap. The chain's own restatement is
+		 * among them, but nothing in the snapshot says which it is, and
+		 * absorbing more than one would thread same-time restatements
+		 * into the chain as a zero-duration link. When the candidate is
+		 * not unique, none is absorbed: an unmatched pop is safer than a
+		 * smooth but invented path. */
+		if (candidates.length !== 1) continue;
+		let candidate = candidates[0];
+		if (candidate.orbit_states) {
+			floor_step = Math.min(...candidate.orbit_states.map(state =>
+				state.step));
+		}
+		absorbed.push(candidate);
 	}
 	if (!absorbed.length) return;
 	absorbed.sort((a, b) => a.time - b.time);

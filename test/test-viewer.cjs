@@ -757,6 +757,63 @@ if (!fs.existsSync(log1)) {
 				chained_observation.pillbox_orbit_pixel_y]],
 		[1, true, [{ bradian: 145, step: 14 }], [2213, 2185], [2214, 2186]]);
 
+	/* The limit of the orbit evidence: it cannot say WHICH stream-mate an
+	 * observation is. An angry pillbox fires every five or six ticks, so
+	 * same-ray neighbours ride two or three orbit steps apart, and a
+	 * fragmented stream can drop two of them -- here exact points at
+	 * steps 12 and 14, both strictly between the stitch's steps 10 and
+	 * 24 -- into one snapshot of the gap. Absorbing both would thread two
+	 * same-time restatements into the chain as a zero-duration link;
+	 * absorbing either alone is a guess. Neither is absorbed: the stitch
+	 * keeps its direct link and both observations stay unexplained. */
+	let ambiguous_pair = BoloGame.build([
+		record(60, [{ type: "pillbox_list", items: [{
+			x: 140, y: 133, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(80, [idle_tank]),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 9 },
+			shell_list(9, [[2229, 2153]]),
+		]),
+		record(110, [shell_list(9, [[2221, 2172]])]),
+		record(125, [shell_list(9, [[2218, 2179], [2214, 2186]])]),
+		record(140, [shell_list(9, [[2199, 2223]])]),
+	]);
+	let ambiguous_end = ambiguous_pair.shell_positions[0][2].shells[0];
+	check("two qualifying stream-mates in one snapshot absorb neither",
+		[ambiguous_end.next_time,
+			ambiguous_pair.shell_positions[0][3].shells.map(shell =>
+				!!shell.matched_from_previous)],
+		[140, [false, false]]);
+
+	/* The orbit evidence also cuts the other way. This observation sits
+	 * on the stitch's segment and near its uniform-time schedule -- the
+	 * geometric gate alone would absorb it -- but its relative position
+	 * (-24,54) is one pixel off step 13's (-24,55) at list-head
+	 * precision, on no surviving orbit point at all. With orbit states at
+	 * both ends of the stitch that is proof of some other shell, so the
+	 * geometric gate is never consulted and the chain keeps its direct
+	 * link. */
+	let orbit_contradiction = BoloGame.build([
+		record(60, [{ type: "pillbox_list", items: [{
+			x: 140, y: 133, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(80, [idle_tank]),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 9 },
+			shell_list(9, [[2229, 2153]]),
+		]),
+		record(110, [shell_list(9, [[2221, 2172]])]),
+		record(125, [shell_list(9, [[2216, 2182]])]),
+		record(140, [shell_list(9, [[2199, 2223]])]),
+	]);
+	let contradiction_end = orbit_contradiction.shell_positions[0][2].shells[0];
+	check("an observation the surviving orbits rule out is never absorbed",
+		[contradiction_end.next_time,
+			!!orbit_contradiction.shell_positions[0][3].shells[0]
+				.matched_from_previous],
+		[140, false]);
+
 	let graze_with_successor = BoloGame.build([
 		record(100, [shell_list(12, [[2110, 1812]])]),
 		record(120, [shell_list(12, [[2071, 1814]])]),

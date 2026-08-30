@@ -191,14 +191,25 @@ wobbles a large fraction of drawn links. That temporal gate assumes the
 sender's clock lags by at most a dozen ticks, and a worse spike used to
 strand the restatement outside the chain that flies straight through it —
 drawn as a jump backwards, a hover and a rush. For a pill shot the orbit
-table overrules the clock: an observation that is an exact orbit point,
-on a bradian surviving at both ends of the stitch, at a step strictly
-between their two, is that shell whatever its timestamp claims
+table overrules the clock in both directions
 (`pillbox_absorption_states`, the same widen-in-time-only principle as
-`pill_states_reachable`). This holds for chained list members as well as
-list heads — a wider quantisation bound just admits several candidate
-bradians, which the shared-bradian and strictly-between tests then narrow,
-usually to one, recovering the exact pixel the offsets had lost.
+`pill_states_reachable`): an observation that is an exact orbit point, on
+a bradian surviving at both ends of the stitch, at a step strictly
+between their two, is a candidate whatever its timestamp claims — and one
+the surviving orbits rule out is refused however well its geometry reads,
+since with the orbit known it is provably some other shell, and the
+temporal gate is never consulted. What the discrete evidence cannot
+settle is which of two stream-mates is which: an angry pillbox fires
+every five or six ticks, putting same-ray neighbours only two or three
+steps apart, so a fragmented stream can drop several of them, each
+individually consistent, into one snapshot of the gap. When more than one
+observation in a snapshot qualifies, none is absorbed — the chain's own
+restatement is among them, but nothing says which, and an unmatched pop
+is safer than a smooth but invented path. All of this holds for chained
+list members as well as list heads — a wider quantisation bound just
+admits several candidate bradians, which the shared-bradian and
+strictly-between tests then narrow, usually to one, recovering the exact
+pixel the offsets had lost.
 Where identity is genuinely ambiguous but every candidate story draws the
 same line (dense same-ray pill streams), a *visual join* draws the
 continuation without believing it: the sprite flies on, but no identity,
