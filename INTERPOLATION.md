@@ -103,7 +103,10 @@ chain whose every observation lies on ONE live pill's orbit at strictly
 increasing steps is that pill's shot. Two corroborated observations on an
 anchored discrete track don't happen by accident; a single sighting is
 claimed only exact and fresh from the muzzle, and if more than one pill's
-story survives, none is claimed. The corpus's backwards-pop anatomy
+story survives, none is claimed. The same pass claims births for heads
+whose pill was already named by ambiguity propagation — which stream-mate
+they are is unknown, but in every candidate story they flew from that
+muzzle. The corpus's backwards-pop anatomy
 motivated this: these were the shells popping in one fire interval behind
 their dead stream leaders.
 

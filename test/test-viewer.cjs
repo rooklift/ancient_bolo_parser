@@ -82,6 +82,30 @@ if (!fs.existsSync(log1)) {
 		game.effects.every((effect, i) => i === 0 ||
 			game.effects[i - 1].time <= effect.time),
 	], [true, true, true, true]);
+	/* Birth claims that need no firing record: unseen shots recovered
+	 * from orbit membership, and stream-provenance heads (a pill named by
+	 * ambiguity propagation) claimed where they stand. Every claim must
+	 * carry the full origin story it draws from. */
+	let orbit_births = { unseen: 0, stream: 0, sound: true };
+	for (let snapshots of game.shell_positions) {
+		for (let snapshot of snapshots) {
+			for (let shell of snapshot.shells) {
+				if (!shell.unseen_pillbox_shot && !shell.stream_birth) continue;
+				if (shell.unseen_pillbox_shot) orbit_births.unseen++;
+				if (shell.stream_birth) orbit_births.stream++;
+				if (!shell.starts_at_pillbox ||
+					shell.pillbox_source_x === undefined ||
+					!shell.pillbox_orbit_states ||
+					!shell.pillbox_orbit_states.length) {
+					orbit_births.sound = false;
+				}
+			}
+		}
+	}
+	check("fixture orbit-membership and stream-provenance birth claims",
+		[orbit_births.unseen, orbit_births.stream, orbit_births.sound],
+		[27, 8, true]);
+
 	let pill_burst = { total: 0, matched: 0 };
 	for (let snapshot of game.shell_positions[1]) {
 		let seconds = (snapshot.time - game.t0) / BoloLog.TICKS_PER_SECOND;
