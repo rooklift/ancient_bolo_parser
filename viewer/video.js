@@ -20,8 +20,9 @@ const EXPORT_W = 1920;
 const EXPORT_H = 1080;
 const EXPORT_SIDEBAR_W = 322;                     /* matches #sidebar in style.css */
 const EXPORT_WORLD_W = EXPORT_W - EXPORT_SIDEBAR_W;
-const EXPORT_BITRATE = 8_000_000;                 /* generous for flat 1080p60 art */
-const EXPORT_KEYFRAME_EVERY = 120;                /* frames; one cluster per 2s */
+const EXPORT_BITRATE = 8_000_000;                 /* bitrate-mode fallback only */
+const EXPORT_QUANTIZER = 24;                      /* VP9 QP, 0-63; lower = better, bigger */
+const EXPORT_KEYFRAME_EVERY = 600;                /* frames; one cluster per 10s */
 const EXPORT_QUEUE_LIMIT = 8;                     /* encoder frames in flight */
 const EXPORT_WRITE_CHUNK = 1 << 20;               /* buffered bytes per IPC write */
 const EX_FONT = 'system-ui, -apple-system, "Segoe UI", sans-serif';
@@ -153,7 +154,9 @@ async function export_video(start_tick) {
 				timestamp: Math.round(i * 1e6 / EXPORT_FPS),
 				duration: Math.round(1e6 / EXPORT_FPS),
 			});
-			encoder.encode(frame, { keyFrame: i % EXPORT_KEYFRAME_EVERY === 0 });
+			let opts = { keyFrame: i % EXPORT_KEYFRAME_EVERY === 0 };
+			if (picked.quantizer !== null) opts.vp9 = { quantizer: picked.quantizer };
+			encoder.encode(frame, opts);
 			frame.close();
 			await ex_backpressure(encoder);
 			await ex_flush_writes(false);
@@ -204,22 +207,30 @@ async function export_video(start_tick) {
 }
 
 /* VP9 with a VP8 fallback: both are WebM-native and need no codec private
- * data, which is what keeps the muxer small. */
+ * data, which is what keeps the muxer small.
+ *
+ * Constant-quality (quantizer) VP9 is tried first: an offline export has no
+ * realtime bandwidth budget, and a rate controller given a fixed bitrate
+ * starves the forced keyframes, encoding one visibly blurry frame at every
+ * keyframe interval. A fixed per-frame quantizer encodes key and delta
+ * frames at the same quality, at a file size that floats with the on-screen
+ * action instead. Bitrate mode remains the fallback (always for VP8, whose
+ * WebCodecs registration has no per-frame quantizer option). */
 async function ex_pick_config() {
-	let base = {
-		width: EXPORT_W, height: EXPORT_H,
-		bitrate: EXPORT_BITRATE, framerate: EXPORT_FPS,
-	};
+	let base = { width: EXPORT_W, height: EXPORT_H, framerate: EXPORT_FPS };
+	const VP9 = "vp09.00.10.08";
 	for (let choice of [
-		{ codec: "vp09.00.10.08", codec_id: "V_VP9" },
-		{ codec: "vp8", codec_id: "V_VP8" },
+		{ config: { ...base, codec: VP9, bitrateMode: "quantizer" },
+			codec_id: "V_VP9", quantizer: EXPORT_QUANTIZER },
+		{ config: { ...base, codec: VP9, bitrate: EXPORT_BITRATE },
+			codec_id: "V_VP9", quantizer: null },
+		{ config: { ...base, codec: "vp8", bitrate: EXPORT_BITRATE },
+			codec_id: "V_VP8", quantizer: null },
 	]) {
 		try {
-			let support = await VideoEncoder.isConfigSupported({ ...base, codec: choice.codec });
-			if (support.supported) {
-				return { config: { ...base, codec: choice.codec }, codec_id: choice.codec_id };
-			}
-		} catch { /* codec string not recognised: try the next */ }
+			let support = await VideoEncoder.isConfigSupported(choice.config);
+			if (support.supported) return choice;
+		} catch { /* config not recognised: try the next */ }
 	}
 	return null;
 }
@@ -229,7 +240,8 @@ function ex_progress(done, total) {
 	/* Extrapolate the final file size from the frames actually muxed so far,
 	 * so the user can bail on an export that is heading somewhere huge. Held
 	 * back until one full keyframe group is in, else the estimate whipsaws
-	 * with the key/delta frame mix. */
+	 * with the key/delta frame mix. Under quantizer-mode encoding bytes per
+	 * frame track scene complexity, so this stays a rough figure. */
 	let size = "";
 	if (ex_frames_muxed >= Math.min(EXPORT_KEYFRAME_EVERY, total)) {
 		size = ` — about ${ex_fmt_size(ex_bytes_muxed / ex_frames_muxed * total)}`;
