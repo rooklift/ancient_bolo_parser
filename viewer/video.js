@@ -57,6 +57,7 @@ let export_cancel_btn = document.getElementById("exportCancel");
 
 let export_setup_el = document.getElementById("exportSetup");
 let export_setup_summary = document.getElementById("exportSetupSummary");
+let export_setup_camera = document.getElementById("exportSetupCamera");
 let export_res_el = document.getElementById("exportRes");
 let export_speed_el = document.getElementById("exportSpeed");
 let export_fps_el = document.getElementById("exportFps");
@@ -124,6 +125,9 @@ function cancel_video_export() {
 function ex_setup(start_tick) {
 	ex_setup_apply(ex_setup_stored());
 	export_setup_start = start_tick;
+	export_setup_camera.textContent = player_locked
+		? "Using player lock and current zoom"
+		: "Using current camera location and zoom";
 	ex_setup_refresh();
 	export_setup_el.classList.remove("hidden");
 	export_setup_ok_btn.focus();
