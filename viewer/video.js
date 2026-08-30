@@ -7,12 +7,12 @@
  * into the hand-rolled muxer (webm.js) and stream to disk over IPC.
  *
  * A setup dialog fronts the export: canvas size (the world is rendered at
- * the live zoom, so a larger canvas shows more of the map), frame rate,
- * constant quality vs a target size, and whether the sidebar is painted
- * into the frame. Choices persist in localStorage, so a repeat export is
- * Enter, Enter. The dialog also states the two things the export inherits
- * invisibly from the viewer: it starts at the chosen tick, and the current
- * playback speed becomes the video's time compression.
+ * the live zoom, so a larger canvas shows more of the map), speed (the
+ * video's time compression — the dialog's own setting, independent of the
+ * viewer's playback speed), frame rate, constant quality vs a target size,
+ * and whether the sidebar is painted into the frame. Choices persist in
+ * localStorage, so a repeat export is Enter, Enter. The dialog also states
+ * where the export starts and how long the video comes out.
  *
  * The export reuses the live draw path by swapping the renderer's globals
  * (ctx, view, clock, cur) for its own for the duration; `exporting` blocks
@@ -41,9 +41,12 @@ const EX_FONT = 'system-ui, -apple-system, "Segoe UI", sans-serif';
 const EX_SIDEBAR_W = 322;
 const EX_DESIGN_H = 1080;
 
+/* matches the transport's speed menu, but the choice is the dialog's own */
+const EXPORT_SPEEDS = [0.5, 1, 1.5, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64];
+
 const EXPORT_OPTIONS_KEY = "bolo_export_options";
 const EXPORT_DEFAULTS = {
-	res: "1920x1080", fps: 60, mode: "quality", quality: "high",
+	res: "1920x1080", speed: 1, fps: 60, mode: "quality", quality: "high",
 	mb_per_min: 60, sidebar: true,
 };
 
@@ -55,6 +58,7 @@ let export_cancel_btn = document.getElementById("exportCancel");
 let export_setup_el = document.getElementById("exportSetup");
 let export_setup_summary = document.getElementById("exportSetupSummary");
 let export_res_el = document.getElementById("exportRes");
+let export_speed_el = document.getElementById("exportSpeed");
 let export_fps_el = document.getElementById("exportFps");
 let export_mode_quality_el = document.getElementById("exportModeQuality");
 let export_mode_size_el = document.getElementById("exportModeSize");
@@ -70,6 +74,7 @@ let export_cancel_requested = false;
 let export_error = null;
 let export_chat_cache = null; /* chat index -> wrapped lines, fixed per export */
 let export_setup_resolve = null; /* pending setup dialog, resolves to options */
+let export_setup_start = 0;      /* the pending export's start tick */
 let export_setup_seconds = 0;    /* output duration, for the size estimate */
 let EX = null; /* the running export's parameters, set from the dialog */
 let ex_write_queue = [];
@@ -80,8 +85,9 @@ let ex_frames_muxed = 0;
 export_cancel_btn.addEventListener("click", () => cancel_video_export());
 export_setup_cancel_btn.addEventListener("click", () => ex_setup_close(null));
 export_setup_ok_btn.addEventListener("click", () => ex_setup_confirm());
-for (let el of [export_res_el, export_fps_el, export_mode_quality_el,
-	export_mode_size_el, export_quality_el, export_mb_el, export_sidebar_el]) {
+for (let el of [export_res_el, export_speed_el, export_fps_el,
+	export_mode_quality_el, export_mode_size_el, export_quality_el,
+	export_mb_el, export_sidebar_el]) {
 	el.addEventListener("change", () => ex_setup_refresh());
 	el.addEventListener("input", () => ex_setup_refresh());
 }
@@ -117,10 +123,7 @@ function cancel_video_export() {
 
 function ex_setup(start_tick) {
 	ex_setup_apply(ex_setup_stored());
-	export_setup_seconds = Math.max(0, (game.t1 - start_tick) / (TPS * speed));
-	export_setup_summary.textContent =
-		`From ${fmt_time(start_tick)} at ${speed}× speed — ` +
-		`${ex_fmt_duration(export_setup_seconds)} of video`;
+	export_setup_start = start_tick;
 	ex_setup_refresh();
 	export_setup_el.classList.remove("hidden");
 	export_setup_ok_btn.focus();
@@ -139,9 +142,9 @@ function ex_setup_confirm() {
 	let options = ex_setup_read();
 	try {
 		localStorage.setItem(EXPORT_OPTIONS_KEY, JSON.stringify({
-			res: options.res, fps: options.fps, mode: options.mode,
-			quality: options.quality, mb_per_min: options.mb_per_min,
-			sidebar: options.sidebar,
+			res: options.res, speed: options.speed, fps: options.fps,
+			mode: options.mode, quality: options.quality,
+			mb_per_min: options.mb_per_min, sidebar: options.sidebar,
 		}));
 	} catch { /* a full or blocked store just loses the memory */ }
 	ex_setup_close(options);
@@ -154,6 +157,7 @@ function ex_setup_stored() {
 	} catch { /* absent or corrupt: defaults */ }
 	let o = { ...EXPORT_DEFAULTS, ...stored };
 	if (!EXPORT_RESOLUTIONS[o.res]) o.res = EXPORT_DEFAULTS.res;
+	if (!EXPORT_SPEEDS.includes(o.speed)) o.speed = EXPORT_DEFAULTS.speed;
 	if (o.fps !== 30 && o.fps !== 60) o.fps = EXPORT_DEFAULTS.fps;
 	if (o.mode !== "quality" && o.mode !== "size") o.mode = EXPORT_DEFAULTS.mode;
 	if (!(o.quality in EXPORT_QP)) o.quality = EXPORT_DEFAULTS.quality;
@@ -164,6 +168,7 @@ function ex_setup_stored() {
 
 function ex_setup_apply(o) {
 	export_res_el.value = o.res;
+	export_speed_el.value = String(o.speed);
 	export_fps_el.value = String(o.fps);
 	export_mode_quality_el.checked = o.mode === "quality";
 	export_mode_size_el.checked = o.mode === "size";
@@ -178,6 +183,7 @@ function ex_setup_read() {
 	let [w, h] = EXPORT_RESOLUTIONS[res];
 	return {
 		res, w, h,
+		speed: ex_speed_value(),
 		fps: export_fps_el.value === "30" ? 30 : 60,
 		mode: export_mode_size_el.checked ? "size" : "quality",
 		quality: export_quality_el.value in EXPORT_QP ? export_quality_el.value
@@ -192,7 +198,17 @@ function ex_clamp_mb(value) {
 	return Math.min(1000, Math.max(1, Math.round(value)));
 }
 
+function ex_speed_value() {
+	let value = parseFloat(export_speed_el.value);
+	return EXPORT_SPEEDS.includes(value) ? value : EXPORT_DEFAULTS.speed;
+}
+
 function ex_setup_refresh() {
+	export_setup_seconds =
+		Math.max(0, (game.t1 - export_setup_start) / (TPS * ex_speed_value()));
+	export_setup_summary.textContent =
+		`From ${fmt_time(export_setup_start)} — ` +
+		`${ex_fmt_duration(export_setup_seconds)} of video`;
 	let size_mode = export_mode_size_el.checked;
 	export_quality_el.disabled = size_mode;
 	export_mb_el.disabled = !size_mode;
@@ -259,8 +275,8 @@ async function export_video(start_tick) {
 	};
 
 	/* Each output frame advances the clock by a fixed tick step, so the
-	 * current playback speed is baked in as the video's time compression. */
-	let step = TPS * speed / EX.fps;
+	 * dialog's speed choice is baked in as the video's time compression. */
+	let step = TPS * options.speed / EX.fps;
 	let total = Math.max(1, Math.floor((game.t1 - start_tick) / step) + 1);
 	let duration_ms = total * 1000 / EX.fps;
 
