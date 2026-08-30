@@ -90,16 +90,28 @@ explanations on the books. A rank-pairing rescue for refused groups
 measured a corpus-wide null and was reverted; the account is in the
 results file. Tools now stamp their output with the measuring commit.
 
-## 3. Draw the unseen shots
+## 3. Draw the unseen shots -- DONE
 
-~154k corpus impacts now carry an unseen pill or tank source but render
+~154k corpus impacts carried an unseen pill or tank source but rendered
 as nothing: the wall-eating point-blank shots in replay `122903.4` are
-the canonical scene. Extend `build_shell_births` to emit a
-muzzle-to-impact segment for terminals with `unseen_*_source` (pill
-entry points already computable exactly via the orbit walk; arrival time
-= event time capped by distance at 2 px/tick). Small, low-risk, makes
-scenes like the pill-3 duel legible. Open question: always on, or a
-viewer option.
+the canonical scene. `build_shell_births` now emits a muzzle-to-impact
+segment for terminals with `unseen_*_source`: both marking sites (the
+count-forced pill pass and the residual flow solver) store the impact's
+entry point when they mark -- exact for pills via the orbit walk, which
+now also names the alternate pill when only its orbits reach a
+direction-0 impact; the terminal's point or box centre for tanks -- and
+the segment arrives at the event record's time with its length set by
+the distance at 2 px/tick. Drawing-only as promised: every fixture
+matching metric and the whole drawn-motion audit are byte-identical
+(the segments live outside the link structure the audit samples), and
+the rates tool counts the new class on its own `shell_births_unseen`
+line so `shell_births` stays historically comparable. Fixture: 1,798
+drawn unseen flights (864 pill + 934 tank -- every marked terminal
+draws), median length 15 px, the point-blank profile. Always on for
+now; each segment carries an `unseen` flag to the renderer, so the
+toggle question below is a one-line filter whenever it is decided. The
+corpus measurement is still owed (no corpus was reachable from the
+session that built this).
 
 ## 4. Shooter attribution surfaced as stats
 
@@ -157,7 +169,9 @@ measure the false-claim risk before believing it. Explicitly optional.
 * Stats surface (item 4): where should it live in the viewer?
 * Risk appetite for Δ (item 2): conservative default with an aggressive
   measurement run, or hold at forced-only until the audit tool matures?
-* Unseen-shot drawing (item 3): always on, or toggleable?
+* Unseen-shot drawing (item 3): always on, or toggleable? (Shipped
+  always-on; the segments carry an `unseen` flag through to the
+  renderer, so a toggle is a one-line filter away if wanted.)
 * Continue-vs-die (item 2b): the pop rescue prefers a seen continuation
   over an inferred death when both fit, costing ~5,769 corpus terminal
   matches. Keep the preference, or should an authoritative fate event

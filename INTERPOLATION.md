@@ -195,6 +195,20 @@ because the drawn timeline is already built from the restatement clock,
 and a splash coinciding with the drawn shell beats a splash the shell
 visibly hasn't reached.
 
+Impacts whose shell was never restated at all — terminals carrying an
+`unseen_*_source` attribution from the count-forced pill pass or the
+residual flow solver — also draw, at full length: a muzzle-to-impact
+segment arriving at the event record's time, its duration set by the
+distance at 2 px/tick, so the sprite meets its explosion flash exactly.
+The impact's entry point is stored when the terminal is marked: exact for
+a pill shot, recovered by walking the finite orbits into the terminal
+geometry (the same walk that attributed it — including the alternate-pill
+origin a direction-0 F4 may resolve to); a tank shot aims at the
+terminal's point or box centre, since without an orbit anchor the fine
+ray is unknown. These segments carry an `unseen` flag through to the
+renderer, so demoting them to a viewer option later is a one-line filter;
+today they are always on.
+
 Between matching and drawing there is a smoothing pass: jittered on-path
 restatements are *absorbed* into their chain (with a temporal gate so a
 trailing shell on the same segment is never claimed), and each chain is
@@ -289,7 +303,8 @@ both.
   assignment agrees on it, or (cost-forcing) when every rival costs more
   than the matcher's own three-pixel ambiguity margin. Impacts whose
   shell was never observed get their firing pill or tank named
-  (`unseen_*_source`), the beginnings of shooter attribution. Chains
+  (`unseen_*_source`), the beginnings of shooter attribution — and are
+  now drawn, muzzle to impact (see Rendering). Chains
   fragmented by sender clock *dilation* are additionally reconnected
   under time-only widened windows at a penalty cost (dilated joins) —
   the spatial physics is never relaxed. The same clock lie runs the

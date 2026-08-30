@@ -994,9 +994,11 @@ function same_shell_terminal(first, second) {
 /* An F4 and its impact can both arrive in one restatement even though the
  * shell itself lived entirely between records. Test every fine orbit for an
  * exact point terminal or a discrete shell-centre entry into an object/tile
- * box. The exact firing tick is unknown, so the caller separately limits
+ * box, keeping the nearest such entry: its exact pixel is where the unseen
+ * shell is drawn to die, and its origin is the muzzle the segment is drawn
+ * from. The exact firing tick is unknown, so the caller separately limits
  * the result to the interval's maximum travel distance. */
-function pillbox_source_terminal_distance(source, terminal) {
+function pillbox_source_terminal_entry(source, terminal) {
 	if (terminal.direction !== null && terminal.direction !== source.direction) {
 		return null;
 	}
@@ -1019,7 +1021,13 @@ function pillbox_source_terminal_distance(source, terminal) {
 						origin_y + position[1] + 8 < terminal.max_y;
 				if (!matches) continue;
 				let distance = Math.hypot(position[0], position[1]);
-				if (best === null || distance < best) best = distance;
+				if (best === null || distance < best.distance) {
+					best = {
+						distance, origin_x, origin_y,
+						pixel_x: origin_x + position[0],
+						pixel_y: origin_y + position[1],
+					};
+				}
 				break;
 			}
 		}
@@ -1045,28 +1053,34 @@ function mark_unseen_pillbox_terminals(source_groups, terminals,
 		if (terminal.event_type !== "explosion") continue;
 		let candidates = [];
 		for (let group of active_groups) {
-			let distance = pillbox_source_terminal_distance(group, terminal);
-			if (distance === null || distance > maximum_distance) continue;
+			let entry = pillbox_source_terminal_entry(group, terminal);
+			if (entry === null || entry.distance > maximum_distance) continue;
 			candidates.push(group);
-			candidates_by_group.get(group).push(terminal);
+			candidates_by_group.get(group).push({ terminal, entry });
 		}
 		candidates_by_terminal.set(terminal, candidates);
 	}
 
 	for (let group of active_groups) {
 		let remaining = group.capacity - group.assigned;
-		let candidates = candidates_by_group.get(group).filter(terminal =>
-			candidates_by_terminal.get(terminal).length === 1);
+		let candidates = candidates_by_group.get(group).filter(candidate =>
+			candidates_by_terminal.get(candidate.terminal).length === 1);
 		if (!candidates.length) continue;
-		let equivalent = candidates.every(terminal =>
-			same_shell_terminal(candidates[0], terminal));
+		let equivalent = candidates.every(candidate =>
+			same_shell_terminal(candidates[0].terminal, candidate.terminal));
 		if (!equivalent && candidates.length !== remaining) continue;
 		let count = Math.min(remaining, candidates.length);
 		for (let i = 0; i < count; i++) {
-			candidates[i].unseen_pillbox_source = true;
-			candidates[i].pillbox_source_x = group.pixel_x;
-			candidates[i].pillbox_source_y = group.pixel_y;
-			candidates[i].pillbox_source_direction = group.direction;
+			let { terminal, entry } = candidates[i];
+			terminal.unseen_pillbox_source = true;
+			/* The entry's origin, not the group's: for a direction-0 F4 the
+			 * orbit walk may only reach the impact from the alternate pill,
+			 * the same evidence that reassigns observed shells. */
+			terminal.pillbox_source_x = entry.origin_x;
+			terminal.pillbox_source_y = entry.origin_y;
+			terminal.pillbox_source_direction = group.direction;
+			terminal.unseen_entry_x = entry.pixel_x;
+			terminal.unseen_entry_y = entry.pixel_y;
 		}
 		group.assigned += count;
 	}
@@ -2525,11 +2539,11 @@ function creation_fate_match(creation, fate) {
 	let reach = Math.min(duration * SHELL_SPEED_PIXELS_PER_TICK,
 		SHELL_RANGE_PIXELS) + SHELL_MATCH_ERROR_PIXELS;
 	if (creation.kind === "pill") {
-		let distance = pillbox_source_terminal_distance(creation, terminal);
-		if (distance === null || distance > reach) return null;
-		if (duration - distance / SHELL_SPEED_PIXELS_PER_TICK >
+		let entry = pillbox_source_terminal_entry(creation, terminal);
+		if (entry === null || entry.distance > reach) return null;
+		if (duration - entry.distance / SHELL_SPEED_PIXELS_PER_TICK >
 			MAX_FATE_EVENT_LAG_TICKS) return null;
-		return { distance, cost: Math.abs(distance -
+		return { distance: entry.distance, entry, cost: Math.abs(entry.distance -
 			duration * SHELL_SPEED_PIXELS_PER_TICK) / 2 };
 	}
 	let target_x, target_y, slack;
@@ -2556,8 +2570,14 @@ function creation_fate_match(creation, fate) {
 		if (forward <= 0 || Math.atan2(lateral, forward) >
 			SHELL_DIRECTION_TOLERANCE + Math.atan2(slack, distance)) return null;
 	}
+	/* Sprite coordinates for the drawn segment: a tank shot has no orbit
+	 * table, so the entry is simply the aim point the cost was measured
+	 * against, converted from centre to sprite coordinates. */
 	return { distance, cost: Math.abs(distance -
-		duration * SHELL_SPEED_PIXELS_PER_TICK) / 2 };
+		duration * SHELL_SPEED_PIXELS_PER_TICK) / 2,
+		entry: { distance, origin_x: creation.pixel_x,
+			origin_y: creation.pixel_y,
+			pixel_x: target_x - 8, pixel_y: target_y - 8 } };
 }
 
 function apply_forced_terminal(end, fate, match) {
@@ -2619,17 +2639,20 @@ function apply_forced_origin(creation, start, match) {
 
 /* An impact with no observed shell, forced onto a fired shot: mark the
  * terminal's source the way count-forced pill terminals already are, so
- * it stops being an open question without claiming a drawn shell. */
-function apply_forced_unseen(creation, fate, units) {
+ * it stops being an open question without claiming a drawn shell. The
+ * match's entry point is stored so build_shell_births can draw the whole
+ * unseen flight, muzzle to impact. */
+function apply_forced_unseen(creation, fate, units, match) {
 	let applied = 0;
+	let entry = match && match.entry;
 	for (let terminal of fate.terminals) {
 		if (applied >= units) break;
 		if (terminal.match_time !== undefined) continue;
 		if (creation.kind === "pill") {
 			if (terminal.unseen_pillbox_source) continue;
 			terminal.unseen_pillbox_source = true;
-			terminal.pillbox_source_x = creation.pixel_x;
-			terminal.pillbox_source_y = creation.pixel_y;
+			terminal.pillbox_source_x = entry ? entry.origin_x : creation.pixel_x;
+			terminal.pillbox_source_y = entry ? entry.origin_y : creation.pixel_y;
 			terminal.pillbox_source_direction = creation.direction;
 		} else {
 			if (terminal.unseen_tank_source) continue;
@@ -2637,6 +2660,10 @@ function apply_forced_unseen(creation, fate, units) {
 			terminal.tank_source_x = creation.pixel_x;
 			terminal.tank_source_y = creation.pixel_y;
 			terminal.tank_source_direction = creation.direction;
+		}
+		if (entry) {
+			terminal.unseen_entry_x = entry.pixel_x;
+			terminal.unseen_entry_y = entry.pixel_y;
 		}
 		applied++;
 	}
@@ -2769,7 +2796,7 @@ function resolve_residual_shell_fates(snapshots) {
 				right.start.shell.starts_at_pillbox) continue;
 			apply_forced_origin(left.creation, right.start, edge.match);
 		} else {
-			apply_forced_unseen(left.creation, right.fate, units);
+			apply_forced_unseen(left.creation, right.fate, units, edge.match);
 		}
 	}
 
@@ -2971,6 +2998,12 @@ function build_shell_positions(records, terminals, pillbox_sources_by_record,
 	return snapshots;
 }
 
+/* Synthetic muzzle segments, drawn before a shell's first restatement --
+ * and, for an impact whose shell was never restated at all
+ * (unseen_*_source), the whole flight: muzzle to the impact's entry
+ * point, arriving at the event record's time, with the flight length set
+ * by the distance at 2 px/tick. Both end at a known event on the drawn
+ * timeline, so the list stays sorted by end_time. */
 function build_shell_births(shell_positions) {
 	return shell_positions.map(snapshots => {
 		let births = [];
@@ -3011,6 +3044,33 @@ function build_shell_births(shell_positions) {
 					heading_x,
 					heading_y,
 					direction: shell.direction,
+				});
+			}
+			for (let terminal of snapshot.terminals) {
+				if (terminal.match_time !== undefined ||
+					terminal.unseen_entry_x === undefined) continue;
+				let source_x = terminal.unseen_pillbox_source
+					? terminal.pillbox_source_x : terminal.tank_source_x;
+				let source_y = terminal.unseen_pillbox_source
+					? terminal.pillbox_source_y : terminal.tank_source_y;
+				let direction = terminal.unseen_pillbox_source
+					? terminal.pillbox_source_direction
+					: terminal.tank_source_direction;
+				if (source_x === undefined) continue;
+				let delta_x = terminal.unseen_entry_x - source_x;
+				let delta_y = terminal.unseen_entry_y - source_y;
+				let distance = Math.hypot(delta_x, delta_y);
+				if (!(distance > 0)) continue;
+				births.push({
+					start_time: snapshot.time -
+						distance / SHELL_SPEED_PIXELS_PER_TICK,
+					end_time: snapshot.time,
+					pixel_x: source_x,
+					pixel_y: source_y,
+					heading_x: delta_x / distance,
+					heading_y: delta_y / distance,
+					direction,
+					unseen: true,
 				});
 			}
 		}
@@ -3208,18 +3268,23 @@ function shell_birth_positions_at(game, player, tick) {
 		if (births[mid].end_time <= tick) lo = mid + 1;
 		else hi = mid;
 	}
-	let latest_end = tick + MAX_POSITION_INTERPOLATION_TICKS * 2 +
-		SHELL_TANK_BIRTH_ERROR_PIXELS / SHELL_SPEED_PIXELS_PER_TICK;
+	/* Ordinary muzzle segments end within a couple of restatements, but an
+	 * unseen-shot segment can span a shell's whole flight, so scan a full
+	 * flight ahead for segments already in progress. */
+	let latest_end = tick + (SHELL_RANGE_PIXELS + SHELL_MATCH_ERROR_PIXELS) /
+		SHELL_SPEED_PIXELS_PER_TICK;
 	let positions = [];
 	for (let i = lo; i < births.length && births[i].end_time <= latest_end; i++) {
 		let birth = births[i];
 		if (birth.start_time > tick) continue;
 		let distance = (tick - birth.start_time) * SHELL_SPEED_PIXELS_PER_TICK;
-		positions.push({
+		let position = {
 			x: (birth.pixel_x + birth.heading_x * distance) / 16 + 0.5,
 			y: (birth.pixel_y + birth.heading_y * distance) / 16 + 0.5,
 			direction: birth.direction,
-		});
+		};
+		if (birth.unseen) position.unseen = true;
+		positions.push(position);
 	}
 	return positions;
 }
