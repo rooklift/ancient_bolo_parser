@@ -1,15 +1,24 @@
-import json, os, shutil, subprocess, zipfile
-
 zips = {
 	"windows": "electron_zipped/electron-v43.4.1-win32-x64.zip",
 	"linux": "electron_zipped/electron-v43.4.1-linux-x64.zip",
 }
+
 
 # To build the Ancient Bolo Log Viewer: (for info see https://electronjs.org/docs/tutorial/application-distribution)
 #
 # Obtain the appropriate Electron asset named above, from https://github.com/electron/electron/releases
 # Create a folder called ./electron_zipped and place the Electron asset in it
 # Run ./builder.py from this directory (viewer/)
+
+
+import json, os, shutil, subprocess, sys, zipfile
+
+try:
+	branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, encoding="utf8", check=True).stdout.strip()
+except (OSError, subprocess.CalledProcessError):
+	sys.exit("builder.py: cannot determine the git branch; refusing to build.")
+if branch != "main":
+	sys.exit("builder.py: on branch \"{}\", not \"main\"; refusing to build.".format(branch))
 
 with open("package.json") as f:
 	pj = json.load(f)
