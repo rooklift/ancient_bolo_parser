@@ -298,7 +298,20 @@ both.
   receiver-clock arrival estimate. The residual pass admits such an
   edge at the dilated penalty, with the lead bounded by the gap back to
   the sender's previous record — the most that timestamp can be lying
-  by. A shell that fires *and* dies inside one record gap has its shot
+  by. That lead extends to orbit-tracked ends too: their distances are
+  discrete, but an end reached through a dilated link carries the very
+  timestamp lie the lead exists to forgive. And because a restatement on
+  the way to an impact is part of the impact's own story rather than a
+  rival for it, an end holding both a fate edge and a join edge to a
+  lone orphan start that is provably an intermediate of that fate's
+  flight — an exact orbit point on a surviving bradian, strictly between
+  the end's step and the fate's entry step — has the join *subsumed*:
+  kept out of the flow so the two halves of one true story cannot veto
+  each other's forcing, with the orphan absorbed into the terminal
+  segment afterwards (under absorption's usual census) and the arrival
+  re-timed from it. Without this, the join and the fate land within the
+  margin of each other, neither is forced, and the shell pops mid-air
+  with its impact unexplained. A shell that fires *and* dies inside one record gap has its shot
   and its impact reported in the same record — duration zero, the normal
   case for point-blank flights such as adjacent-pill crossfire — so a
   second, strictly additive phase force-assigns same-record shots onto
