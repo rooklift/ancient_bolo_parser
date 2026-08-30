@@ -36,6 +36,8 @@ let export_error = null;
 let export_chat_cache = null; /* chat index -> wrapped lines, fixed per export */
 let ex_write_queue = [];
 let ex_write_bytes = 0;
+let ex_bytes_muxed = 0;  /* all bytes queued this export, for the size estimate */
+let ex_frames_muxed = 0;
 
 export_cancel_btn.addEventListener("click", () => cancel_video_export());
 
@@ -88,6 +90,8 @@ async function export_video(start_tick) {
 	export_chat_cache = new Map();
 	ex_write_queue = [];
 	ex_write_bytes = 0;
+	ex_bytes_muxed = 0;
+	ex_frames_muxed = 0;
 	export_overlay.classList.remove("hidden");
 
 	let saved = { clock, view, ctx };
@@ -128,6 +132,7 @@ async function export_video(start_tick) {
 				chunk.copyTo(data);
 				ex_queue(muxer.add_block(data,
 					Math.round(chunk.timestamp / 1000), chunk.type === "key"));
+				ex_frames_muxed++;
 			},
 			error: err => { if (!export_error) export_error = err; },
 		});
@@ -221,14 +226,30 @@ async function ex_pick_config() {
 
 function ex_progress(done, total) {
 	export_bar_fill.style.width = `${Math.floor((done / total) * 100)}%`;
-	export_label.textContent = done >= total ? "Writing file…"
-		: `Frame ${done.toLocaleString()} of ${total.toLocaleString()}`;
+	/* Extrapolate the final file size from the frames actually muxed so far,
+	 * so the user can bail on an export that is heading somewhere huge. Held
+	 * back until one full keyframe group is in, else the estimate whipsaws
+	 * with the key/delta frame mix. */
+	let size = "";
+	if (ex_frames_muxed >= Math.min(EXPORT_KEYFRAME_EVERY, total)) {
+		size = ` — about ${ex_fmt_size(ex_bytes_muxed / ex_frames_muxed * total)}`;
+	}
+	export_label.textContent = done >= total ? `Writing file…${size}`
+		: `Frame ${done.toLocaleString()} of ${total.toLocaleString()}${size}`;
+}
+
+function ex_fmt_size(bytes) {
+	let mb = bytes / 1e6;
+	if (mb >= 1000) return `${(mb / 1000).toFixed(1)} GB`;
+	if (mb >= 10) return `${Math.round(mb)} MB`;
+	return `${mb.toFixed(1)} MB`;
 }
 
 function ex_queue(bytes) {
 	if (bytes.length === 0) return;
 	ex_write_queue.push(bytes);
 	ex_write_bytes += bytes.length;
+	ex_bytes_muxed += bytes.length;
 }
 
 async function ex_flush_writes(all) {
