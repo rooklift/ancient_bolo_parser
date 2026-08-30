@@ -1,7 +1,11 @@
 # Interpolation coverage across versions -- full corpus
 
-The same ten commits measured in [`interpolation_tests.md`](interpolation_tests.md),
-re-run against the whole 443-log corpus instead of the single sample replay.
+Originally the same ten commits measured in
+[`interpolation_tests.md`](interpolation_tests.md), re-run against the whole
+443-log corpus instead of the single sample replay; later sections extend the
+line commit by commit as the branch grew. The "ten commits" and "ten runs" in
+the method notes below describe that original rig, which the later runs each
+re-validate in their own sections.
 Produced with `tools/report-interpolation-rates.cjs`, run once per checked-out
 commit:
 
@@ -66,10 +70,14 @@ rig against the *fixture* and reproduced the published v1.0.7 row exactly --
 `max_shell_interpolation_ticks` absent. The rig is therefore known to reproduce
 the older file before any new number below is trusted.
 
-**These numbers are current** as of the merge commit `380e333`, whose engine
-is byte-identical to `a74033a`; the last row of the table is `main`'s row as
-it stands. (The paragraph above described the file when it ended at `926f391`
-and merge `4572cff`; later sections were measured from live checkouts of the
+**These numbers are current** as of `a78253b`: the two claims-only commits
+after the `90925b0` guard run (`775fe4b`, `a78253b`) leave every matching
+metric byte-identical, so the guard run remains the measured state of record.
+The last row is no longer `main`'s row, though: `main` has since gained the
+death-dump terrain commits (`72adf37`, `b805f2c`), which touch
+`viewer/game.js` -- a module the report loads -- and are unmeasured. (Earlier
+revisions of this paragraph pinned the file at `926f391`/`4572cff`, then at
+`a74033a`/`380e333`; later sections were measured from live checkouts of the
 named commits, per their sections.)
 
 ## Corpus totals
@@ -100,15 +108,26 @@ Constant at all ten commits, and worth having once:
 | `5f9d86f` | one-sided | 0.973966 | 0.009100 | 0.813066 | 227,223 |
 | `926f391` | index 1+ | 0.975030 | 0.008829 | 0.816566 | 227,585 |
 | `0d181be` | bradian + stitching | 0.984399 | 0.005985 | 0.816888 | 228,016 |
-| `4c791a0` | forced assign + jitter | 0.988925 | 0.004020 | 0.827713 | **233,180** |
+| `4c791a0` | forced assign + jitter | 0.988925 | 0.004020 | 0.827713 | 233,180 |
 | `b345ef0` | temporal gate | 0.988826† | 0.004112† | 0.827709 | 233,180†† |
-| `a74033a` | cost-forcing + pop rescue | **0.993609** | **0.002202** | **0.828353** | 232,342 |
+| `a74033a` | cost-forcing + pop rescue, v1.0.9 | 0.993609 | 0.002202 | 0.828353 | 232,342 |
+| `ad2168d` | leading impacts | **0.993965** | **0.002019** | **0.829538** | **233,481** |
+| `90925b0` | absorption guards | 0.993725 | 0.002190 | 0.829357 | 233,450 |
 
-`a74033a` holds the forward, unlinked and terminal records (the last with a
-caveat -- the unmeasured intermediate state `f340943` sat higher, see its
-section); `4c791a0` keeps the `tank_hit` record, part of the pop rescue's
-deliberate give-back. `b345ef0` trades a hair of each headline back for
-correctness the rate can't see -- see its section below.
+`ad2168d` holds all four headline records (the terminal one with a caveat --
+the unmeasured intermediate state `f340943` sat higher, see its section).
+`90925b0` deliberately gives part of each rate record back -- invented
+explanations leaving the ledger, see its section -- and lands between
+`a74033a` and `ad2168d`; the claims-only commits after it (`775fe4b`,
+`a78253b`) are byte-identical on every table column, so its row is where the
+measured line currently stands. `70b1227` re-ran byte-identical to `ad2168d`
+(see the uncapped-falls entry), a confirmation rather than a row of its own.
+`b345ef0` trades a hair of each headline back for correctness the rate can't
+see -- see its section below. v1.0.9 (`8f6fe27`) is engine-identical to
+`a74033a` -- everything between them is docs, tooling, packaging and viewer
+UI, and the one engine change in the span was cleanly reverted before the tag
+-- so the `a74033a` row is the released engine's row, and everything below it
+is post-release.
 
 ## Tank and LGM tracks
 
@@ -822,7 +841,9 @@ entry removed.
 * **The fixture's headline conclusions all survive the scale-up.** The branch
   line leads the branch point on every headline metric (0.975030 against
   0.961727, 0.008829 against 0.013738, 0.816566 against 0.791346); it was
-  behind from `ad6a3b6` to `c848efd`; every record is held by `926f391`; and
+  behind from `ad6a3b6` to `c848efd`; every record was held by `926f391` when
+  the ten-run table closed (the branch line has since carried them further,
+  per the table); and
   the pillbox-attribution regression and its repair are both there at full
   size. None of this was an artefact of one hand-picked replay.
 * **The two confirmation-run claims reproduce exactly.** `e4582dc` differs from
@@ -877,7 +898,9 @@ entry removed.
   bracketed to `9bc584d` or `ad6a3b6`, both named "Stuff". The corpus makes the
   regression far better characterised but does not locate it, since `9bc584d`
   was not among the ten commits measured.
-* **These are `main`'s current numbers.** The merge commit `380e333` has an
-  engine byte-identical to `a74033a`, so the last row stands until the next
-  engine change. (When this file first closed, the equivalent pair was
-  `4572cff`/`926f391`.)
+* **The measured line ends at the `90925b0` guard run**, unchanged on every
+  matching metric through the claims-only `775fe4b` and `a78253b`. `main` has
+  moved past it: the death-dump terrain commits (`72adf37`, `b805f2c`) touch
+  `viewer/game.js`, which the report loads, so `main`'s own HEAD is unmeasured
+  until the next run. (When this file first closed the current pair was
+  `4572cff`/`926f391`, later `380e333`/`a74033a`.)
