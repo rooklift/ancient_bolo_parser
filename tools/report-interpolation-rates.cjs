@@ -284,10 +284,30 @@ function rate_line(lines, key, part, whole) {
 	lines.push(`rate_${key}\t${(part / whole).toFixed(6)}`);
 }
 
+
+/* The commit the measuring engine was built from, for output provenance:
+ * short hash, "-dirty" appended when tracked files carry uncommitted
+ * changes (untracked files are ignored -- report outputs and corpus.json
+ * live beside the tree), "unknown" outside a git checkout. Duplicated in
+ * audit-drawn-motion.cjs so each tool stays a single file
+ * droppable into historical worktrees for baseline re-runs. */
+function repo_commit() {
+	const { execSync } = require("node:child_process");
+	const run = (command) => execSync(command,
+		{ cwd: ROOT, stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+	try {
+		let hash = run("git rev-parse --short HEAD");
+		return run("git status --porcelain -uno") ? `${hash}-dirty` : hash;
+	} catch {
+		return "unknown";
+	}
+}
+
 function build_report(totals, meta) {
 	let lines = [
 		"# GENERATED - interpolation coverage for one repo state; nothing written to disk.",
 		`format\t${REPORT_FORMAT}`,
+		`commit\t${repo_commit()}`,
 		`mode\t${meta.mode}`,
 		`input\t${meta.input}`,
 		`max_position_interpolation_ticks\t${cell(meta.max_position_interpolation_ticks)}`,
