@@ -2521,22 +2521,37 @@ function creation_start_match(creation, start) {
 	return null;
 }
 
-/* Can this unconsumed shot have flown, unobserved, into this impact? */
-function creation_fate_match(creation, fate) {
+/* Can this unconsumed shot have flown, unobserved, into this impact?
+ * `extra_flight_ticks` widens the flight-time window for a fire event
+ * whose true moment predates its record: a shot and its impact reported
+ * in the SAME record (duration zero) is the normal case for point-blank
+ * flights shorter than one record gap, and the fire then happened up to
+ * that gap before the shared timestamp. The expected flight is an
+ * interval, [duration, duration + extra], and cost measures the distance
+ * outside it; extra = 0 reproduces the exact original behaviour. */
+function creation_fate_match(creation, fate, extra_flight_ticks = 0) {
 	let terminal = fate.terminals[0];
 	let duration = fate.time - creation.time;
-	if (duration <= 0 || duration > MAX_STITCH_GAP_TICKS) return null;
+	if (duration < 0 || duration + extra_flight_ticks <= 0 ||
+		duration > MAX_STITCH_GAP_TICKS) return null;
 	if (terminal.direction !== null && terminal.direction !== undefined &&
 		terminal.direction !== creation.direction) return null;
-	let reach = Math.min(duration * SHELL_SPEED_PIXELS_PER_TICK,
+	let reach = Math.min(
+		(duration + extra_flight_ticks) * SHELL_SPEED_PIXELS_PER_TICK,
 		SHELL_RANGE_PIXELS) + SHELL_MATCH_ERROR_PIXELS;
+	let flight_cost = distance => {
+		let low = duration * SHELL_SPEED_PIXELS_PER_TICK;
+		let high = (duration + extra_flight_ticks) *
+			SHELL_SPEED_PIXELS_PER_TICK;
+		return (distance < low ? low - distance
+			: distance > high ? distance - high : 0) / 2;
+	};
 	if (creation.kind === "pill") {
 		let distance = pillbox_source_terminal_distance(creation, terminal);
 		if (distance === null || distance > reach) return null;
 		if (duration - distance / SHELL_SPEED_PIXELS_PER_TICK >
 			MAX_FATE_EVENT_LAG_TICKS) return null;
-		return { distance, cost: Math.abs(distance -
-			duration * SHELL_SPEED_PIXELS_PER_TICK) / 2 };
+		return { distance, cost: flight_cost(distance) };
 	}
 	let target_x, target_y, slack;
 	if (terminal.type === "point") {
@@ -2562,8 +2577,7 @@ function creation_fate_match(creation, fate) {
 		if (forward <= 0 || Math.atan2(lateral, forward) >
 			SHELL_DIRECTION_TOLERANCE + Math.atan2(slack, distance)) return null;
 	}
-	return { distance, cost: Math.abs(distance -
-		duration * SHELL_SPEED_PIXELS_PER_TICK) / 2 };
+	return { distance, cost: flight_cost(distance) };
 }
 
 function apply_forced_terminal(end, fate, match) {
@@ -2656,14 +2670,13 @@ function resolve_residual_shell_fates(snapshots) {
 	for (let index = 0; index < snapshots.length; index++) {
 		let snapshot = snapshots[index];
 		let final = index === snapshots.length - 1;
+		/* The gap back to the sender's previous record bounds how late
+		 * this record's timestamps can be: how far an event may lead an
+		 * end's receiver-clock arrival estimate, and how long before its
+		 * record a same-record shot can have been fired. */
+		let gap = index > 0 ? snapshot.time - snapshots[index - 1].time : 0;
 		for (let shell of snapshot.shells) {
 			if (shell.next_time === undefined && !final) {
-				/* The gap back to the sender's previous record bounds how
-				 * late this observation's timestamp can be, which is how far
-				 * an event record may legitimately lead the receiver-clock
-				 * arrival estimate below. */
-				let gap = index > 0
-					? snapshot.time - snapshots[index - 1].time : 0;
 				ends.push({ shell, time: snapshot.time, gap });
 			}
 			if (index > 0 && !shell.matched_from_previous &&
@@ -2682,12 +2695,14 @@ function resolve_residual_shell_fates(snapshots) {
 		let pill_sources = snapshot.unclaimed_pillbox_sources ??
 			group_shot_sources(snapshot.pillbox_sources);
 		for (let source of pill_sources) {
-			creation_groups.push({ kind: "pill", time: snapshot.time, ...source });
+			creation_groups.push({ kind: "pill", time: snapshot.time, gap,
+				...source });
 		}
 		let tank_sources = snapshot.unclaimed_tank_sources ??
 			group_shot_sources(snapshot.tank_sources);
 		for (let source of tank_sources) {
-			creation_groups.push({ kind: "tank", time: snapshot.time, ...source });
+			creation_groups.push({ kind: "tank", time: snapshot.time, gap,
+				...source });
 		}
 	}
 	if ((!ends.length && !creation_groups.length) ||
@@ -2758,9 +2773,14 @@ function resolve_residual_shell_fates(snapshots) {
 	assignments.sort((a, b) =>
 		(lefts[a.edge.left].kind === "creation") -
 		(lefts[b.edge.left].kind === "creation"));
+	let creation_spent = new Map();
 	for (let { edge, units } of assignments) {
 		let left = lefts[edge.left];
 		let right = rights[edge.right];
+		if (left.kind === "creation") {
+			creation_spent.set(left.creation,
+				(creation_spent.get(left.creation) || 0) + units);
+		}
 		if (left.kind === "end" && right.kind === "start") {
 			if (left.end.shell.next_time !== undefined ||
 				right.start.shell.matched_from_previous) continue;
@@ -2847,6 +2867,47 @@ function resolve_residual_shell_fates(snapshots) {
 		if (divergent) continue;
 		apply_visual_join(best_candidate);
 	}
+
+	/* Phase two: same-record shots onto the fates that remain. A shell
+	 * fired and dead inside one record gap has its shot and its impact
+	 * reported in the same record -- duration zero, which the graph above
+	 * never admits -- and that is the NORMAL case for point-blank flights
+	 * (adjacent-pill crossfire, ramming duels). These edges compete only
+	 * with each other, never with observed shells: phase one is already
+	 * applied, so nothing it explained can degrade, and capacity it spent
+	 * is honoured. Forced winners get the same unseen-source marking as
+	 * phase-one leftovers. */
+	let leftover_fates = [];
+	for (let fate of fate_groups) {
+		let open = fate.terminals.filter(terminal =>
+			terminal.match_time === undefined &&
+			!terminal.unseen_pillbox_source &&
+			!terminal.unseen_tank_source).length;
+		if (open) leftover_fates.push({ fate, count: open });
+	}
+	let leftover_creations = creation_groups
+		.map(creation => ({ creation, count:
+			creation.count - (creation_spent.get(creation) || 0) }))
+		.filter(item => item.count > 0 && item.creation.gap > 0);
+	if (!leftover_fates.length || !leftover_creations.length) return;
+	let second_edges = [];
+	for (let li = 0; li < leftover_creations.length; li++) {
+		let creation = leftover_creations[li].creation;
+		for (let ri = 0; ri < leftover_fates.length; ri++) {
+			let fate = leftover_fates[ri].fate;
+			if (fate.time !== creation.time) continue;
+			let match = creation_fate_match(creation, fate, creation.gap);
+			if (match) {
+				second_edges.push({ left: li, right: ri, match,
+					cost: match.cost });
+			}
+		}
+	}
+	for (let { edge, units } of forced_bipartite_assignments(
+		leftover_creations, leftover_fates, second_edges)) {
+		apply_forced_unseen(leftover_creations[edge.left].creation,
+			leftover_fates[edge.right].fate, units);
+	}
 }
 
 /* Terminal-failure diagnostics: why is each still-unexplained terminal
@@ -2925,9 +2986,9 @@ function describe_terminal_failure(snapshots, index, terminal) {
 		let snapshot = snapshots[j];
 		let duration = time - snapshot.time;
 		if (duration > MAX_STITCH_GAP_TICKS) break;
-		if (duration <= 0) continue;
+		if (duration < 0) continue;
 		let gap = j > 0 ? snapshot.time - snapshots[j - 1].time : 0;
-		for (let shell of snapshot.shells) {
+		for (let shell of duration > 0 ? snapshot.shells : []) {
 			let reason = classify_terminal_candidate(shell, snapshot.time, gap,
 				terminal, time);
 			consider(reason, terminal_candidate_kind(shell), {
@@ -2935,10 +2996,12 @@ function describe_terminal_failure(snapshots, index, terminal) {
 				pixel_y: shell.pixel_y, direction: shell.direction,
 			});
 		}
-		/* Unclaimed shots are the residual pass's other explainer. The
-		 * unclaimed lists predate that pass's own consumption, so a source
-		 * it forced elsewhere can still appear here; the class is read as
-		 * "a fired shot could reach it", not "one remains unspent". */
+		/* Unclaimed shots are the residual pass's other explainer,
+		 * including a same-record shot probed with the fire-time window
+		 * the pass's second phase grants it. The unclaimed lists predate
+		 * that pass's own consumption, so a source it forced elsewhere
+		 * can still appear here; the class is read as "a fired shot could
+		 * reach it", not "one remains unspent". */
 		for (let [kind, sources, creation_kind] of [
 			["P", snapshot.unclaimed_pillbox_sources, "pill"],
 			["T", snapshot.unclaimed_tank_sources, "tank"],
@@ -2947,7 +3010,7 @@ function describe_terminal_failure(snapshots, index, terminal) {
 				let creation = { kind: creation_kind, time: snapshot.time,
 					...source };
 				if (creation_fate_match(creation, { time,
-					terminals: [terminal] })) {
+					terminals: [terminal] }, duration > 0 ? 0 : gap)) {
 					consider("creation_unforced", kind, {
 						time: snapshot.time, pixel_x: source.pixel_x,
 						pixel_y: source.pixel_y, direction: source.direction,
