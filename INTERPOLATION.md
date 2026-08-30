@@ -187,11 +187,22 @@ restatements are *absorbed* into their chain (with a temporal gate so a
 trailing shell on the same segment is never claimed), and each chain is
 drawn at constant velocity between its best-known anchors
 (`smooth_shell_chains`) — sender timestamp jitter otherwise visibly
-wobbles a large fraction of drawn links. Where identity is genuinely
-ambiguous but every candidate story draws the same line (dense same-ray
-pill streams), a *visual join* draws the continuation without believing
-it: the sprite flies on, but no identity, birth, or fate propagates
-across the link.
+wobbles a large fraction of drawn links. That temporal gate assumes the
+sender's clock lags by at most a dozen ticks, and a worse spike used to
+strand the restatement outside the chain that flies straight through it —
+drawn as a jump backwards, a hover and a rush. For a pill shot the orbit
+table overrules the clock: an observation that is an exact orbit point,
+on a bradian surviving at both ends of the stitch, at a step strictly
+between their two, is that shell whatever its timestamp claims
+(`pillbox_absorption_states`, the same widen-in-time-only principle as
+`pill_states_reachable`). This holds for chained list members as well as
+list heads — a wider quantisation bound just admits several candidate
+bradians, which the shared-bradian and strictly-between tests then narrow,
+usually to one, recovering the exact pixel the offsets had lost.
+Where identity is genuinely ambiguous but every candidate story draws the
+same line (dense same-ray pill streams), a *visual join* draws the
+continuation without believing it: the sprite flies on, but no identity,
+birth, or fate propagates across the link.
 
 ## Measurement
 
