@@ -96,7 +96,7 @@ function lgm_sprite() {
 let obj_scaled = new WeakMap(); /* img -> Map(factor -> prescaled canvas) */
 
 function draw_obj_at_size(img, x, y, w, h) {
-	let factor = BoloSprites.prescale_factor(view.zoom);
+	let factor = BoloSprites.prescale_factor(view.zoom, render_dpr());
 	let src = img;
 	if (factor > 1) {
 		let per = obj_scaled.get(img);
@@ -156,6 +156,13 @@ let effect_lo = 0;       /* rolling window start into game.effects */
 let chat_shown = 0;
 let last_frame = null;
 let last_viewpoint_html = null;
+
+/* Video export (video.js) runs the same draw path offline: it swaps ctx,
+ * view, clock and cur for its own, points css_size at the fixed output
+ * frame via export_target, and sets exporting so live inputs and queued
+ * draws leave the swapped state alone until it is restored. */
+let exporting = false;
+let export_target = null; /* { w, h } of the export's world viewport */
 
 const ZOOMS = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32];
 let view = { zoom: 3, ox: 0, oy: 0 };
@@ -218,7 +225,14 @@ function rebuild_offscreen() {
 
 /* ---------- view helpers (from lgm) ---------- */
 function css_size() {
+	if (export_target) return { w: export_target.w, h: export_target.h };
 	return { w: canvas.clientWidth, h: canvas.clientHeight };
+}
+
+/* The export canvas is exact output pixels; only the live canvas draws at
+ * the display's device-pixel scale. */
+function render_dpr() {
+	return export_target ? 1 : devicePixelRatio;
 }
 function tile_to_screen_x(tx) { return (tx - view.ox) * view.zoom; }
 function tile_to_screen_y(ty) { return (ty - view.oy) * view.zoom; }
@@ -408,18 +422,21 @@ function update_transport() {
 	time_label.textContent = `${fmt_time(clock)} / ${fmt_time(game.t1)}`;
 	let bits = [
 		`${cursor.toLocaleString()} / ${game.records.length.toLocaleString()} records`,
+		game_type_label(),
 	];
-	let gi = game.final.gameInfo;
-	if (gi) {
-		bits.push(["", "open game", "tournament", "strict"][gi.gameType] ||
-			`type ${gi.gameType}`);
-	}
 	game_meta_el.textContent = bits.filter(Boolean).join(" · ");
 	let span = Math.max(1, game.t1 - game.t0);
 	seek_el.value = Math.round(((clock - game.t0) / span) * 1000);
 	update_viewpoint_options();
 	update_players();
 	update_chat();
+}
+
+function game_type_label() {
+	let gi = game.final.gameInfo;
+	if (!gi) return "";
+	return ["", "open game", "tournament", "strict"][gi.gameType] ||
+		`type ${gi.gameType}`;
 }
 
 /* ---------- sidebar ---------- */
@@ -458,17 +475,30 @@ function player_color(p) {
 	return NAME_COLORS[BoloGame.team_of(cur, p)];
 }
 
-function update_players() {
-	let html = "";
+/* The players panel's content, shared between the DOM panel and the video
+ * export's canvas-painted sidebar. */
+function player_rows() {
+	let rows = [];
 	for (let p = 0; p < 16; p++) {
 		if (cur.names[p] === null && !cur.present[p]) continue;
 		let name = pretty(cur.names[p] || `player ${p}`);
 		let at = name.indexOf("@");
-		let handle = at >= 0 ? name.slice(0, at) : name;
-		let host = at >= 0 ? name.slice(at + 1) : "";
-		html += `<div class="player${cur.quit[p] ? " gone" : ""}">` +
-			`<span class="chip" style="background:${player_color(p)}"></span>` +
-			`<span>${esc(handle)}</span> <span class="host">${esc(host)}</span></div>`;
+		rows.push({
+			color: player_color(p),
+			handle: at >= 0 ? name.slice(0, at) : name,
+			host: at >= 0 ? name.slice(at + 1) : "",
+			gone: !!cur.quit[p],
+		});
+	}
+	return rows;
+}
+
+function update_players() {
+	let html = "";
+	for (let row of player_rows()) {
+		html += `<div class="player${row.gone ? " gone" : ""}">` +
+			`<span class="chip" style="background:${row.color}"></span>` +
+			`<span>${esc(row.handle)}</span> <span class="host">${esc(row.host)}</span></div>`;
 	}
 	/* compare against our own last string, not innerHTML: the serializer
 	 * re-encodes entities (e.g. U+00A0 as &nbsp;) so innerHTML never
@@ -491,17 +521,34 @@ function pretty(s) {
 		.replace(/[\x00-\x1f\x7f]/g, "\u2400");       /* stray control bytes, shown as ␀ */
 }
 
-function chat_line(m) {
+/* One chat line's content as styled segments, shared between the DOM wire
+ * and the video export's canvas-painted one. A segment with `who` set is
+ * the speaker's coloured name; everything else inherits the line style. */
+function chat_line_parts(m) {
 	/* events carry a snapshot of name/team as of the event, so a seek
 	 * rebuilds the same history a continuous watch produced */
 	let who = pretty((m.name || cur.names[m.player] || `player ${m.player}`).split("@")[0]);
 	let color = NAME_COLORS[m.team !== undefined ? m.team : BoloGame.team_of(cur, m.player)];
-	if (m.join) return `<div class="msg sys"><span class="t">${fmt_time(m.time)}</span> ⚑ ${esc(pretty(m.text.split("@")[0]))}</div>`;
-	if (m.rename) return `<div class="msg sys"><span class="t">${fmt_time(m.time)}</span> ⇄ ${esc(pretty((m.from || "").split("@")[0]))} is now ${esc(pretty(m.text.split("@")[0]))}</div>`;
-	if (m.quit) return `<div class="msg sys"><span class="t">${fmt_time(m.time)}</span> ✝ ${esc(who)} left the game</div>`;
+	if (m.join) return { time: m.time, sys: true, segments: [
+		{ text: `⚑ ${pretty(m.text.split("@")[0])}` }] };
+	if (m.rename) return { time: m.time, sys: true, segments: [
+		{ text: `⇄ ${pretty((m.from || "").split("@")[0])} is now ${pretty(m.text.split("@")[0])}` }] };
+	if (m.quit) return { time: m.time, sys: true, segments: [
+		{ text: `✝ ${who} left the game` }] };
 	let scope = m.address === 0xffff ? "" : " (to some)";
-	return `<div class="msg"><span class="t">${fmt_time(m.time)}</span> ` +
-		`<span class="who" style="color:${color}">${esc(who)}</span>${scope}: ${esc(pretty(m.text))}</div>`;
+	return { time: m.time, sys: false, segments: [
+		{ text: who, who: true, color },
+		{ text: `${scope}: ${pretty(m.text)}` },
+	] };
+}
+
+function chat_line(m) {
+	let parts = chat_line_parts(m);
+	let inner = parts.segments.map(s => s.who
+		? `<span class="who" style="color:${s.color}">${esc(s.text)}</span>`
+		: esc(s.text)).join("");
+	return `<div class="msg${parts.sys ? " sys" : ""}">` +
+		`<span class="t">${fmt_time(parts.time)}</span> ${inner}</div>`;
 }
 
 function rebuild_chat(tick) {
@@ -523,6 +570,7 @@ function update_chat(tick = clock) {
 /* ---------- drawing ---------- */
 let draw_queued = false;
 function request_draw() {
+	if (exporting) return; /* the export drives draw() itself, synchronously */
 	if (draw_queued) return;
 	draw_queued = true;
 	requestAnimationFrame(() => {
@@ -542,7 +590,8 @@ function draw() {
 
 	if (off_version !== cur.gridVersion) rebuild_offscreen();
 
-	ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+	let dpr = render_dpr();
+	ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 	ctx.fillStyle = "#0a0e16";
 	ctx.fillRect(0, 0, w, h);
 	ctx.imageSmoothingEnabled = false;
@@ -551,7 +600,7 @@ function draw() {
 	/* Mines are hidden with the other fine detail below the sprite threshold.
 	 * Above it, their atlas sprites draw even when simple terrain is forced. */
 	if (z >= BoloSprites.MIN_ZOOM) {
-		BoloSprites.draw_view(ctx, display_grid(), view, w, h, !use_simple_terrain);
+		BoloSprites.draw_view(ctx, display_grid(), view, w, h, !use_simple_terrain, dpr);
 	}
 
 	draw_bases();
@@ -921,6 +970,7 @@ function loading_stage(label, progress) {
 }
 
 async function load_log(bytes, name) {
+	if (exporting) return; /* the export owns the viewer state until done */
 	/* Parse fully before touching viewer state, so a malformed file leaves
 	 * any currently loaded replay running. */
 	let was_playing = playing;
@@ -1098,6 +1148,15 @@ function save_initial_map() {
 }
 
 window.addEventListener("keydown", e => {
+	if (exporting) {
+		/* the overlay blocks the pointer; keys are blocked here, with Escape
+		 * as the keyboard route to the overlay's cancel button */
+		if (e.code === "Escape") {
+			e.preventDefault();
+			cancel_video_export();
+		}
+		return;
+	}
 	if (e.code === "Escape" && window.api) {
 		e.preventDefault();
 		window.api.exit_fullscreen();
@@ -1237,7 +1296,7 @@ file_pick.addEventListener("change", () => {
 
 /* Check the size before reading the file into memory at all. */
 function take_file(f) {
-	if (!f) return;
+	if (!f || exporting) return;
 	if (f.size > MAX_LOG_BYTES) {
 		show_error("Could not load log", `${f.name} is ${f.size} bytes; not a Bolo log`);
 		return;
@@ -1251,6 +1310,7 @@ function take_file(f) {
 if (window.api) {
 	window.api.on_load_log(payload => load_log(payload.data, payload.path));
 	window.api.on_menu(cmd => {
+		if (exporting) return;
 		switch (cmd) {
 			case "open": window.api.open_log().then(res => {
 				if (!res.canceled && res.data) load_log(res.data, res.path);
@@ -1274,6 +1334,8 @@ if (window.api) {
 			case "toggle-pill-fire-flashes": toggle_pill_fire_flashes(); break;
 			case "toggle-raw-shells": toggle_raw_shells(); break;
 			case "save-map": save_initial_map(); break;
+			case "save-video-all": if (game) export_video(game.t0); break;
+			case "save-video-here": if (game) export_video(clock); break;
 		}
 	});
 }

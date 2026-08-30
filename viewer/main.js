@@ -93,6 +93,9 @@ function build_menu() {
 				{ label: "Show file", accelerator: "CmdOrCtrl+Shift+O", click: show_file },
 				{ label: "Save initial map…", accelerator: "CmdOrCtrl+S", click: () => send("save-map") },
 				{ type: "separator" },
+				{ label: "Save video (whole game)…", click: () => send("save-video-all") },
+				{ label: "Save video (from here)…", click: () => send("save-video-here") },
+				{ type: "separator" },
 				{ role: "quit" },
 			],
 		},
@@ -217,6 +220,69 @@ ipcMain.handle("save-map", async (e, defaultName, data) => {
 	} catch (err) {
 		return { canceled: true, error: String(err) };
 	}
+});
+
+/* Video export: the renderer streams the file as it encodes, then patches
+ * the two header fields only known at the end. One export at a time. */
+let export_file = null; /* { fd, path } */
+
+function close_export_file() {
+	if (!export_file) return null;
+	let p = export_file.path;
+	try { fs.closeSync(export_file.fd); } catch { /* already gone */ }
+	export_file = null;
+	return p;
+}
+
+ipcMain.handle("video-begin", async (e, default_name) => {
+	if (export_file) return { canceled: true, error: "an export is already in progress" };
+	let directory = last_save_directory();
+	let res = await dialog.showSaveDialog(win, {
+		defaultPath: directory ? path.join(directory, default_name) : default_name,
+		filters: [{ name: "WebM video", extensions: ["webm"] }],
+	});
+	if (res.canceled || !res.filePath) return { canceled: true };
+	try {
+		export_file = { fd: fs.openSync(res.filePath, "w"), path: res.filePath };
+		remember_save_directory(res.filePath);
+		return { canceled: false, path: res.filePath };
+	} catch (err) {
+		return { canceled: true, error: String(err) };
+	}
+});
+
+ipcMain.handle("video-write", (e, data) => {
+	if (!export_file) return { error: "no export in progress" };
+	try {
+		fs.writeSync(export_file.fd, Buffer.from(data));
+		return {};
+	} catch (err) {
+		return { error: String(err) };
+	}
+});
+
+ipcMain.handle("video-patch", (e, offset, data) => {
+	if (!export_file) return { error: "no export in progress" };
+	try {
+		fs.writeSync(export_file.fd, Buffer.from(data), 0, data.length, offset);
+		return {};
+	} catch (err) {
+		return { error: String(err) };
+	}
+});
+
+ipcMain.handle("video-end", () => {
+	if (!export_file) return { error: "no export in progress" };
+	return { path: close_export_file() };
+});
+
+/* Cancelled or failed: no half-written file left behind. */
+ipcMain.handle("video-abort", () => {
+	let p = close_export_file();
+	if (p) {
+		try { fs.unlinkSync(p); } catch { /* best effort */ }
+	}
+	return {};
 });
 
 ipcMain.on("show-error", (e, title, message) => {

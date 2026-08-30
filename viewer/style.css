@@ -167,3 +167,49 @@ body {
 #chat .msg .t { color: #667a99; font-variant-numeric: tabular-nums; }
 #chat .msg .who { font-weight: 600; }
 #chat .msg.sys { color: #8b96ad; font-style: italic; }
+
+/* Video export progress: a modal that also blocks pointer input while the
+ * export borrows the renderer's state (keys are blocked in renderer.js). */
+#exportOverlay {
+	position: fixed;
+	inset: 0;
+	z-index: 10;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(10, 14, 22, 0.7);
+}
+#exportOverlay.hidden { display: none; }
+#exportBox {
+	width: 420px;
+	background: #161b26;
+	border: 1px solid #33405c;
+	border-radius: 6px;
+	padding: 18px 20px;
+	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+#exportBox h1 { font-size: 15px; margin-bottom: 12px; }
+#exportBar {
+	height: 10px;
+	background: #232b3d;
+	border-radius: 5px;
+	overflow: hidden;
+	margin-bottom: 8px;
+}
+#exportBarFill {
+	height: 100%;
+	width: 0;
+	background: #5b8def;
+}
+#exportCancel {
+	margin-top: 12px;
+	background: #232b3d;
+	border: 1px solid #33405c;
+	color: #cfd6e4;
+	border-radius: 4px;
+	height: 26px;
+	padding: 0 14px;
+	font-size: 13px;
+	cursor: pointer;
+}
+#exportCancel:hover { background: #2c3650; }
