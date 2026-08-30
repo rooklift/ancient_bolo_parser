@@ -16,6 +16,10 @@ Shells pass over: river, swamp, crater, road, rubble, grass (and their mined equ
 
 Shells are blocked by (and do damage to): building, forest (including mined forest), shot building, boat. Also by tanks, pillboxes (if not dead), and enemy bases that have armour above a certain threshold.
 
+Tank movement is blocked by building and shot building.
+
+One hit from a shot converts forest to grass. One hit from a shot converts building to shot building. Four more hits convert shot building to rubble.
+
 ## File header (72 bytes, not encrypted)
 
 | offset | size | contents |
