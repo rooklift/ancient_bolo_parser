@@ -106,9 +106,9 @@ segments, not 247k. Still cheap and drawing-only, no longer urgent.
 The attribution layer itself is unaffected and feeds item 4 at full
 size.
 
-## 4. Shooter attribution surfaced as stats
+## 4. Shooter attribution surfaced as stats -- VERY LOW PRIORITY
 
-The attribution layer is proven (the wall scene reconstructed a
+Owner's call: park this. The attribution layer is proven (the wall scene reconstructed a
 human-verifiable story). Aggregate per player and per pill: damage dealt
 to tanks/pills/bases, walls destroyed, shell counts, kills (tank_hit
 chains followed by tank_death within a short window). Chain shooter =
