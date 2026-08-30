@@ -3112,7 +3112,7 @@ function describe_terminal_failure(snapshots, index, terminal) {
 				terminal, time);
 			consider(reason, terminal_candidate_kind(shell), {
 				time: snapshot.time, pixel_x: shell.pixel_x,
-				pixel_y: shell.pixel_y, direction: shell.direction,
+				pixel_y: shell.pixel_y, direction: shell.direction, shell,
 			});
 		}
 		/* Unclaimed shots are the residual pass's other explainer,
@@ -3146,9 +3146,65 @@ function describe_terminal_failure(snapshots, index, terminal) {
 		pixel_y: terminal.type === "point" ? terminal.pixel_y : terminal.min_y,
 		direction: terminal.direction,
 		reason: best ? best.reason : "no_candidate",
+		detail: best && best.reason === "end_continued"
+			? end_continued_detail(best.candidate.shell, terminal) : "",
 		kind: best ? best.kind : "-",
 		candidate: best ? best.candidate : null,
 	};
+}
+
+/* Subclassify an end_continued failure -- the dial the roadmap's
+ * continue-vs-die question will turn, measured before it is designed:
+ * ".thru"  the chosen continuation is drawn PAST the impact point (the
+ *          visible fly-through artifact);
+ * ".short" the continuation falls short of it (the chain is still
+ *          approaching; the impact belongs to its volley, ahead of it);
+ * "+clps"  the chain later claims a terminal of the same event type in
+ *          the same box -- one chain riding a stream that caused several
+ *          identical impacts and can only pay for one;
+ * "+reb"   pill chains only: the orphaned continuation sits on the same
+ *          source's orbits, so a split here could rebirth it as a
+ *          stream-mate rather than leaving a naked pop. */
+function end_continued_detail(shell, terminal) {
+	let heading_x = shell.heading_x, heading_y = shell.heading_y;
+	if (heading_x === undefined) {
+		let angle = shell.direction * Math.PI / 8;
+		heading_x = Math.sin(angle);
+		heading_y = -Math.cos(angle);
+	}
+	let target_x = (terminal.type === "point"
+		? terminal.pixel_x : terminal.min_x) + 8;
+	let target_y = (terminal.type === "point"
+		? terminal.pixel_y : terminal.min_y) + 8;
+	let impact_proj = (target_x - (shell.pixel_x + 8)) * heading_x +
+		(target_y - (shell.pixel_y + 8)) * heading_y;
+	let next_proj = (shell.next_pixel_x - shell.pixel_x) * heading_x +
+		(shell.next_pixel_y - shell.pixel_y) * heading_y;
+	let detail = next_proj > impact_proj + 8 ? ".thru" : ".short";
+	let walk = shell;
+	for (let hops = 0; walk.next_shell && !walk.next_terminal &&
+		hops < 500; hops++) {
+		walk = walk.next_shell;
+	}
+	if (walk.next_terminal &&
+		walk.next_terminal_event_type === terminal.event_type &&
+		terminal.type === "box" &&
+		walk.next_pixel_x + 8 >= terminal.min_x - 2 &&
+		walk.next_pixel_x + 8 < terminal.max_x + 2 &&
+		walk.next_pixel_y + 8 >= terminal.min_y - 2 &&
+		walk.next_pixel_y + 8 < terminal.max_y + 2) {
+		detail += "+clps";
+	}
+	if (shell.pillbox_source_x !== undefined && shell.next_shell) {
+		let follower = shell.next_shell;
+		let states = pillbox_orbit_states_at(
+			follower.direction ?? shell.direction,
+			follower.pixel_x - shell.pillbox_source_x,
+			follower.pixel_y - shell.pillbox_source_y,
+			follower.position_uncertainty || 0);
+		if (states.length) detail += "+reb";
+	}
+	return detail;
 }
 
 function describe_unmatched_terminals(snapshots) {
