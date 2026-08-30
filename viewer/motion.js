@@ -1822,6 +1822,47 @@ function apply_visual_join(candidate) {
 	start_shell.matched_from_previous = true;
 	start_shell.stitched = true;
 	start_shell.visual_join = true;
+	/* visual_join marks targets only (the report counts it per shell);
+	 * sources carry their own flag so absorption can recognise a
+	 * visually-claimed observation on either end of a join. */
+	end_shell.visual_join_source = true;
+}
+
+/* Refused absorption candidates from consecutive snapshots of one
+ * stitch's gap, rank-paired for drawing only. Each refused group holds
+ * several same-ray observations -- the chain's own stale restatement
+ * and its stream-mates, with nothing to say which is which. Identity
+ * stays unclaimed, but motion is decidable anyway: shells fly at one
+ * speed, so stream-mates can never pass each other, and in EVERY
+ * candidate story the k-th observation of one snapshot (ordered along
+ * the ray) continues as the k-th of the next. Left as pops, these
+ * orphans pair with each other as reappear-behind artifacts -- the
+ * corpus's backwards-pop rise at the guard commit; joined by rank, the
+ * same observations draw as sprites flying the ray. Groups of unequal
+ * size are left alone: some story then has a shell dying or appearing
+ * mid-gap, and the ranks stop corresponding. */
+function visually_join_refused_groups(refused_groups) {
+	for (let index = 0; index + 1 < refused_groups.length; index++) {
+		let group = refused_groups[index];
+		let next_group = refused_groups[index + 1];
+		if (group.candidates.length !== next_group.candidates.length) continue;
+		let duration = next_group.time - group.time;
+		if (duration <= 0) continue;
+		let advance_limit = duration * SHELL_SPEED_PIXELS_PER_TICK +
+			DILATED_CATCHUP_PIXELS;
+		let pairs = [];
+		for (let rank = 0; rank < group.candidates.length; rank++) {
+			let from = group.candidates[rank];
+			let to = next_group.candidates[rank];
+			let advance = to.along - from.along;
+			if (advance <= 0 || advance > advance_limit) { pairs = null; break; }
+			if (from.shell.next_time !== undefined ||
+				to.shell.matched_from_previous) { pairs = null; break; }
+			pairs.push({ end: from, start: to });
+		}
+		if (!pairs) continue;
+		for (let pair of pairs) apply_visual_join(pair);
+	}
 }
 
 /* Carry an origin down a chain: the linked observations are one shell, so
@@ -1978,32 +2019,44 @@ function absorb_intermediate_observations(snapshots, end, start) {
 	let final_time = end_shell.next_time;
 	let final_next_shell = end_shell.next_shell;
 	let absorbed = [];
+	let refused_groups = [];
 	let floor_step = -1;
 	for (let snapshot of snapshots) {
 		if (snapshot.time <= end.time) continue;
 		if (snapshot.time >= final_time) break;
 		let candidates = [];
+		let visually_claimed = 0;
 		for (let shell of snapshot.shells) {
-			if (shell.next_time !== undefined || shell.matched_from_previous ||
-				shell.starts_at_tank || shell.starts_at_pillbox ||
-				shell.direction !== end_shell.direction) continue;
+			/* A shell an earlier stitch visually joined was claimed
+			 * without identity: it cannot be absorbed, but if it still
+			 * fits this chain's window it is proof the snapshot is
+			 * ambiguous -- without this, a later overlapping stitch
+			 * would see a thinned census and "uniquely" absorb a
+			 * stream-mate. */
+			let joined = shell.visual_join || shell.visual_join_source;
+			if (!joined && (shell.next_time !== undefined ||
+				shell.matched_from_previous ||
+				shell.starts_at_tank || shell.starts_at_pillbox)) continue;
+			if (shell.direction !== end_shell.direction) continue;
 			/* The orbit table rules first when it can, in both
 			 * directions: an exact point strictly between the stitch's
 			 * own two steps is a candidate however far the sender's
 			 * clock has drifted, and an observation the surviving orbits
 			 * rule out is not this shell however well its geometry
 			 * reads. */
+			let relative_x = shell.pixel_x - anchor_x;
+			let relative_y = shell.pixel_y - anchor_y;
+			let along = (relative_x * segment_x + relative_y * segment_y) / length;
 			let orbit_states = pillbox_absorption_states(end_shell,
 				final_next_shell, shell, floor_step);
 			if (orbit_states !== null) {
 				if (orbit_states.length) {
-					candidates.push({ shell, time: snapshot.time, orbit_states });
+					if (joined) visually_claimed++;
+					else candidates.push({ shell, time: snapshot.time, along,
+						orbit_states });
 				}
 				continue;
 			}
-			let relative_x = shell.pixel_x - anchor_x;
-			let relative_y = shell.pixel_y - anchor_y;
-			let along = (relative_x * segment_x + relative_y * segment_y) / length;
 			if (along < -4 || along > length + 4) continue;
 			let lateral = Math.abs(relative_x * segment_y -
 				relative_y * segment_x) / length;
@@ -2016,7 +2069,8 @@ function absorb_intermediate_observations(snapshots, end, start) {
 				SHELL_SPEED_PIXELS_PER_TICK;
 			if (Math.abs(along - expected_along) >
 				MAX_SMOOTHING_DEVIATION_PIXELS) continue;
-			candidates.push({ shell, time: snapshot.time });
+			if (joined) visually_claimed++;
+			else candidates.push({ shell, time: snapshot.time, along });
 		}
 		/* An angry pillbox fires every five or six ticks, so stream-mates
 		 * ride only two or three orbit steps apart and a fragmented
@@ -2027,7 +2081,13 @@ function absorb_intermediate_observations(snapshots, end, start) {
 		 * into the chain as a zero-duration link. When the candidate is
 		 * not unique, none is absorbed: an unmatched pop is safer than a
 		 * smooth but invented path. */
-		if (candidates.length !== 1) continue;
+		if (visually_claimed || candidates.length !== 1) {
+			if (candidates.length > 1) {
+				refused_groups.push({ time: snapshot.time,
+					candidates: candidates.sort((a, b) => a.along - b.along) });
+			}
+			continue;
+		}
 		let candidate = candidates[0];
 		if (candidate.orbit_states) {
 			floor_step = Math.min(...candidate.orbit_states.map(state =>
@@ -2035,6 +2095,7 @@ function absorb_intermediate_observations(snapshots, end, start) {
 		}
 		absorbed.push(candidate);
 	}
+	visually_join_refused_groups(refused_groups);
 	if (!absorbed.length) return;
 	absorbed.sort((a, b) => a.time - b.time);
 

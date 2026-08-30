@@ -814,6 +814,45 @@ if (!fs.existsSync(log1)) {
 				.matched_from_previous],
 		[140, false]);
 
+	/* Refused stream-mates across TWO gap snapshots -- steps 11 and 12 at
+	 * t120, steps 14 and 15 at t134, all four strictly inside a stitch
+	 * spanning steps 10 to 24. Which observation is the reconnected shell
+	 * stays unknowable, but motion is decidable anyway: shells fly at one
+	 * speed, so stream-mates can never pass each other, and in every
+	 * story the k-th observation of one snapshot continues as the k-th of
+	 * the next. Left as pops these pair as reappear-behind artifacts (the
+	 * corpus's backwards-pop rise); instead each rank draws as a
+	 * continuation, believed by nothing -- no source, birth, or fate
+	 * propagates -- while the stitch keeps its own direct link. */
+	let refused_ranks = BoloGame.build([
+		record(60, [{ type: "pillbox_list", items: [{
+			x: 140, y: 133, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(80, [idle_tank]),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 9 },
+			shell_list(9, [[2229, 2153]]),
+		]),
+		record(110, [shell_list(9, [[2221, 2172]])]),
+		record(120, [shell_list(9, [[2219, 2175], [2218, 2179]])]),
+		record(134, [shell_list(9, [[2214, 2186], [2213, 2190]])]),
+		record(140, [shell_list(9, [[2199, 2223]])]),
+	]);
+	let rank_snapshots = refused_ranks.shell_positions[0];
+	check("refused stream-mate groups rank-pair into draw-only joins",
+		[rank_snapshots[2].shells[0].next_time,
+			rank_snapshots[3].shells.map(shell =>
+				[shell.next_time, shell.next_pixel_x, shell.next_pixel_y]),
+			rank_snapshots[4].shells.map(shell =>
+				[!!shell.matched_from_previous, !!shell.visual_join])],
+		[140,
+			[[134, 2214, 2186], [134, 2213, 2190]],
+			[[true, true], [true, true]]]);
+	check("a rank join claims no identity",
+		rank_snapshots[3].shells.concat(rank_snapshots[4].shells).map(
+			shell => shell.pillbox_source_x),
+		[undefined, undefined, undefined, undefined]);
+
 	let graze_with_successor = BoloGame.build([
 		record(100, [shell_list(12, [[2110, 1812]])]),
 		record(120, [shell_list(12, [[2071, 1814]])]),

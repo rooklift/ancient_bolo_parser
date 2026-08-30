@@ -205,7 +205,14 @@ steps apart, so a fragmented stream can drop several of them, each
 individually consistent, into one snapshot of the gap. When more than one
 observation in a snapshot qualifies, none is absorbed — the chain's own
 restatement is among them, but nothing says which, and an unmatched pop
-is safer than a smooth but invented path. All of this holds for chained
+is safer than a smooth but invented path. Motion is decidable even so:
+stream-mates fly at one speed and can never pass each other, so when
+consecutive snapshots of the gap refuse equal-sized groups, the k-th
+observation of one (ordered along the ray) continues as the k-th of the
+next in every candidate story, and each rank draws as a *visual join* —
+a continuation believed by nothing. A visually-claimed observation also
+keeps counting toward another stitch's ambiguity, so a later
+overlapping chain cannot mistake the thinned census for uniqueness. All of this holds for chained
 list members as well as list heads — a wider quantisation bound just
 admits several candidate bradians, which the shared-bradian and
 strictly-between tests then narrow, usually to one, recovering the exact
