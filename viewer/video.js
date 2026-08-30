@@ -147,8 +147,7 @@ async function export_video(start_tick) {
 			await ex_flush_writes(false);
 			if (i % 15 === 0) {
 				ex_progress(i, total);
-				/* a real task break, so the overlay repaints and stays live */
-				await new Promise(res => setTimeout(res, 0));
+				await ex_yield();
 			}
 		}
 		if (!export_cancel_requested) {
@@ -231,15 +230,40 @@ async function ex_flush_writes(all) {
 	}
 }
 
+/* A task break that lets the overlay repaint without using a timer:
+ * backgrounded windows throttle setTimeout to a second or worse, which
+ * would slow the export to a crawl the moment the app loses focus, but
+ * MessageChannel tasks are never throttled. */
+function ex_yield() {
+	return new Promise(resolve => {
+		let channel = new MessageChannel();
+		channel.port1.onmessage = () => resolve();
+		channel.port2.postMessage(null);
+	});
+}
+
+/* Wait for the encoder to drain below the queue limit. Driven by the
+ * encoder's own dequeue events for the same reason as ex_yield — a timer
+ * here would throttle the whole export in a backgrounded window — with a
+ * slow timer as the safety net (and the whole mechanism, for encoders
+ * predating the dequeue event). */
 function ex_backpressure(encoder) {
 	if (encoder.encodeQueueSize <= EXPORT_QUEUE_LIMIT) return Promise.resolve();
 	return new Promise(resolve => {
-		let poll = () => {
+		let timer = null;
+		let check = () => {
 			if (encoder.encodeQueueSize <= EXPORT_QUEUE_LIMIT ||
-				export_error || export_cancel_requested) resolve();
-			else setTimeout(poll, 5);
+				export_error || export_cancel_requested) {
+				encoder.removeEventListener("dequeue", check);
+				clearTimeout(timer);
+				resolve();
+			} else {
+				clearTimeout(timer);
+				timer = setTimeout(check, 250);
+			}
 		};
-		setTimeout(poll, 5);
+		encoder.addEventListener("dequeue", check);
+		timer = setTimeout(check, 250);
 	});
 }
 
