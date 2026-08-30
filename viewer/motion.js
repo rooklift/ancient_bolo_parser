@@ -2168,8 +2168,23 @@ function claim_unseen_pillbox_births(snapshots, pill_states) {
 	for (let snapshot of snapshots) {
 		for (let shell of snapshot.shells) {
 			if (shell.matched_from_previous || shell.starts_at_tank ||
-				shell.starts_at_pillbox ||
-				shell.pillbox_source_x !== undefined) continue;
+				shell.starts_at_pillbox) continue;
+			if (shell.pillbox_source_x !== undefined) {
+				/* Ambiguity propagation already named this head's pill and
+				 * orbit states without claiming which stream-mate it is
+				 * (propagate_ambiguous_pillbox_orbits) -- the only path
+				 * that stores a source on an unclaimed head. Which slot it
+				 * holds does not matter for its birth: in every candidate
+				 * story it flew here from that muzzle, so claim the drawn
+				 * birth rather than leaving the sprite to pop in
+				 * mid-flight. */
+				if (shell.pillbox_orbit_states &&
+					shell.pillbox_orbit_states.length) {
+					shell.starts_at_pillbox = true;
+					shell.stream_birth = true;
+				}
+				continue;
+			}
 			let chain = [shell];
 			for (let walk = shell; walk.next_shell && !walk.next_terminal;
 				walk = walk.next_shell) {

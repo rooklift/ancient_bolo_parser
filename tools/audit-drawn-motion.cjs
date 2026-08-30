@@ -77,7 +77,8 @@ function draw_source(shell) {
 /* Compact state signature of one shell observation, for classifying pop
  * pairs: m matched_from_previous, s stitched, v visually joined (either
  * end), B/T pillbox/tank birth, P pillbox source known, k tank bradian
- * states, U unseen-shot birth claimed from orbit membership, R refused
+ * states, U unseen-shot birth claimed from orbit membership, S birth
+ * claimed from stream provenance, R refused
  * by absorption as ambiguous, C ruled out by some
  * stitch's orbits, q chained list member. "-" when none apply (also the
  * shape older engine states produce). */
@@ -88,6 +89,7 @@ function shell_flags(shell) {
 	if (shell.visual_join || shell.visual_join_source) flags += "v";
 	if (shell.starts_at_pillbox) flags += "B";
 	if (shell.unseen_pillbox_shot) flags += "U";
+	if (shell.stream_birth) flags += "S";
 	if (shell.starts_at_tank) flags += "T";
 	if (shell.pillbox_source_x !== undefined) flags += "P";
 	if (shell.tank_bradian_states) flags += "k";
