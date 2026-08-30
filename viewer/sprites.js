@@ -292,9 +292,13 @@ function atlas_at(factor) {
 
 /* Integer factor to nearest-prescale 16px art by before drawing it at the
  * given zoom: 1 (draw the native art with smoothing off) when the art
- * lands on whole device pixels, else the next integer above the scale. */
-function prescale_factor(z) {
-	let dpr = (typeof devicePixelRatio !== "undefined") ? devicePixelRatio : 1;
+ * lands on whole device pixels, else the next integer above the scale.
+ * The display's ratio applies unless the caller renders at another (the
+ * video export always draws at 1). */
+function prescale_factor(z, dpr) {
+	if (dpr === undefined) {
+		dpr = (typeof devicePixelRatio !== "undefined") ? devicePixelRatio : 1;
+	}
 	let scale = z * dpr / TILE;
 	return Number.isInteger(scale) ? 1 : Math.ceil(scale);
 }
@@ -303,10 +307,10 @@ function prescale_factor(z) {
  * suppressed independently; mine overlays still draw from the same atlas.
  * Destination rects are rounded per-edge so adjacent tiles share edges
  * exactly (no seams at any zoom). Returns false until the atlas is ready. */
-function draw_view(ctx, grid, view, w, h, draw_terrain = true) {
+function draw_view(ctx, grid, view, w, h, draw_terrain = true, dpr = undefined) {
 	if (!ready) return false;
 	let z = view.zoom;
-	let factor = prescale_factor(z);
+	let factor = prescale_factor(z, dpr);
 	let src = atlas_at(factor);
 	let st = TILE * factor;
 	let smooth_prev = ctx.imageSmoothingEnabled;
