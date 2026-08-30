@@ -1010,6 +1010,7 @@ async function load_log(bytes, name) {
 	}
 	game = new_game;
 	player_locked = false;
+	update_lock_indicator();
 	viewpoint = -1;
 	last_viewpoint_html = null;
 	clock = game.t0;
@@ -1091,8 +1092,16 @@ function toggle_pill_fire_flashes() {
 function toggle_player_lock() {
 	if (!game || viewpoint < 0) return;
 	player_locked = !player_locked;
+	update_lock_indicator();
 	centre_locked_player();
 	request_draw();
+}
+
+/* The lock's only always-on indicator: the player selector goes friendly
+ * green while the view is locked to its player. Called wherever
+ * player_locked changes (the toggle, panning away, loading a log). */
+function update_lock_indicator() {
+	viewpoint_el.classList.toggle("locked", player_locked);
 }
 
 /* Controls give focus back to the window once used, so they don't sit
@@ -1247,7 +1256,10 @@ canvas.addEventListener("pointermove", e => {
 	pointer_buttons = e.buttons;
 	hover_point = hover_point_from_event(e);
 	if (panning && pan_start) {
-		if (e.offsetX !== pan_start.mx || e.offsetY !== pan_start.my) player_locked = false;
+		if (e.offsetX !== pan_start.mx || e.offsetY !== pan_start.my) {
+			player_locked = false;
+			update_lock_indicator();
+		}
 		view.ox = pan_start.ox - (e.offsetX - pan_start.mx) / view.zoom;
 		view.oy = pan_start.oy - (e.offsetY - pan_start.my) / view.zoom;
 		clamp_view();
