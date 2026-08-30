@@ -989,6 +989,65 @@ ENDS: give a popping-out leader its death at a fitting unexplained
 impact. That is not a split of any healthy link, and it is where the
 eye actually catches the error.
 
+## The end-side census, and die-at-impact -- `0b60520` + the dial
+
+`--describe-ends` mirrors the terminal census from the watcher's side:
+for every chain end with no forward story (61,421 corpus, exactly the
+audit's pop-outs), what fate was available and what blocked it? Corpus
+at `0b60520`: `fate_taken` 24,624 (40.1%), `fate_open` 10,580 (17.2% --
+a valid edge to a still-unexplained impact, blocked only by ambiguity),
+`ray_miss` 9,396, `window_expired` 4,714, `fate_unseen` 3,681 (the
+impact went to an unseen-shot attribution while an observed shell
+vanished), `no_candidate` 2,840.
+
+The dial: die-at-impact, the drawn-side twin of the visual join. When
+every within-margin story for an unfated end is a death at one
+geometry -- no continuation candidate survives inside the margin --
+the end takes the cheapest still-open fate and the mid-air vanish
+becomes a death at the wall. It runs before the unseen-shot phases, so
+an observed shell outranks an invisible sibling for the same impact.
+Building it exposed an ordering gap worth remembering: the residual's
+edges are built before its assignments run, and a forced origin gives
+a chain its heading DURING application, so box-terminal edges that
+need the ray never existed -- the dial therefore re-probes current
+shell state rather than reusing the graph's edges (on the fixture that
+was the difference between 9 deaths and 34).
+
+Fixture: 34 deaths (`terminals_matched` 20,638 -> 20,672, the arc's
+first real match gains), pop-outs 384 -> 350, one forward-paired pop
+gone, one unseen claim ceded to a live shell, `fate_open` 63 -> 26
+(the rest are contention and start-rival blocks, honest), and nothing
+else moves on either axis. Corpus verification pending -- this commit
+is MEANT to move the audit, and the prediction is pop-outs down by
+several thousand with hover/rush/seam untouched.
+
+Corpus verification at `60e52b1`, 443 files: 5,396 deaths.
+`terminals_matched` 1,614,293 -> 1,619,689 and pop-outs
+61,421 -> 56,025, exactly complementary; forward-paired pops
+5,917 -> 5,733, backwards 3,253 -> 3,096; hover, rush, seam and the
+whole link-speed histogram untouched; 337 unseen claims ceded to live
+observed shells (the intended preference); `fate_open` 10,580 -> 4,097
+with the un-applied remainder reclassified as contention.
+
+The backwards question got its answer: only -157. The vanishing stream
+leaders are NOT in `fate_open` -- the post-dial census is dominated by
+`fate_taken` (25,893, led by `fate_taken:shell_falls:P` at 8,045):
+ends whose fitting event was claimed by a sibling chain, the stream
+collapse seen from the end side, plus range-end falls whose events
+never arrived. Note the perceptual reading of that residue: a shell
+vanishing AT ITS RANGE END is what really happened (it fell), so much
+of the remaining pop-out count may be visually correct already; the
+audit's pop_outs metric does not yet distinguish mid-flight vanishes
+(the true artifact) from range-end ones. That subdivision is the next
+instrument to build before chasing the number further.
+
+Item 6 running total, `20694f2`'s baseline -> here: unexplained
+terminals 148,056 -> 79,896 (-46%), terminals_matched +5,396 (real
+matches, not attributions), unseen attributions +62,592 net, pop-outs
+-8.8%, and on the whole branch's drawn axis backwards pops now stand
+at 3,096 against `70b1227`'s 5,514 (-44%) and forward-paired at 5,733
+against 9,162 (-37%).
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch

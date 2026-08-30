@@ -2873,6 +2873,87 @@ function resolve_residual_shell_fates(snapshots) {
 		apply_visual_join(best_candidate);
 	}
 
+	/* Die-at-impact: the drawn-side twin of the visual join, for chain
+	 * ends the flow left with nothing. A shell that vanishes mid-air with
+	 * an unexplained impact inside its physics window is the audit's
+	 * pop-out class; when every story within the forcing margin for that
+	 * end is a death at ONE place -- no continuation candidate survives
+	 * inside the margin, and every within-margin open fate shares one
+	 * geometry -- the stories differ only in which identical event it
+	 * was, so the end takes the cheapest still-open one and the vanish
+	 * becomes a death at the wall. This pass re-probes CURRENT shell
+	 * state rather than reusing the graph's edges: the flow's own
+	 * forced-origin assignments give chains headings after the edges were
+	 * built, and a box terminal needs that ray. It runs before the
+	 * unseen-shot phases so an observed shell outranks an invisible
+	 * sibling for the same impact; ends are served cheapest-first and
+	 * re-checked so capacity is never exceeded. */
+	let terminal_open = terminal => terminal.match_time === undefined &&
+		!terminal.unseen_pillbox_source && !terminal.unseen_tank_source;
+	let deaths = [];
+	for (let index = 0; index + 1 < snapshots.length; index++) {
+		let snapshot = snapshots[index];
+		let gap = index > 0 ? snapshot.time - snapshots[index - 1].time : 0;
+		let lead_pixels = Math.min(gap, MAX_POSITION_INTERPOLATION_TICKS) *
+			SHELL_SPEED_PIXELS_PER_TICK;
+		for (let shell of snapshot.shells) {
+			if (shell.next_time !== undefined) continue;
+			let end = { shell, time: snapshot.time, gap };
+			let fates = [];
+			let continuation_cost = Infinity;
+			for (let j = index + 1; j < snapshots.length; j++) {
+				let duration = snapshots[j].time - snapshot.time;
+				if (duration <= 0) continue;
+				if (duration > MAX_STITCH_GAP_TICKS) break;
+				for (let other of snapshots[j].shells) {
+					if (other.matched_from_previous || other.starts_at_tank ||
+						other.starts_at_pillbox) continue;
+					let start = { shell: other, time: snapshots[j].time };
+					let candidate = stitch_candidate(end, start) ||
+						dilated_join_candidate(end, start);
+					if (candidate) {
+						continuation_cost = Math.min(continuation_cost,
+							candidate.cost);
+					}
+				}
+				if (duration > MAX_SHELL_INTERPOLATION_TICKS) continue;
+				for (let terminal of snapshots[j].terminals) {
+					if (!terminal_open(terminal)) continue;
+					let match = shell_terminal_match(shell, terminal,
+						duration, snapshot.time, lead_pixels);
+					if (!match || duration -
+						match.distance / SHELL_SPEED_PIXELS_PER_TICK >
+							MAX_FATE_EVENT_LAG_TICKS) continue;
+					fates.push({ terminal, match, cost: match.cost,
+						time: snapshots[j].time,
+						geometry: terminal.type === "point"
+							? `p${terminal.pixel_x},${terminal.pixel_y}`
+							: `b${terminal.min_x},${terminal.min_y}` });
+				}
+			}
+			if (!fates.length) continue;
+			let best = Math.min(...fates.map(fate => fate.cost));
+			if (continuation_cost < best + RESIDUAL_COST_MARGIN) continue;
+			let within = fates.filter(fate =>
+				fate.cost < best + RESIDUAL_COST_MARGIN);
+			if (new Set(within.map(fate => fate.geometry)).size !== 1) {
+				continue;
+			}
+			within.sort((a, b) => a.cost - b.cost);
+			deaths.push({ end, within, best });
+		}
+	}
+	deaths.sort((a, b) => a.best - b.best);
+	for (let { end, within } of deaths) {
+		if (end.shell.next_time !== undefined) continue;
+		for (let { terminal, match, time } of within) {
+			if (!terminal_open(terminal)) continue;
+			apply_forced_terminal(end, { time, terminals: [terminal] },
+				match);
+			break;
+		}
+	}
+
 	/* Phase two: same-record shots onto the fates that remain. A shell
 	 * fired and dead inside one record gap has its shot and its impact
 	 * reported in the same record -- duration zero, which the graph above
@@ -3054,7 +3135,11 @@ const TERMINAL_FAILURE_RANK = new Map([
 	"no_candidate",           /* nothing at all to probe */
 ].map((reason, rank) => [reason, rank]));
 
-function classify_terminal_candidate(shell, end_time, gap, terminal,
+/* The shared geometric/timing predicate both diagnostic directions use:
+ * would this (observation, terminal) pair have made a residual edge, and
+ * if not, which single constraint killed it? Returns "edge" on success
+ * or the failure reason. */
+function terminal_candidate_geometry(shell, end_time, gap, terminal,
 	terminal_time) {
 	let duration = terminal_time - end_time;
 	if (terminal.direction !== null && terminal.direction !== undefined &&
@@ -3081,6 +3166,14 @@ function classify_terminal_candidate(shell, end_time, gap, terminal,
 	if (duration > MAX_SHELL_INTERPOLATION_TICKS) return "window_expired";
 	if (duration - match.distance / SHELL_SPEED_PIXELS_PER_TICK >
 		MAX_FATE_EVENT_LAG_TICKS) return "timing_lag";
+	return "edge";
+}
+
+function classify_terminal_candidate(shell, end_time, gap, terminal,
+	terminal_time) {
+	let reason = terminal_candidate_geometry(shell, end_time, gap, terminal,
+		terminal_time);
+	if (reason !== "edge") return reason;
 	if (shell.next_time !== undefined) {
 		return shell.next_terminal ? "end_claimed_other_fate" : "end_continued";
 	}
@@ -3217,6 +3310,83 @@ function describe_unmatched_terminals(snapshots) {
 				terminal.unseen_tank_source) continue;
 			described.push(describe_terminal_failure(snapshots, index,
 				terminal));
+		}
+	}
+	return described;
+}
+
+/* The end-side mirror of the terminal census: for every chain end with
+ * no forward story (the engine population behind the audit's drawn
+ * pop-outs -- final-snapshot ends excluded, the game simply stopped),
+ * what fate was available and what blocked it? Reasons in rank order,
+ * nearest-to-a-death first:
+ *   fate_open     a valid edge to a STILL-unexplained impact exists --
+ *                 pure ambiguity, the die-at-impact dial's target;
+ *   fate_unseen   a valid edge to an impact that was attributed to an
+ *                 unseen shot instead -- an observed shell's death may
+ *                 have been given away to an invisible sibling;
+ *   fate_taken    a valid edge to an impact another shell claimed;
+ *   timing/geometry/direction as in the terminal census;
+ *   no_candidate  nothing to probe.
+ * Read-only, like the terminal census. */
+const END_FATE_RANK = new Map([
+	"fate_open", "fate_unseen", "fate_taken",
+	"timing_lag", "timing_lead", "window_expired",
+	"orbit_miss", "ray_miss", "direction", "no_candidate",
+].map((reason, rank) => [reason, rank]));
+
+function describe_end_failure(snapshots, index, shell, gap) {
+	let end_time = snapshots[index].time;
+	let best = null;
+	let consider = (reason, event_type, candidate) => {
+		let rank = END_FATE_RANK.get(reason);
+		if (!best || rank < best.rank) {
+			best = { reason, rank, event_type, candidate };
+		}
+	};
+	for (let j = index + 1; j < snapshots.length; j++) {
+		let duration = snapshots[j].time - end_time;
+		if (duration <= 0) continue;
+		if (duration > MAX_STITCH_GAP_TICKS) break;
+		for (let terminal of snapshots[j].terminals) {
+			let reason = terminal_candidate_geometry(shell, end_time, gap,
+				terminal, snapshots[j].time);
+			if (reason === "edge") {
+				reason = terminal.match_time !== undefined ? "fate_taken"
+					: terminal.unseen_pillbox_source ||
+						terminal.unseen_tank_source ? "fate_unseen"
+					: "fate_open";
+			}
+			consider(reason, terminal.event_type || "unknown", {
+				time: snapshots[j].time,
+				pixel_x: terminal.type === "point"
+					? terminal.pixel_x : terminal.min_x,
+				pixel_y: terminal.type === "point"
+					? terminal.pixel_y : terminal.min_y,
+			});
+		}
+	}
+	return {
+		time: end_time,
+		pixel_x: shell.pixel_x,
+		pixel_y: shell.pixel_y,
+		direction: shell.direction,
+		kind: terminal_candidate_kind(shell),
+		reason: best ? best.reason : "no_candidate",
+		event_type: best ? best.event_type : "-",
+		candidate: best ? best.candidate : null,
+	};
+}
+
+function describe_unfated_ends(snapshots) {
+	let described = [];
+	for (let index = 0; index + 1 < snapshots.length; index++) {
+		let snapshot = snapshots[index];
+		let gap = index > 0 ? snapshot.time - snapshots[index - 1].time : 0;
+		for (let shell of snapshot.shells) {
+			if (shell.next_time !== undefined) continue;
+			described.push(describe_end_failure(snapshots, index, shell,
+				gap));
 		}
 	}
 	return described;
@@ -3641,7 +3811,7 @@ const BoloMotion = {
 	build_shell_positions, build_shell_births, build_shell_fall_segments,
 	tank_position_at, tank_direction_at, lgm_position_at, shell_position_at,
 	shell_birth_positions_at, shell_fall_positions_at,
-	describe_unmatched_terminals,
+	describe_unmatched_terminals, describe_unfated_ends,
 };
 
 if (typeof module !== "undefined" && module.exports) {
