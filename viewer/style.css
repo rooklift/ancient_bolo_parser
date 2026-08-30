@@ -196,7 +196,7 @@ body {
 	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
 }
 #exportSetupBox h1 { font-size: 15px; margin-bottom: 6px; }
-#exportSetupSummary { margin-bottom: 12px; }
+#exportSetupCamera { margin-bottom: 12px; }
 .exportRow {
 	display: flex;
 	align-items: center;
