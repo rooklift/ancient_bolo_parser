@@ -9,6 +9,11 @@ commit:
 node tools/report-interpolation-rates.cjs -r "<corpus root>"
 ```
 
+(or, with `corpus.json` or `BOLO_CORPUS` configured, plain
+`node tools/report-interpolation-rates.cjs` — since the guard commits the
+tool run bare reads the whole corpus itself, the same way
+`audit-drawn-motion.cjs` does).
+
 Read this file alongside the fixture one rather than instead of it. The metric
 definitions in [`interpolation_tests.md`](interpolation_tests.md) ("What the
 numbers mean") apply unchanged and are not repeated here; what follows is the
