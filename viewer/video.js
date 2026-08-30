@@ -6,10 +6,11 @@
  * window size and dropped frames. Frames go through a WebCodecs encoder
  * into the hand-rolled muxer (webm.js) and stream to disk over IPC.
  *
- * A setup dialog fronts the export: resolution, frame rate, constant
- * quality vs a target size, and whether the sidebar is painted into the
- * frame. Choices persist in localStorage, so a repeat export is Enter,
- * Enter. The dialog also states the two things the export inherits
+ * A setup dialog fronts the export: canvas size (the world is rendered at
+ * the live zoom, so a larger canvas shows more of the map), frame rate,
+ * constant quality vs a target size, and whether the sidebar is painted
+ * into the frame. Choices persist in localStorage, so a repeat export is
+ * Enter, Enter. The dialog also states the two things the export inherits
  * invisibly from the viewer: it starts at the chosen tick, and the current
  * playback speed becomes the video's time compression.
  *
