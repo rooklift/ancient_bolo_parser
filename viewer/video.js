@@ -55,6 +55,11 @@ async function export_video(start_tick) {
 	}
 	set_playing(false);
 
+	/* Claim the export before the first await: the application menu stays
+	 * live while the save dialog is open, so a second export command must
+	 * bounce off the guard above rather than race this one. */
+	exporting = true;
+
 	/* Each output frame advances the clock by a fixed tick step, so the
 	 * current playback speed is baked in as the video's time compression. */
 	let step = TPS * speed / EXPORT_FPS;
@@ -63,6 +68,7 @@ async function export_video(start_tick) {
 
 	let picked = await ex_pick_config();
 	if (!picked) {
+		exporting = false;
 		show_error("Cannot export video", "no supported VP9/VP8 encoder found");
 		return;
 	}
@@ -71,12 +77,12 @@ async function export_video(start_tick) {
 	let default_name = ((gi && gi.mapName) || "replay").replace(/[\/\\:]/g, "_") + ".webm";
 	let begin = await window.api.video_begin(default_name);
 	if (begin.canceled || begin.error) {
+		exporting = false;
 		if (begin.error) show_error("Could not export video", begin.error);
 		return;
 	}
 
 	/* ---- take over the viewer until restored in the finally below ---- */
-	exporting = true;
 	export_cancel_requested = false;
 	export_error = null;
 	export_chat_cache = new Map();
@@ -85,47 +91,48 @@ async function export_video(start_tick) {
 	export_overlay.classList.remove("hidden");
 
 	let saved = { clock, view, ctx };
-	/* keep the live framing: same zoom, same world centre, recentred for
-	 * the export's world viewport (player lock re-centres per frame) */
-	let live = { w: canvas.clientWidth, h: canvas.clientHeight };
-	view = {
-		zoom: view.zoom,
-		ox: view.ox + (live.w - EXPORT_WORLD_W) / (2 * view.zoom),
-		oy: view.oy + (live.h - EXPORT_H) / (2 * view.zoom),
-	};
-	let export_canvas = document.createElement("canvas");
-	export_canvas.width = EXPORT_W;
-	export_canvas.height = EXPORT_H;
-	ctx = export_canvas.getContext("2d", { alpha: false });
-	export_target = { w: EXPORT_WORLD_W, h: EXPORT_H };
-
-	let at = BoloGame.state_at(game, start_tick);
-	cur = at.state;
-	cursor = at.index;
-	clock = start_tick;
-	effect_lo = lower_bound_effect(start_tick - EFFECT_TICKS);
-	off_version = -1;
-	display_grid_version = -1;
-	display_grid_cache = null;
-
-	let muxer = BoloWebM.create_muxer({
-		width: EXPORT_W, height: EXPORT_H, codec_id: picked.codec_id,
-	});
-	ex_queue(muxer.header(duration_ms));
-
-	let encoder = new VideoEncoder({
-		output: chunk => {
-			let data = new Uint8Array(chunk.byteLength);
-			chunk.copyTo(data);
-			ex_queue(muxer.add_block(data,
-				Math.round(chunk.timestamp / 1000), chunk.type === "key"));
-		},
-		error: err => { if (!export_error) export_error = err; },
-	});
-	encoder.configure(picked.config);
-
+	let encoder = null;
 	let ok = false;
 	try {
+		/* keep the live framing: same zoom, same world centre, recentred for
+		 * the export's world viewport (player lock re-centres per frame) */
+		let live = { w: canvas.clientWidth, h: canvas.clientHeight };
+		view = {
+			zoom: view.zoom,
+			ox: view.ox + (live.w - EXPORT_WORLD_W) / (2 * view.zoom),
+			oy: view.oy + (live.h - EXPORT_H) / (2 * view.zoom),
+		};
+		let export_canvas = document.createElement("canvas");
+		export_canvas.width = EXPORT_W;
+		export_canvas.height = EXPORT_H;
+		ctx = export_canvas.getContext("2d", { alpha: false });
+		export_target = { w: EXPORT_WORLD_W, h: EXPORT_H };
+
+		let at = BoloGame.state_at(game, start_tick);
+		cur = at.state;
+		cursor = at.index;
+		clock = start_tick;
+		effect_lo = lower_bound_effect(start_tick - EFFECT_TICKS);
+		off_version = -1;
+		display_grid_version = -1;
+		display_grid_cache = null;
+
+		let muxer = BoloWebM.create_muxer({
+			width: EXPORT_W, height: EXPORT_H, codec_id: picked.codec_id,
+		});
+		ex_queue(muxer.header(duration_ms));
+
+		encoder = new VideoEncoder({
+			output: chunk => {
+				let data = new Uint8Array(chunk.byteLength);
+				chunk.copyTo(data);
+				ex_queue(muxer.add_block(data,
+					Math.round(chunk.timestamp / 1000), chunk.type === "key"));
+			},
+			error: err => { if (!export_error) export_error = err; },
+		});
+		encoder.configure(picked.config);
+
 		ex_progress(0, total);
 		for (let i = 0; i < total; i++) {
 			if (export_cancel_requested) break;
@@ -154,13 +161,20 @@ async function export_video(start_tick) {
 			ex_progress(total, total);
 			await encoder.flush();
 			if (export_error) throw export_error;
+		}
+		/* the writing phase awaits repeatedly too: keep honouring a cancel
+		 * clicked while the overlay shows "Writing file…" */
+		if (!export_cancel_requested) {
 			let fin = muxer.finalize(duration_ms);
 			ex_queue(fin.tail);
 			await ex_flush_writes(true);
 			for (let patch of fin.patches) {
+				if (export_cancel_requested) break;
 				let res = await window.api.video_patch(patch.offset, patch.bytes);
 				if (res && res.error) throw new Error(res.error);
 			}
+		}
+		if (!export_cancel_requested) {
 			let end = await window.api.video_end();
 			if (end && end.error) throw new Error(end.error);
 			ok = true;
@@ -168,7 +182,9 @@ async function export_video(start_tick) {
 	} catch (err) {
 		show_error("Could not export video", String((err && err.message) || err));
 	} finally {
-		try { encoder.close(); } catch { /* already closed */ }
+		if (encoder) {
+			try { encoder.close(); } catch { /* already closed */ }
+		}
 		if (!ok) await window.api.video_abort(); /* cancelled or failed: no partial file */
 		ex_write_queue = [];
 		ex_write_bytes = 0;
