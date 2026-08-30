@@ -90,16 +90,21 @@ explanations on the books. A rank-pairing rescue for refused groups
 measured a corpus-wide null and was reverted; the account is in the
 results file. Tools now stamp their output with the measuring commit.
 
-## 3. Draw the unseen shots
+## 3. Draw the unseen shots -- SCOPED DOWN
 
-~154k corpus impacts now carry an unseen pill or tank source but render
-as nothing: the wall-eating point-blank shots in replay `122903.4` are
-the canonical scene. Extend `build_shell_births` to emit a
-muzzle-to-impact segment for terminals with `unseen_*_source` (pill
-entry points already computable exactly via the orbit walk; arrival time
-= event time capped by distance at 2 px/tick). Small, low-risk, makes
-scenes like the pill-3 duel legible. Open question: always on, or a
-viewer option.
+~247k corpus impacts now carry an unseen pill or tank source but render
+as nothing. The owner's call: an adjacent-tile shot (Chebyshev <= 1,
+diagonals included) needs no drawn projectile -- the flash-and-break is
+close to what one perceives at that range anyway -- and the fixture
+says that covers ~80% of the class (pill 82%, tank 78%), with ~17% at
+two tiles (~a third of a second, borderline) and only ~2-4% genuinely
+long flights. So: extend `build_shell_births` to emit muzzle-to-impact
+segments only for shots beyond the adjacency radius (pill entry points
+exactly via the orbit walk; arrival time = event time capped by
+distance at 2 px/tick), and the payoff is a few thousand corpus
+segments, not 247k. Still cheap and drawing-only, no longer urgent.
+The attribution layer itself is unaffected and feeds item 4 at full
+size.
 
 ## 4. Shooter attribution surfaced as stats
 
@@ -157,7 +162,8 @@ measure the false-claim risk before believing it. Explicitly optional.
 * Stats surface (item 4): where should it live in the viewer?
 * Risk appetite for Δ (item 2): conservative default with an aggressive
   measurement run, or hold at forced-only until the audit tool matures?
-* Unseen-shot drawing (item 3): always on, or toggleable?
+* Unseen-shot drawing (item 3): always on, or toggleable? (Scope now
+  settled: adjacent-tile shots are never drawn.)
 * Continue-vs-die (item 2b): the pop rescue prefers a seen continuation
   over an inferred death when both fit, costing ~5,769 corpus terminal
   matches. Keep the preference, or should an authoritative fate event
