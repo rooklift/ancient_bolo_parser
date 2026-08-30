@@ -93,6 +93,12 @@ const MAX_SMOOTHING_DEVIATION_PIXELS = 24;
 const ABSORB_LATERAL_TOLERANCE_PIXELS = 2;
 /* An impact record normally trails the impact by well under a second. */
 const MAX_FATE_EVENT_LAG_TICKS = 30;
+/* Hang insurance for next_shell walks. Every pass that links shells does
+ * so strictly forward in time, so a chain can never cycle and its length
+ * is bounded by the restatements one shell can receive in its couple of
+ * seconds of flight — a few dozen. The cap only exists so that a future
+ * linking bug degrades a chain instead of hanging the viewer. */
+const MAX_CHAIN_WALK = 500;
 /* The resolver's cost-forced margin: an assignment is accepted when every
  * rival story carries at least this much extra geometric error, the same
  * ambiguity unit the pairwise matcher uses. */
@@ -1838,7 +1844,9 @@ function apply_visual_join(candidate) {
  * the origin belongs to every one of them. Links made by ordinary
  * matching and by stitches both record next_shell, so the walk is direct. */
 function propagate_identity_down_chain(origin_shell, first_shell) {
-	for (let walk = first_shell; walk; walk = walk.next_shell) {
+	let hops = 0;
+	for (let walk = first_shell; walk && hops < MAX_CHAIN_WALK;
+		walk = walk.next_shell, hops++) {
 		if (origin_shell.pillbox_source_x !== undefined &&
 			walk.pillbox_source_x === undefined) {
 			walk.pillbox_source_x = origin_shell.pillbox_source_x;
@@ -2192,8 +2200,8 @@ function claim_unseen_pillbox_births(snapshots, pill_states) {
 				continue;
 			}
 			let chain = [shell];
-			for (let walk = shell; walk.next_shell && !walk.next_terminal;
-				walk = walk.next_shell) {
+			for (let walk = shell; walk.next_shell && !walk.next_terminal &&
+				chain.length < MAX_CHAIN_WALK; walk = walk.next_shell) {
 				chain.push(walk.next_shell);
 			}
 			let claims = [];
@@ -2361,7 +2369,15 @@ function component_min_cost_flow(left_caps, right_caps, edges, skip) {
 
 	let value = 0;
 	let total_cost = 0;
-	for (;;) {
+	/* Hang insurance only. Capacities are integers, so every augmentation
+	 * moves at least one whole unit and the total left capacity bounds the
+	 * round count; a shortest path visits each node at most once. Neither
+	 * bound can bind unless float error ever left a negative residual
+	 * cycle behind, in which case the partial flow is still safe: the
+	 * forcing tests only get more conservative on an under-augmented
+	 * solution. */
+	let rounds = left_caps.reduce((sum, cap) => sum + cap, 0);
+	while (rounds-- > 0) {
 		let dist = new Array(node_count).fill(Infinity);
 		let via = new Array(node_count).fill(-1);
 		dist[source] = 0;
@@ -2381,17 +2397,19 @@ function component_min_cost_flow(left_caps, right_caps, edges, skip) {
 			if (!changed) break;
 		}
 		if (via[sink] < 0) break;
-		let bottleneck = Infinity;
-		for (let node = sink; node !== source;) {
-			let arc = arcs[via[node]];
-			bottleneck = Math.min(bottleneck, arc.cap - arc.flow);
-			node = arc.from;
+		let path = [];
+		for (let node = sink; node !== source && path.length <= node_count;) {
+			path.push(via[node]);
+			node = arcs[via[node]].from;
 		}
-		for (let node = sink; node !== source;) {
-			let index = via[node];
+		if (path.length > node_count) break;
+		let bottleneck = Infinity;
+		for (let index of path) {
+			bottleneck = Math.min(bottleneck, arcs[index].cap - arcs[index].flow);
+		}
+		for (let index of path) {
 			arcs[index].flow += bottleneck;
 			arcs[index ^ 1].flow -= bottleneck;
-			node = arcs[index].from;
 		}
 		value += bottleneck;
 		total_cost += dist[sink] * bottleneck;
@@ -3276,7 +3294,7 @@ function end_continued_detail(shell, terminal) {
 	let detail = next_proj > impact_proj + 8 ? ".thru" : ".short";
 	let walk = shell;
 	for (let hops = 0; walk.next_shell && !walk.next_terminal &&
-		hops < 500; hops++) {
+		hops < MAX_CHAIN_WALK; hops++) {
 		walk = walk.next_shell;
 	}
 	if (walk.next_terminal &&
@@ -3407,7 +3425,8 @@ function smooth_shell_chains(snapshots) {
 			if (shell.matched_from_previous) continue;
 			let entries = [{ shell, time: snapshot.time }];
 			let walk = shell;
-			while (walk.next_shell && !walk.next_terminal) {
+			while (walk.next_shell && !walk.next_terminal &&
+				entries.length < MAX_CHAIN_WALK) {
 				entries.push({ shell: walk.next_shell, time: walk.next_time });
 				walk = walk.next_shell;
 			}
