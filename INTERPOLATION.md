@@ -298,7 +298,13 @@ both.
   receiver-clock arrival estimate. The residual pass admits such an
   edge at the dilated penalty, with the lead bounded by the gap back to
   the sender's previous record — the most that timestamp can be lying
-  by. What remains genuinely ambiguous
+  by. A shell that fires *and* dies inside one record gap has its shot
+  and its impact reported in the same record — duration zero, the normal
+  case for point-blank flights such as adjacent-pill crossfire — so a
+  second, strictly additive phase force-assigns same-record shots onto
+  whatever fates the main flow left unexplained, with the fire-time
+  window widened by that same record gap; these edges compete only with
+  each other, never with observed shells. What remains genuinely ambiguous
   is left unexplained by design, though where every ambiguous story
   draws the same line it is drawn without being believed (visual joins).
 - Collision inference against terrain/objects currently only enters through
