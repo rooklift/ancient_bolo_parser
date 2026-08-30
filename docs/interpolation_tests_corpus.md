@@ -1116,3 +1116,5 @@ against 9,162 (-37%).
   `viewer/game.js`, which the report loads, so `main`'s own HEAD is unmeasured
   until the next run. (When this file first closed the current pair was
   `4572cff`/`926f391`, later `380e333`/`a74033a`.)
+
+<!-- Remember to update the "headline table" at top! -->
