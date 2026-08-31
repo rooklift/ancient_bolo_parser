@@ -126,8 +126,9 @@ Constant at all ten commits, and worth having once:
 | `c890ecc` | seam closure | 0.995341 | 0.001601 | 0.833183 | 235,739 |
 | `baee09c` | tail slide | 0.995341 | 0.001601 | 0.833183 | 235,739 |
 | `716a349` | guard split | 0.995341 | 0.001601 | 0.833183 | 235,739 |
-| `cecdd9d` | pill-wide lockstep | **0.995415** | **0.001547** | 0.833156 | 235,715 |
+| `cecdd9d` | pill-wide lockstep | 0.995415 | 0.001547 | 0.833156 | 235,715 |
 | `4233e94` | residual lockstep veto | 0.995308 | 0.001558 | 0.833192 | 235,747 |
+| `e101787` | pairwise roster lockstep | **0.995494** | **0.001520** | 0.833249 | 235,846 |
 
 The rows below the guard run were measured later, from the corpus
 holder's live checkouts: `97fa412` closes the unmeasured-`main` gap the
@@ -1713,6 +1714,92 @@ Corpus verification, run by the corpus holder at `b1659e9`
   returns roughly the pill-wide commit's coverage gain while keeping
   its correctness), and the terminal rate rises to 0.833192, second
   only to `029acac`'s record.
+
+## Pairwise roster lockstep -- `e101787`
+
+The lockstep's last dial, closing the asymmetry the veto's entry put
+on the record: a crossing whose wrong half is a PAIRWISE link. The
+same statement-roster vote (>=3 pinned statements explained, runner-up
+beaten by two) now runs inside the matcher, per pill and transition,
+before margins decide anything. Differences from the post-match
+reference, forced by running this early: target statements carry no
+propagated orbit states yet, so their steps are pinned from raw
+positions against the orbit table directly; and a shell's death is
+undecided at match time, so dying shells stay in the source vote
+(conservation still holds on the target side -- claimed newborns are
+excluded -- and the margin gate is what makes a
+death-thinned ladder stand down rather than misvote).
+
+A passing vote is applied twice. Every pinned member's surviving
+continuation must sit at exactly its step plus the advance -- the
+within-margin wrong halves the candidate-based lockstep could not
+prune, since it only intersects advances a member's own candidates
+support. And landing ownership: a target step exactly one member's
+statement explains belongs to that member, evicting the
+provenance-less thief -- the sourceless orphan (born before the log,
+or past claiming range) that competes on bare distance cost and wins
+a compressed interval. A candidate another passing pill retained is
+never evicted; two statements claiming one point is a genuine
+conflict left to margins.
+
+Every changed fixture transition hand-verifies as a uniform-advance
+ladder where mixed advances used to draw: the (1920,1904) pill's +8
+over 13 stamped ticks (9 rungs aligned, a minted stream birth and
+four repair stitches dissolve into plain matches), the (2032,1856)
+pill's +8 where a MID-FLIGHT s16 mint becomes a real continuation and
+the one honest mint moves to the muzzle, and the (1808,2368) pill's
++9 (5 rungs) where an unseen-shot mint, a frozen end, and a stolen
+tank_hit all resolve -- the downstream chain regaining exact orbit
+provenance it never had. Plus one pure crossing swap, the trailer no
+longer overtaking its leader. Unlike the veto this dial is gain on
+every local ledger at once: the three local logs together are matched
++32, pop-outs -32, stream births 36 -> 22, unseen births -4, visual
+joins -1, terminals +1, unlinked -8, steady-speed links +93.
+
+Corpus prediction for the next run: `shells_matched_forward` UP by a
+few hundred to ~1,500 with `pop_outs` down by the complement,
+retaking both shell-side records from `cecdd9d` (matched_forward
+above 0.995415, unlinked below 0.001547) while keeping the veto's
+terminal rate near 0.8332 or above (small `tank_hit` gain);
+`shells_stream_birth` down by a few hundred (part of the veto's
++1,001 re-linking as true uniform-advance continuations),
+`shells_unseen_pillbox_birth` down by tens to ~200, `seam_jumps`
+still 0, the steady speed bucket up by low thousands with `1.5-1.8`
+net down, and small mixed movement in `hover_links` and
+`pops_paired_backwards` (ankle and seam1 moved one each, opposite
+ways -- a lockstep-verified continuation over a lying stamp can
+legitimately draw off-pace; that remains the deferred pace residue).
+
+Corpus verification, run by the corpus holder at `2c5d59c`
+(engine-identical to `e101787`; raw runs kept under
+`docs/corpus_runs/`):
+
+* Both shell-side records retaken, as called: `shells_matched_forward`
+  +1,822 (just past the ~1,500 top of the range) with `pop_outs`
+  -1,822, exactly complementary; 0.995494 matched / 0.001520 unlinked
+  against `cecdd9d`'s 0.995415 / 0.001547. And unlike `cecdd9d`, the
+  terminal ledger rises with it: `terminals_matched` +111 (`tank_hit`
+  +99, `shell_falls` +34, `explosion` +9, against `pillbox_damage`
+  -29, `base_damage` -2), 0.833249, second only to `029acac`.
+* The mint collapse outran the call. `shells_stream_birth` 2,057 ->
+  923 (-55%; "down by a few hundred" was the prediction) -- more than
+  the veto's whole +1,001 re-settled as real uniform-advance
+  continuations. `shells_unseen_pillbox_birth` -193 (called at tens
+  to ~200), `shells_visual_joins` -182, `shell_births` -1,382, and
+  provenance flows through links instead of fresh claims
+  (`shells_from_pillbox` -1,380, `shells_with_pillbox_source`
+  +1,239).
+* The audit agrees on every lie metric at once, better than the
+  "mixed movement" hedge: `hover_links` -49, `rush_links` -31,
+  `pop_ins` -329, `pops_paired_backwards` -46, `seam_jumps` still 0.
+  The steady bucket grows 7,220 links (called at low thousands) while
+  `1.5-1.8` sheds 4,830 -- with only +1,711 new links, some 5,500
+  existing links moved onto the steady pace -- and `rate_links_steady`
+  0.962269 is the audit era's best.
+* The one counter-signal, small: `terminal_links_rushed` +44 on a
+  base of 68,496 -- newly matched terminals in laggy volleys still
+  draw their final hop fast. That is the deferred pace/drawn-speed
+  residue, unchanged in character.
 
 ## Findings
 
