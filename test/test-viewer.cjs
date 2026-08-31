@@ -108,7 +108,7 @@ if (!fs.existsSync(log1)) {
 	}
 	check("fixture orbit-membership and stream-provenance birth claims",
 		[orbit_births.unseen, orbit_births.stream, orbit_births.sound],
-		[22, 6, true]);
+		[22, 8, true]);
 
 	/* Terminal-failure diagnostics: read-only classification of every
 	 * terminal that ends the pipeline with no matched shell and no
@@ -156,10 +156,10 @@ if (!fs.existsSync(log1)) {
 			described, described === unexplained, reasons_sound,
 			classes.get("explosion:no_candidate:-"),
 			classes.get("pillbox_damage:end_continued:T"),
-		], [1032, true, true, 240, 89]);
+		], [1031, true, true, 240, 89]);
 		check("fixture same-record unseen shots claimed without cost", [
 			matched, unseen.pill, unseen.tank,
-		], [20694, 1223, 1126]);
+		], [20695, 1223, 1126]);
 
 		/* The end-side mirror: every chain end with no forward story gets
 		 * a class; the census must equal the unmatched-forward count less
@@ -188,7 +188,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture end-side census reconciles", [
 			ends_described, ends_described === unfated, end_reasons_sound,
 			fate_open,
-		], [299, true, true, 21]);
+		], [301, true, true, 19]);
 	}
 
 	let pill_burst = { total: 0, matched: 0 };
@@ -1076,6 +1076,48 @@ if (!fs.existsSync(log1)) {
 			!!volley_imposter.matched_from_previous,
 			!!volley_true.matched_from_previous],
 		[[1949, 1835], false, true]);
+
+	/* The residual arm of the lockstep: the pill's statement rosters vote
+	 * on the one advance a sender transition carries (here +7, explained
+	 * by three clean chains), and a residual join must agree. The deepest
+	 * shell's true target is missing from the next record; its only
+	 * stories are two imposters at +10 and +11, both dilated -- the
+	 * contested-dilated guard rightly keeps them out of the pairwise
+	 * matcher, and the residual pass used to visual-join the nearer one
+	 * anyway. The roster reference (13->20, 9->16, 4->11) vetoes both:
+	 * an end with no lockstep-consistent story pops honestly. */
+	let residual_veto = BoloGame.build([
+		record(60, [{ type: "pillbox_list", items: [{
+			x: 140, y: 133, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(80, [idle_tank]),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 9 },
+			shell_list(9, [[2227, 2157]]),
+		]),
+		record(114, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 9 },
+			{ type: "pillbox_fires", pillbox: 0, direction: 9 },
+			shell_list(9, [[2216, 2183], [2227, 2157], [2233, 2142]]),
+		]),
+		record(128, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 9 },
+			shell_list(9, [[2205, 2209], [2216, 2183], [2222, 2168],
+				[2230, 2150]]),
+		]),
+		record(142, [shell_list(9, [[2205, 2209], [2211, 2194],
+			[2219, 2175], [2189, 2245], [2188, 2249]])]),
+	]);
+	let veto_end = residual_veto.shell_positions[0][3].shells[0];
+	let veto_imposter = residual_veto.shell_positions[0][4].shells[3];
+	check("the statement rosters' advance vetoes a residual join onto an " +
+		"off-lockstep imposter",
+		[veto_end.next_time === undefined,
+			[veto_end.pixel_x, veto_end.pixel_y],
+			[veto_imposter.pixel_x, veto_imposter.pixel_y],
+			!!veto_imposter.visual_join,
+			!!veto_imposter.matched_from_previous],
+		[true, [2205, 2209], [2189, 2245], false, false]);
 
 	/* The orbit evidence also cuts the other way. This observation sits
 	 * on the stitch's segment and near its uniform-time schedule -- the
