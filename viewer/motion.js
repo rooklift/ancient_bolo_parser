@@ -100,6 +100,11 @@ const MAX_SHELL_BIRTH_SPAN_TICKS = (SHELL_RANGE_PIXELS +
  * few updates in either direction, so an on-track restatement can sit
  * this far from where a uniform-time reading of the chain puts it. */
 const MAX_SMOOTHING_DEVIATION_PIXELS = 24;
+/* A chain head's first link may legitimately run a little long: the head
+ * is a one-sided quantised reconstruction (up to ~7px behind the true
+ * spot) and the stamps wander a tick or two. Only an excess beyond this
+ * marks the head's record as received late and worth sliding. */
+const CHAIN_HEAD_SLIDE_THRESHOLD_PIXELS = 8;
 const ABSORB_LATERAL_TOLERANCE_PIXELS = 2;
 /* An impact record normally trails the impact by well under a second. */
 const MAX_FATE_EVENT_LAG_TICKS = 30;
@@ -3756,6 +3761,41 @@ function smooth_shell_chains(snapshots) {
 	}
 }
 
+/* A chain head is a time anchor the smoothing pass never moves, so a head
+ * whose record was received late poisons its first link: the sender kept
+ * simulating while the record sat in transit, and the next, punctually
+ * received restatement then sits far further along the flight than the
+ * receiver-stamp gap can carry at shell speed, drawing a sprint. The
+ * distance between the two drawn positions is itself the sender's clock
+ * (shells fly at exactly SHELL_SPEED_PIXELS_PER_TICK), so when it exceeds
+ * the stamp window by more than quantisation explains, slide the head's
+ * drawn position forward along the link to where the shell truly was at
+ * the stamped time, leaving exactly the window's worth of flight. The
+ * birth segment builder re-derives its span from the slid position, so
+ * the pre-record flight stays seamless at true speed. Drawing only:
+ * packet-exact state, matching and terminal timing are untouched. */
+function slide_compressed_chain_heads(snapshots) {
+	for (let snapshot of snapshots) {
+		for (let shell of snapshot.shells) {
+			if (shell.matched_from_previous || !shell.next_shell) continue;
+			let window = shell.next_time - snapshot.time;
+			if (!(window >= 0)) continue;
+			let from_x = shell.smooth_pixel_x ?? shell.pillbox_orbit_pixel_x ??
+				shell.tank_exact_pixel_x ?? shell.pixel_x;
+			let from_y = shell.smooth_pixel_y ?? shell.pillbox_orbit_pixel_y ??
+				shell.tank_exact_pixel_y ?? shell.pixel_y;
+			let to_x = shell.smooth_next_pixel_x ?? shell.next_pixel_x;
+			let to_y = shell.smooth_next_pixel_y ?? shell.next_pixel_y;
+			let distance = Math.hypot(to_x - from_x, to_y - from_y);
+			let excess = distance - window * SHELL_SPEED_PIXELS_PER_TICK;
+			if (excess <= CHAIN_HEAD_SLIDE_THRESHOLD_PIXELS) continue;
+			let amount = Math.min(excess / distance, 1);
+			shell.smooth_pixel_x = from_x + (to_x - from_x) * amount;
+			shell.smooth_pixel_y = from_y + (to_y - from_y) * amount;
+		}
+	}
+}
+
 /* Per-client shell restatements used only for drawing. Keeping separate
  * client tracks is intentional: there is no evidence that technical shell
  * ownership migrates in flight, and joining across clients would create
@@ -3816,6 +3856,7 @@ function build_shell_positions(records, terminals, pillbox_sources_by_record,
 		resolve_residual_shell_fates(client_snapshots);
 		claim_unseen_pillbox_births(client_snapshots, pill_states);
 		smooth_shell_chains(client_snapshots);
+		slide_compressed_chain_heads(client_snapshots);
 	}
 	return snapshots;
 }
@@ -3833,12 +3874,13 @@ function build_shell_births(shell_positions) {
 				if (shell.starts_at_pillbox) {
 					pixel_x = shell.pillbox_source_x;
 					pixel_y = shell.pillbox_source_y;
-					/* Keep the synthetic segment continuous with an exact orbit
-					 * position recovered from a quantised shell-list member. */
-					let target_pixel_x = shell.pillbox_orbit_pixel_x ??
-						shell.pixel_x;
-					let target_pixel_y = shell.pillbox_orbit_pixel_y ??
-						shell.pixel_y;
+					/* Keep the synthetic segment continuous with the drawn
+					 * position: a slid head first, else an exact orbit position
+					 * recovered from a quantised shell-list member. */
+					let target_pixel_x = shell.smooth_pixel_x ??
+						shell.pillbox_orbit_pixel_x ?? shell.pixel_x;
+					let target_pixel_y = shell.smooth_pixel_y ??
+						shell.pillbox_orbit_pixel_y ?? shell.pixel_y;
 					let delta_x = target_pixel_x - pixel_x;
 					let delta_y = target_pixel_y - pixel_y;
 					let distance = Math.hypot(delta_x, delta_y);
@@ -3850,6 +3892,19 @@ function build_shell_births(shell_positions) {
 					}
 				} else if (!shell.starts_at_tank) {
 					continue;
+				} else if (shell.smooth_pixel_x !== undefined) {
+					/* A slid tank head: re-derive the span from the muzzle to
+					 * the drawn position, mirroring the pillbox branch, so the
+					 * handoff stays seamless. */
+					let delta_x = shell.smooth_pixel_x - pixel_x;
+					let delta_y = shell.smooth_pixel_y - pixel_y;
+					let distance = Math.hypot(delta_x, delta_y);
+					start_time = snapshot.time - distance /
+						SHELL_SPEED_PIXELS_PER_TICK;
+					if (distance > 0) {
+						heading_x = delta_x / distance;
+						heading_y = delta_y / distance;
+					}
 				}
 				if (start_time >= snapshot.time || heading_x === undefined) continue;
 				births.push({
