@@ -118,10 +118,11 @@ const MAX_CHAIN_WALK = 500;
  * rival story carries at least this much extra geometric error, the same
  * ambiguity unit the pairwise matcher uses. */
 const RESIDUAL_COST_MARGIN = SHELL_MATCH_MARGIN;
-/* Dilated joins: a lagging sender's timestamps can put a single hop far
- * off the two-pixel-per-tick schedule while the shell stays exactly on
- * its ray. The penalty keeps any ordinary-physics story preferred; the
- * catch-up allowance covers a sender flushing its backlog. */
+/* Dilated joins and dilated same-orbit continuations: a lagging sender's
+ * timestamps can put a single hop far off the two-pixel-per-tick schedule
+ * while the shell stays exactly on its ray (or, for a pill shot, exactly
+ * on its orbit). The penalty keeps any ordinary-physics story preferred;
+ * the catch-up allowance covers a sender flushing its backlog. */
 const DILATED_JOIN_PENALTY_PIXELS = 8;
 const DILATED_CATCHUP_PIXELS = 16;
 const DILATED_UPDATE_SLACK = 8;
@@ -360,12 +361,16 @@ function shell_match_cost(previous, next, duration) {
 	if (orbit_states && !orbit_states.length) return null;
 	if (orbit_states) {
 		let cost = Math.min(...orbit_states.map(state => state.cost));
-		return {
+		let match = {
 			cost,
 			pillbox_orbit_states: orbit_states.map(state => ({
 				bradian: state.bradian, step: state.step,
 			})),
 		};
+		/* All-or-nothing by construction: dilated states are dropped
+		 * whenever an ordinary state exists. */
+		if (orbit_states[0].dilated) match.dilated = true;
+		return match;
 	}
 
 	let tank_states = tank_shell_successor_states(previous, next, duration);
@@ -672,6 +677,11 @@ function pillbox_shell_successor_states(previous, next, duration) {
 	let relative_x = next.pixel_x - previous.pillbox_source_x;
 	let relative_y = next.pixel_y - previous.pillbox_source_y;
 	let expected_distance = duration * SHELL_SPEED_PIXELS_PER_TICK;
+	/* Dilated fallback window, the widen-in-time-only principle
+	 * `pill_states_reachable` uses: a lying record clock can put a
+	 * restatement off the uniform-time schedule, but never off its orbit. */
+	let step_window = Math.ceil(duration / TICKS_PER_SHELL_UPDATE) +
+		DILATED_UPDATE_SLACK;
 	let states_by_key = new Map();
 	for (let previous_state of previous.pillbox_orbit_states) {
 		let orbit = PILLBOX_ORBITS_BY_BRADIAN.get(previous_state.bradian);
@@ -685,15 +695,32 @@ function pillbox_shell_successor_states(previous, next, duration) {
 			let distance = Math.hypot(position[0] - previous_position[0],
 				position[1] - previous_position[1]);
 			let cost = Math.abs(distance - expected_distance);
-			if (cost > SHELL_MATCH_ERROR_PIXELS) continue;
+			let dilated = cost > SHELL_MATCH_ERROR_PIXELS;
+			if (dilated) {
+				if (step - previous_state.step > step_window) continue;
+				cost += DILATED_JOIN_PENALTY_PIXELS;
+			}
 			let key = `${orbit.bradian}:${step}`;
 			let existing = states_by_key.get(key);
 			if (!existing || cost < existing.cost) {
-				states_by_key.set(key, { bradian: orbit.bradian, step, cost });
+				states_by_key.set(key,
+					{ bradian: orbit.bradian, step, cost, dilated });
 			}
 		}
 	}
-	return [...states_by_key.values()];
+	/* An on-schedule story always outranks a dilated one; dilated states
+	 * survive only when no ordinary step explains the pair at all, so
+	 * every previously possible match is returned unchanged. The penalty
+	 * puts a surviving dilated candidate more than the match margin above
+	 * any ordinary candidate, so it can never veto one as ambiguous — it
+	 * only exists so the lockstep and margin passes can arbitrate instead
+	 * of the shell freezing unmatched and its continuation being minted as
+	 * a brand-new unseen shot. */
+	let states = [...states_by_key.values()];
+	if (states.some(state => !state.dilated)) {
+		states = states.filter(state => !state.dilated);
+	}
+	return states;
 }
 
 function pillbox_shell_terminal_match(previous, terminal, duration, start_time,
@@ -1462,13 +1489,19 @@ function propagate_ambiguous_pillbox_orbits(target_groups, by_next,
 		let choices = by_next[next_index];
 		if (!choices.length || choices.some(candidate =>
 			!candidate.pillbox_orbit_states)) continue;
-		let first_shell = previous_shells[choices[0].previous_index];
+		/* A dilated candidate is a penalized fallback story; it must not
+		 * veto or widen the provenance the on-schedule candidates agree
+		 * on, and provenance claimed on dilated stories alone would be
+		 * exactly the convincing false identity matching guards against. */
+		let trusted = choices.filter(candidate => !candidate.dilated);
+		if (!trusted.length) continue;
+		let first_shell = previous_shells[trusted[0].previous_index];
 		if (first_shell.pillbox_source_x === undefined ||
-			choices.some(candidate => !same_pillbox_stream(first_shell,
+			trusted.some(candidate => !same_pillbox_stream(first_shell,
 				previous_shells[candidate.previous_index]))) continue;
 
 		let states_by_key = new Map();
-		for (let candidate of choices) {
+		for (let candidate of trusted) {
 			for (let state of candidate.pillbox_orbit_states) {
 				states_by_key.set(`${state.bradian}:${state.step}`, state);
 			}
@@ -1713,6 +1746,35 @@ function match_shell_snapshots(previous, next) {
 	}
 	prefer_ordered_shell_impacts(target_groups, by_previous, by_next,
 		previous.shells);
+	/* A dilated candidate's cost measures how badly the clock lied, not
+	 * how likely the story is: every dilated rival is an exact orbit point
+	 * ahead on the same track, so a margin between two of them is a coin
+	 * flip dressed as evidence ("absorbing either alone is a guess"). A
+	 * dilated candidate therefore never competes: it survives only as the
+	 * lone remaining continuation on both of its sides, once the lockstep
+	 * and constraint passes above have finished pruning. Anything still
+	 * contested is left for the stitching and residual passes, whose
+	 * discrete evidence can arbitrate. */
+	let contested_dilated = new Set();
+	for (let choices of by_previous) {
+		for (let candidate of choices) {
+			if (!candidate.dilated) continue;
+			let lone_previous = choices.every(other =>
+				other === candidate || other.target.terminal);
+			let lone_target = by_next[candidate.next_index].length === 1;
+			if (!lone_previous || !lone_target) contested_dilated.add(candidate);
+		}
+	}
+	if (contested_dilated.size) {
+		for (let i = 0; i < by_previous.length; i++) {
+			by_previous[i] = by_previous[i].filter(candidate =>
+				!contested_dilated.has(candidate));
+		}
+		for (let i = 0; i < by_next.length; i++) {
+			by_next[i] = by_next[i].filter(candidate =>
+				!contested_dilated.has(candidate));
+		}
+	}
 	for (let choices of by_previous) choices.sort((a, b) => a.cost - b.cost);
 	for (let choices of by_next) choices.sort((a, b) => a.cost - b.cost);
 
@@ -2011,6 +2073,11 @@ function stitch_candidate(end, start) {
 	}
 	let match = shell_match_cost(end.shell, start.shell, duration);
 	if (!match) return null;
+	/* Dilated matches stay out of stitching: a stitch picks winners by
+	 * cost margins, and margins between dilated stories are meaningless
+	 * (the cost measures the clock's lie, not likelihood). Off-schedule
+	 * joins remain dilated_join_candidate's, whose callers bound them. */
+	if (match.dilated) return null;
 	if (!match.pillbox_orbit_states && !match.tank_bradian_states &&
 		duration > MAX_SHELL_INTERPOLATION_TICKS) return null;
 	return { end, start, duration, ...match };
@@ -3761,6 +3828,33 @@ function smooth_shell_chains(snapshots) {
 	}
 }
 
+/* Close the seams the pipeline can leave at handoffs. Several passes
+ * store a link's endpoint at the moment they create it -- a stitch's
+ * exact orbit pixel, a visual join's packet coordinate -- and later
+ * passes can refine where the successor actually draws (an orbit
+ * recovery moving a quantised member a few pixels, say), leaving the
+ * link flying to where its successor used to be and the sprite
+ * teleporting for one frame at the handoff. Drawing only: aim every
+ * unsmoothed non-terminal link at its successor's final draw source;
+ * smoothed links already aim at the successor's smoothed position by
+ * construction. Runs after smoothing and before head sliding, which
+ * measures its sprint from the corrected endpoint. */
+function reconcile_link_targets(snapshots) {
+	for (let snapshot of snapshots) {
+		for (let shell of snapshot.shells) {
+			if (!shell.next_shell || shell.next_terminal ||
+				shell.smooth_next_pixel_x !== undefined) continue;
+			let next = shell.next_shell;
+			shell.next_pixel_x = next.smooth_pixel_x ??
+				next.pillbox_orbit_pixel_x ?? next.tank_exact_pixel_x ??
+				next.pixel_x;
+			shell.next_pixel_y = next.smooth_pixel_y ??
+				next.pillbox_orbit_pixel_y ?? next.tank_exact_pixel_y ??
+				next.pixel_y;
+		}
+	}
+}
+
 /* A chain head is a time anchor the smoothing pass never moves, so a head
  * whose record was received late poisons its first link: the sender kept
  * simulating while the record sat in transit, and the next, punctually
@@ -3856,6 +3950,7 @@ function build_shell_positions(records, terminals, pillbox_sources_by_record,
 		resolve_residual_shell_fates(client_snapshots);
 		claim_unseen_pillbox_births(client_snapshots, pill_states);
 		smooth_shell_chains(client_snapshots);
+		reconcile_link_targets(client_snapshots);
 		slide_compressed_chain_heads(client_snapshots);
 	}
 	return snapshots;

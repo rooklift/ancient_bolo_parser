@@ -77,9 +77,10 @@ The last row is no longer `main`'s row, though: `main` has since gained the
 death-dump terrain commits (`72adf37`, `b805f2c`), which touch
 `viewer/game.js` -- a module the report loads -- and were unmeasured until
 the `97fa412` run recorded in the headline table: `main`'s HEAD is now
-measured, and the current measured state of record is the pill-stream
-lockstep branch at `537cb6d` (see its section), which carries both
-shell-side records; `029acac` keeps both terminal-side ones. (Earlier
+measured, and the current measured state of record is the
+dilated-continuations branch at `e2bbbfb` (see its section), which
+carries both shell-side records; `029acac` keeps both terminal-side
+ones. (Earlier
 revisions of this paragraph pinned the file at `926f391`/`4572cff`, then at
 `a74033a`/`380e333`; later sections were measured from live checkouts of the
 named commits, per their sections.)
@@ -119,8 +120,10 @@ Constant at all ten commits, and worth having once:
 | `90925b0` | absorption guards | 0.993725 | 0.002190 | 0.829357 | 233,450 |
 | `97fa412` | main, death dumps in | 0.994274 | 0.002143 | 0.832129 | 234,701 |
 | `029acac` | subsumed joins | 0.994671 | 0.001949 | **0.833354** | **236,059** |
-| `537cb6d` | pill-stream lockstep | **0.994823** | **0.001914** | 0.833265 | 235,967 |
+| `537cb6d` | pill-stream lockstep | 0.994823 | 0.001914 | 0.833265 | 235,967 |
 | `3956580` | late-head slide | 0.994823 | 0.001914 | 0.833265 | 235,967 |
+| `e2bbbfb` | dilated continuations | **0.995341** | **0.001601** | 0.833183 | 235,739 |
+| `c890ecc` | seam closure | 0.995341 | 0.001601 | 0.833183 | 235,739 |
 
 The rows below the guard run were measured later, from the corpus
 holder's live checkouts: `97fa412` closes the unmeasured-`main` gap the
@@ -132,7 +135,12 @@ records on while returning ~174 terminals, so `029acac` keeps both
 terminal-side columns. `3956580` -- the late-head slide branch, see its
 section -- is drawing-only: its matching axis is byte-identical to
 `537cb6d`, so its row repeats that row and no records move; its gains
-live on the drawn audit. The `97fa412`..`537cb6d` runs report
+live on the drawn audit. `e2bbbfb` -- the dilated-continuations branch,
+see its section -- moves both shell-side records on again while
+returning ~160 terminals, so `029acac` still keeps both terminal-side
+columns. `c890ecc` -- the seam closure, see its section -- is
+drawing-only like `3956580`: its row repeats `e2bbbfb`'s and its gain
+is the audit's seam pair going to 0 / 0.00. The `97fa412`..`537cb6d` runs report
 `files_failed 1` where the campaign runs report 0: one extra, unparseable
 file now sits in the corpus tree and contributes nothing, and every
 per-corpus total (shells, terminals by class, tank and LGM points and
@@ -1279,6 +1287,136 @@ Corpus, `537cb6d` -> `3956580`, run by the corpus holder:
   unparseable one at enumeration and the same 443 parsed logs remain
   (every per-corpus total byte-identical to the pinned corpus). The
   hash-relevant pair settles at 443/0 from here on.
+
+## Dilated same-orbit continuations -- `e2bbbfb`
+
+Origin: a replay outside the corpus (97a7dfa2-022603.5), where a
+pillbox's two westward stream-mates drew as three shells -- the
+watcher's report was literally "the viewer shows three shots where the
+raw dots show two". The sender's shell list arrived one hop stale, both
+shells jumped seven orbit steps across a five-update stamp window while
+keeping their exact three-step separation, and the trailer's true hop
+(28.018px against an expected 20) missed the 8px cost gate by 0.018px.
+With the trailer candidate-less, the lockstep pass had one constrained
+member and stood down; the leader took the trailer's statement by a
+3.105 margin -- the identity swap again, this time surviving `537cb6d`'s
+own defence because the defence never saw the candidate it needed. The
+severed halves then drew as the full artifact set: the trailer frozen
+mid-air for ten ticks, and its continuation minted as an unseen shot
+with a 36-tick synthetic birth flight, a phantom third shell predating
+the real shell's own fire time.
+
+The fix admits the missing candidate instead of widening the gate: when
+no on-schedule orbit step explains a same-stream hop, steps inside the
+dilated update window survive as penalized candidates (the
+widen-in-time-only principle `pill_states_reachable` already uses).
+Dilated costs measure the clock's lie, not likelihood, so such a
+candidate never competes on margins -- it reaches selection only as the
+lone remaining story on both of its sides, after the lockstep and
+constraint passes have pruned. Dilated stories neither propagate stream
+provenance nor enter stitching; a synthetic test pins each refusal (an
+earlier attempt at off-clock pairwise continuations was abandoned for
+exactly those two poisons, per the subsumed-joins section). Fixture:
+matched forward 0.995675 -> 0.995932, pop-outs 319 -> 300, four unseen
+birth claims withdrawn, four visual joins upgraded to identity links.
+
+Corpus, `3956580` -> `e2bbbfb`, run by the corpus holder (443/0 both,
+every per-corpus total byte-identical; raw runs kept in
+`docs/corpus_runs/`, as the lockstep section's note asked):
+
+* `shells_matched_forward` ~+5,087 (0.994823 -> 0.995341) and
+  `shells_unlinked` 18,792 -> 15,722 (-16.3%): both shell-side records
+  move, the largest single-commit gain since `a74033a`.
+* `pop_outs` 50,638 -> 45,552 (-10.0%) -- once more the complement of
+  the forward-match gain -- with `pop_ins` 40,927 -> 37,409,
+  `pops_paired_forward` ~5,096 -> 4,666, and `pops_paired_backwards`
+  3,128 -> 2,924: the number three sections told us to watch finally
+  moves down by more than noise (-6.5%).
+* The terminal cost: `terminals_matched` ~-160 (0.833265 -> 0.833183),
+  `tank_hit` 235,967 -> 235,739 (-228) with the other classes net +68.
+  Same two readings as the lockstep row's -174: false credit leaving
+  the ledger as crossed chains uncross, or over-strict refusal
+  stranding ends short of their fates. The ordinal fall-order
+  instrument that section proposed would separate them and is still
+  unbuilt.
+* The drawn-speed cost, the real price: the dilated links draw the
+  clock's lie locally. `rush_links` 3,710 -> 5,536 (+49%), `3.0+`
+  3,767 -> 5,590, `2.5-3.0` 14,671 -> 17,905, `2.2-2.5`
+  97,137 -> 102,911, `hover_links` 3,894 -> 4,158, and
+  `rate_links_steady` 0.964548 -> 0.961900: roughly 16,500 links
+  (~0.2% of 8.1M) leave the steady bucket, about three links redrawn
+  off-schedule per pop pair removed. Whole-chain smoothing's 24px
+  deviation guard stands down across these hops for the same reason it
+  does on mid-chain compression; the late-head slide section already
+  named piecewise re-timing as the dial for that class, and these
+  links are its newest members.
+* `seam_jumps` 53 -> 81 with `seam_jump_max` 2.83 -> 4.24 -- the one
+  metric moving the wrong way on a shrinking base. Not reproduced by
+  the fixture or the origin replay (both unchanged); wanted a
+  `find-hover-links`-style look with `find-seam-jumps.cjs` before the
+  next engine commit. Since taken: root-caused as a latent
+  stale-endpoint class this commit merely re-rolled, and closed at
+  `c890ecc` -- see the seam closure section.
+* Recorded for the next run, no recent baseline to compare:
+  `shells_unseen_pillbox_birth` 12,890, `shells_stream_birth` 1,039,
+  `shells_visual_joins` 3,235, `terminals_unseen_pillbox_source`
+  167,939, `terminals_unseen_tank_source` 78,903,
+  `terminal_links_rushed` 72,139 (71,552 at `3956580`, +587).
+
+The trade in one line: about five thousand vanish-and-reappear
+artifacts -- the class the eye actually catches, backwards pops
+included -- bought with a smaller, subtler class of locally mis-paced
+links plus 28 seam pixels' worth of handoff error, and 160 terminals
+of ledger. The drawn-speed residue is real headroom for a
+smoothing-side pass, not a reason to hold the matcher's gains.
+
+## Seam closure -- `c890ecc`
+
+The seam creep got its look. `find-seam-jumps.cjs` over the corpus put
+the new worst case (4.24px) in 110702.1: a dense pill volley leaves an
+orphan restatement whose only claim is a draw-only visual join, and
+`apply_visual_join` stores the successor's quantised packet coordinate
+as the link endpoint while the successor draws at its orbit-recovered
+exact pixel, (3, 3) away. The class is latent, not new: every pass
+that stores a link endpoint at creation time (a stitch's exact pixel
+included) goes stale when a later pass refines where the successor
+draws, which is the whole pre-existing 53; the dilated-continuations
+commit merely re-rolled which pairs get visual-joined, and one landed
+on an uncertainty-3 chained member instead of an exact head. At the
+baseline the same replay's join happened to pick a packet==orbit
+orphan -- zero seams there was luck, not correctness.
+
+The fix closes the class rather than the instance: a drawing-only
+reconciliation pass after smoothing aims every unsmoothed non-terminal
+link at its successor's final draw source (smoothed links already aim
+at the successor's smoothed position by construction), running before
+head sliding so the slide measures its sprint from the corrected
+endpoint. The reduced synthetic -- a visual join onto a chained member
+quantised a pixel short -- fails on the previous engine with exactly
+the packet-pixel endpoint.
+
+Fixture and the dilated-continuations origin replay: byte-identical,
+hashes included (both had no seams to close). The incident replay's
+audit moves only its seam lines, 1 -> 0. Corpus prediction for the
+next run: the matching axis byte-identical, `seam_jumps` 81 -> 0 and
+`seam_jump_max` to 0.00 -- the pre-existing 53 close along with the 28
+-- with at most a few links changing speed bucket where an endpoint
+moved by a pixel or two.
+
+Corpus verification, run by the corpus holder at `a4b0090`
+(engine-identical to `c890ecc`; the two commits between are docs):
+exactly as predicted, on every axis. `find-seam-jumps.cjs` reports
+`seam_jumps 0` across all 443 files; the audit's `seam_jumps` 81 -> 0
+with `seam_jump_max` 0.00; the rates report is byte-identical to the
+`e2bbbfb` run apart from its commit stamp, `content_hash` included.
+The speed histogram wobble is two links total -- one 0.5-1.0 -> 0.0-0.5
+and one 3.0+ -> 2.5-3.0 (`rush_links` -1 with it) -- and every other
+audit line is unchanged. The class is closed, the pre-existing 53
+included: handoff continuity is now guaranteed by construction rather
+than by every endpoint-writing pass staying in sync, and the audit's
+seam metric finally sits at the zero its header always said it should.
+Raw audit kept as `docs/corpus_runs/c890ecc-audit.txt`; the report
+would duplicate the `e2bbbfb` one byte for byte, so it is not.
 
 ## Findings
 
