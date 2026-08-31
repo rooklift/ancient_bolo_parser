@@ -2,7 +2,7 @@
 format	1
 commit	d9454ce
 mode	recursive
-input	../../__DOCS/Bolo Archives/Nemokrad's Bolo logs
+input	sha256:9e4933bba5250c6852e6dd1265ed0c35cd98195d6ebfd5623e6b6b91c978fd3b
 max_position_interpolation_ticks	25
 max_shell_interpolation_ticks	50
 max_direction_interpolation_ticks	50

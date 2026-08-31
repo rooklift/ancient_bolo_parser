@@ -1,6 +1,6 @@
 # GENERATED - drawn shell motion audit; nothing written to disk.
 commit	2c5d59c
-input	../../__DOCS/Bolo Archives/Nemokrad's Bolo logs
+input	sha256:9e4933bba5250c6852e6dd1265ed0c35cd98195d6ebfd5623e6b6b91c978fd3b
 files	443
 files_failed	0
 build_ms	365259
