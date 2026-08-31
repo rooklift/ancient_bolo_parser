@@ -1349,9 +1349,11 @@ every per-corpus total byte-identical; raw runs kept in
   links are its newest members.
 * `seam_jumps` 53 -> 81 with `seam_jump_max` 2.83 -> 4.24 -- the one
   metric moving the wrong way on a shrinking base. Not reproduced by
-  the fixture or the origin replay (both unchanged); wants a
+  the fixture or the origin replay (both unchanged); wanted a
   `find-hover-links`-style look with `find-seam-jumps.cjs` before the
-  next engine commit.
+  next engine commit. Since taken: root-caused as a latent
+  stale-endpoint class this commit merely re-rolled, and closed at
+  `c890ecc` -- see the seam closure section.
 * Recorded for the next run, no recent baseline to compare:
   `shells_unseen_pillbox_birth` 12,890, `shells_stream_birth` 1,039,
   `shells_visual_joins` 3,235, `terminals_unseen_pillbox_source`
@@ -1364,6 +1366,39 @@ included -- bought with a smaller, subtler class of locally mis-paced
 links plus 28 seam pixels' worth of handoff error, and 160 terminals
 of ledger. The drawn-speed residue is real headroom for a
 smoothing-side pass, not a reason to hold the matcher's gains.
+
+## Seam closure -- `c890ecc`
+
+The seam creep got its look. `find-seam-jumps.cjs` over the corpus put
+the new worst case (4.24px) in 110702.1: a dense pill volley leaves an
+orphan restatement whose only claim is a draw-only visual join, and
+`apply_visual_join` stores the successor's quantised packet coordinate
+as the link endpoint while the successor draws at its orbit-recovered
+exact pixel, (3, 3) away. The class is latent, not new: every pass
+that stores a link endpoint at creation time (a stitch's exact pixel
+included) goes stale when a later pass refines where the successor
+draws, which is the whole pre-existing 53; the dilated-continuations
+commit merely re-rolled which pairs get visual-joined, and one landed
+on an uncertainty-3 chained member instead of an exact head. At the
+baseline the same replay's join happened to pick a packet==orbit
+orphan -- zero seams there was luck, not correctness.
+
+The fix closes the class rather than the instance: a drawing-only
+reconciliation pass after smoothing aims every unsmoothed non-terminal
+link at its successor's final draw source (smoothed links already aim
+at the successor's smoothed position by construction), running before
+head sliding so the slide measures its sprint from the corrected
+endpoint. The reduced synthetic -- a visual join onto a chained member
+quantised a pixel short -- fails on the previous engine with exactly
+the packet-pixel endpoint.
+
+Fixture and the dilated-continuations origin replay: byte-identical,
+hashes included (both had no seams to close). The incident replay's
+audit moves only its seam lines, 1 -> 0. Corpus prediction for the
+next run: the matching axis byte-identical, `seam_jumps` 81 -> 0 and
+`seam_jump_max` to 0.00 -- the pre-existing 53 close along with the 28
+-- with at most a few links changing speed bucket where an endpoint
+moved by a pixel or two.
 
 ## Findings
 
