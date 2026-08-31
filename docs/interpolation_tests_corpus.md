@@ -137,9 +137,10 @@ live on the drawn audit. The `97fa412`..`537cb6d` runs report
 file now sits in the corpus tree and contributes nothing, and every
 per-corpus total (shells, terminals by class, tank and LGM points and
 ticks) is byte-identical to the pinned 443-log corpus, so the rows are
-comparable. The `3956580` run reports `files 443, files_failed 0` --
-one more attempted file than the `.py` skip-list entry (`e5ec295`)
-predicts, still contributing nothing to any total; see its section.
+comparable. The `3956580` run reports `files 443, files_failed 0`:
+`files` counts successful parses only, so the earlier rows' 443/1 was
+444 enumerated files, and the `.py` skip-list entry (`e5ec295`) simply
+retires the failure at enumeration, leaving the same 443 parsed logs.
 
 Before those rows, `ad2168d` held all four headline records (the terminal one with a caveat --
 the unmeasured intermediate state `f340943` sat higher, see its section).
@@ -1272,12 +1273,12 @@ Corpus, `537cb6d` -> `3956580`, run by the corpus holder:
   threshold. Mid-chain wants piecewise re-timing rather than the
   single-line whole-chain model; the rushed-terminal class, nineteen
   times larger, is the axis's real headroom.
-* Bookkeeping: `files 443, files_failed 0`. The `.py` skip-list entry
-  (`e5ec295`) predicts 442/0 -- the walker excludes at enumeration --
-  so one more file than expected is attempted, parses, and
-  contributes nothing to any total (every per-corpus total is
-  byte-identical to the pinned corpus). Unresolved; worth one look at
-  the corpus tree.
+* Bookkeeping: `files 443, files_failed 0`. Both tools count `files`
+  on successful parse only, so the earlier rows' 443/1 was 444
+  enumerated files; the `.py` skip-list entry (`e5ec295`) retires the
+  unparseable one at enumeration and the same 443 parsed logs remain
+  (every per-corpus total byte-identical to the pinned corpus). The
+  hash-relevant pair settles at 443/0 from here on.
 
 ## Findings
 
