@@ -998,6 +998,44 @@ if (!fs.existsSync(log1)) {
 		[true, [2202.1715, 2215.6555], 2,
 			[2202.1715, 2215.6555]]);
 
+	/* From 110702.1's volley yet again: mid-chain compression, where a
+	 * stale interior restatement sits ON the chain's own ray but well
+	 * behind the uniform-time schedule. The radial deviation guard used to
+	 * conflate that along-track stamp lie with cross-track deviation and
+	 * refuse the whole chain, drawing the lie raw as a crawl into the
+	 * stale point and a sprint out of it. Cross-track is the identity
+	 * doubt; along-track is only the clock -- an on-ray point between the
+	 * anchors is the shell at SOME time -- so the split guard re-times the
+	 * chain to constant velocity. Here the interior is 28px behind
+	 * schedule and 0.3px off the ray. */
+	let stale_interior_chain = BoloGame.build([
+		record(60, [{ type: "pillbox_list", items: [{
+			x: 140, y: 133, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(80, [idle_tank]),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 9 },
+			shell_list(9, [[2229, 2153]]),
+		]),
+		record(120, [shell_list(9, [[2224, 2164]])]),
+		record(140, [shell_list(9, [[2197, 2227]])]),
+	]);
+	let compressed_head = stale_interior_chain.shell_positions[0][1].shells[0];
+	let compressed_mid = stale_interior_chain.shell_positions[0][2].shells[0];
+	let compressed_speed = (from_x, from_y, to_x, to_y) =>
+		rounded(Math.hypot(to_x - from_x, to_y - from_y) / 20);
+	check("an on-ray interior lying about its stamp re-times to constant " +
+		"velocity instead of vetoing the chain",
+		[[compressed_mid.smooth_pixel_x, compressed_mid.smooth_pixel_y],
+			compressed_speed(compressed_head.pixel_x, compressed_head.pixel_y,
+				compressed_head.smooth_next_pixel_x,
+				compressed_head.smooth_next_pixel_y),
+			compressed_speed(compressed_mid.smooth_pixel_x,
+				compressed_mid.smooth_pixel_y,
+				compressed_mid.smooth_next_pixel_x,
+				compressed_mid.smooth_next_pixel_y)],
+		[[2213, 2190], 2.0156, 2.0156]);
+
 	/* The orbit evidence also cuts the other way. This observation sits
 	 * on the stitch's segment and near its uniform-time schedule -- the
 	 * geometric gate alone would absorb it -- but its relative position

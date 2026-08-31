@@ -100,6 +100,18 @@ const MAX_SHELL_BIRTH_SPAN_TICKS = (SHELL_RANGE_PIXELS +
  * few updates in either direction, so an on-track restatement can sit
  * this far from where a uniform-time reading of the chain puts it. */
 const MAX_SMOOTHING_DEVIATION_PIXELS = 24;
+/* The deviation splits into two very different claims. CROSS-track (off
+ * the chain's own ray) means the observation may not be the story the
+ * chain tells -- the reason to refuse re-timing -- and keeps the bound
+ * above. ALONG-track is only the stamp lying about when the shell was
+ * seen at a point it provably occupied: shells fly straight, so an
+ * on-ray point between the anchors is the shell at SOME time. Measured
+ * over the corpus's laggiest replays, every chain the radial bound
+ * refused sat within one pixel of its ray while lying up to 35.5px
+ * along it -- a bad record backlog, not a doubtful identity -- and
+ * refusing drew the lie raw as a crawl-and-sprint pair. Twice the
+ * radial bound covers the worst observed lie with margin. */
+const MAX_SMOOTHING_ALONG_TRACK_PIXELS = 48;
 /* A chain head's first link may legitimately run a little long: the head
  * is a one-sided quantised reconstruction (up to ~7px behind the true
  * spot) and the stamps wander a tick or two. Only an excess beyond this
@@ -3839,6 +3851,9 @@ function smooth_shell_chains(snapshots) {
 				last.tank_exact_pixel_y ?? last.pixel_y;
 			let total = entries[entries.length - 1].time - entries[0].time;
 			if (total <= 0) continue;
+			let chord = Math.hypot(final_x - anchor_x, final_y - anchor_y);
+			let unit_x = chord > 0 ? (final_x - anchor_x) / chord : 0;
+			let unit_y = chord > 0 ? (final_y - anchor_y) / chord : 0;
 
 			let smoothed = [];
 			let plausible = true;
@@ -3851,8 +3866,16 @@ function smooth_shell_chains(snapshots) {
 					observed.tank_exact_pixel_x ?? observed.pixel_x;
 				let observed_y = observed.pillbox_orbit_pixel_y ??
 					observed.tank_exact_pixel_y ?? observed.pixel_y;
-				if (Math.hypot(smooth_x - observed_x, smooth_y - observed_y) >
-					MAX_SMOOTHING_DEVIATION_PIXELS) {
+				let delta_x = observed_x - smooth_x;
+				let delta_y = observed_y - smooth_y;
+				let along = chord > 0
+					? Math.abs(delta_x * unit_x + delta_y * unit_y)
+					: Math.hypot(delta_x, delta_y);
+				let cross = chord > 0
+					? Math.abs(delta_x * unit_y - delta_y * unit_x)
+					: 0;
+				if (cross > MAX_SMOOTHING_DEVIATION_PIXELS ||
+					along > MAX_SMOOTHING_ALONG_TRACK_PIXELS) {
 					plausible = false;
 					break;
 				}
