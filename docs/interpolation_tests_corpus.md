@@ -124,6 +124,8 @@ Constant at all ten commits, and worth having once:
 | `3956580` | late-head slide | 0.994823 | 0.001914 | 0.833265 | 235,967 |
 | `e2bbbfb` | dilated continuations | **0.995341** | **0.001601** | 0.833183 | 235,739 |
 | `c890ecc` | seam closure | 0.995341 | 0.001601 | 0.833183 | 235,739 |
+| `baee09c` | tail slide | 0.995341 | 0.001601 | 0.833183 | 235,739 |
+| `716a349` | guard split | 0.995341 | 0.001601 | 0.833183 | 235,739 |
 
 The rows below the guard run were measured later, from the corpus
 holder's live checkouts: `97fa412` closes the unmeasured-`main` gap the
@@ -140,7 +142,11 @@ see its section -- moves both shell-side records on again while
 returning ~160 terminals, so `029acac` still keeps both terminal-side
 columns. `c890ecc` -- the seam closure, see its section -- is
 drawing-only like `3956580`: its row repeats `e2bbbfb`'s and its gain
-is the audit's seam pair going to 0 / 0.00. The `97fa412`..`537cb6d` runs report
+is the audit's seam pair going to 0 / 0.00. `baee09c` -- the tail
+slide, see its section -- is drawing-only too; its gain is the
+rushed-terminal class. `716a349` -- the smoothing guard split, see its
+section -- likewise; its gain is the refused-chain crawl-and-sprint
+class. The `97fa412`..`537cb6d` runs report
 `files_failed 1` where the campaign runs report 0: one extra, unparseable
 file now sits in the corpus tree and contributes nothing, and every
 per-corpus total (shells, terminals by class, tank and LGM points and
@@ -1417,6 +1423,157 @@ than by every endpoint-writing pass staying in sync, and the audit's
 seam metric finally sits at the zero its header always said it should.
 Raw audit kept as `docs/corpus_runs/c890ecc-audit.txt`; the report
 would duplicate the `e2bbbfb` one byte for byte, so it is not.
+
+## Tail slide -- `baee09c`
+
+Origin: 110702.1 once more, the same volley's final shot, spotted by
+the corpus holder in playback: a 5.97 px/tick sprint into the pillbox
+it kills. Its last restatement arrived stale -- three orbit steps
+across a 22-tick gap, the chain behind it smoothed down to 1.3 px/tick
+by the same anchor -- and the honest impact record landed six ticks
+later, capping the drawn arrival, so the terminal link carried
+eighteen ticks of real flight in six. Crawl plus sprint total 2
+px/tick: the whole lie is the stale anchor. This is the chain TAIL as
+the smoothing pass's other fixed time anchor, the late-head disease
+mirrored, feeding `terminal_links_rushed` -- the class the late-head
+section called the axis's real headroom.
+
+The fix mirrors the head slide (`slide_compressed_chain_tails`): a
+terminal link's drawn length is the sender's clock, so when it exceeds
+the stamp window by more than the 8px quantisation bound, the end's
+drawn position slides forward along the link to the stamped time's
+honest place on the ray, leaving exactly the window's worth of flight.
+It runs before smoothing, whose final anchor now prefers the slid
+position, so the chain re-times onto the honest anchor: the incident
+chain draws at a uniform 1.84 px/tick with its impact at exactly 2.
+Shell falls never qualify -- their drawn end is the uncapped physics
+arrival, excess zero by construction. Drawing only; ordered
+tail-slide, smooth, reconcile, head-slide.
+
+Fixture: `terminal_links_rushed` 494 -> 461, a hover gone, ~35 links
+shifting steady -> 2.2-3.0 (a re-anchored chain runs slightly fast
+end to end instead of ending in a sprint); the incident replay
+329 -> 281 with its slow buckets shrinking; `3.0+`, the pop metrics
+and the seam pair untouched everywhere; the rates report
+byte-identical. The synthetic test -- a stale tail, then an explosion
+four ticks later -- fails on the previous engine at 12 px/tick with no
+slide.
+
+Corpus prediction for the next run: matching axis byte-identical;
+`terminal_links_rushed` (72,139) down by several thousand, seven to
+fifteen percent if the three local logs generalise; the slow buckets
+and `hover_links` down; a modest steady -> 2.2-3.0 shift as the cost;
+`seam_jumps` still 0; pops and `3.0+` untouched. The remaining fast
+class after this is the mid-chain compression the late-head section
+named -- 110702.1's three 5.6 px/tick dilated links at records
+44605-44612, where whole-chain smoothing's deviation guard stands down
+-- which is the piecewise re-timing dial, deliberately sequenced after
+this commit so both chain anchors are honest inputs to it.
+
+Corpus verification, run by the corpus holder at `06b8f56`
+(engine-identical to `baee09c`; raw audit kept as
+`docs/corpus_runs/baee09c-audit.txt`, the report a byte-duplicate of
+the standing one, hash included -- matching axis byte-identical as
+predicted):
+
+* `terminal_links_rushed` 72,139 -> 68,478 (-3,661, -5.1%) -- "several
+  thousand" holds; the three local logs' 7-15% did not quite
+  generalise, the corpus's stale-tail population being a little
+  shallower than the incident replay suggested.
+* Every slow bucket down -- `0.0-0.5` -25, `0.5-1.0` -138, `1.0-1.5`
+  -738, `1.5-1.8` -2,361 (-3,262 in all) -- and `hover_links`
+  4,158 -> 3,995: the crawls into stale anchors straighten alongside
+  their sprints, as the cancellation argument says they must.
+* The predicted cost: `2.2-2.5` +6,044 and `2.5-3.0` +1,224, steady
+  rate 0.961900 -> 0.961384.
+* The one miss: `3.0+` 5,785 (+196) and `rush_links` 5,731 (+196),
+  predicted untouched -- re-anchored chains whose stamp window is
+  compressed enough that uniform re-timing onto the honest tail lands
+  past 3 px/tick. A real cost line, 0.002% of links, and the same
+  population the piecewise dial exists for; the number to watch on the
+  next engine commit.
+* `seam_jumps` 0, `seam_jump_max` 0.00, and every pop metric
+  byte-identical, as predicted.
+
+Net on the drawn axis: 3,661 sprint-into-the-wall terminals and 3,262
+crawling links traded for 7,268 links running mildly fast end to end
+and 196 crossing 3 px/tick. On the file's own perceptual reading --
+sprints and crawls are what the eye catches, a uniform 2.3 is not --
+that is the intended trade at close to the intended price.
+
+## The smoothing guard split -- `716a349`
+
+The piecewise re-timing dial, delivered by a smaller cut than the name
+suggested. The residue it targeted -- 110702.1's three remaining 5.6
+px/tick links, mid-chain compression where whole-chain smoothing
+stands down -- turned out to be a guard problem, not a model problem.
+The 24px deviation bound conflated two claims: CROSS-track deviation
+(off the chain's own ray -- the observation may not be this chain's
+story, the real reason to refuse) and ALONG-track deviation (the
+sender's stamp lying about when the shell was seen at a point it
+provably occupied; shells fly straight, so an on-ray point between the
+anchors is the shell at SOME time). Measured over this file's laggiest
+replays, every chain the radial bound refused sat within ONE PIXEL of
+its ray while lying up to 35.5px along it -- record backlog, not
+doubtful identity -- and refusing drew each lie raw as a crawl into
+the stale restatement and a sprint out of it. And because shells fly
+straight, the chord is the flight path: constant-velocity re-timing
+onto it is exactly the piecewise dial, with no new model needed.
+
+The guard now tests the components separately: cross-track keeps 24px,
+along-track allows 48 (twice the radial bound, covering the worst
+observed lie with margin). Strictly wider -- every chain smoothed
+before still is, so nothing regresses by construction.
+
+Fixture: byte-identical, hash included (it has no refused chains at
+all -- the class lives in laggy logs). The incident replay collapses
+its class: `hover_links` 34 -> 18, `rush_links` 29 -> 8, `3.0+`
+29 -> 8, `0.0-0.5` to zero, +84 links steady; the ankle replay's one
+refused chain smooths (a hover gone). Rates reports byte-identical
+everywhere; seams 0. The synthetic test pins an interior 28px behind
+schedule and 0.3px off the ray re-timing to a constant 2.02 px/tick,
+and fails on the previous engine unsmoothed.
+
+Corpus prediction for the next run: matching axis byte-identical;
+`hover_links` (3,995) and `rush_links` (5,731) both down along with
+`3.0+` (5,785) and the slow buckets, steady up. Magnitude is poorly
+bracketed by the local logs -- the refused-chain population is
+strongly lag-dependent (22 chains in 110702.1, one in the ankle
+replay, zero in the fixture) -- so direction is the claim, not size.
+The tail slide's +196 pace-compressed chains are NOT this population
+(they smooth already, too fast overall) and should not move; they
+remain the number to watch.
+
+Corpus verification, run by the corpus holder at `61e39e1`
+(engine-identical to `716a349`; raw audit kept as
+`docs/corpus_runs/716a349-audit.txt`, the report once again a
+byte-duplicate of the standing one, hash included):
+
+* The extremes collapse as predicted: `hover_links` 3,995 -> 3,446
+  (-13.7%), `rush_links` 5,731 -> 4,511 (-21.3%), `3.0+`
+  5,785 -> 4,556, and `0.0-0.5` **halves**, 1,083 -> 554. The
+  refused-chain population was clearly worth admitting at corpus
+  scale.
+* The redistribution's shape is instructive: `1.0-1.5` gains 1,895.
+  A refused chain used to spend its lie as a crawl plus a sprint; once
+  admitted, a chain whose overall stamp span genuinely exceeds its
+  flight re-times to a uniform 1.0-1.5 px/tick instead. Uniform-slow
+  replaces jerky -- the trade the pass exists to make -- and the
+  remaining pace error is the stamp-span compression class, position
+  fixes cannot reach it.
+* `terminal_links_rushed` 68,478 byte-identical, `seam_jumps` 0,
+  steady rate flat (+0.000012), and one pop pair reclassifies
+  forward -> backwards (4,666/2,924 -> 4,665/2,925) as a smoothed
+  endpoint moved past its partner -- the only movement outside the
+  speed histogram.
+
+With this row the branch's whole drawn-axis ledger, `3956580` ->
+`716a349`, reads: pop-outs 50,638 -> 45,552, seams 53 -> 0, rushed
+terminals 71,552 -> 68,478, hovers 3,894 -> 3,446, against a steady
+rate easing 0.964548 -> 0.961396 and rushes 3,710 -> 4,511 -- the one
+drawn metric still above its branch-point value, the dilated links
+drawing the clock's lie, now that the lies once hidden in freezes,
+pops and phantom births are drawn as moving links at all.
 
 ## Findings
 

@@ -100,6 +100,18 @@ const MAX_SHELL_BIRTH_SPAN_TICKS = (SHELL_RANGE_PIXELS +
  * few updates in either direction, so an on-track restatement can sit
  * this far from where a uniform-time reading of the chain puts it. */
 const MAX_SMOOTHING_DEVIATION_PIXELS = 24;
+/* The deviation splits into two very different claims. CROSS-track (off
+ * the chain's own ray) means the observation may not be the story the
+ * chain tells -- the reason to refuse re-timing -- and keeps the bound
+ * above. ALONG-track is only the stamp lying about when the shell was
+ * seen at a point it provably occupied: shells fly straight, so an
+ * on-ray point between the anchors is the shell at SOME time. Measured
+ * over the corpus's laggiest replays, every chain the radial bound
+ * refused sat within one pixel of its ray while lying up to 35.5px
+ * along it -- a bad record backlog, not a doubtful identity -- and
+ * refusing drew the lie raw as a crawl-and-sprint pair. Twice the
+ * radial bound covers the worst observed lie with margin. */
+const MAX_SMOOTHING_ALONG_TRACK_PIXELS = 48;
 /* A chain head's first link may legitimately run a little long: the head
  * is a one-sided quantised reconstruction (up to ~7px behind the true
  * spot) and the stamps wander a tick or two. Only an excess beyond this
@@ -3763,6 +3775,46 @@ function describe_unfated_ends(snapshots) {
 	return described;
 }
 
+/* The chain tail is the smoothing pass's other fixed time anchor, with
+ * the head's disease mirrored: an end whose last restatement was
+ * received stale sits well behind the shell's true position, and when
+ * an honest impact record then arrives, the terminal link must cover
+ * the missing flight inside the stamp window -- the audit's
+ * rushed-terminal class, its largest fast-drawing class by far (a 3x
+ * sprint into a pillbox in 110702.1), with the chain behind it dragged
+ * slow by the same stale anchor. The terminal link's drawn length is
+ * itself the sender's clock, so when it exceeds the stamp window by
+ * more than the one-sided quantisation bound explains, slide the end's
+ * drawn position forward along the link to where the shell truly was
+ * at its stamped time, leaving exactly the window's worth of flight to
+ * the impact. Runs before smoothing, whose final anchor prefers the
+ * slid position, so the chain re-times onto the honest anchor and the
+ * crawl and the sprint cancel together. Shell falls never qualify:
+ * their drawn end is the uncapped physics arrival, already at true
+ * speed, so their excess is zero by construction. Drawing only:
+ * packet-exact state, matching and the impact's own timing are
+ * untouched. */
+function slide_compressed_chain_tails(snapshots) {
+	for (let snapshot of snapshots) {
+		for (let shell of snapshot.shells) {
+			if (!shell.next_terminal || shell.next_time === undefined) continue;
+			let window = shell.next_time - snapshot.time;
+			if (!(window >= 0)) continue;
+			let from_x = shell.pillbox_orbit_pixel_x ??
+				shell.tank_exact_pixel_x ?? shell.pixel_x;
+			let from_y = shell.pillbox_orbit_pixel_y ??
+				shell.tank_exact_pixel_y ?? shell.pixel_y;
+			let distance = Math.hypot(shell.next_pixel_x - from_x,
+				shell.next_pixel_y - from_y);
+			let excess = distance - window * SHELL_SPEED_PIXELS_PER_TICK;
+			if (excess <= CHAIN_HEAD_SLIDE_THRESHOLD_PIXELS) continue;
+			let amount = Math.min(excess / distance, 1);
+			shell.smooth_pixel_x = from_x + (shell.next_pixel_x - from_x) * amount;
+			shell.smooth_pixel_y = from_y + (shell.next_pixel_y - from_y) * amount;
+		}
+	}
+}
+
 /* Shells fly at exactly one speed, so any unevenness along a chain is
  * timestamp jitter or pixel quantisation, not motion. For drawing only,
  * re-time each chain of three or more restatements to constant velocity
@@ -3771,7 +3823,10 @@ function describe_unfated_ends(snapshots) {
  * successor's smoothed position. Packet-exact state, matcher artifacts
  * and terminal endpoints are untouched; a chain whose interior strays
  * further from the uniform reading than record lag explains is left
- * as observed. */
+ * as observed. The final anchor prefers a slid tail's drawn position:
+ * the slide has already established the stamped time's honest place on
+ * the ray, and re-timing onto the stale packet coordinate would undo
+ * it. */
 function smooth_shell_chains(snapshots) {
 	for (let snapshot of snapshots) {
 		for (let shell of snapshot.shells) {
@@ -3790,12 +3845,15 @@ function smooth_shell_chains(snapshots) {
 				first.tank_exact_pixel_x ?? first.pixel_x;
 			let anchor_y = first.pillbox_orbit_pixel_y ??
 				first.tank_exact_pixel_y ?? first.pixel_y;
-			let final_x = last.pillbox_orbit_pixel_x ??
+			let final_x = last.smooth_pixel_x ?? last.pillbox_orbit_pixel_x ??
 				last.tank_exact_pixel_x ?? last.pixel_x;
-			let final_y = last.pillbox_orbit_pixel_y ??
+			let final_y = last.smooth_pixel_y ?? last.pillbox_orbit_pixel_y ??
 				last.tank_exact_pixel_y ?? last.pixel_y;
 			let total = entries[entries.length - 1].time - entries[0].time;
 			if (total <= 0) continue;
+			let chord = Math.hypot(final_x - anchor_x, final_y - anchor_y);
+			let unit_x = chord > 0 ? (final_x - anchor_x) / chord : 0;
+			let unit_y = chord > 0 ? (final_y - anchor_y) / chord : 0;
 
 			let smoothed = [];
 			let plausible = true;
@@ -3808,8 +3866,16 @@ function smooth_shell_chains(snapshots) {
 					observed.tank_exact_pixel_x ?? observed.pixel_x;
 				let observed_y = observed.pillbox_orbit_pixel_y ??
 					observed.tank_exact_pixel_y ?? observed.pixel_y;
-				if (Math.hypot(smooth_x - observed_x, smooth_y - observed_y) >
-					MAX_SMOOTHING_DEVIATION_PIXELS) {
+				let delta_x = observed_x - smooth_x;
+				let delta_y = observed_y - smooth_y;
+				let along = chord > 0
+					? Math.abs(delta_x * unit_x + delta_y * unit_y)
+					: Math.hypot(delta_x, delta_y);
+				let cross = chord > 0
+					? Math.abs(delta_x * unit_y - delta_y * unit_x)
+					: 0;
+				if (cross > MAX_SMOOTHING_DEVIATION_PIXELS ||
+					along > MAX_SMOOTHING_ALONG_TRACK_PIXELS) {
 					plausible = false;
 					break;
 				}
@@ -3949,6 +4015,7 @@ function build_shell_positions(records, terminals, pillbox_sources_by_record,
 		stitch_shell_chains(client_snapshots);
 		resolve_residual_shell_fates(client_snapshots);
 		claim_unseen_pillbox_births(client_snapshots, pill_states);
+		slide_compressed_chain_tails(client_snapshots);
 		smooth_shell_chains(client_snapshots);
 		reconcile_link_targets(client_snapshots);
 		slide_compressed_chain_heads(client_snapshots);
