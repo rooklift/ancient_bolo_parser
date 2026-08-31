@@ -108,7 +108,7 @@ if (!fs.existsSync(log1)) {
 	}
 	check("fixture orbit-membership and stream-provenance birth claims",
 		[orbit_births.unseen, orbit_births.stream, orbit_births.sound],
-		[23, 4, true]);
+		[22, 6, true]);
 
 	/* Terminal-failure diagnostics: read-only classification of every
 	 * terminal that ends the pipeline with no matched shell and no
@@ -188,7 +188,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture end-side census reconciles", [
 			ends_described, ends_described === unfated, end_reasons_sound,
 			fate_open,
-		], [300, true, true, 21]);
+		], [299, true, true, 21]);
 	}
 
 	let pill_burst = { total: 0, matched: 0 };
@@ -1035,6 +1035,47 @@ if (!fs.existsSync(log1)) {
 				compressed_mid.smooth_next_pixel_x,
 				compressed_mid.smooth_next_pixel_y)],
 		[[2213, 2190], 2.0156, 2.0156]);
+
+	/* The pill-wide lockstep, resting on the corpus result that every
+	 * shell list of one record is a single sampling instant
+	 * ([E:shell-list-skew]): one common step advance explains a pill's
+	 * entire roster per sender transition, whatever each shell's bradian.
+	 * Here a compressed record pair carries seven updates in ten stamped
+	 * ticks. The bradian-195 leader sees a cheap four-step hop onto an
+	 * imposter statement and its true seven-step hop only as a penalized
+	 * dilated candidate -- alone on its bradian, the old per-bradian
+	 * grouping left it free to take the imposter by a clear margin. The
+	 * pill's bradian-205 mate, whose own +7 is unambiguous, now pins the
+	 * whole volley's advance and vetoes the swap. */
+	let volley_mate = BoloGame.build([
+		record(60, [{ type: "pillbox_list", items: [{
+			x: 126, y: 115, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(80, [idle_tank]),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 12 },
+			{ type: "pillbox_fires", pillbox: 0, direction: 13 },
+			shell_list(12, [[1996, 1838]]),
+			shell_list(13, [[1997, 1833]]),
+		]),
+		record(110, [
+			shell_list(12, [[1976, 1837]]),
+			shell_list(13, [[1978, 1827]]),
+		]),
+		record(120, [
+			shell_list(12, [[1960, 1836], [1949, 1835]]),
+			shell_list(13, [[1952, 1818]]),
+		]),
+	]);
+	let volley_leader = volley_mate.shell_positions[0][2].shells[0];
+	let volley_imposter = volley_mate.shell_positions[0][3].shells[0];
+	let volley_true = volley_mate.shell_positions[0][3].shells[1];
+	check("a stream-mate on another bradian pins the pill-wide advance " +
+		"and vetoes the leader's swap onto an imposter",
+		[[volley_leader.next_pixel_x, volley_leader.next_pixel_y],
+			!!volley_imposter.matched_from_previous,
+			!!volley_true.matched_from_previous],
+		[[1949, 1835], false, true]);
 
 	/* The orbit evidence also cuts the other way. This observation sits
 	 * on the stitch's segment and near its uniform-time schedule -- the

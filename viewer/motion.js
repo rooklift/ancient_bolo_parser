@@ -1569,20 +1569,29 @@ function constrain_pillbox_candidates_to_targets(by_previous, by_next) {
 	return true;
 }
 
-/* Two live shells from one pillbox on one fine direction advance in
- * lockstep -- the sender moves every shell one orbit step in the same
- * update pass -- so the step gap between them never changes while both
- * are restated, the earlier shot stays ahead until it falls, and (with
- * the fixed 32-step lifetime) birth order is fall order. Distance cost
- * alone cannot see this: a receiver interval compressed by record-time
- * jitter makes the leader's short hop into the trailer's true position
- * look cheaper than its own true continuation, and the two identities
- * swap -- drawn as the later shot overtaking the earlier one mid-air and
- * falling first. Enforce the lockstep instead: when the shells of one
- * stream, each narrowed to the same single bradian, have candidate
- * successors in this snapshot, one common step advance must explain a
- * candidate of every such shell; candidates no common advance supports
- * are pruned. When no common advance exists (a fall mid-interval, a
+/* ALL the live shells of one pillbox advance in lockstep -- the sender
+ * moves every shell one orbit step in the same update pass, and the
+ * corpus establishes that every shell list of one record is a single
+ * sampling instant ([E:shell-list-skew]) -- so between two statements
+ * of one sender, one common step advance explains the pill's entire
+ * roster, whatever each shell's bradian or list. Step gaps between
+ * stream-mates therefore never change while both are restated, the
+ * earlier shot stays ahead until it falls, and (with the fixed 32-step
+ * lifetime) birth order is fall order. Distance cost alone cannot see
+ * this: a receiver interval compressed by record-time jitter makes the
+ * leader's short hop into the trailer's true position look cheaper than
+ * its own true continuation, and the two identities swap -- drawn as
+ * the later shot overtaking the earlier one mid-air and falling first.
+ * Enforce the lockstep instead: when the shells of one pill whose
+ * current step is well-defined -- one bradian (its steps may still
+ * span a quantisation bound), or several bradians agreeing on one
+ * step, as near-muzzle states do -- have candidate successors in this
+ * snapshot, one common step advance must explain a candidate of every
+ * such shell; candidates no common advance supports are pruned. One
+ * clean stream-mate anywhere in the volley thereby pins the advance
+ * for every shell of the pill, including bradians holding a single
+ * shell, which the per-bradian grouping this replaces could never
+ * protect. When no common advance exists (a fall mid-interval, a
  * dropped restatement), nothing is pruned -- the rule only refuses
  * pairings that contradict every jointly consistent story, so it can
  * veto a physically impossible crossing but never invent a link.
@@ -1597,9 +1606,10 @@ function enforce_pillbox_lockstep_candidates(previous_shells, by_previous,
 		if (shell.pillbox_source_x === undefined || !states ||
 			!states.length) continue;
 		let bradian = states[0].bradian;
-		if (states.some(state => state.bradian !== bradian)) continue;
-		let key =
-			`${shell.pillbox_source_x}:${shell.pillbox_source_y}:${bradian}`;
+		let step = states[0].step;
+		if (states.some(state => state.bradian !== bradian) &&
+			states.some(state => state.step !== step)) continue;
+		let key = `${shell.pillbox_source_x}:${shell.pillbox_source_y}`;
 		let group = groups.get(key);
 		if (!group) groups.set(key, group = []);
 		group.push({ index, steps: states.map(state => state.step) });
