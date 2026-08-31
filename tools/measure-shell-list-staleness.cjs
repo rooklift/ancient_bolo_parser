@@ -19,13 +19,19 @@
  *
  * Usage:
  *   node tools/measure-shell-list-staleness.cjs -f <replay>
- *   node tools/measure-shell-list-staleness.cjs [<directory>]
+ *   node tools/measure-shell-list-staleness.cjs [--workers=N] [<directory>]
  *       (no arguments: the whole corpus, via BOLO_CORPUS/corpus.json)
+ *
+ * Multi-file runs fan the builds out over a worker pool (default half
+ * the machine's cores); the buckets are additive, so the output is
+ * identical whatever the pool size.
  */
 "use strict";
 
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
+const { Worker, isMainThread, parentPort } = require("node:worker_threads");
 const BoloLog = require(path.join(__dirname, "..", "viewer", "logparse.js"));
 const BoloGame = require(path.join(__dirname, "..", "viewer", "game.js"));
 const Orbits = require(path.join(__dirname, "..", "viewer",
@@ -96,40 +102,107 @@ function tally(file) {
 	return true;
 }
 
-const args = process.argv.slice(2);
-let files = [];
-if (args[0] === "-f") {
-	files = [args[1]];
-} else {
-	const root = args[0] || require("./corpus.cjs").corpus_root();
-	const walk = directory => {
-		for (const name of fs.readdirSync(directory)) {
-			const full = path.join(directory, name);
-			if (fs.statSync(full).isDirectory()) walk(full);
-			else if (!SKIPPED_EXTENSIONS.test(name)) files.push(full);
+function print_report(parsed) {
+	console.log("# GENERATED - per-list sampling skew tally; nothing written to disk.");
+	console.log(`files\t${parsed}`);
+	console.log(`pairs\t${pairs}`);
+	for (const key of BUCKET_KEYS) {
+		const bucket = buckets.get(key);
+		const total = [...bucket.values()].reduce((sum, n) => sum + n, 0);
+		const zero = bucket.get(0) || 0;
+		const histogram = [...bucket.entries()].sort((a, b) => a[0] - b[0])
+			.map(([diff, n]) => `${diff}:${n}`).join(" ");
+		console.log(`${key}\ttotal ${total}\tzero ${zero}\t${histogram}`);
+	}
+	/* One list is one snapshot by encoding, so same-list disagreement is
+	 * reconstruction error by construction: the rate below is the tally's
+	 * own noise floor, and cross-list rates are only evidence of genuine
+	 * skew to the extent they exceed it. */
+	const same = buckets.get("same-list/same-list");
+	const same_total = [...same.values()].reduce((sum, n) => sum + n, 0);
+	const same_zero = same.get(0) || 0;
+	console.log(`error_floor\t${same_total > 0
+		? ((same_total - same_zero) / same_total).toFixed(6) : "-"}`);
+}
+
+function run_worker() {
+	parentPort.on("message", file => {
+		for (const bucket of buckets.values()) bucket.clear();
+		pairs = 0;
+		const parsed = tally(file);
+		parentPort.postMessage({ file, parsed, pairs,
+			buckets: BUCKET_KEYS.map(key => [...buckets.get(key).entries()]) });
+	});
+}
+
+function main() {
+	let worker_option = null;
+	const args = process.argv.slice(2).filter(arg => {
+		const match = arg.match(/^--workers=(\d+)$/);
+		if (match) {
+			worker_option = Math.max(1, parseInt(match[1], 10));
+			return false;
 		}
-	};
-	walk(root);
+		return true;
+	});
+	let files = [];
+	if (args[0] === "-f") {
+		files = [args[1]];
+	} else {
+		const root = args[0] || require("./corpus.cjs").corpus_root();
+		const walk = directory => {
+			for (const name of fs.readdirSync(directory)) {
+				const full = path.join(directory, name);
+				if (fs.statSync(full).isDirectory()) walk(full);
+				else if (!SKIPPED_EXTENSIONS.test(name)) files.push(full);
+			}
+		};
+		walk(root);
+	}
+	let parsed = 0;
+	const worker_count = Math.min(files.length,
+		worker_option || Math.max(1, Math.floor(os.cpus().length / 2)));
+	if (worker_count <= 1) {
+		for (const file of files) if (tally(file)) parsed++;
+		print_report(parsed);
+		return;
+	}
+	const queue = files.slice();
+	let done = 0;
+	let active = 0;
+	for (let i = 0; i < worker_count; i++) {
+		const worker = new Worker(__filename);
+		const dispatch = () => {
+			const file = queue.shift();
+			if (file === undefined) {
+				worker.terminate();
+				if (active === 0 && done === files.length) print_report(parsed);
+				return;
+			}
+			active++;
+			worker.postMessage(file);
+		};
+		worker.on("message", result => {
+			active--;
+			done++;
+			if (result.parsed) parsed++;
+			pairs += result.pairs;
+			for (let k = 0; k < BUCKET_KEYS.length; k++) {
+				const bucket = buckets.get(BUCKET_KEYS[k]);
+				for (const [diff, count] of result.buckets[k]) {
+					bucket.set(diff, (bucket.get(diff) || 0) + count);
+				}
+			}
+			if (done % 10 === 0) console.error(`progress: ${done}/${files.length}`);
+			dispatch();
+		});
+		worker.on("error", error => {
+			console.error(`error: worker failed: ${error.message}`);
+			process.exit(1);
+		});
+		dispatch();
+	}
 }
-let parsed = 0;
-for (const file of files) if (tally(file)) parsed++;
-console.log("# GENERATED - per-list sampling skew tally; nothing written to disk.");
-console.log(`files\t${parsed}`);
-console.log(`pairs\t${pairs}`);
-for (const key of BUCKET_KEYS) {
-	const bucket = buckets.get(key);
-	const total = [...bucket.values()].reduce((sum, n) => sum + n, 0);
-	const zero = bucket.get(0) || 0;
-	const histogram = [...bucket.entries()].sort((a, b) => a[0] - b[0])
-		.map(([diff, n]) => `${diff}:${n}`).join(" ");
-	console.log(`${key}\ttotal ${total}\tzero ${zero}\t${histogram}`);
-}
-/* One list is one snapshot by encoding, so same-list disagreement is
- * reconstruction error by construction: the rate below is the tally's
- * own noise floor, and cross-list rates are only evidence of genuine
- * skew to the extent they exceed it. */
-const same = buckets.get("same-list/same-list");
-const same_total = [...same.values()].reduce((sum, n) => sum + n, 0);
-const same_zero = same.get(0) || 0;
-console.log(`error_floor\t${same_total > 0
-	? ((same_total - same_zero) / same_total).toFixed(6) : "-"}`);
+
+if (isMainThread) main();
+else run_worker();

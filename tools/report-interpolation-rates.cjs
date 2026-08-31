@@ -12,6 +12,12 @@
  *   node tools/report-interpolation-rates.cjs -d <directory>   (files within)
  *   node tools/report-interpolation-rates.cjs -r <directory>   (recursive)
  *
+ * Multi-file runs fan the per-replay builds out over a worker pool
+ * (--workers=N; default half the machine's cores). Every total is
+ * additive and the per-file diagnostics are merged back in directory
+ * order, so the output is byte-identical to a sequential run --
+ * content_hash included -- whatever the pool size.
+ *
  * With no arguments the corpus is read recursively, found the same way the
  * other measurement tools find it (BOLO_CORPUS or corpus.json at the repo
  * root); unconfigured, the tool explains how to configure it rather than
@@ -41,7 +47,10 @@
 "use strict";
 
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
+const { Worker, isMainThread, parentPort, workerData } =
+	require("node:worker_threads");
 
 const ROOT = path.join(__dirname, "..");
 const SKIPPED_EXTENSIONS = /\.(txt|md|json|zip|sit|hqx|png|jpg|gif|bmp|py)$/i;
@@ -50,7 +59,8 @@ const REPORT_FORMAT = 1;
 function usage(message) {
 	if (message) console.error(`error: ${message}`);
 	console.error("usage: node tools/report-interpolation-rates.cjs " +
-		"[--describe-terminals] [-f <replay> | -d <directory> | -r <directory>]  " +
+		"[--describe-terminals] [--describe-ends] [--workers=N] " +
+		"[-f <replay> | -d <directory> | -r <directory>]  " +
 		"(no path arguments: the whole corpus)");
 	process.exit(2);
 }
@@ -58,6 +68,7 @@ function usage(message) {
 function parse_args(argv) {
 	let describe_terminals = false;
 	let describe_ends = false;
+	let workers = null;
 	argv = argv.filter(arg => {
 		if (arg === "--describe-terminals") {
 			describe_terminals = true;
@@ -65,6 +76,11 @@ function parse_args(argv) {
 		}
 		if (arg === "--describe-ends") {
 			describe_ends = true;
+			return false;
+		}
+		let match = arg.match(/^--workers=(\d+)$/);
+		if (match) {
+			workers = Math.max(1, parseInt(match[1], 10));
 			return false;
 		}
 		return true;
@@ -75,13 +91,13 @@ function parse_args(argv) {
 		 * when nothing is configured. */
 		let { corpus_root } = require("./corpus.cjs");
 		return { mode: "recursive", target: corpus_root(),
-			describe_terminals, describe_ends };
+			describe_terminals, describe_ends, workers };
 	}
 	if (argv.length !== 2) usage("exactly one flag and one path are required");
 	let mode = modes[argv[0]];
 	if (!mode) usage(`unknown flag ${argv[0]}`);
 	return { mode, target: path.resolve(argv[1]),
-		describe_terminals, describe_ends };
+		describe_terminals, describe_ends, workers };
 }
 
 /* Directory listings are sorted so a corpus is visited in the same order on
@@ -481,9 +497,7 @@ function terminal_class_report(diagnostics, label) {
 	return lines;
 }
 
-function main() {
-	let { mode, target, describe_terminals, describe_ends } =
-		parse_args(process.argv.slice(2));
+function load_engines(with_motion) {
 	let engines;
 	try {
 		engines = {
@@ -494,7 +508,7 @@ function main() {
 		console.error(`error: this repo state has no loadable viewer engine: ${error.message}`);
 		process.exit(3);
 	}
-	if (describe_terminals || describe_ends) {
+	if (with_motion) {
 		/* Kept a separate, guarded require so the tool still measures the
 		 * repo states from before the diagnostics existed. */
 		try {
@@ -508,44 +522,163 @@ function main() {
 		console.error("error: this repo state has no viewer engine to report on");
 		process.exit(3);
 	}
+	return engines;
+}
 
-	let files = replay_files(mode, target);
-	if (!files.length) usage(`no replay files found at ${target}`);
-	let totals = empty_totals();
-	let empty_diagnostics = () =>
-		({ classes: new Map(), examples: [], unsupported: false });
-	let diagnostics = describe_terminals || describe_ends ? {
+let empty_diagnostics = () =>
+	({ classes: new Map(), examples: [], unsupported: false });
+
+function make_diagnostics(describe_terminals, describe_ends) {
+	return describe_terminals || describe_ends ? {
 		terminals: describe_terminals ? empty_diagnostics() : null,
 		ends: describe_ends ? empty_diagnostics() : null,
 	} : null;
-	let done = 0;
-	for (let file of files) {
-		try {
-			count_file(totals, engines, file, diagnostics);
-			totals.files++;
-		} catch (error) {
-			totals.files_failed++;
-			console.error(`warning: ${path.relative(ROOT, file)}: ${error.message}`);
+}
+
+/* Fold one file's totals into the running totals, preserving the
+ * null-until-supplied semantics of add(): a key no file supplied stays
+ * "-" in the report. Addition is commutative, so pool completion order
+ * cannot change the result. */
+function merge_totals(totals, part) {
+	for (let key of Object.keys(part)) {
+		if (key.endsWith("_by_type")) {
+			if (part[key] === null) continue;
+			if (totals[key] === null) totals[key] = new Map();
+			for (let [type, count] of part[key]) {
+				totals[key].set(type, (totals[key].get(type) || 0) + count);
+			}
+		} else if (part[key] !== null) {
+			totals[key] = (totals[key] === null ? 0 : totals[key]) + part[key];
 		}
-		done++;
-		if (done % 10 === 0) console.error(`progress: ${done}/${files.length}`);
-	}
-	process.stdout.write(build_report(totals, {
-		mode,
-		input: path.relative(ROOT, target).replace(/\\/g, "/") || ".",
-		max_position_interpolation_ticks: engines.game.MAX_POSITION_INTERPOLATION_TICKS,
-		max_shell_interpolation_ticks: engines.game.MAX_SHELL_INTERPOLATION_TICKS,
-		max_direction_interpolation_ticks:
-			engines.game.MAX_DIRECTION_INTERPOLATION_TICKS,
-	}));
-	for (let [part, label] of [
-		[diagnostics?.terminals, "terminal"],
-		[diagnostics?.ends, "end"],
-	]) {
-		if (!part) continue;
-		let lines = terminal_class_report(part, label);
-		if (lines.length) process.stdout.write(`${lines.join("\n")}\n`);
 	}
 }
 
-main();
+function merge_diagnostics(diagnostics, part) {
+	for (let side of ["terminals", "ends"]) {
+		if (!diagnostics?.[side] || !part?.[side]) continue;
+		if (part[side].unsupported) diagnostics[side].unsupported = true;
+		for (let [signature, count] of part[side].classes) {
+			diagnostics[side].classes.set(signature,
+				(diagnostics[side].classes.get(signature) || 0) + count);
+		}
+		diagnostics[side].examples.push(...part[side].examples);
+	}
+}
+
+function run_worker() {
+	let engines = load_engines(
+		workerData.describe_terminals || workerData.describe_ends);
+	parentPort.on("message", file => {
+		let totals = empty_totals();
+		let diagnostics = make_diagnostics(
+			workerData.describe_terminals, workerData.describe_ends);
+		let failed = null;
+		try {
+			count_file(totals, engines, file, diagnostics);
+			totals.files = 1;
+		} catch (error) {
+			totals.files_failed = 1;
+			failed = error.message;
+		}
+		parentPort.postMessage({ file, totals, diagnostics, failed });
+	});
+}
+
+function main() {
+	let { mode, target, describe_terminals, describe_ends, workers } =
+		parse_args(process.argv.slice(2));
+	let engines = load_engines(describe_terminals || describe_ends);
+	let files = replay_files(mode, target);
+	if (!files.length) usage(`no replay files found at ${target}`);
+	let totals = empty_totals();
+	let diagnostics = make_diagnostics(describe_terminals, describe_ends);
+
+	let finish = () => {
+		process.stdout.write(build_report(totals, {
+			mode,
+			input: path.relative(ROOT, target).replace(/\\/g, "/") || ".",
+			max_position_interpolation_ticks: engines.game.MAX_POSITION_INTERPOLATION_TICKS,
+			max_shell_interpolation_ticks: engines.game.MAX_SHELL_INTERPOLATION_TICKS,
+			max_direction_interpolation_ticks:
+				engines.game.MAX_DIRECTION_INTERPOLATION_TICKS,
+		}));
+		for (let [part, label] of [
+			[diagnostics?.terminals, "terminal"],
+			[diagnostics?.ends, "end"],
+		]) {
+			if (!part) continue;
+			let lines = terminal_class_report(part, label);
+			if (lines.length) process.stdout.write(`${lines.join("\n")}\n`);
+		}
+	};
+
+	let worker_count = Math.min(files.length,
+		workers || Math.max(1, Math.floor(os.cpus().length / 2)));
+	if (worker_count === 1) {
+		let done = 0;
+		for (let file of files) {
+			try {
+				count_file(totals, engines, file, diagnostics);
+				totals.files++;
+			} catch (error) {
+				totals.files_failed++;
+				console.error(`warning: ${path.relative(ROOT, file)}: ${error.message}`);
+			}
+			done++;
+			if (done % 10 === 0) console.error(`progress: ${done}/${files.length}`);
+		}
+		finish();
+		return;
+	}
+
+	/* Per-file results come back in completion order but are folded in
+	 * directory order, so the diagnostics' example lines -- and the
+	 * unreadable-file warnings -- keep the sequential run's order and
+	 * the whole output stays byte-identical. */
+	let results = new Array(files.length).fill(null);
+	let index_of = new Map(files.map((file, index) => [file, index]));
+	let queue = files.map((file, index) => index);
+	let done = 0;
+	let active = 0;
+	let finish_parallel = () => {
+		for (let result of results) {
+			if (!result) continue;
+			merge_totals(totals, result.totals);
+			merge_diagnostics(diagnostics, result.diagnostics);
+			if (result.failed) {
+				console.error(`warning: ` +
+					`${path.relative(ROOT, result.file)}: ${result.failed}`);
+			}
+		}
+		finish();
+	};
+	for (let i = 0; i < worker_count; i++) {
+		let worker = new Worker(__filename,
+			{ workerData: { describe_terminals, describe_ends } });
+		let dispatch = () => {
+			let index = queue.shift();
+			if (index === undefined) {
+				worker.terminate();
+				if (active === 0 && done === files.length) finish_parallel();
+				return;
+			}
+			active++;
+			worker.postMessage(files[index]);
+		};
+		worker.on("message", result => {
+			active--;
+			done++;
+			results[index_of.get(result.file)] = result;
+			if (done % 10 === 0) console.error(`progress: ${done}/${files.length}`);
+			dispatch();
+		});
+		worker.on("error", error => {
+			console.error(`error: worker failed: ${error.message}`);
+			process.exit(1);
+		});
+		dispatch();
+	}
+}
+
+if (isMainThread) main();
+else run_worker();
