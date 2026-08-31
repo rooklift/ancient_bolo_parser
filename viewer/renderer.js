@@ -609,9 +609,12 @@ function draw() {
 	draw_shells();
 	draw_pills(false);
 	draw_pillbox_labels();
-	draw_effects();
+	draw_effects(false);
 	draw_men();
 	draw_tanks();
+	/* flames draw over the sprites: the death-frame bridge flame ignites
+	 * on the still-drawn tank, and would otherwise be hidden beneath it */
+	draw_effects(true);
 	update_coordinate_debug();
 }
 
@@ -866,12 +869,15 @@ function draw_raw_shells() {
 	}
 }
 
-function draw_effects() {
+/* Called twice per frame: once under the object sprites (rings, splashes,
+ * booms), and once over them for the flames (see the render loop). */
+function draw_effects(flames_pass) {
 	if (!game) return;
 	let z = view.zoom;
 	while (effect_lo < game.effects.length && game.effects[effect_lo].time < clock - EFFECT_TICKS) effect_lo++;
 	for (let i = effect_lo; i < game.effects.length && game.effects[i].time <= clock; i++) {
 		let e = game.effects[i];
+		if ((e.type === "flame") !== flames_pass) continue;
 		let age = (clock - e.time) / EFFECT_TICKS; /* 0..1 */
 		/* effects with pixel offsets position like any world object;
 		 * tile-only effects centre on their square */
