@@ -129,6 +129,11 @@ function initial_state(seed) {
 			/* bitmasks, 0 bit = allied (log convention) */
 		present: Array.from({ length: 16 }, () => false),
 		quit: Array.from({ length: 16 }, () => false),
+		/* time of the last applied record strictly before the latest one's
+		 * timestamp — the previous frame under record stepping, which
+		 * treats same-time records as one change */
+		prev_change_time: null,
+		last_record_time: null,
 		gameInfo: null,
 	};
 }
@@ -147,6 +152,8 @@ function clone_state(s) {
 		alliances: s.alliances.slice(),
 		present: s.present.slice(),
 		quit: s.quit.slice(),
+		prev_change_time: s.prev_change_time,
+		last_record_time: s.last_record_time,
 		gameInfo: s.gameInfo,
 	};
 }
@@ -281,6 +288,11 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 	let sawShells = false;
 	let newShells = null;
 
+	if (rec.time !== s.last_record_time) {
+		s.prev_change_time = s.last_record_time;
+		s.last_record_time = rec.time;
+	}
+
 	/* Standalone map/node records carry no player state at all — they must
 	 * not clear the sender's man or shells, or feed status bits. */
 	const mapNodeOnly = rec.subpackets.length > 0 && rec.subpackets.every(sub => MAP_NODE_TYPES.has(sub.type));
@@ -346,12 +358,16 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 						 * shove) past the tank's last live position, where the
 						 * viewer has been drawing it standing. A bridge flame
 						 * at that spot joins the trail up to the standing
-						 * tank; it starts one tick early so it is first
-						 * visible in the tank's final living frame (this
-						 * record's application is what removes the tank).
-						 * Visual only: no clearance, no state. */
+						 * tank. It is stamped with the previous change time,
+						 * so it is first visible in the tank's final living
+						 * frame: this record's application removes the tank,
+						 * and frame-stepping only visits record times, so
+						 * merely backdating by a tick would usually still
+						 * land it a stepped frame late. Visual only: no
+						 * clearance, no state. */
 						if (prev && !prev.position_dying) {
-							effects.push({ time: rec.time - 1, type: "flame", x: prev.x, y: prev.y, px: prev.px, py: prev.py });
+							const bridge_time = s.prev_change_time !== null ? s.prev_change_time : rec.time - 1;
+							effects.push({ time: bridge_time, type: "flame", x: prev.x, y: prev.y, px: prev.px, py: prev.py });
 						}
 						effects.push({ time: rec.time, type: "flame", x: sub.x, y: sub.y, px: sub.pixelX, py: sub.pixelY });
 					}
