@@ -124,6 +124,7 @@ Constant at all ten commits, and worth having once:
 | `3956580` | late-head slide | 0.994823 | 0.001914 | 0.833265 | 235,967 |
 | `e2bbbfb` | dilated continuations | **0.995341** | **0.001601** | 0.833183 | 235,739 |
 | `c890ecc` | seam closure | 0.995341 | 0.001601 | 0.833183 | 235,739 |
+| `baee09c` | tail slide | 0.995341 | 0.001601 | 0.833183 | 235,739 |
 
 The rows below the guard run were measured later, from the corpus
 holder's live checkouts: `97fa412` closes the unmeasured-`main` gap the
@@ -140,7 +141,9 @@ see its section -- moves both shell-side records on again while
 returning ~160 terminals, so `029acac` still keeps both terminal-side
 columns. `c890ecc` -- the seam closure, see its section -- is
 drawing-only like `3956580`: its row repeats `e2bbbfb`'s and its gain
-is the audit's seam pair going to 0 / 0.00. The `97fa412`..`537cb6d` runs report
+is the audit's seam pair going to 0 / 0.00. `baee09c` -- the tail
+slide, see its section -- is drawing-only too; its gain is the
+rushed-terminal class. The `97fa412`..`537cb6d` runs report
 `files_failed 1` where the campaign runs report 0: one extra, unparseable
 file now sits in the corpus tree and contributes nothing, and every
 per-corpus total (shells, terminals by class, tank and LGM points and
@@ -1417,6 +1420,52 @@ than by every endpoint-writing pass staying in sync, and the audit's
 seam metric finally sits at the zero its header always said it should.
 Raw audit kept as `docs/corpus_runs/c890ecc-audit.txt`; the report
 would duplicate the `e2bbbfb` one byte for byte, so it is not.
+
+## Tail slide -- `baee09c`
+
+Origin: 110702.1 once more, the same volley's final shot, spotted by
+the corpus holder in playback: a 5.97 px/tick sprint into the pillbox
+it kills. Its last restatement arrived stale -- three orbit steps
+across a 22-tick gap, the chain behind it smoothed down to 1.3 px/tick
+by the same anchor -- and the honest impact record landed six ticks
+later, capping the drawn arrival, so the terminal link carried
+eighteen ticks of real flight in six. Crawl plus sprint total 2
+px/tick: the whole lie is the stale anchor. This is the chain TAIL as
+the smoothing pass's other fixed time anchor, the late-head disease
+mirrored, feeding `terminal_links_rushed` -- the class the late-head
+section called the axis's real headroom.
+
+The fix mirrors the head slide (`slide_compressed_chain_tails`): a
+terminal link's drawn length is the sender's clock, so when it exceeds
+the stamp window by more than the 8px quantisation bound, the end's
+drawn position slides forward along the link to the stamped time's
+honest place on the ray, leaving exactly the window's worth of flight.
+It runs before smoothing, whose final anchor now prefers the slid
+position, so the chain re-times onto the honest anchor: the incident
+chain draws at a uniform 1.84 px/tick with its impact at exactly 2.
+Shell falls never qualify -- their drawn end is the uncapped physics
+arrival, excess zero by construction. Drawing only; ordered
+tail-slide, smooth, reconcile, head-slide.
+
+Fixture: `terminal_links_rushed` 494 -> 461, a hover gone, ~35 links
+shifting steady -> 2.2-3.0 (a re-anchored chain runs slightly fast
+end to end instead of ending in a sprint); the incident replay
+329 -> 281 with its slow buckets shrinking; `3.0+`, the pop metrics
+and the seam pair untouched everywhere; the rates report
+byte-identical. The synthetic test -- a stale tail, then an explosion
+four ticks later -- fails on the previous engine at 12 px/tick with no
+slide.
+
+Corpus prediction for the next run: matching axis byte-identical;
+`terminal_links_rushed` (72,139) down by several thousand, seven to
+fifteen percent if the three local logs generalise; the slow buckets
+and `hover_links` down; a modest steady -> 2.2-3.0 shift as the cost;
+`seam_jumps` still 0; pops and `3.0+` untouched. The remaining fast
+class after this is the mid-chain compression the late-head section
+named -- 110702.1's three 5.6 px/tick dilated links at records
+44605-44612, where whole-chain smoothing's deviation guard stands down
+-- which is the piecewise re-timing dial, deliberately sequenced after
+this commit so both chain anchors are honest inputs to it.
 
 ## Findings
 
