@@ -1,0 +1,33 @@
+# GENERATED - drawn shell motion audit; nothing written to disk.
+commit	d9454ce
+input	../../__DOCS/Bolo Archives/Nemokrad's Bolo logs
+files	443
+files_failed	0
+build_ms	315576
+audit_ms	5706
+shell_observations	9817361
+links	8150656
+terminal_links	1621688
+terminal_links_rushed	68496
+hover_links	3397
+rush_links	4707
+seam_jumps	0
+pop_outs	44831
+pop_ins	37078
+pops_paired_forward	4609
+pops_paired_backwards	2900
+seam_jump_max	0.00
+link_speed:0.0-0.5	543
+link_speed:0.5-1.0	2854
+link_speed:1.0-1.5	22262
+link_speed:1.5-1.8	157550
+link_speed:1.8-2.2	7834723
+link_speed:2.2-2.5	108512
+link_speed:2.5-3.0	19459
+link_speed:3.0+	4753
+rate_links_steady	0.961238
+rate_hover_links	0.000417
+rate_rush_links	0.000577
+rate_pop_outs	0.004567
+rate_backwards_pops	0.000295
+content_hash	a673dbefb00671b6a09de549d167d04217b6d3a4a1e35f55d083d7296f483a6f
