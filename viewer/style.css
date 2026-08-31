@@ -126,7 +126,11 @@ body {
 	color: #8b96ad;
 	margin-bottom: 6px;
 }
-.hint { color: #8b96ad; font-size: 12px; }
+/* Integral line height: the inherited 1.45 works out to 17.4px at this
+ * size, and the fractional pitch paints consecutive lines 18 then 17
+ * physical pixels apart on a 1x display as each baseline snaps on its
+ * own. Never multi-line, so nothing else moves. */
+.hint { color: #8b96ad; font-size: 12px; line-height: 17px; }
 
 #players .player {
 	display: flex;
