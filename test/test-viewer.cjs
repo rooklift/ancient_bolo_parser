@@ -108,7 +108,7 @@ if (!fs.existsSync(log1)) {
 	}
 	check("fixture orbit-membership and stream-provenance birth claims",
 		[orbit_births.unseen, orbit_births.stream, orbit_births.sound],
-		[22, 8, true]);
+		[21, 7, true]);
 
 	/* Terminal-failure diagnostics: read-only classification of every
 	 * terminal that ends the pipeline with no matched shell and no
@@ -188,7 +188,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture end-side census reconciles", [
 			ends_described, ends_described === unfated, end_reasons_sound,
 			fate_open,
-		], [301, true, true, 19]);
+		], [299, true, true, 19]);
 	}
 
 	let pill_burst = { total: 0, matched: 0 };
@@ -1118,6 +1118,57 @@ if (!fs.existsSync(log1)) {
 			!!veto_imposter.visual_join,
 			!!veto_imposter.matched_from_previous],
 		[true, [2205, 2209], [2189, 2245], false, false]);
+
+	/* The pairwise arm of the roster vote. A stream-mate that lost its
+	 * provenance (born before the log, or past claiming range) competes on
+	 * bare distance cost, and a compressed record pair -- seven steps in
+	 * eleven stamped ticks -- makes the pill's own s23 point cheaper for
+	 * the orphan than its true continuation just beyond it, so the orphan
+	 * used to steal the landing while the s16 leader froze. The statement
+	 * rosters (16->23, 11->18, 2->9) pin the advance and award the landing
+	 * to the only member whose step explains it; the orphan then follows
+	 * its own ray, and the landing keeps its orbit provenance. */
+	let orphan_theft = BoloGame.build([
+		record(60, [{ type: "pillbox_list", items: [{
+			x: 140, y: 133, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(80, [idle_tank]),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 9 },
+			shell_list(9, [[2232, 2141]]),
+		]),
+		record(114, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 9 },
+			shell_list(9, [[2218, 2166]]),
+			shell_list(9, [[2228, 2148]]),
+		]),
+		record(128, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 9 },
+			shell_list(9, [[2205, 2190]]),
+			shell_list(9, [[2214, 2173]]),
+			shell_list(9, [[2232, 2141]]),
+			shell_list(9, [[2202, 2196]]),
+		]),
+		record(139, [
+			shell_list(9, [[2191, 2215]]),
+			shell_list(9, [[2201, 2197]]),
+			shell_list(9, [[2218, 2166]]),
+			shell_list(9, [[2188, 2220]]),
+		]),
+	]);
+	let theft_leader = orphan_theft.shell_positions[0][3].shells[0];
+	let theft_orphan = orphan_theft.shell_positions[0][3].shells[3];
+	let theft_landing = orphan_theft.shell_positions[0][4].shells[0];
+	let theft_orphan_next = orphan_theft.shell_positions[0][4].shells[3];
+	check("the statement rosters award a pill's landing to its own member " +
+		"over a provenance-less thief",
+		[[theft_leader.next_pixel_x, theft_leader.next_pixel_y],
+			!!theft_leader.next_terminal,
+			(theft_landing.pillbox_orbit_states || []).map(state =>
+				`b${state.bradian}@s${state.step}`).join(","),
+			[theft_orphan.next_pixel_x, theft_orphan.next_pixel_y],
+			!!theft_orphan_next.matched_from_previous],
+		[[2191, 2215], false, "b149@s23", [2188, 2220], true]);
 
 	/* The orbit evidence also cuts the other way. This observation sits
 	 * on the stitch's segment and near its uniform-time schedule -- the
