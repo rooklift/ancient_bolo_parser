@@ -127,7 +127,7 @@ Constant at all ten commits, and worth having once:
 | `baee09c` | tail slide | 0.995341 | 0.001601 | 0.833183 | 235,739 |
 | `716a349` | guard split | 0.995341 | 0.001601 | 0.833183 | 235,739 |
 | `cecdd9d` | pill-wide lockstep | **0.995415** | **0.001547** | 0.833156 | 235,715 |
-| `4233e94` | residual lockstep veto | | | | |
+| `4233e94` | residual lockstep veto | 0.995308 | 0.001558 | 0.833192 | 235,747 |
 
 The rows below the guard run were measured later, from the corpus
 holder's live checkouts: `97fa412` closes the unmeasured-`main` gap the
@@ -1686,6 +1686,33 @@ the record: a crossing whose wrong half is a PAIRWISE link is beyond
 this dial -- the fixture shows two such surviving halves -- and
 feeding the same statement-roster reference into the pairwise matcher
 is the remaining lockstep dial.
+
+Corpus verification, run by the corpus holder at `b1659e9`
+(engine-identical to `4233e94`; raw runs kept under
+`docs/corpus_runs/`):
+
+* The give-back, as called: `shells_matched_forward` -1,042 (top of
+  the predicted range) with `pop_outs` +1,042, exactly complementary;
+  `shells_visual_joins` 2,992 -> 2,474 (-17.3%); `seam_jumps` 0;
+  `terminal_links_rushed` byte-identical. The vetoed starts re-settle
+  as stream-provenance births (+1,001) rather than joins.
+* Two signals the vetoed joins were really lies, neither predicted
+  this strongly. `terminals_matched` +70 with **every class gaining**
+  (`tank_hit` +32, `shell_falls` +23, `pillbox_damage` +11,
+  `explosion` +3, `base_damage` +1) -- only `029acac` had ever gained
+  every class at once -- the false joins had been hogging shells their
+  real impacts needed. And the speed histogram enriches: the steady
+  bucket GROWS by 1,760 links while total links fall 1,112, because
+  the removed joins were disproportionately mis-paced.
+* The misses, small: `rush_links` +20 and `3.0+` +18 where "down a
+  little" was called, and `pops_paired_backwards` +22 -- vetoed joins
+  expose the pop pairs they papered over, some reading backwards.
+  `shells_unseen_pillbox_birth` +48 against a "down" lean.
+* Ledger positions: `cecdd9d` keeps both shell-side records (0.995415
+  / 0.001547 against this row's 0.995308 / 0.001558 -- the give-back
+  returns roughly the pill-wide commit's coverage gain while keeping
+  its correctness), and the terminal rate rises to 0.833192, second
+  only to `029acac`'s record.
 
 ## Findings
 
