@@ -345,11 +345,13 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 						 * interval (median ~17px, up to ~39px — the death
 						 * shove) past the tank's last live position, where the
 						 * viewer has been drawing it standing. A bridge flame
-						 * at that spot, at the frame the tank disappears,
-						 * joins the trail up to the standing tank. Visual
-						 * only: no clearance, no state. */
+						 * at that spot joins the trail up to the standing
+						 * tank; it starts one tick early so it is first
+						 * visible in the tank's final living frame (this
+						 * record's application is what removes the tank).
+						 * Visual only: no clearance, no state. */
 						if (prev && !prev.position_dying) {
-							effects.push({ time: rec.time, type: "flame", x: prev.x, y: prev.y, px: prev.px, py: prev.py });
+							effects.push({ time: rec.time - 1, type: "flame", x: prev.x, y: prev.y, px: prev.px, py: prev.py });
 						}
 						effects.push({ time: rec.time, type: "flame", x: sub.x, y: sub.y, px: sub.pixelX, py: sub.pixelY });
 					}
