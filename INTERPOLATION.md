@@ -214,7 +214,17 @@ restatements are *absorbed* into their chain (with a temporal gate so a
 trailing shell on the same segment is never claimed), and each chain is
 drawn at constant velocity between its best-known anchors
 (`smooth_shell_chains`) — sender timestamp jitter otherwise visibly
-wobbles a large fraction of drawn links. That temporal gate assumes the
+wobbles a large fraction of drawn links. A chain *head* is one of those
+anchors, so a head whose record was received late escapes the smoothing
+and draws its first link as a sprint: the punctual next restatement sits
+far further along the flight than the stamp window carries at 2 px/tick.
+The link's own drawn length is the sender's clock, so when it exceeds
+the window by more than quantisation explains, the head's drawn position
+slides forward along the link to where the shell truly was at the
+stamped time (`slide_compressed_chain_heads`), and the birth segment
+re-derives its span from the slid position so the pre-record flight
+stays seamless. Drawing only — state, matching and terminal timing are
+untouched. That temporal gate assumes the
 sender's clock lags by at most a dozen ticks, and a worse spike used to
 strand the restatement outside the chain that flies straight through it —
 drawn as a jump backwards, a hover and a rush. For a pill shot the orbit
