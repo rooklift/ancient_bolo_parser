@@ -126,6 +126,7 @@ Constant at all ten commits, and worth having once:
 | `c890ecc` | seam closure | 0.995341 | 0.001601 | 0.833183 | 235,739 |
 | `baee09c` | tail slide | 0.995341 | 0.001601 | 0.833183 | 235,739 |
 | `716a349` | guard split | 0.995341 | 0.001601 | 0.833183 | 235,739 |
+| `cecdd9d` | pill-wide lockstep | | | | |
 
 The rows below the guard run were measured later, from the corpus
 holder's live checkouts: `97fa412` closes the unmeasured-`main` gap the
@@ -1574,6 +1575,41 @@ rate easing 0.964548 -> 0.961396 and rushes 3,710 -> 4,511 -- the one
 drawn metric still above its branch-point value, the dilated links
 drawing the clock's lie, now that the lies once hidden in freezes,
 pops and phantom births are drawn as moving links at all.
+
+## Pill-wide lockstep -- `cecdd9d`
+
+The payoff of the shell-list-skew resolution: with every list of one
+record established as a single sampling instant ([E:shell-list-skew]),
+one common step advance explains a pill's entire roster per sender
+transition, whatever each shell's bradian or list. The lockstep pass
+now groups by pill alone -- one clean stream-mate anywhere in the
+volley pins the advance for every shell of the pill -- where the
+`537cb6d` original could only compare shells sharing a single bradian,
+leaving every singleton-bradian volley member (most of a turning
+pill's shots) unprotected. Membership asks only that a shell's current
+step be well-defined: one bradian, or several bradians agreeing on one
+step, as near-muzzle states do. The stand-down rule is unchanged: no
+common advance, no pruning.
+
+Fixture: one unseen-birth claim withdrawn (23 -> 22, two claims
+shifting species to stream-provenance births), unfated ends
+300 -> 299, a pop pair gone. The laggy 110702.1 replay shows the
+intended shape at strength: backwards pops 15 -> 11, hovers 18 -> 12,
+pop-outs 211 -> 200, +12 links. The synthetic test pins the veto -- a
+bradian-205 mate's unambiguous +7 forcing the bradian-195 leader off a
+cheap four-step imposter it used to take by a 13-point margin -- and
+fails on the previous engine with exactly the swap.
+
+Corpus prediction for the next run -- a matching-axis change, so
+nothing is byte-identical this time: `shells_matched_forward` up and
+`pop_outs` down by a few hundred to a thousand (the three local logs
+scale poorly, +1/+5/+12 links); `pops_paired_backwards` down by more
+than its share, this being the anti-crossing rule at full width;
+`shells_unseen_pillbox_birth` down; a small terminal ledger wobble
+possible (the ankle replay gave back two terminal links). The
+follow-up dial this sets up: the same one-advance-per-transition rule
+as a veto in the stitching and residual passes, which currently accept
+stories the matcher's lockstep would refuse.
 
 ## Findings
 
