@@ -49,7 +49,7 @@ The viewer reconstructs full game state (terrain, pills, bases, tanks, men, shel
   Brain development kit; map RLE from his `BoloMapFile.c` sample code.
 - **Carl Osterwald ("wharf rat")** — original reverse engineering of the
   log encryption and packet formats (2001–2003), author of BoloViewer.
-- An anonymous 2003 collaborator whose working notes and prototype Perl
+- **Rob Keogh ("Pins")** whose working notes and prototype Perl
   parser preserved that knowledge.
 - Two anonymous Bolo players who recorded and provided a large corpus of
   real log files from the 2000s.
