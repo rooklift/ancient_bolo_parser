@@ -800,6 +800,10 @@ function draw_men() {
 }
 
 function draw_shells() {
+	if (raw_shells_enabled) {
+		draw_raw_shells();
+		return;
+	}
 	let z = view.zoom;
 	ctx.fillStyle = use_big_shots ? "#ffe678" : "#fff";
 	let radius = Math.max(1, z * 0.12);
@@ -842,14 +846,14 @@ function draw_shells() {
 			draw_shell(fall, fall.direction);
 		}
 	}
-	if (raw_shells_enabled) draw_raw_shells();
 }
 
 /* Debug overlay: the raw packet-stated shell positions, drawn as red
- * dots over the reconstructed sprites. The dot is the sender's last
- * claim (delayed, quantised, jittered); the sprite is the reconstruction
- * flying between restatements. The gap between them is exactly how far
- * the interpolation departs from the literal log. */
+ * dots in place of the reconstructed sprites. The dot is the sender's
+ * last claim (delayed, quantised, jittered); the sprite is the
+ * reconstruction flying between restatements, so toggling between the
+ * two shows exactly how far the interpolation departs from the literal
+ * log. */
 function draw_raw_shells() {
 	let z = view.zoom;
 	let radius = Math.max(1, z * 0.09);
