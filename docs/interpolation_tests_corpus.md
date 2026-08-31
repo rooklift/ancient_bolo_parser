@@ -1467,6 +1467,37 @@ named -- 110702.1's three 5.6 px/tick dilated links at records
 -- which is the piecewise re-timing dial, deliberately sequenced after
 this commit so both chain anchors are honest inputs to it.
 
+Corpus verification, run by the corpus holder at `06b8f56`
+(engine-identical to `baee09c`; raw audit kept as
+`docs/corpus_runs/baee09c-audit.txt`, the report a byte-duplicate of
+the standing one, hash included -- matching axis byte-identical as
+predicted):
+
+* `terminal_links_rushed` 72,139 -> 68,478 (-3,661, -5.1%) -- "several
+  thousand" holds; the three local logs' 7-15% did not quite
+  generalise, the corpus's stale-tail population being a little
+  shallower than the incident replay suggested.
+* Every slow bucket down -- `0.0-0.5` -25, `0.5-1.0` -138, `1.0-1.5`
+  -738, `1.5-1.8` -2,361 (-3,262 in all) -- and `hover_links`
+  4,158 -> 3,995: the crawls into stale anchors straighten alongside
+  their sprints, as the cancellation argument says they must.
+* The predicted cost: `2.2-2.5` +6,044 and `2.5-3.0` +1,224, steady
+  rate 0.961900 -> 0.961384.
+* The one miss: `3.0+` 5,785 (+196) and `rush_links` 5,731 (+196),
+  predicted untouched -- re-anchored chains whose stamp window is
+  compressed enough that uniform re-timing onto the honest tail lands
+  past 3 px/tick. A real cost line, 0.002% of links, and the same
+  population the piecewise dial exists for; the number to watch on the
+  next engine commit.
+* `seam_jumps` 0, `seam_jump_max` 0.00, and every pop metric
+  byte-identical, as predicted.
+
+Net on the drawn axis: 3,661 sprint-into-the-wall terminals and 3,262
+crawling links traded for 7,268 links running mildly fast end to end
+and 196 crossing 3 px/tick. On the file's own perceptual reading --
+sprints and crawls are what the eye catches, a uniform 2.3 is not --
+that is the intended trade at close to the intended price.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
