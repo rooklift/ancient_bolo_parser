@@ -28,6 +28,17 @@ const fs = require("node:fs");
 const path = require("node:path");
 const BoloLog = require(path.join(__dirname, "..", "viewer", "logparse.js"));
 const BoloGame = require(path.join(__dirname, "..", "viewer", "game.js"));
+const Orbits = require(path.join(__dirname, "..", "viewer",
+	"pillbox_shell_orbits.js"));
+
+/* A shell near the end of its ~32-step life cannot show a large advance
+ * -- the orbit table simply ends -- so near-expiry links would read as
+ * spurious "slow" members. Exclude any member whose source step plus
+ * the wall-clock window plus the dilated slack reaches the end of its
+ * orbit. */
+const ORBIT_LENGTH = new Map(Orbits.orbits.map(orbit =>
+	[orbit.bradian, orbit.positions.length]));
+const EXPIRY_SLACK_STEPS = 8;
 
 const SKIPPED_EXTENSIONS = /\.(txt|md|json|zip|sit|hqx|png|jpg|gif|bmp|py)$/i;
 const BUCKET_KEYS = ["same-list/same-list", "same-list/cross-list",
@@ -56,6 +67,10 @@ function tally(file) {
 					shell.next_shell.pillbox_source_y !== shell.pillbox_source_y) {
 					continue;
 				}
+				const window_steps = Math.ceil((shell.next_time - snapshot.time) /
+					2) + EXPIRY_SLACK_STEPS;
+				if (from[0].step + window_steps >=
+					ORBIT_LENGTH.get(from[0].bradian)) continue;
 				members.push({
 					source: `${shell.pillbox_source_x}:${shell.pillbox_source_y}`,
 					advance: to[0].step - from[0].step,
@@ -109,3 +124,12 @@ for (const key of BUCKET_KEYS) {
 		.map(([diff, n]) => `${diff}:${n}`).join(" ");
 	console.log(`${key}\ttotal ${total}\tzero ${zero}\t${histogram}`);
 }
+/* One list is one snapshot by encoding, so same-list disagreement is
+ * reconstruction error by construction: the rate below is the tally's
+ * own noise floor, and cross-list rates are only evidence of genuine
+ * skew to the extent they exceed it. */
+const same = buckets.get("same-list/same-list");
+const same_total = [...same.values()].reduce((sum, n) => sum + n, 0);
+const same_zero = same.get(0) || 0;
+console.log(`error_floor\t${same_total > 0
+	? ((same_total - same_zero) / same_total).toFixed(6) : "-"}`);
