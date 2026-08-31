@@ -133,7 +133,7 @@ function build_menu() {
 				{ label: "Toggle pillbox IDs", accelerator: "CmdOrCtrl+I", click: () => send("toggle-pillbox-ids") },
 				{ type: "separator" },
 				{ label: "Toggle pill-fire flashes", accelerator: "CmdOrCtrl+F", click: () => send("toggle-pill-fire-flashes") },
-				{ label: "Toggle raw shell dots", accelerator: "CmdOrCtrl+R", click: () => send("toggle-raw-shells") },
+				{ label: "Toggle raw shell positions", accelerator: "CmdOrCtrl+R", click: () => send("toggle-raw-shells") },
 				{ type: "separator" },
 				{ label: "Dev tools", role: "toggleDevTools" },
 			]

@@ -800,10 +800,6 @@ function draw_men() {
 }
 
 function draw_shells() {
-	if (raw_shells_enabled) {
-		draw_raw_shells();
-		return;
-	}
 	let z = view.zoom;
 	ctx.fillStyle = use_big_shots ? "#ffe678" : "#fff";
 	let radius = Math.max(1, z * 0.12);
@@ -830,6 +826,25 @@ function draw_shells() {
 		ctx.arc(cx, cy, radius, 0, Math.PI * 2);
 		ctx.fill();
 	};
+	/* Debug mode: the raw packet-stated shell positions, drawn in the
+	 * current art style in place of the reconstructed ones. The raw
+	 * position is the sender's last claim (delayed, quantised,
+	 * jittered); the reconstruction flies between restatements, so
+	 * toggling between the two shows exactly how far the interpolation
+	 * departs from the literal log. */
+	if (raw_shells_enabled) {
+		for (let p = 0; p < 16; p++) {
+			for (let sh of cur.shells[p]) {
+				/* same pixel-to-tile centring as shell_position_at */
+				let position = {
+					x: (sh.x * 16 + sh.px) / 16 + 0.5,
+					y: (sh.y * 16 + sh.py) / 16 + 0.5,
+				};
+				draw_shell(position, sh.direction);
+			}
+		}
+		return;
+	}
 	for (let p = 0; p < 16; p++) {
 		for (let i = 0; i < cur.shells[p].length; i++) {
 			let sh = cur.shells[p][i];
@@ -844,28 +859,6 @@ function draw_shells() {
 		}
 		for (let fall of BoloGame.shell_fall_positions_at(game, p, clock)) {
 			draw_shell(fall, fall.direction);
-		}
-	}
-}
-
-/* Debug overlay: the raw packet-stated shell positions, drawn as red
- * dots in place of the reconstructed sprites. The dot is the sender's
- * last claim (delayed, quantised, jittered); the sprite is the
- * reconstruction flying between restatements, so toggling between the
- * two shows exactly how far the interpolation departs from the literal
- * log. */
-function draw_raw_shells() {
-	let z = view.zoom;
-	let radius = Math.max(1, z * 0.09);
-	ctx.fillStyle = "#f22";
-	for (let p = 0; p < 16; p++) {
-		for (let sh of cur.shells[p]) {
-			/* same pixel-to-tile centring as shell_position_at */
-			let cx = tile_to_screen_x((sh.x * 16 + sh.px) / 16 + 0.5);
-			let cy = tile_to_screen_y((sh.y * 16 + sh.py) / 16 + 0.5);
-			ctx.beginPath();
-			ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-			ctx.fill();
 		}
 	}
 }
