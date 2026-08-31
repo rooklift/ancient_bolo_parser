@@ -51,6 +51,8 @@ The viewer reconstructs full game state (terrain, pills, bases, tanks, men, shel
   log encryption and packet formats (2001–2003), author of BoloViewer.
 - An anonymous 2003 collaborator whose working notes and prototype Perl
   parser preserved that knowledge.
+- Two anonymous Bolo players who recorded and provided a large corpus of
+  real log files from the 2000s.
 - **[bolorama](https://github.com/astrospark/bolorama)** (Astrospark
   Technologies) — independently reverse-engineered Bolo UDP wire protocol,
   used to cross-check opcode layouts.
