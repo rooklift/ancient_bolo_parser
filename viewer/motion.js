@@ -467,6 +467,18 @@ function unique_pillbox_orbit_states(states) {
 	return [...states_by_key.values()];
 }
 
+/* A statement's step is pinned when every surviving state agrees on it --
+ * one bradian, or several bradians at one step, as near-muzzle states
+ * are. */
+function pinned_orbit_step(states) {
+	if (!states || !states.length) return null;
+	let step = states[0].step;
+	for (let state of states) {
+		if (state.step !== step) return null;
+	}
+	return step;
+}
+
 function common_pillbox_orbit_pixel(source_x, source_y, states) {
 	if (!states.length || source_x === undefined) return null;
 	let exact_position = null;
@@ -1672,6 +1684,143 @@ function enforce_pillbox_lockstep_candidates(previous_shells, by_previous,
 	return changed;
 }
 
+/* The lockstep rule above arbitrates among a member's own candidates, so
+ * it needs two mutually constraining members before it can prune, and it
+ * can never defend a pill's landing spot from an outside shell -- a
+ * stream-mate that lost its provenance (born before the log, or through a
+ * dropped restatement) competes on bare distance cost, and a compressed
+ * interval hands it the pill's own orbit point at a cost the real owner
+ * cannot beat. The pill's statements themselves settle both: the pinned
+ * steps its roster occupies in the two snapshots vote for one common
+ * advance exactly as the stitching/residual reference does
+ * ([E:shell-list-skew]), under the same score and margin gates.
+ * Conservation differs by direction here: claimed newborns are already
+ * marked and excluded from the target roster, but a shell's death is
+ * undecided at match time, so dying shells stay in the source vote and
+ * the margin gate makes an aliased ladder stand down instead of misvote.
+ * A passing vote is applied twice. First, every pinned member's
+ * surviving orbit continuation must sit at exactly its step plus the
+ * advance -- pruning the crossings whose wrong half was a within-margin
+ * pairwise link. Second, landing ownership: when exactly one pinned
+ * member's step plus the advance equals the pinned step of exactly one
+ * target, and that member holds a live candidate for it, every outside
+ * candidate for that target is evicted -- the statements say whose orbit
+ * point it is. A candidate another passing pill retained as its own
+ * lockstep-consistent continuation is never evicted; two pills claiming
+ * one point is a genuine conflict the margins must arbitrate. When no
+ * vote passes, nothing changes -- the rule vetoes contradictions of a
+ * dominant story, it never invents one. */
+function enforce_roster_lockstep_candidates(previous_shells, target_groups,
+	by_previous, by_next, duration) {
+	let max_advance = Math.ceil(duration / TICKS_PER_SHELL_UPDATE) +
+		DILATED_UPDATE_SLACK;
+	let pills = new Map();
+	for (let index = 0; index < previous_shells.length; index++) {
+		let shell = previous_shells[index];
+		if (shell.pillbox_source_x === undefined) continue;
+		let step = pinned_orbit_step(shell.pillbox_orbit_states);
+		if (step === null) continue;
+		let key = `${shell.pillbox_source_x}:${shell.pillbox_source_y}`;
+		let pill = pills.get(key);
+		if (!pill) {
+			pills.set(key, pill = {
+				source_x: shell.pillbox_source_x,
+				source_y: shell.pillbox_source_y,
+				members: [],
+			});
+		}
+		pill.members.push({ index, step });
+	}
+
+	let changed = false;
+	let removed = new Set();
+	let retained = new Set();
+	let claims = [];
+	for (let pill of pills.values()) {
+		let source_steps = new Set(pill.members.map(member => member.step));
+		if (source_steps.size < LOCKSTEP_REFERENCE_MIN_SCORE) continue;
+		/* The target roster is pinned from raw positions: targets carry no
+		 * orbit states of their own yet, but an orbit point is an exact
+		 * measured coordinate, so a raw position pins a step just as a
+		 * propagated state set would. */
+		let landings = new Map();
+		for (let next_index = 0; next_index < target_groups.length;
+			next_index++) {
+			let target = target_groups[next_index].target;
+			if (target.terminal || target.starts_at_pillbox) continue;
+			let step = pinned_orbit_step(pillbox_orbit_states_at(
+				target.direction, target.pixel_x - pill.source_x,
+				target.pixel_y - pill.source_y, target.position_uncertainty));
+			if (step === null) continue;
+			let indices = landings.get(step);
+			if (!indices) landings.set(step, indices = []);
+			indices.push(next_index);
+		}
+		let best = null, best_score = 0, runner_up = 0;
+		for (let advance = 1; advance <= max_advance; advance++) {
+			let score = 0;
+			for (let step of source_steps) {
+				if (landings.has(step + advance)) score++;
+			}
+			if (score > best_score) {
+				runner_up = best_score;
+				best_score = score;
+				best = advance;
+			} else if (score > runner_up) {
+				runner_up = score;
+			}
+		}
+		if (best_score < LOCKSTEP_REFERENCE_MIN_SCORE ||
+			best_score < runner_up + LOCKSTEP_REFERENCE_MIN_MARGIN) continue;
+
+		for (let member of pill.members) {
+			for (let candidate of by_previous[member.index]) {
+				if (candidate.target.terminal ||
+					!candidate.pillbox_orbit_states) continue;
+				let states = candidate.pillbox_orbit_states.filter(state =>
+					state.step === member.step + best);
+				if (!states.length) {
+					removed.add(candidate);
+					continue;
+				}
+				retained.add(candidate);
+				if (states.length < candidate.pillbox_orbit_states.length) {
+					candidate.pillbox_orbit_states = states;
+					changed = true;
+				}
+			}
+		}
+		for (let [step, indices] of landings) {
+			if (indices.length !== 1) continue;
+			let owners = pill.members.filter(member =>
+				member.step + best === step);
+			if (owners.length !== 1) continue;
+			claims.push({ owner: owners[0], next_index: indices[0] });
+		}
+	}
+	for (let claim of claims) {
+		let owner_candidate = by_previous[claim.owner.index].find(candidate =>
+			candidate.next_index === claim.next_index &&
+			!candidate.target.terminal && !removed.has(candidate));
+		if (!owner_candidate) continue;
+		for (let candidate of by_next[claim.next_index]) {
+			if (candidate === owner_candidate || retained.has(candidate)) {
+				continue;
+			}
+			removed.add(candidate);
+		}
+	}
+	if (!removed.size) return changed;
+	for (let i = 0; i < by_previous.length; i++) {
+		by_previous[i] = by_previous[i].filter(candidate =>
+			!removed.has(candidate));
+	}
+	for (let i = 0; i < by_next.length; i++) {
+		by_next[i] = by_next[i].filter(candidate => !removed.has(candidate));
+	}
+	return true;
+}
+
 /* Match only mutually best candidates, and only when each wins by a useful
  * margin over its alternatives. Shell lists carry no IDs and may gain or
  * lose entries at any restatement, so an unmatched pop is safer than a
@@ -1762,6 +1911,8 @@ function match_shell_snapshots(previous, next) {
 		}
 		if (enforce_pillbox_lockstep_candidates(previous.shells, by_previous,
 			by_next)) changed = true;
+		if (enforce_roster_lockstep_candidates(previous.shells, target_groups,
+			by_previous, by_next, duration)) changed = true;
 		if (!changed) break;
 		for (let choices of by_previous) choices.sort((a, b) => a.cost - b.cost);
 		for (let choices of by_next) choices.sort((a, b) => a.cost - b.cost);
@@ -2016,25 +2167,13 @@ const LOCKSTEP_REFERENCE_MIN_SCORE = 3;
 const LOCKSTEP_REFERENCE_MIN_MARGIN = 2;
 
 function build_pill_lockstep_reference(snapshots) {
-	/* A statement's step is pinned when every surviving state agrees on
-	 * it -- one bradian, or several bradians at one step, as near-muzzle
-	 * states are. */
-	let pinned_step = shell => {
-		let states = shell.pillbox_orbit_states;
-		if (!states || !states.length) return null;
-		let step = states[0].step;
-		for (let state of states) {
-			if (state.step !== step) return null;
-		}
-		return step;
-	};
 	let roster = (snapshot, include) => {
 		let by_pill = new Map();
 		for (let shell of snapshot.shells) {
 			if (shell.pillbox_source_x === undefined || !include(shell)) {
 				continue;
 			}
-			let step = pinned_step(shell);
+			let step = pinned_orbit_step(shell.pillbox_orbit_states);
 			if (step === null) continue;
 			let key = `${shell.pillbox_source_x}:${shell.pillbox_source_y}`;
 			let steps = by_pill.get(key);
