@@ -122,11 +122,11 @@ Constant at all ten commits, and worth having once:
 | `029acac` | subsumed joins | 0.994671 | 0.001949 | **0.833354** | **236,059** |
 | `537cb6d` | pill-stream lockstep | 0.994823 | 0.001914 | 0.833265 | 235,967 |
 | `3956580` | late-head slide | 0.994823 | 0.001914 | 0.833265 | 235,967 |
-| `e2bbbfb` | dilated continuations | **0.995341** | **0.001601** | 0.833183 | 235,739 |
+| `e2bbbfb` | dilated continuations | 0.995341 | 0.001601 | 0.833183 | 235,739 |
 | `c890ecc` | seam closure | 0.995341 | 0.001601 | 0.833183 | 235,739 |
 | `baee09c` | tail slide | 0.995341 | 0.001601 | 0.833183 | 235,739 |
 | `716a349` | guard split | 0.995341 | 0.001601 | 0.833183 | 235,739 |
-| `cecdd9d` | pill-wide lockstep | | | | |
+| `cecdd9d` | pill-wide lockstep | **0.995415** | **0.001547** | 0.833156 | 235,715 |
 
 The rows below the guard run were measured later, from the corpus
 holder's live checkouts: `97fa412` closes the unmeasured-`main` gap the
@@ -147,7 +147,9 @@ is the audit's seam pair going to 0 / 0.00. `baee09c` -- the tail
 slide, see its section -- is drawing-only too; its gain is the
 rushed-terminal class. `716a349` -- the smoothing guard split, see its
 section -- likewise; its gain is the refused-chain crawl-and-sprint
-class. The `97fa412`..`537cb6d` runs report
+class. `cecdd9d` -- the pill-wide lockstep, see its section -- moves
+both shell-side records on again for 51 terminals returned, so
+`029acac` still keeps both terminal-side columns. The `97fa412`..`537cb6d` runs report
 `files_failed 1` where the campaign runs report 0: one extra, unparseable
 file now sits in the corpus tree and contributes nothing, and every
 per-corpus total (shells, terminals by class, tank and LGM points and
@@ -1610,6 +1612,35 @@ possible (the ankle replay gave back two terminal links). The
 follow-up dial this sets up: the same one-advance-per-transition rule
 as a veto in the stitching and residual passes, which currently accept
 stories the matcher's lockstep would refuse.
+
+Corpus verification, run by the corpus holder at `d9454ce`
+(engine-identical to `cecdd9d`; raw runs kept under
+`docs/corpus_runs/`):
+
+* `shells_matched_forward` +721 (0.995341 -> **0.995415**) with
+  `pop_outs` 45,552 -> 44,831, exactly complementary, and
+  `shells_unlinked` 15,722 -> 15,186 (-3.4%, to **0.001547**): both
+  shell-side records move for the third commit in the arc, and the
+  +721 sits mid-range of the few-hundred-to-a-thousand call.
+* The attribution ledger trades invented stories for identity:
+  `shells_visual_joins` 3,235 -> 2,992 (-243, -7.5%) and
+  `shells_unseen_pillbox_birth` 12,890 -> 12,529 (-361), with
+  `shells_with_pillbox_source` +2,014 -- vetoed swaps re-linking as
+  the chains they always were.
+* The terminal cost: -51 (0.833183 -> 0.833156), a third the size of
+  the lockstep original's -174 and spread thin across classes
+  (`tank_hit` -24, `pillbox_damage` -19); the same two readings as
+  ever apply, and the residual-veto sequel is the instrument that
+  would shrink it.
+* Two soft misses, recorded: `pops_paired_backwards` fell -24 to
+  2,900 -- less than its proportional share, not more, so the
+  crossing class the rule targets is already mostly the matcher's
+  rarer failure -- and `rush_links`/`3.0+` +196 as some of the newly
+  correct links draw across their compressed stamp windows at the
+  clock's lie, the standing pace residue that belongs to the
+  drawing-side dials.
+* `seam_jumps` 0, hovers -49, rushed terminals +18, steady rate
+  -0.00016: the drawn axis otherwise holds.
 
 ## Findings
 
