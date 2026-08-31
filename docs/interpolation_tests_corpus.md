@@ -120,6 +120,7 @@ Constant at all ten commits, and worth having once:
 | `97fa412` | main, death dumps in | 0.994274 | 0.002143 | 0.832129 | 234,701 |
 | `029acac` | subsumed joins | 0.994671 | 0.001949 | **0.833354** | **236,059** |
 | `537cb6d` | pill-stream lockstep | **0.994823** | **0.001914** | 0.833265 | 235,967 |
+| `3956580` | late-head slide | 0.994823 | 0.001914 | 0.833265 | 235,967 |
 
 The rows below the guard run were measured later, from the corpus
 holder's live checkouts: `97fa412` closes the unmeasured-`main` gap the
@@ -128,12 +129,17 @@ run included), `029acac` -- the subsumed-joins branch, see its section
 -- takes all four headline records at once, and `537cb6d` -- the
 pill-stream lockstep branch, see its section -- moves the two shell-side
 records on while returning ~174 terminals, so `029acac` keeps both
-terminal-side columns. Those runs report
+terminal-side columns. `3956580` -- the late-head slide branch, see its
+section -- is drawing-only: its matching axis is byte-identical to
+`537cb6d`, so its row repeats that row and no records move; its gains
+live on the drawn audit. The `97fa412`..`537cb6d` runs report
 `files_failed 1` where the campaign runs report 0: one extra, unparseable
 file now sits in the corpus tree and contributes nothing, and every
 per-corpus total (shells, terminals by class, tank and LGM points and
 ticks) is byte-identical to the pinned 443-log corpus, so the rows are
-comparable.
+comparable. The `3956580` run reports `files 443, files_failed 0` --
+one more attempted file than the `.py` skip-list entry (`e5ec295`)
+predicts, still contributing nothing to any total; see its section.
 
 Before those rows, `ad2168d` held all four headline records (the terminal one with a caveat --
 the unmeasured intermediate state `f340943` sat higher, see its section).
@@ -1204,6 +1210,77 @@ would separate the two: inversions surviving the veto point at the
 second reading, a clean census with fewer explanations points at the
 first. It is the natural next measurement.
 
+## Late-head slide -- `3956580`
+
+Origin: the lockstep incident's replay again (b8f1763b-121001.2), same
+pillbox, the stream's *first* shot this time: the record carrying its
+fire and first restatement arrived ~20 ticks late (a 23-tick stamp gap
+against ~3 ticks of content movement), the next record arrived on
+time, and the 6-tick stamp window between them then had to carry 11
+orbit steps of real flight. The chain itself was correct -- the
+residual resolver forced the end onto its tank hit through the lead
+allowance and absorbed the middle restatement on the way -- but a
+chain head is a time anchor the smoothing pass never moves, so the
+first link drew at 7.4 px/tick against the physical 2.
+
+The fix is a drawing-only pass after smoothing
+(`slide_compressed_chain_heads`): a head link's drawn length is itself
+the sender's clock, so when it exceeds the stamp window by more than
+the one-sided quantisation bound explains (8 px), the head's drawn
+position slides forward along the link to where the shell truly was at
+its stamped time, leaving exactly the window's worth of flight. The
+birth-segment builder re-derives its span from the slid position
+(pillbox and tank branches both), so the muzzle-to-head flight hands
+off seamlessly at true speed -- in the incident the birth now leaves
+the muzzle at about the true fire time and the link draws at exactly
+2 px/tick.
+
+Fixture (the incident replay): `link_speed:3.0+` 1 -> 0 and
+`rush_links` 1 -> 0, both into the steady bucket; the rates report is
+byte-identical, hash included. Three new checks pin the slide, the
+birth handoff and the punctual-head no-op. The synthetic reduction
+links through the resolver's dilated join at 6 orbit steps -- the
+incident's own 11 exceeds `DILATED_CATCHUP_PIXELS` and needed the
+terminal forcing, which the fixture idiom does not reach.
+
+Corpus, `537cb6d` -> `3956580`, run by the corpus holder:
+
+* Matching axis: every result line byte-identical, as designed -- the
+  pass writes drawn positions only.
+* 956 links slide into the steady bucket, and the histogram shows
+  nothing else: `3.0+` 4,206 -> 3,767 (-439, -10.4%), `2.5-3.0`
+  15,105 -> 14,671 (-434), `2.2-2.5` 97,220 -> 97,137 (-83),
+  `1.8-2.2` +956 exactly; every slower bucket byte-identical, the
+  pass being unable to move a head anywhere but forward.
+  `rush_links` 4,149 -> 3,710 (-10.6%), `rate_links_steady`
+  0.964431 -> 0.964548.
+* Six pop pairs reclassify backwards -> forward:
+  `pops_paired_backwards` 3,134 -> 3,128 with `pops_paired_forward`
+  +6 -- a slid head can only move a reappearance forward along its
+  track. The first move down after three consecutive creeps
+  (3,096 -> 3,116 -> 3,134); the watch stands, but the direction is
+  finally right.
+* Untouched, as predicted: hovers 3,894, pop-outs 50,638, pop-ins
+  40,927, `terminal_links_rushed` 71,552 (terminal links are outside
+  the pass's scope; still the largest fast-drawing class by far), and
+  seams 53 with max 2.83 -- which also re-confirms the lockstep row's
+  119 -> 53 halving that its section asked to see again before
+  crediting.
+* The residue at `3.0+` (3,767) is mid-chain compression -- a late
+  record *inside* a chain, where whole-chain smoothing's 24 px
+  deviation guard stands down -- plus head links under the 8 px
+  threshold. Mid-chain wants piecewise re-timing rather than the
+  single-line whole-chain model; the rushed-terminal class, nineteen
+  times larger, is the axis's real headroom.
+* Bookkeeping: `files 443, files_failed 0`. The `.py` skip-list entry
+  (`e5ec295`) predicts 442/0 -- the walker excludes at enumeration --
+  so one more file than expected is attempted, parses, and
+  contributes nothing to any total (every per-corpus total is
+  byte-identical to the pinned corpus). Unresolved; worth one look at
+  the corpus tree.
+
+## Findings
+
 * **The fixture's headline conclusions all survive the scale-up.** The branch
   line leads the branch point on every headline metric (0.975030 against
   0.961727, 0.008829 against 0.013738, 0.816566 against 0.791346); it was
@@ -1271,7 +1348,8 @@ first. It is the natural next measurement.
   until the next run. (When this file first closed the current pair was
   `4572cff`/`926f391`, later `380e333`/`a74033a`. Since resolved: `main`'s
   HEAD was measured at `97fa412` and the line extended by the subsumed-joins
-  branch at `029acac`, then the pill-stream lockstep branch at `537cb6d` --
-  see the headline table and their sections.)
+  branch at `029acac`, then the pill-stream lockstep branch at `537cb6d`,
+  then the drawing-only late-head slide branch at `3956580` -- see the
+  headline table and their sections.)
 
 <!-- Remember to update the "headline table" at top! -->
