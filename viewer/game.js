@@ -321,22 +321,38 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 
 	for (const sub of rec.subpackets) {
 		switch (sub.type) {
-			case "tank_position":
+			case "tank_position": {
+				const prev = s.tanks[pl];
 				s.tanks[pl] = {
 					x: sub.x, y: sub.y, px: sub.pixelX, py: sub.pixelY,
 					dir: sub.direction, inBoat: sub.inBoat, hidden: sub.hidden,
 					dying: sub.dying, speed: sub.speed, lastSeen: rec.time,
+					/* like `dying`, but never overwritten by the status
+					 * nibble: whether the position itself is a flame */
+					position_dying: sub.dying,
 					position_time: rec.time, direction_time: rec.time,
 					/* positions with the dying bit are death-animation flames,
 					 * not a live tank; only a normal position is a respawn */
-					dead: sub.dying ? (s.tanks[pl] ? s.tanks[pl].dead : false) : false,
+					dead: sub.dying ? (prev ? prev.dead : false) : false,
 				};
 				s.present[pl] = true;
 				if (sub.dying) {
 					/* the dying-bit positions are the wreck's flames (the
 					 * notes call the C packets "flameage"): draw them, so
 					 * the sliding wreck is visible burning its way along */
-					if (effects) effects.push({ time: rec.time, type: "flame", x: sub.x, y: sub.y, px: sub.pixelX, py: sub.pixelY });
+					if (effects) {
+						/* The wreck's first restatement lands a restatement
+						 * interval (median ~17px, up to ~39px — the death
+						 * shove) past the tank's last live position, where the
+						 * viewer has been drawing it standing. A bridge flame
+						 * at that spot, at the frame the tank disappears,
+						 * joins the trail up to the standing tank. Visual
+						 * only: no clearance, no state. */
+						if (prev && !prev.position_dying) {
+							effects.push({ time: rec.time, type: "flame", x: prev.x, y: prev.y, px: prev.px, py: prev.py });
+						}
+						effects.push({ time: rec.time, type: "flame", x: sub.x, y: sub.y, px: sub.pixelX, py: sub.pixelY });
+					}
 					/* Forest clearing has no terrain event. Apply the same
 					 * strict integer box at every wreck/flame position. */
 					for (const [sx, sy] of death_clearance_squares(sub)) {
@@ -352,6 +368,7 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 					}
 				}
 				break;
+			}
 			case "lgm_position":
 			case "parachute_position":
 				s.men[pl] = {
