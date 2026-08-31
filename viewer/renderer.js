@@ -183,6 +183,7 @@ let drop_hint = document.getElementById("dropHint");
 let map_name_el = document.getElementById("mapName");
 let game_meta_el = document.getElementById("gameMeta");
 let network_meta_el = document.getElementById("networkMeta");
+let recorder_meta_el = document.getElementById("recorderMeta");
 let players_el = document.getElementById("players");
 let chat_el = document.getElementById("chat");
 let file_pick = document.getElementById("filePick");
@@ -1036,6 +1037,16 @@ async function load_log(bytes, name) {
 		`${net.loss.toFixed(1)}% of packets lost, ` +
 		`${net.stall.toFixed(1)}% of the time spent frozen; ` +
 		`measured over settled play, ${fmt_time(net.from)} to ${fmt_time(net.to)}` : "";
+
+	/* Whose machine wrote the file: the ring's records land in same-tick
+	 * bursts that end with the recording machine's own, and only the
+	 * recorder's quit can be the log's last record. */
+	let rec = game.recorder;
+	recorder_meta_el.textContent = "Recorded by: " +
+		(rec ? pretty(rec.name || `player ${rec.player}`) : "unknown");
+	recorder_meta_el.title = rec ?
+		`player slot ${rec.player}: their records close the ring's same-tick bursts` :
+		"the burst-timing and final-quit signals disagree or are inconclusive";
 
 	rebuild_chat(game.t0);
 	zoom_to_action();

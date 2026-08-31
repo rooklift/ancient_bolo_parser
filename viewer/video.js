@@ -599,6 +599,11 @@ function ex_game_panel(cx, cw, y) {
 		ctx.fillText(ex_truncate(net, cw), cx, y + 13);
 		y += 17;
 	}
+	let rec = recorder_meta_el.textContent;
+	if (rec) {
+		ctx.fillText(ex_truncate(rec, cw), cx, y + 13);
+		y += 17;
+	}
 	return ex_panel_border(y + 10);
 }
 
