@@ -108,7 +108,7 @@ if (!fs.existsSync(log1)) {
 	}
 	check("fixture orbit-membership and stream-provenance birth claims",
 		[orbit_births.unseen, orbit_births.stream, orbit_births.sound],
-		[27, 4, true]);
+		[23, 4, true]);
 
 	/* Terminal-failure diagnostics: read-only classification of every
 	 * terminal that ends the pipeline with no matched shell and no
@@ -156,10 +156,10 @@ if (!fs.existsSync(log1)) {
 			described, described === unexplained, reasons_sound,
 			classes.get("explosion:no_candidate:-"),
 			classes.get("pillbox_damage:end_continued:T"),
-		], [1035, true, true, 240, 89]);
+		], [1032, true, true, 240, 89]);
 		check("fixture same-record unseen shots claimed without cost", [
 			matched, unseen.pill, unseen.tank,
-		], [20692, 1222, 1126]);
+		], [20694, 1223, 1126]);
 
 		/* The end-side mirror: every chain end with no forward story gets
 		 * a class; the census must equal the unmatched-forward count less
@@ -188,7 +188,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture end-side census reconciles", [
 			ends_described, ends_described === unfated, end_reasons_sound,
 			fate_open,
-		], [319, true, true, 19]);
+		], [300, true, true, 21]);
 	}
 
 	let pill_burst = { total: 0, matched: 0 };
@@ -809,8 +809,13 @@ if (!fs.existsSync(log1)) {
 	 * geometric gate by a third of a pixel -- and it drew as a backwards
 	 * jump, a ten-tick hover and a forty-pixel rush. The orbit is
 	 * authoritative over the clock: a point strictly between the stitch's
-	 * own two steps is the shell. A shell-less record precedes the shot so
-	 * that birth attribution has a predecessor snapshot to work from. */
+	 * own two steps is the shell. The pairwise matcher now claims each
+	 * lying hop directly as a dilated same-orbit continuation (each
+	 * observation is the lone story on both of its sides), so the chain
+	 * links without the stitcher; stitch-plus-absorption remains the
+	 * fallback for contested observations. A shell-less record precedes
+	 * the shot so that birth attribution has a predecessor snapshot to
+	 * work from. */
 	let idle_tank = {
 		type: "tank_position", x: 100, y: 100, pixelX: 0, pixelY: 0,
 		direction: 0, inBoat: false, hidden: false, dying: false,
@@ -831,12 +836,12 @@ if (!fs.existsSync(log1)) {
 		record(149, [shell_list(9, [[2191, 2242]])]),
 	]);
 	let dilated_observation = dilated_pill_stream.shell_positions[0][3].shells[0];
-	check("an orbit point between a stitch's steps is absorbed however " +
-		"badly the sender's clock lies",
+	check("an orbit point between two lying restatements is claimed as " +
+		"the shell's own continuation",
 		[!!dilated_observation.matched_from_previous,
 			!!dilated_observation.stitched,
 			dilated_observation.pillbox_orbit_states],
-		[true, true, [{ bradian: 145, step: 14 }]]);
+		[true, false, [{ bradian: 145, step: 14 }]]);
 	/* The whole flight, not just the absorbed link: min and max drawn
 	 * speed are equal, so nothing hovers and nothing rushes. */
 	let dilated_speeds = [];
