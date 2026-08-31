@@ -46,7 +46,7 @@ const { Worker, isMainThread, parentPort } = require("node:worker_threads");
 
 const ROOT = path.join(__dirname, "..");
 const DEFAULT_REPLAY = path.join(ROOT, "fixtures", "n20021018.2");
-const SKIPPED_EXTENSIONS = /\.(txt|md|json|zip|sit|hqx|png|jpg|gif|bmp)$/i;
+const SKIPPED_EXTENSIONS = /\.(txt|md|json|zip|sit|hqx|png|jpg|gif|bmp|py)$/i;
 const MAX_CHAIN_OBSERVATIONS = 40;
 const MAX_FAILURE_SAMPLES = 10;
 const ALL_BRADIAN_SUBSAMPLE = 50;      /* every Nth chain */

@@ -17,7 +17,7 @@ const { Worker, isMainThread, parentPort, workerData } =
 
 const ROOT = path.join(__dirname, "..");
 const DEFAULT_REPLAY = path.join(ROOT, "fixtures", "n20021018.2");
-const SKIPPED_EXTENSIONS = /\.(txt|md|json|zip|sit|hqx|png|jpg|gif|bmp)$/i;
+const SKIPPED_EXTENSIONS = /\.(txt|md|json|zip|sit|hqx|png|jpg|gif|bmp|py)$/i;
 
 function empty_metrics() {
 	return {
