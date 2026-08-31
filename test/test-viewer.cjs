@@ -48,6 +48,10 @@ if (!fs.existsSync(log1)) {
 	// The verdict is read from settled play, so the ramp at the start is
 	// outside the measured span.
 	check("network conditions skips the join ramp", game.network.from > game.t0, true);
+	// Player 0's records close 99.8% of the ring's same-tick bursts, and the
+	// log's final record is player 0's own quit: both signals agree.
+	check("recorder identified with earliest name", game.recorder,
+		{ player: 0, name: "Jarvis@wolf.step.uwu.com" });
 
 	let shell_metrics = { total: 0, matched: 0, falls: 0 };
 	let matched_effect_terminals = new Set();
@@ -2078,6 +2082,42 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	let ending = BoloNetwork.network_conditions(quitting);
 	check("the span ends at the first quit", ending.to, quitAt);
 	check("the exodus after it is not charged as loss", ending.loss, 0);
+}
+
+// Recorder identification: records land in same-tick bursts, one per ring
+// cycle, ending with the recording machine's own record; and only the
+// recorder's quit can be the last record of the file. Either signal alone
+// is trusted, but a disagreement returns no verdict.
+{
+	// A settled three-player ring: each cycle's records share a tick, the
+	// file then quiet until the packet comes round again.
+	function ring(cycles) {
+		let recs = [];
+		let seq = 0, t = 1000;
+		for (let c = 0; c < cycles; c++, t += 12) {
+			for (let p of [0, 1, 2]) {
+				recs.push({ time: t, seq: (seq++) & 0x7f, player: p, tankStatus: 0, subpackets: [] });
+			}
+		}
+		recs[0].subpackets = [{ type: "base_capture" }]; /* settled throughout */
+		return recs;
+	}
+	function with_quit(recs, player) {
+		let last = recs[recs.length - 1];
+		return recs.concat([{
+			time: last.time + 12, seq: (last.seq + 1) & 0x7f, player,
+			tankStatus: 0, subpackets: [{ type: "quit", fields: [] }],
+		}]);
+	}
+
+	check("burst-final position names the recorder", BoloNetwork.recorder(ring(1000)), 2);
+	check("an agreeing terminal quit confirms it", BoloNetwork.recorder(with_quit(ring(1000), 2)), 2);
+	check("a disagreeing terminal quit withholds the verdict", BoloNetwork.recorder(with_quit(ring(1000), 0)), null);
+	check("too short for bursts alone to say", BoloNetwork.recorder(ring(5)), null);
+	check("the terminal quit alone still says", BoloNetwork.recorder(with_quit(ring(5), 1)), 1);
+	check("an attached-log insert is not the last record", BoloNetwork.recorder(
+		with_quit(ring(1000), 2).concat([{ time: 1e9, seq: 0, player: 0, tankStatus: 0x0f, subpackets: [] }])), 2);
+	check("no records, no recorder", BoloNetwork.recorder([]), null);
 }
 
 process.exit(failures ? 1 : 0);

@@ -134,6 +134,76 @@ function settled_span(records) {
 	return span.length >= MIN_SETTLED_RECORDS ? span : records;
 }
 
+/* WHO RECORDED THE LOG. The recording machine never names itself, but it
+ * identifies itself twice over in the shape of the stream:
+ *
+ *   BURST POSITION. Records land in same-tick bursts, one per ring cycle:
+ *   a record can only be written when the circulating ring packet is at
+ *   the logging machine, so a whole cycle's worth of foreign records
+ *   arrives at once, the recorder's own record is written as it sends,
+ *   and the file then goes quiet while the packet makes its way round.
+ *   The recorder is therefore the player whose records immediately
+ *   precede the inter-cycle gap -- 92-99% of them in the logs checked,
+ *   against 0-9% for everyone else, and the verdict is stable in every
+ *   five-minute block.
+ *
+ *   THE TERMINAL QUIT. Logging stops the moment the recording player
+ *   leaves, so anyone else's quit is followed by more records while the
+ *   recorder's own quit can be the last record of the file.
+ *
+ * Both signals were verified on a log whose recorder is independently
+ * known (and was not in slot 0); each alone picks the right player, so a
+ * disagreement means something is off and no verdict is returned. Two
+ * plausible-looking signals do NOT work and are not consulted: the
+ * log_bootinfo burst stamps sender 0 whoever is recording, and the
+ * recorder is not spared packet loss -- its own records occupy sequence
+ * slots and go missing like anyone's (the machine cannot log a cycle
+ * that never reached it), at the ring's highest rate in one sample log
+ * and its lowest in the other. */
+
+const BURST_GAP_TICKS = 6;      /* quiet after a record: the packet has left */
+const BURST_MIN_VOTES = 20;     /* below this the log is too short to say */
+const BURST_MARGIN = 3;         /* winner must lead the runner-up this much */
+
+function burst_final_player(records) {
+	/* Read over settled play, like the loss figure and for the same
+	 * reason: while the log is racing to catch up with the ring, burst
+	 * structure means nothing. BoloViewer's attached-log pseudo-records
+	 * are inserts by the viewer, not ring traffic, so they get no vote. */
+	let span = settled_span(records).filter(rec => rec.tankStatus !== 0x0f);
+	let votes = new Array(16).fill(0);
+	for (let i = 0; i < span.length - 1; i++) {
+		if (span[i + 1].time - span[i].time >= BURST_GAP_TICKS) {
+			votes[span[i].player & 0x0f]++;
+		}
+	}
+	let order = votes.map((count, player) => [count, player])
+		.sort((a, b) => b[0] - a[0]);
+	if (order[0][0] < BURST_MIN_VOTES) return null;
+	if (order[0][0] < BURST_MARGIN * order[1][0]) return null;
+	return order[0][1];
+}
+
+function terminal_quit_player(records) {
+	for (let i = records.length - 1; i >= 0; i--) {
+		if (records[i].tankStatus === 0x0f) continue;  /* viewer insert */
+		return records[i].subpackets.some(sub => sub.type === "quit")
+			? records[i].player & 0x0f : null;
+	}
+	return null;
+}
+
+/* The player slot the log was recorded by, or null when the log does not
+ * say decisively. Either signal alone is trusted; both present and
+ * disagreeing is a contradiction, not a majority of one. */
+function recorder(records) {
+	if (!records || records.length < 2) return null;
+	let burst = burst_final_player(records);
+	let quit = terminal_quit_player(records);
+	if (burst !== null && quit !== null && burst !== quit) return null;
+	return burst !== null ? burst : quit;
+}
+
 /* The band a pair of readings falls in, exposed so that measurement tools
  * can rate a stretch of records without going back through the trimmer. */
 function network_rating(loss, stall) {
@@ -173,7 +243,7 @@ function network_conditions(records) {
 	};
 }
 
-const BoloNetwork = { network_conditions, network_rating };
+const BoloNetwork = { network_conditions, network_rating, recorder };
 
 if (typeof module !== "undefined" && module.exports) {
 	module.exports = BoloNetwork;

@@ -891,6 +891,22 @@ function extract_initial_map(records, node_joins) {
 	return extract_initial_map_pass(records, death_pill_squares);
 }
 
+/* The player the log was recorded by (see BoloNetwork.recorder) with the
+ * earliest name their slot carried, for the header line. The earliest F8
+ * is the right one: the recorder is in the ring from the log's first
+ * record to its last, so its slot is never a reused one, and later F8s on
+ * it are renames. */
+function recorder_identity(records) {
+	let player = BoloNetwork.recorder(records);
+	if (player === null) return null;
+	for (const rec of records) {
+		if (rec.player !== player) continue;
+		let node = rec.subpackets.find(sub => sub.type === "node_id");
+		if (node) return { player, name: node.name };
+	}
+	return { player, name: null };
+}
+
 /* Build a seekable game from parsed records. */
 function build(records) {
 	const effects = [];
@@ -984,6 +1000,7 @@ function build(records) {
 		shell_fall_segments,
 		badMapRuns: seed.badRuns,
 		network: BoloNetwork.network_conditions(records),
+		recorder: recorder_identity(records),
 		final: s,
 		t0: records.length ? records[0].time : 0,
 		t1: records.length ? records[records.length - 1].time : 0,
