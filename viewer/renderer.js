@@ -1043,7 +1043,7 @@ async function load_log(bytes, name) {
 	 * recorder's quit can be the log's last record. */
 	let rec = game.recorder;
 	recorder_meta_el.textContent = "Recorded by: " +
-		(rec ? pretty(rec.name || `player ${rec.player}`) : "unknown");
+		(rec ? pretty((rec.name || `player ${rec.player}`).split("@")[0]) : "unknown");
 	recorder_meta_el.title = rec ?
 		`player slot ${rec.player}: their records close the ring's same-tick bursts` :
 		"the burst-timing and final-quit signals disagree or are inconclusive";
