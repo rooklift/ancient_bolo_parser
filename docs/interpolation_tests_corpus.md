@@ -127,6 +127,7 @@ Constant at all ten commits, and worth having once:
 | `baee09c` | tail slide | 0.995341 | 0.001601 | 0.833183 | 235,739 |
 | `716a349` | guard split | 0.995341 | 0.001601 | 0.833183 | 235,739 |
 | `cecdd9d` | pill-wide lockstep | **0.995415** | **0.001547** | 0.833156 | 235,715 |
+| `4233e94` | residual lockstep veto | 0.995308 | 0.001558 | 0.833192 | 235,747 |
 
 The rows below the guard run were measured later, from the corpus
 holder's live checkouts: `97fa412` closes the unmeasured-`main` gap the
@@ -1641,6 +1642,77 @@ Corpus verification, run by the corpus holder at `d9454ce`
   drawing-side dials.
 * `seam_jumps` 0, hovers -49, rushed terminals +18, steady rate
   -0.00016: the drawn axis otherwise holds.
+
+## Residual lockstep veto -- `4233e94`
+
+The lockstep's second arm: stitching and the residual flow accepted
+stories the matcher's lockstep would refuse. Now, for each pill and
+adjacent record pair, the pill's own STATEMENTS vote on the one
+advance the sender's transition carries -- accepted only when it
+explains at least three step-pinned statements and beats the runner-up
+by two -- and a stitch or dilated join must agree or it is refused.
+Conservation keeps the vote honest against cadence aliasing:
+terminal-matched shells died mid-pair and do not vote as survivors,
+claimed new shots are births and not landing spots. No dominant
+reference, no veto.
+
+Worth recording that two designs died on the fixture first. Trusting
+accepted links let a single uncorroborated pairwise crossing --
+admitted while its shell was still a sourceless orphan, exactly the
+class the rule hunts -- become a unanimous "reference" that vetoed the
+three correct joins beside it. And an unconserved roster vote aliased
+to the fire cadence: dying shells and fresh shots mapped the roster
+ladder onto its neighbours one slot over, outscoring the truth 7 to 5
+at a physically absurd advance. Statements outvote links, and only
+survivors vote.
+
+Every fixture veto was hand-verified against the rosters, all four
+righteous: a +9 stitch that was one half of a genuine crossing (its +5
+partner being pairwise, beyond this dial's reach), an orbit-pinned
+shell claiming a wholly off-orbit ghost chain, and two more of the
+same shapes -- while the pruning heals two other chain ends and
+matches one more terminal. The cost is honest pops where invented
+joins used to be: fixture pop-outs +2 net, the 110702.1 replay +7 with
+`rush_links` and the `3.0+` bucket down and the steady rate up.
+
+Corpus prediction for the next run: the first deliberate ledger
+give-back since `90925b0` -- `shells_matched_forward` DOWN by a few
+hundred to a thousand as vetoed joins leave, `pop_outs` up by the
+complement, `shells_visual_joins` down, `rush_links` and `3.0+` down a
+little, `seam_jumps` still 0, and small mixed movement in the birth
+and terminal ledgers (the fixture gained a terminal; the vetoed
+stories free their pieces for better claims). The known asymmetry, on
+the record: a crossing whose wrong half is a PAIRWISE link is beyond
+this dial -- the fixture shows two such surviving halves -- and
+feeding the same statement-roster reference into the pairwise matcher
+is the remaining lockstep dial.
+
+Corpus verification, run by the corpus holder at `b1659e9`
+(engine-identical to `4233e94`; raw runs kept under
+`docs/corpus_runs/`):
+
+* The give-back, as called: `shells_matched_forward` -1,042 (top of
+  the predicted range) with `pop_outs` +1,042, exactly complementary;
+  `shells_visual_joins` 2,992 -> 2,474 (-17.3%); `seam_jumps` 0;
+  `terminal_links_rushed` byte-identical. The vetoed starts re-settle
+  as stream-provenance births (+1,001) rather than joins.
+* Two signals the vetoed joins were really lies, neither predicted
+  this strongly. `terminals_matched` +70 with **every class gaining**
+  (`tank_hit` +32, `shell_falls` +23, `pillbox_damage` +11,
+  `explosion` +3, `base_damage` +1) -- only `029acac` had ever gained
+  every class at once -- the false joins had been hogging shells their
+  real impacts needed. And the speed histogram enriches: the steady
+  bucket GROWS by 1,760 links while total links fall 1,112, because
+  the removed joins were disproportionately mis-paced.
+* The misses, small: `rush_links` +20 and `3.0+` +18 where "down a
+  little" was called, and `pops_paired_backwards` +22 -- vetoed joins
+  expose the pop pairs they papered over, some reading backwards.
+  `shells_unseen_pillbox_birth` +48 against a "down" lean.
+* Ledger positions: `cecdd9d` keeps both shell-side records (0.995415
+  / 0.001547 against this row's 0.995308 / 0.001558 -- the give-back
+  returns roughly the pill-wide commit's coverage gain while keeping
+  its correctness), and the terminal rate rises to 0.833192, second
+  only to `029acac`'s record.
 
 ## Findings
 
