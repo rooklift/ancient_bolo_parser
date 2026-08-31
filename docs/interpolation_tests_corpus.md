@@ -125,6 +125,7 @@ Constant at all ten commits, and worth having once:
 | `e2bbbfb` | dilated continuations | **0.995341** | **0.001601** | 0.833183 | 235,739 |
 | `c890ecc` | seam closure | 0.995341 | 0.001601 | 0.833183 | 235,739 |
 | `baee09c` | tail slide | 0.995341 | 0.001601 | 0.833183 | 235,739 |
+| `716a349` | guard split | 0.995341 | 0.001601 | 0.833183 | 235,739 |
 
 The rows below the guard run were measured later, from the corpus
 holder's live checkouts: `97fa412` closes the unmeasured-`main` gap the
@@ -143,7 +144,9 @@ columns. `c890ecc` -- the seam closure, see its section -- is
 drawing-only like `3956580`: its row repeats `e2bbbfb`'s and its gain
 is the audit's seam pair going to 0 / 0.00. `baee09c` -- the tail
 slide, see its section -- is drawing-only too; its gain is the
-rushed-terminal class. The `97fa412`..`537cb6d` runs report
+rushed-terminal class. `716a349` -- the smoothing guard split, see its
+section -- likewise; its gain is the refused-chain crawl-and-sprint
+class. The `97fa412`..`537cb6d` runs report
 `files_failed 1` where the campaign runs report 0: one extra, unparseable
 file now sits in the corpus tree and contributes nothing, and every
 per-corpus total (shells, terminals by class, tank and LGM points and
@@ -1497,6 +1500,49 @@ crawling links traded for 7,268 links running mildly fast end to end
 and 196 crossing 3 px/tick. On the file's own perceptual reading --
 sprints and crawls are what the eye catches, a uniform 2.3 is not --
 that is the intended trade at close to the intended price.
+
+## The smoothing guard split -- `716a349`
+
+The piecewise re-timing dial, delivered by a smaller cut than the name
+suggested. The residue it targeted -- 110702.1's three remaining 5.6
+px/tick links, mid-chain compression where whole-chain smoothing
+stands down -- turned out to be a guard problem, not a model problem.
+The 24px deviation bound conflated two claims: CROSS-track deviation
+(off the chain's own ray -- the observation may not be this chain's
+story, the real reason to refuse) and ALONG-track deviation (the
+sender's stamp lying about when the shell was seen at a point it
+provably occupied; shells fly straight, so an on-ray point between the
+anchors is the shell at SOME time). Measured over this file's laggiest
+replays, every chain the radial bound refused sat within ONE PIXEL of
+its ray while lying up to 35.5px along it -- record backlog, not
+doubtful identity -- and refusing drew each lie raw as a crawl into
+the stale restatement and a sprint out of it. And because shells fly
+straight, the chord is the flight path: constant-velocity re-timing
+onto it is exactly the piecewise dial, with no new model needed.
+
+The guard now tests the components separately: cross-track keeps 24px,
+along-track allows 48 (twice the radial bound, covering the worst
+observed lie with margin). Strictly wider -- every chain smoothed
+before still is, so nothing regresses by construction.
+
+Fixture: byte-identical, hash included (it has no refused chains at
+all -- the class lives in laggy logs). The incident replay collapses
+its class: `hover_links` 34 -> 18, `rush_links` 29 -> 8, `3.0+`
+29 -> 8, `0.0-0.5` to zero, +84 links steady; the ankle replay's one
+refused chain smooths (a hover gone). Rates reports byte-identical
+everywhere; seams 0. The synthetic test pins an interior 28px behind
+schedule and 0.3px off the ray re-timing to a constant 2.02 px/tick,
+and fails on the previous engine unsmoothed.
+
+Corpus prediction for the next run: matching axis byte-identical;
+`hover_links` (3,995) and `rush_links` (5,731) both down along with
+`3.0+` (5,785) and the slow buckets, steady up. Magnitude is poorly
+bracketed by the local logs -- the refused-chain population is
+strongly lag-dependent (22 chains in 110702.1, one in the ankle
+replay, zero in the fixture) -- so direction is the claim, not size.
+The tail slide's +196 pace-compressed chains are NOT this population
+(they smooth already, too fast overall) and should not move; they
+remain the number to watch.
 
 ## Findings
 
