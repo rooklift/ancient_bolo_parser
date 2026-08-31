@@ -77,8 +77,9 @@ The last row is no longer `main`'s row, though: `main` has since gained the
 death-dump terrain commits (`72adf37`, `b805f2c`), which touch
 `viewer/game.js` -- a module the report loads -- and were unmeasured until
 the `97fa412` run recorded in the headline table: `main`'s HEAD is now
-measured, and the current measured state of record is the subsumed-joins
-branch at `029acac` (see its section). (Earlier
+measured, and the current measured state of record is the pill-stream
+lockstep branch at `537cb6d` (see its section), which carries both
+shell-side records; `029acac` keeps both terminal-side ones. (Earlier
 revisions of this paragraph pinned the file at `926f391`/`4572cff`, then at
 `a74033a`/`380e333`; later sections were measured from live checkouts of the
 named commits, per their sections.)
@@ -117,13 +118,17 @@ Constant at all ten commits, and worth having once:
 | `ad2168d` | leading impacts | 0.993965 | 0.002019 | 0.829538 | 233,481 |
 | `90925b0` | absorption guards | 0.993725 | 0.002190 | 0.829357 | 233,450 |
 | `97fa412` | main, death dumps in | 0.994274 | 0.002143 | 0.832129 | 234,701 |
-| `029acac` | subsumed joins | **0.994671** | **0.001949** | **0.833354** | **236,059** |
+| `029acac` | subsumed joins | 0.994671 | 0.001949 | **0.833354** | **236,059** |
+| `537cb6d` | pill-stream lockstep | **0.994823** | **0.001914** | 0.833265 | 235,967 |
 
-The two rows below the guard run were measured later, from the corpus
+The rows below the guard run were measured later, from the corpus
 holder's live checkouts: `97fa412` closes the unmeasured-`main` gap the
 currency notes tracked (death-dump terrain and everything since the guard
-run included), and `029acac` -- the subsumed-joins branch, see its section
--- takes all four headline records at once. Those runs report
+run included), `029acac` -- the subsumed-joins branch, see its section
+-- takes all four headline records at once, and `537cb6d` -- the
+pill-stream lockstep branch, see its section -- moves the two shell-side
+records on while returning ~174 terminals, so `029acac` keeps both
+terminal-side columns. Those runs report
 `files_failed 1` where the campaign runs report 0: one extra, unparseable
 file now sits in the corpus tree and contributes nothing, and every
 per-corpus total (shells, terminals by class, tank and LGM points and
@@ -1121,6 +1126,84 @@ unexplained impact), rush links +190, and backwards pops 3,096 -> 3,116
 (+20 on a metric whose absolute base shrank 7%; flat, but the one
 number worth re-checking on the next run).
 
+## Pill-stream lockstep -- `537cb6d`
+
+Origin: a replay outside the corpus (b8f1763b-121001.2), where a
+pillbox's two final shots at a fleeing tank -- same fine direction,
+bradian 163, two orbit steps apart -- drew the later shot overtaking
+the earlier one mid-air and falling six ticks before it. Two live
+shells from one pill on one bradian advance in lockstep, so that is
+impossible; the invariant is the corpus holder's: same sender, both
+from a pillbox, both ending in shell falls -- birth order is fall
+order. In the incident, one record pair arrived 5 receiver-ticks apart
+carrying 8 sender-ticks of flight; the leader's short hop into the
+trailer's true position then cost 2.19 against 6.28 for its own
+continuation -- a margin the matcher treats as decisive -- the
+trailer's true hop fell to the 8px error cutoff, and the stitch pass
+completed the identity swap. Every later restatement and both falls
+were then attributed crosswise.
+
+The fix is a pruning pass in the pairwise matcher
+(`enforce_pillbox_lockstep_candidates`, in the constraint-refinement
+loop): within one snapshot, the same-stream shells narrowed to the same
+single bradian must advance by one common step count, and candidates no
+jointly consistent story supports are pruned. When no common advance
+exists (a fall mid-interval, a dropped restatement) the pass stands
+down, so it vetoes physically impossible crossings and never invents a
+link; terminals are exempt, dying being how a shell leaves the
+lockstep. Enforcement has to sit in the matcher: by the time two falls
+read out of order the chains have already traded tails mid-air, and
+reassigning fall records cannot uncross the drawn paths.
+
+Fixture: matched forward 0.995634 -> 0.995675, unlinked
+0.002142 -> 0.002102, steady drawn links 0.977891 -> 0.978499,
+pop-outs 322 -> 319, hovers 4 -> 3, terminals unchanged. Two frozen
+census pins move with it (three fewer unfated ends; two
+stream-provenance birth claims no longer needed, their chains now
+staying connected). The synthetic test reduced from the incident locks
+both the no-crossing assignment and the fall order, and fails on the
+previous engine with exactly the observed swap.
+
+Corpus, `029acac` -> `537cb6d`, run by the corpus holder (the same
+`files_failed 1` condition as the previous two rows; every per-corpus
+total byte-identical). The `029acac` raw report is not in the tree, so
+deltas marked ~ are derived from its published rates; the rest are
+exact against recorded absolutes.
+
+* `shells_matched_forward` ~+1,493 (0.994671 -> 0.994823) and
+  `shells_unlinked` 19,134 -> 18,792 (-1.8%): both shell-side records
+  move again.
+* `pop_outs` 52,133 -> 50,638 (-1,495) -- once more almost exactly the
+  complement of the forward-match gain.
+* `seam_jumps` 119 -> 53 and `seam_jump_max` 3.16 -> 2.83 -- the
+  largest proportional movement on the drawn axis, and more than the
+  incident class alone would predict. Plausibly real: a crossed pair
+  hands two chains through one another's restatements, which is
+  exactly the handoff mismatch the seam metric exists to catch. Worth
+  re-confirming next run before crediting it fully.
+* The cost: `terminals_matched` ~-174 (0.833354 -> 0.833265), giving
+  back about seven percent of the subsumed-joins commit's +2,383.
+  `tank_hit` -92 (236,059 -> 235,967) is the only class the recorded
+  history can pin; the remaining ~-82 cannot be decomposed without the
+  prior run's class lines. (Note for future runs: keep the raw
+  reports.)
+* `pops_paired_backwards` 3,116 -> 3,134 (+18): a third consecutive
+  small creep on a base that keeps shrinking; still the number to
+  watch.
+
+Two readings of the terminal cost, not separable from rates alone. A
+crossed chain can reach a terminal the true chain cannot be *proven*
+to reach, so part of the -174 is false credit leaving the ledger --
+the rate counts explanations, not correct ones. Or the common-advance
+intersection can over-prune when one member's true candidate is
+missing from the table (the same 8px cutoff that started this),
+stranding a chain short of its fall. The ordinal fall-order check
+discussed alongside the change -- pill-fire stream order against
+fall-record stream order within one sender, no timestamps anywhere --
+would separate the two: inversions surviving the veto point at the
+second reading, a clean census with fewer explanations points at the
+first. It is the natural next measurement.
+
 * **The fixture's headline conclusions all survive the scale-up.** The branch
   line leads the branch point on every headline metric (0.975030 against
   0.961727, 0.008829 against 0.013738, 0.816566 against 0.791346); it was
@@ -1188,6 +1271,7 @@ number worth re-checking on the next run).
   until the next run. (When this file first closed the current pair was
   `4572cff`/`926f391`, later `380e333`/`a74033a`. Since resolved: `main`'s
   HEAD was measured at `97fa412` and the line extended by the subsumed-joins
-  branch at `029acac` -- see the headline table and its section.)
+  branch at `029acac`, then the pill-stream lockstep branch at `537cb6d` --
+  see the headline table and their sections.)
 
 <!-- Remember to update the "headline table" at top! -->

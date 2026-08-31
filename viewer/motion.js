@@ -1519,6 +1519,99 @@ function constrain_pillbox_candidates_to_targets(by_previous, by_next) {
 	return true;
 }
 
+/* Two live shells from one pillbox on one fine direction advance in
+ * lockstep -- the sender moves every shell one orbit step in the same
+ * update pass -- so the step gap between them never changes while both
+ * are restated, the earlier shot stays ahead until it falls, and (with
+ * the fixed 32-step lifetime) birth order is fall order. Distance cost
+ * alone cannot see this: a receiver interval compressed by record-time
+ * jitter makes the leader's short hop into the trailer's true position
+ * look cheaper than its own true continuation, and the two identities
+ * swap -- drawn as the later shot overtaking the earlier one mid-air and
+ * falling first. Enforce the lockstep instead: when the shells of one
+ * stream, each narrowed to the same single bradian, have candidate
+ * successors in this snapshot, one common step advance must explain a
+ * candidate of every such shell; candidates no common advance supports
+ * are pruned. When no common advance exists (a fall mid-interval, a
+ * dropped restatement), nothing is pruned -- the rule only refuses
+ * pairings that contradict every jointly consistent story, so it can
+ * veto a physically impossible crossing but never invent a link.
+ * Terminal candidates stay out of it entirely: dying is exactly how a
+ * shell leaves the lockstep. */
+function enforce_pillbox_lockstep_candidates(previous_shells, by_previous,
+	by_next) {
+	let groups = new Map();
+	for (let index = 0; index < previous_shells.length; index++) {
+		let shell = previous_shells[index];
+		let states = shell.pillbox_orbit_states;
+		if (shell.pillbox_source_x === undefined || !states ||
+			!states.length) continue;
+		let bradian = states[0].bradian;
+		if (states.some(state => state.bradian !== bradian)) continue;
+		let key =
+			`${shell.pillbox_source_x}:${shell.pillbox_source_y}:${bradian}`;
+		let group = groups.get(key);
+		if (!group) groups.set(key, group = []);
+		group.push({ index, steps: states.map(state => state.step) });
+	}
+
+	let changed = false;
+	for (let group of groups.values()) {
+		if (group.length < 2) continue;
+		/* Every step advance some successor candidate of this shell could
+		 * represent. Residual step uncertainty (several surviving states on
+		 * the one bradian) widens the set; it never narrows wrongly. */
+		let advance_sets = group.map(member => {
+			let advances = new Set();
+			for (let candidate of by_previous[member.index]) {
+				if (candidate.target.terminal ||
+					!candidate.pillbox_orbit_states) continue;
+				for (let state of candidate.pillbox_orbit_states) {
+					for (let step of member.steps) {
+						if (state.step > step) advances.add(state.step - step);
+					}
+				}
+			}
+			return advances;
+		});
+		let constrained = advance_sets.filter(advances => advances.size);
+		if (constrained.length < 2) continue;
+		let allowed = new Set([...constrained[0]].filter(advance =>
+			constrained.every(advances => advances.has(advance))));
+		if (!allowed.size) continue;
+
+		let removed = new Set();
+		for (let i = 0; i < group.length; i++) {
+			if (!advance_sets[i].size) continue;
+			let member = group[i];
+			for (let candidate of by_previous[member.index]) {
+				if (candidate.target.terminal ||
+					!candidate.pillbox_orbit_states) continue;
+				let states = candidate.pillbox_orbit_states.filter(state =>
+					member.steps.some(step => state.step > step &&
+						allowed.has(state.step - step)));
+				if (!states.length) removed.add(candidate);
+				else if (states.length <
+					candidate.pillbox_orbit_states.length) {
+					candidate.pillbox_orbit_states = states;
+					changed = true;
+				}
+			}
+		}
+		if (!removed.size) continue;
+		changed = true;
+		for (let member of group) {
+			by_previous[member.index] = by_previous[member.index].filter(
+				candidate => !removed.has(candidate));
+		}
+		for (let i = 0; i < by_next.length; i++) {
+			by_next[i] = by_next[i].filter(candidate =>
+				!removed.has(candidate));
+		}
+	}
+	return changed;
+}
+
 /* Match only mutually best candidates, and only when each wins by a useful
  * margin over its alternatives. Shell lists carry no IDs and may gain or
  * lose entries at any restatement, so an unmatched pop is safer than a
@@ -1607,6 +1700,8 @@ function match_shell_snapshots(previous, next) {
 		if (constrain_pillbox_candidates_to_targets(by_previous, by_next)) {
 			changed = true;
 		}
+		if (enforce_pillbox_lockstep_candidates(previous.shells, by_previous,
+			by_next)) changed = true;
 		if (!changed) break;
 		for (let choices of by_previous) choices.sort((a, b) => a.cost - b.cost);
 		for (let choices of by_next) choices.sort((a, b) => a.cost - b.cost);
