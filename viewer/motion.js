@@ -1988,13 +1988,138 @@ function pill_states_reachable(end_shell, shell, duration) {
 	return false;
 }
 
+/* The residual arm of the pill-wide lockstep ([E:shell-list-skew]).
+ * Between two records of one sender, every live shell of one pillbox
+ * advances by one common step count -- and the pill's own STATEMENTS
+ * vote on what that count was, no matcher decision trusted: for each
+ * pill and adjacent record pair, score every plausible advance by how
+ * many step-pinned statements of the first record land exactly on a
+ * step-pinned statement of the second, and accept the winner only when
+ * it explains at least three shells and beats the runner-up by at
+ * least two. Conservation keeps the vote honest against cadence
+ * aliasing -- a pill fires every couple of steps, so the roster is a
+ * near-regular ladder that maps onto its own future at the true
+ * advance minus the cadence too, with dying shells and fresh shots
+ * tipping the score toward the alias. So only survivors vote: a
+ * source statement whose shell already has a matched terminal died
+ * mid-pair and is out of the lockstep, and a destination statement
+ * already claimed as a new shot is a birth, not anyone's landing
+ * spot. Spans across skipped records compose adjacent winners, and
+ * exist only when every hop has one.
+ *
+ * Trusting accepted links instead was tried and measurably backfired:
+ * a single uncorroborated pairwise link -- the very crossing this rule
+ * exists to kill, admitted while its shell was still a sourceless
+ * orphan -- became a unanimous "reference" that then vetoed the three
+ * correct joins beside it. Statements outvote links. */
+const LOCKSTEP_REFERENCE_MIN_SCORE = 3;
+const LOCKSTEP_REFERENCE_MIN_MARGIN = 2;
+
+function build_pill_lockstep_reference(snapshots) {
+	/* A statement's step is pinned when every surviving state agrees on
+	 * it -- one bradian, or several bradians at one step, as near-muzzle
+	 * states are. */
+	let pinned_step = shell => {
+		let states = shell.pillbox_orbit_states;
+		if (!states || !states.length) return null;
+		let step = states[0].step;
+		for (let state of states) {
+			if (state.step !== step) return null;
+		}
+		return step;
+	};
+	let roster = (snapshot, include) => {
+		let by_pill = new Map();
+		for (let shell of snapshot.shells) {
+			if (shell.pillbox_source_x === undefined || !include(shell)) {
+				continue;
+			}
+			let step = pinned_step(shell);
+			if (step === null) continue;
+			let key = `${shell.pillbox_source_x}:${shell.pillbox_source_y}`;
+			let steps = by_pill.get(key);
+			if (!steps) by_pill.set(key, steps = new Set());
+			steps.add(step);
+		}
+		return by_pill;
+	};
+	let sources = snapshots.map(snapshot =>
+		roster(snapshot, shell => !shell.next_terminal));
+	let targets = snapshots.map(snapshot =>
+		roster(snapshot, shell => !shell.starts_at_pillbox &&
+			!shell.starts_at_tank));
+	let adjacent = snapshots.map(() => new Map());
+	for (let i = 0; i + 1 < snapshots.length; i++) {
+		let duration = snapshots[i + 1].time - snapshots[i].time;
+		let max_advance = Math.ceil(duration / TICKS_PER_SHELL_UPDATE) +
+			DILATED_UPDATE_SLACK;
+		for (let [pill, steps_a] of sources[i]) {
+			let steps_b = targets[i + 1].get(pill);
+			if (!steps_b || steps_a.size < LOCKSTEP_REFERENCE_MIN_SCORE) continue;
+			let best = null, best_score = 0, runner_up = 0;
+			for (let advance = 1; advance <= max_advance; advance++) {
+				let score = 0;
+				for (let step of steps_a) {
+					if (steps_b.has(step + advance)) score++;
+				}
+				if (score > best_score) {
+					runner_up = best_score;
+					best_score = score;
+					best = advance;
+				} else if (score > runner_up) {
+					runner_up = score;
+				}
+			}
+			if (best_score >= LOCKSTEP_REFERENCE_MIN_SCORE &&
+				best_score >= runner_up + LOCKSTEP_REFERENCE_MIN_MARGIN) {
+				adjacent[i].set(pill, best);
+			}
+		}
+	}
+	let reference = new Map();
+	for (let i = 0; i + 1 < snapshots.length; i++) {
+		for (let [pill, first] of adjacent[i]) {
+			let advance = first;
+			for (let j = i + 1; j < snapshots.length &&
+				snapshots[j].time - snapshots[i].time <=
+					MAX_STITCH_GAP_TICKS; j++) {
+				reference.set(`${pill}:${snapshots[i].time}:${snapshots[j].time}`,
+					advance);
+				let hop = adjacent[j].get(pill);
+				if (hop === undefined) break;
+				advance += hop;
+			}
+		}
+	}
+	return reference;
+}
+
+/* The advance the statement rosters establish for this end's pill over
+ * (end.time, start.time), or null when no dominant reference exists --
+ * in which case the joins fall back to their ordinary gates, exactly
+ * as the matcher's lockstep stands down when no common advance
+ * exists. */
+function unanimous_lockstep_advance(reference, end, start) {
+	if (!reference) return null;
+	let end_shell = end.shell;
+	if (end_shell.pillbox_source_x === undefined) return null;
+	let states = end_shell.pillbox_orbit_states;
+	if (!states || !states.length) return null;
+	let advance = reference.get(`${end_shell.pillbox_source_x}:` +
+		`${end_shell.pillbox_source_y}:${end.time}:${start.time}`);
+	return advance === undefined ? null : advance;
+}
+
 /* A join the ordinary physics refused, admissible only because the
  * sender's record clock is known to lie: the start must sit forward on
  * the end's ray within stall-to-catch-up bounds, and be reachable on the
  * end's discrete track under the widened window. The penalty keeps every
  * ordinary story preferred, and the resolver's margins arbitrate what
- * remains. */
-function dilated_join_candidate(end, start) {
+ * remains. A unanimous lockstep reference for the span overrides the
+ * widened window entirely: the pill's own statements say how far every
+ * one of its shells advanced, so the start must sit at exactly that
+ * step. */
+function dilated_join_candidate(end, start, reference = null) {
 	let duration = start.time - end.time;
 	if (duration <= 0 || duration > MAX_SHELL_INTERPOLATION_TICKS) return null;
 	let end_shell = end.shell;
@@ -2025,6 +2150,20 @@ function dilated_join_candidate(end, start) {
 	if (along < -1 || along > expected + DILATED_CATCHUP_PIXELS) return null;
 	if (!tank_states_reachable(end_shell, shell, duration) ||
 		!pill_states_reachable(end_shell, shell, duration)) return null;
+	let advance = unanimous_lockstep_advance(reference, end, start);
+	if (advance !== null) {
+		let relative_x = shell.pixel_x - end_shell.pillbox_source_x;
+		let relative_y = shell.pixel_y - end_shell.pillbox_source_y;
+		let uncertainty = shell.position_uncertainty || 0;
+		let consistent = end_shell.pillbox_orbit_states.some(state => {
+			let orbit = PILLBOX_ORBITS_BY_BRADIAN.get(state.bradian);
+			let step = state.step + advance;
+			return step < orbit.positions.length &&
+				pillbox_orbit_position_matches(orbit.positions[step],
+					relative_x, relative_y, uncertainty);
+		});
+		if (!consistent) return null;
+	}
 	return {
 		end, start, duration, dilated: true, heading_x, heading_y,
 		cost: DILATED_JOIN_PENALTY_PIXELS + lateral +
@@ -2080,7 +2219,7 @@ function propagate_identity_down_chain(origin_shell, first_shell) {
 
 /* One end-to-start continuation candidate, or null. Shared between the
  * margin-based stitching pass and the forced-assignment residual pass. */
-function stitch_candidate(end, start) {
+function stitch_candidate(end, start, reference = null) {
 	let duration = start.time - end.time;
 	if (duration <= 0 || duration > MAX_STITCH_GAP_TICKS) return null;
 	if (end.shell.birth_time !== undefined &&
@@ -2102,6 +2241,18 @@ function stitch_candidate(end, start) {
 	if (match.dilated) return null;
 	if (!match.pillbox_orbit_states && !match.tank_bradian_states &&
 		duration > MAX_SHELL_INTERPOLATION_TICKS) return null;
+	if (match.pillbox_orbit_states) {
+		let advance = unanimous_lockstep_advance(reference, end, start);
+		if (advance !== null) {
+			let end_states = end.shell.pillbox_orbit_states;
+			let allowed = new Set(end_states.map(state =>
+				state.step + advance));
+			let states = match.pillbox_orbit_states.filter(state =>
+				allowed.has(state.step));
+			if (!states.length) return null;
+			match.pillbox_orbit_states = states;
+		}
+	}
 	return { end, start, duration, ...match };
 }
 
@@ -2522,6 +2673,7 @@ function first_at_or_after(items, time, time_of = item => item.time) {
  * considers only its earliest reachable starts, with the usual margin
  * against same-time contenders and against rival ends. */
 function stitch_shell_chains(snapshots) {
+	let reference = build_pill_lockstep_reference(snapshots);
 	let ends = [];
 	let starts = [];
 	for (let index = 0; index < snapshots.length; index++) {
@@ -2547,7 +2699,7 @@ function stitch_shell_chains(snapshots) {
 			i < starts.length &&
 			starts[i].time - end.time <= MAX_STITCH_GAP_TICKS; i++) {
 			let start = starts[i];
-			let candidate = stitch_candidate(end, start);
+			let candidate = stitch_candidate(end, start, reference);
 			if (!candidate) continue;
 			if (!by_end.has(end)) by_end.set(end, []);
 			by_end.get(end).push(candidate);
@@ -2975,6 +3127,7 @@ function apply_forced_unseen(creation, fate, units, match) {
 }
 
 function resolve_residual_shell_fates(snapshots) {
+	let reference = build_pill_lockstep_reference(snapshots);
 	let ends = [];
 	let starts = [];
 	let fate_groups = [];
@@ -3062,8 +3215,9 @@ function resolve_residual_shell_fates(snapshots) {
 		for (let ri of window) {
 			let right = rights[ri];
 			if (left.kind === "end" && right.kind === "start") {
-				let candidate = stitch_candidate(left.end, right.start) ||
-					dilated_join_candidate(left.end, right.start);
+				let candidate = stitch_candidate(left.end, right.start,
+					reference) ||
+					dilated_join_candidate(left.end, right.start, reference);
 				if (candidate) {
 					edges.push({ left: li, right: ri, candidate,
 						cost: candidate.cost });
@@ -3290,8 +3444,8 @@ function resolve_residual_shell_fates(snapshots) {
 					if (other.matched_from_previous || other.starts_at_tank ||
 						other.starts_at_pillbox) continue;
 					let start = { shell: other, time: snapshots[j].time };
-					let candidate = stitch_candidate(end, start) ||
-						dilated_join_candidate(end, start);
+					let candidate = stitch_candidate(end, start, reference) ||
+						dilated_join_candidate(end, start, reference);
 					if (candidate) {
 						continuation_cost = Math.min(continuation_cost,
 							candidate.cost);
