@@ -1,0 +1,51 @@
+name: Mac build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main", "claude/**"]
+    paths: ["viewer/**", ".github/workflows/mac-build.yml"]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Electron
+        working-directory: viewer
+        run: |
+          version="$(python3 -c "import re; print(re.search(r'ELECTRON_VERSION = \"(.+?)\"', open('builder.py').read()).group(1))")"
+          echo "Electron v${version}"
+          mkdir -p electron_zipped
+          for arch in arm64 x64; do
+            curl -fsSL --retry 4 -o "electron_zipped/electron-v${version}-darwin-${arch}.zip" \
+              "https://github.com/electron/electron/releases/download/v${version}/electron-v${version}-darwin-${arch}.zip"
+          done
+
+      - name: Build
+        working-directory: viewer
+        env:
+          BUILDER_ANY_BRANCH: "1" # actions/checkout leaves a detached HEAD, so builder.py cannot see a branch name
+        run: python3 builder.py
+
+      - name: Verify signatures
+        working-directory: viewer
+        run: |
+          for d in dist/*-mac-*/; do
+            codesign --verify --deep --strict --verbose=2 "${d}Ancient Bolo Log Viewer.app"
+          done
+
+      - name: Zip apps # ditto, unlike plain zip, preserves the symlinks inside the .app
+        working-directory: viewer
+        run: |
+          for d in dist/*-mac-*/; do
+            (cd "${d}" && ditto -c -k --keepParent "Ancient Bolo Log Viewer.app" "../$(basename "${d}").zip")
+          done
+          ls -la dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac-builds
+          path: viewer/dist/*.zip
+          if-no-files-found: error
