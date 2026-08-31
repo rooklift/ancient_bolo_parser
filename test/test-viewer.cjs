@@ -921,6 +921,45 @@ if (!fs.existsSync(log1)) {
 				!!shell.matched_from_previous)],
 		[140, [false, false]]);
 
+	/* Reduced from replay 110702.1 (the corpus's worst seam jump, 4.24px):
+	 * a dense stream leaves an orphan restatement whose only claim is a
+	 * draw-only visual join, and the orphan is a chained list member whose
+	 * quantised coordinate sits a pixel short of its orbit-recovered exact
+	 * pixel. The join stored the packet coordinate as its endpoint while
+	 * the orphan draws at the orbit pixel, so the sprite teleported at the
+	 * handoff. The reconciliation pass must aim the link at the successor's
+	 * final draw source. */
+	let seam_join = BoloGame.build([
+		record(60, [{ type: "pillbox_list", items: [
+			{ x: 140, y: 133, owner: 1, armour: 15, speed: 100 },
+			{ x: 120, y: 133, owner: 1, armour: 15, speed: 100 },
+		] }]),
+		record(80, [idle_tank]),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 9 },
+			shell_list(9, [[2235, 2139]]),
+		]),
+		record(110, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 9 },
+			shell_list(9, [[2227, 2157], [2230, 2150]]),
+		]),
+		record(120, [shell_list(9, [[2219, 2175], [2222, 2168]])]),
+		record(128, [
+			{ type: "pillbox_fires", pillbox: 1, direction: 9 },
+			shell_list(9, [[1909, 2153], [2213, 2185]]),
+		]),
+	]);
+	let seam_orphan = seam_join.shell_positions[0][4].shells[1];
+	let seam_source = seam_join.shell_positions[0][3].shells[1];
+	check("a visual join's drawn link lands on the successor's recovered " +
+		"orbit pixel, not its quantised packet coordinate",
+		[!!seam_orphan.visual_join,
+			[seam_orphan.pixel_x, seam_orphan.pixel_y],
+			[seam_orphan.pillbox_orbit_pixel_x, seam_orphan.pillbox_orbit_pixel_y],
+			seam_source.next_shell === seam_orphan,
+			[seam_source.next_pixel_x, seam_source.next_pixel_y]],
+		[true, [2213, 2185], [2214, 2186], true, [2214, 2186]]);
+
 	/* The orbit evidence also cuts the other way. This observation sits
 	 * on the stitch's segment and near its uniform-time schedule -- the
 	 * geometric gate alone would absorb it -- but its relative position

@@ -3828,6 +3828,33 @@ function smooth_shell_chains(snapshots) {
 	}
 }
 
+/* Close the seams the pipeline can leave at handoffs. Several passes
+ * store a link's endpoint at the moment they create it -- a stitch's
+ * exact orbit pixel, a visual join's packet coordinate -- and later
+ * passes can refine where the successor actually draws (an orbit
+ * recovery moving a quantised member a few pixels, say), leaving the
+ * link flying to where its successor used to be and the sprite
+ * teleporting for one frame at the handoff. Drawing only: aim every
+ * unsmoothed non-terminal link at its successor's final draw source;
+ * smoothed links already aim at the successor's smoothed position by
+ * construction. Runs after smoothing and before head sliding, which
+ * measures its sprint from the corrected endpoint. */
+function reconcile_link_targets(snapshots) {
+	for (let snapshot of snapshots) {
+		for (let shell of snapshot.shells) {
+			if (!shell.next_shell || shell.next_terminal ||
+				shell.smooth_next_pixel_x !== undefined) continue;
+			let next = shell.next_shell;
+			shell.next_pixel_x = next.smooth_pixel_x ??
+				next.pillbox_orbit_pixel_x ?? next.tank_exact_pixel_x ??
+				next.pixel_x;
+			shell.next_pixel_y = next.smooth_pixel_y ??
+				next.pillbox_orbit_pixel_y ?? next.tank_exact_pixel_y ??
+				next.pixel_y;
+		}
+	}
+}
+
 /* A chain head is a time anchor the smoothing pass never moves, so a head
  * whose record was received late poisons its first link: the sender kept
  * simulating while the record sat in transit, and the next, punctually
@@ -3923,6 +3950,7 @@ function build_shell_positions(records, terminals, pillbox_sources_by_record,
 		resolve_residual_shell_fates(client_snapshots);
 		claim_unseen_pillbox_births(client_snapshots, pill_states);
 		smooth_shell_chains(client_snapshots);
+		reconcile_link_targets(client_snapshots);
 		slide_compressed_chain_heads(client_snapshots);
 	}
 	return snapshots;
