@@ -104,7 +104,7 @@ if (!fs.existsSync(log1)) {
 	}
 	check("fixture orbit-membership and stream-provenance birth claims",
 		[orbit_births.unseen, orbit_births.stream, orbit_births.sound],
-		[26, 6, true]);
+		[27, 4, true]);
 
 	/* Terminal-failure diagnostics: read-only classification of every
 	 * terminal that ends the pipeline with no matched shell and no
@@ -184,7 +184,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture end-side census reconciles", [
 			ends_described, ends_described === unfated, end_reasons_sound,
 			fate_open,
-		], [322, true, true, 21]);
+		], [319, true, true, 19]);
 	}
 
 	let pill_burst = { total: 0, matched: 0 };
@@ -1290,6 +1290,59 @@ if (!fs.existsSync(log1)) {
 			rounded(refined_pillbox_shell.heading_y),
 			refined_pillbox_shell.heading_origin_x,
 			refined_pillbox_shell.heading_origin_y], [1, 0, 160, 160]);
+
+	/* Two shells from one pill on one fine direction advance in lockstep,
+	 * so the earlier shot stays ahead until it falls and must fall first.
+	 * A receiver interval compressed by record-time jitter (here 5 ticks
+	 * carrying 4 orbit steps) makes the leader's short hop into the
+	 * trailer's true position the cheapest candidate; without the lockstep
+	 * constraint the two identities swap and the later shot draws as
+	 * overtaking the earlier one mid-air and falling before it. Reduced
+	 * from a replay incident (pill at tile (122,135), both shots bradian
+	 * 163, two steps apart); every position is an exact orbit point. */
+	let lockstep_stream = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 122, y: 135, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(90, []),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 10 },
+			{ type: "pillbox_fires", pillbox: 0, direction: 10 },
+			shell_list(10, [[1937, 2173], [1943, 2167]]),
+		]),
+		record(106, [shell_list(10, [[1928, 2180], [1934, 2174]])]),
+		record(112, [shell_list(10, [[1919, 2188], [1925, 2182]])]),
+		record(119, [shell_list(10, [[1910, 2196], [1916, 2190]])]),
+		record(126, [shell_list(10, [[1901, 2204], [1907, 2198]])]),
+		record(131, [shell_list(10, [[1889, 2215], [1895, 2209]])]),
+		record(138, [shell_list(10, [[1880, 2222], [1886, 2216]])]),
+		record(145, [shell_list(10, [[1871, 2230], [1877, 2224]])]),
+		record(152, [shell_list(10, [[1859, 2241], [1865, 2235]])]),
+		record(160, [
+			shell_list(10, [[1856, 2243]]),
+			{ type: "shell_falls", x: 115, y: 140, pixel: 154 },
+		]),
+		record(167, [{ type: "shell_falls", x: 115, y: 140, pixel: 154 }]),
+	]);
+	let lockstep_snapshots = lockstep_stream.shell_positions[0];
+	let lockstep_at = time =>
+		lockstep_snapshots.find(snapshot => snapshot.time === time);
+	let lockstep_leader = lockstep_at(126).shells[0];
+	let lockstep_trailer = lockstep_at(126).shells[1];
+	check("pill stream lockstep keeps the leader ahead across jitter",
+		[lockstep_leader.next_pixel_x, lockstep_leader.next_pixel_y,
+			lockstep_trailer.next_pixel_x, lockstep_trailer.next_pixel_y],
+		[1889, 2215, 1895, 2209]);
+	let lockstep_end = shell => {
+		while (shell.next_shell) shell = shell.next_shell;
+		return shell;
+	};
+	let lockstep_leader_end = lockstep_end(lockstep_at(100).shells[0]);
+	let lockstep_trailer_end = lockstep_end(lockstep_at(100).shells[1]);
+	check("earlier pill shot falls first",
+		[lockstep_leader_end.next_terminal, lockstep_trailer_end.next_terminal,
+			lockstep_leader_end.next_time < lockstep_trailer_end.next_time],
+		[true, true, true]);
 
 	let overlapping_pill_orbits = BoloGame.build([
 		record(80, [{ type: "pillbox_list", items: [{

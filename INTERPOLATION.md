@@ -157,6 +157,20 @@ filtering over a finite state space:
   hypothesis pair must reproduce the recorded bytes exactly
   (`refine_pillbox_orbits_from_shell_lists`), pruning states pairwise along
   the chain.
+- Two live shells from one pill on one fine direction advance in lockstep
+  — the sender moves every shell one step in the same update pass — so
+  their step gap never changes while both are restated, the earlier shot
+  stays ahead until it falls, and (every pill shell living exactly 32
+  steps) birth order is fall order. Distance cost alone cannot see this:
+  an interval compressed by record-time jitter makes the leader's short
+  hop into the trailer's true position the cheapest candidate, and the
+  two identities swap — drawn as the later shot overtaking the earlier
+  one mid-air and falling first. The matcher therefore requires one
+  common step advance to explain a candidate of every same-stream shell
+  narrowed to the same single bradian
+  (`enforce_pillbox_lockstep_candidates`), pruning candidates no jointly
+  consistent story supports; when no common advance exists (a fall
+  mid-interval, a dropped restatement) it stands down rather than guess.
 - When the surviving states all agree on one pixel, the shell's **exact
   true position** in the underlying simulation is recovered
   (`pillbox_orbit_pixel_x/y`) — usually there is only one possibility —
