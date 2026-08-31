@@ -123,6 +123,7 @@ Constant at all ten commits, and worth having once:
 | `537cb6d` | pill-stream lockstep | 0.994823 | 0.001914 | 0.833265 | 235,967 |
 | `3956580` | late-head slide | 0.994823 | 0.001914 | 0.833265 | 235,967 |
 | `e2bbbfb` | dilated continuations | **0.995341** | **0.001601** | 0.833183 | 235,739 |
+| `c890ecc` | seam closure | 0.995341 | 0.001601 | 0.833183 | 235,739 |
 
 The rows below the guard run were measured later, from the corpus
 holder's live checkouts: `97fa412` closes the unmeasured-`main` gap the
@@ -137,7 +138,9 @@ section -- is drawing-only: its matching axis is byte-identical to
 live on the drawn audit. `e2bbbfb` -- the dilated-continuations branch,
 see its section -- moves both shell-side records on again while
 returning ~160 terminals, so `029acac` still keeps both terminal-side
-columns. The `97fa412`..`537cb6d` runs report
+columns. `c890ecc` -- the seam closure, see its section -- is
+drawing-only like `3956580`: its row repeats `e2bbbfb`'s and its gain
+is the audit's seam pair going to 0 / 0.00. The `97fa412`..`537cb6d` runs report
 `files_failed 1` where the campaign runs report 0: one extra, unparseable
 file now sits in the corpus tree and contributes nothing, and every
 per-corpus total (shells, terminals by class, tank and LGM points and
@@ -1399,6 +1402,21 @@ next run: the matching axis byte-identical, `seam_jumps` 81 -> 0 and
 `seam_jump_max` to 0.00 -- the pre-existing 53 close along with the 28
 -- with at most a few links changing speed bucket where an endpoint
 moved by a pixel or two.
+
+Corpus verification, run by the corpus holder at `a4b0090`
+(engine-identical to `c890ecc`; the two commits between are docs):
+exactly as predicted, on every axis. `find-seam-jumps.cjs` reports
+`seam_jumps 0` across all 443 files; the audit's `seam_jumps` 81 -> 0
+with `seam_jump_max` 0.00; the rates report is byte-identical to the
+`e2bbbfb` run apart from its commit stamp, `content_hash` included.
+The speed histogram wobble is two links total -- one 0.5-1.0 -> 0.0-0.5
+and one 3.0+ -> 2.5-3.0 (`rush_links` -1 with it) -- and every other
+audit line is unchanged. The class is closed, the pre-existing 53
+included: handoff continuity is now guaranteed by construction rather
+than by every endpoint-writing pass staying in sync, and the audit's
+seam metric finally sits at the zero its header always said it should.
+Raw audit kept as `docs/corpus_runs/c890ecc-audit.txt`; the report
+would duplicate the `e2bbbfb` one byte for byte, so it is not.
 
 ## Findings
 
