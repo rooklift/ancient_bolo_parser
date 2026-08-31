@@ -1348,6 +1348,47 @@ if (!fs.existsSync(log1)) {
 			lockstep_leader_end.next_time < lockstep_trailer_end.next_time],
 		[true, true, true]);
 
+	/* A chain head whose record was received late draws a sprint: the next,
+	 * punctual restatement sits far further along the flight than the stamp
+	 * window carries at shell speed. Reduced from a replay incident (pill at
+	 * tile (122,135), bradian 149: a 23-tick receiver stall stamps the fire
+	 * record ~20 ticks late, and the 6-tick window to the next record must
+	 * then carry 11 orbit steps; here 6 steps, so the link forms through
+	 * the resolver's dilated join rather than the incident's forced
+	 * terminal). The head's drawn position slides forward along the link
+	 * until exactly the window's worth of flight remains, and the birth
+	 * segment re-derives its span to land on the slid position. */
+	let late_head_stream = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 122, y: 135, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(90, []),
+		record(113, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 9 },
+			shell_list(9, [[1940, 2180]]),
+		]),
+		record(119, [shell_list(9, [[1928, 2201]])]),
+	]);
+	let late_head = late_head_stream.shell_positions[0][1].shells[0];
+	check("late-stamped chain head slides to shell speed",
+		[late_head.smooth_pixel_x !== undefined,
+			rounded(Math.hypot(
+				late_head.next_pixel_x - late_head.smooth_pixel_x,
+				late_head.next_pixel_y - late_head.smooth_pixel_y) / 6)],
+		[true, 2]);
+	let late_birth = late_head_stream.shell_births[0]
+		.find(birth => birth.end_time === 113);
+	let late_birth_span = (late_birth.end_time - late_birth.start_time) * 2;
+	check("the birth segment lands on the slid head",
+		[rounded(late_birth.pixel_x + late_birth.heading_x * late_birth_span -
+			late_head.smooth_pixel_x),
+		rounded(late_birth.pixel_y + late_birth.heading_y * late_birth_span -
+			late_head.smooth_pixel_y)],
+		[0, 0]);
+	check("a punctual chain head is left as observed",
+		lockstep_at(100).shells.map(shell => shell.smooth_pixel_x === undefined),
+		[true, true]);
+
 	let overlapping_pill_orbits = BoloGame.build([
 		record(80, [{ type: "pillbox_list", items: [{
 			x: 10, y: 10, owner: 1, armour: 15, speed: 100,
