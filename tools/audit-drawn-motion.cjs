@@ -44,7 +44,7 @@ const { Worker, isMainThread, parentPort } = require("node:worker_threads");
 
 const ROOT = path.join(__dirname, "..");
 const DEFAULT_REPLAY = path.join(ROOT, "fixtures", "n20021018.2");
-const SKIPPED_EXTENSIONS = /\.(txt|md|json|zip|sit|hqx|png|jpg|gif|bmp)$/i;
+const SKIPPED_EXTENSIONS = /\.(txt|md|json|zip|sit|hqx|png|jpg|gif|bmp|py)$/i;
 
 const HOVER_SPEED = 1.0;
 const RUSH_SPEED = 3.0;
