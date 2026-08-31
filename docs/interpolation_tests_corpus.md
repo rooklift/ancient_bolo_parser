@@ -1544,6 +1544,37 @@ The tail slide's +196 pace-compressed chains are NOT this population
 (they smooth already, too fast overall) and should not move; they
 remain the number to watch.
 
+Corpus verification, run by the corpus holder at `61e39e1`
+(engine-identical to `716a349`; raw audit kept as
+`docs/corpus_runs/716a349-audit.txt`, the report once again a
+byte-duplicate of the standing one, hash included):
+
+* The extremes collapse as predicted: `hover_links` 3,995 -> 3,446
+  (-13.7%), `rush_links` 5,731 -> 4,511 (-21.3%), `3.0+`
+  5,785 -> 4,556, and `0.0-0.5` **halves**, 1,083 -> 554. The
+  refused-chain population was clearly worth admitting at corpus
+  scale.
+* The redistribution's shape is instructive: `1.0-1.5` gains 1,895.
+  A refused chain used to spend its lie as a crawl plus a sprint; once
+  admitted, a chain whose overall stamp span genuinely exceeds its
+  flight re-times to a uniform 1.0-1.5 px/tick instead. Uniform-slow
+  replaces jerky -- the trade the pass exists to make -- and the
+  remaining pace error is the stamp-span compression class, position
+  fixes cannot reach it.
+* `terminal_links_rushed` 68,478 byte-identical, `seam_jumps` 0,
+  steady rate flat (+0.000012), and one pop pair reclassifies
+  forward -> backwards (4,666/2,924 -> 4,665/2,925) as a smoothed
+  endpoint moved past its partner -- the only movement outside the
+  speed histogram.
+
+With this row the branch's whole drawn-axis ledger, `3956580` ->
+`716a349`, reads: pop-outs 50,638 -> 45,552, seams 53 -> 0, rushed
+terminals 71,552 -> 68,478, hovers 3,894 -> 3,446, against a steady
+rate easing 0.964548 -> 0.961396 and rushes 3,710 -> 4,511 -- the one
+drawn metric still above its branch-point value, the dilated links
+drawing the clock's lie, now that the lies once hidden in freezes,
+pops and phantom births are drawn as moving links at all.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
