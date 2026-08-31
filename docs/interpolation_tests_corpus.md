@@ -1714,6 +1714,61 @@ Corpus verification, run by the corpus holder at `b1659e9`
   its correctness), and the terminal rate rises to 0.833192, second
   only to `029acac`'s record.
 
+## Pairwise roster lockstep -- `e101787`
+
+The lockstep's last dial, closing the asymmetry the veto's entry put
+on the record: a crossing whose wrong half is a PAIRWISE link. The
+same statement-roster vote (>=3 pinned statements explained, runner-up
+beaten by two) now runs inside the matcher, per pill and transition,
+before margins decide anything. Differences from the post-match
+reference, forced by running this early: target statements carry no
+propagated orbit states yet, so their steps are pinned from raw
+positions against the orbit table directly; and a shell's death is
+undecided at match time, so dying shells stay in the source vote
+(conservation still holds on the target side -- claimed newborns are
+excluded -- and the margin gate is what makes a
+death-thinned ladder stand down rather than misvote).
+
+A passing vote is applied twice. Every pinned member's surviving
+continuation must sit at exactly its step plus the advance -- the
+within-margin wrong halves the candidate-based lockstep could not
+prune, since it only intersects advances a member's own candidates
+support. And landing ownership: a target step exactly one member's
+statement explains belongs to that member, evicting the
+provenance-less thief -- the sourceless orphan (born before the log,
+or past claiming range) that competes on bare distance cost and wins
+a compressed interval. A candidate another passing pill retained is
+never evicted; two statements claiming one point is a genuine
+conflict left to margins.
+
+Every changed fixture transition hand-verifies as a uniform-advance
+ladder where mixed advances used to draw: the (1920,1904) pill's +8
+over 13 stamped ticks (9 rungs aligned, a minted stream birth and
+four repair stitches dissolve into plain matches), the (2032,1856)
+pill's +8 where a MID-FLIGHT s16 mint becomes a real continuation and
+the one honest mint moves to the muzzle, and the (1808,2368) pill's
++9 (5 rungs) where an unseen-shot mint, a frozen end, and a stolen
+tank_hit all resolve -- the downstream chain regaining exact orbit
+provenance it never had. Plus one pure crossing swap, the trailer no
+longer overtaking its leader. Unlike the veto this dial is gain on
+every local ledger at once: the three local logs together are matched
++32, pop-outs -32, stream births 36 -> 22, unseen births -4, visual
+joins -1, terminals +1, unlinked -8, steady-speed links +93.
+
+Corpus prediction for the next run: `shells_matched_forward` UP by a
+few hundred to ~1,500 with `pop_outs` down by the complement,
+retaking both shell-side records from `cecdd9d` (matched_forward
+above 0.995415, unlinked below 0.001547) while keeping the veto's
+terminal rate near 0.8332 or above (small `tank_hit` gain);
+`shells_stream_birth` down by a few hundred (part of the veto's
++1,001 re-linking as true uniform-advance continuations),
+`shells_unseen_pillbox_birth` down by tens to ~200, `seam_jumps`
+still 0, the steady speed bucket up by low thousands with `1.5-1.8`
+net down, and small mixed movement in `hover_links` and
+`pops_paired_backwards` (ankle and seam1 moved one each, opposite
+ways -- a lockstep-verified continuation over a lying stamp can
+legitimately draw off-pace; that remains the deferred pace residue).
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
