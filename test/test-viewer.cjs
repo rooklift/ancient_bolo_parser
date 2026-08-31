@@ -108,7 +108,7 @@ if (!fs.existsSync(log1)) {
 	}
 	check("fixture orbit-membership and stream-provenance birth claims",
 		[orbit_births.unseen, orbit_births.stream, orbit_births.sound],
-		[27, 4, true]);
+		[23, 4, true]);
 
 	/* Terminal-failure diagnostics: read-only classification of every
 	 * terminal that ends the pipeline with no matched shell and no
@@ -156,10 +156,10 @@ if (!fs.existsSync(log1)) {
 			described, described === unexplained, reasons_sound,
 			classes.get("explosion:no_candidate:-"),
 			classes.get("pillbox_damage:end_continued:T"),
-		], [1035, true, true, 240, 89]);
+		], [1032, true, true, 240, 89]);
 		check("fixture same-record unseen shots claimed without cost", [
 			matched, unseen.pill, unseen.tank,
-		], [20692, 1222, 1126]);
+		], [20694, 1223, 1126]);
 
 		/* The end-side mirror: every chain end with no forward story gets
 		 * a class; the census must equal the unmatched-forward count less
@@ -188,7 +188,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture end-side census reconciles", [
 			ends_described, ends_described === unfated, end_reasons_sound,
 			fate_open,
-		], [319, true, true, 19]);
+		], [300, true, true, 21]);
 	}
 
 	let pill_burst = { total: 0, matched: 0 };
@@ -809,8 +809,13 @@ if (!fs.existsSync(log1)) {
 	 * geometric gate by a third of a pixel -- and it drew as a backwards
 	 * jump, a ten-tick hover and a forty-pixel rush. The orbit is
 	 * authoritative over the clock: a point strictly between the stitch's
-	 * own two steps is the shell. A shell-less record precedes the shot so
-	 * that birth attribution has a predecessor snapshot to work from. */
+	 * own two steps is the shell. The pairwise matcher now claims each
+	 * lying hop directly as a dilated same-orbit continuation (each
+	 * observation is the lone story on both of its sides), so the chain
+	 * links without the stitcher; stitch-plus-absorption remains the
+	 * fallback for contested observations. A shell-less record precedes
+	 * the shot so that birth attribution has a predecessor snapshot to
+	 * work from. */
 	let idle_tank = {
 		type: "tank_position", x: 100, y: 100, pixelX: 0, pixelY: 0,
 		direction: 0, inBoat: false, hidden: false, dying: false,
@@ -831,12 +836,12 @@ if (!fs.existsSync(log1)) {
 		record(149, [shell_list(9, [[2191, 2242]])]),
 	]);
 	let dilated_observation = dilated_pill_stream.shell_positions[0][3].shells[0];
-	check("an orbit point between a stitch's steps is absorbed however " +
-		"badly the sender's clock lies",
+	check("an orbit point between two lying restatements is claimed as " +
+		"the shell's own continuation",
 		[!!dilated_observation.matched_from_previous,
 			!!dilated_observation.stitched,
 			dilated_observation.pillbox_orbit_states],
-		[true, true, [{ bradian: 145, step: 14 }]]);
+		[true, false, [{ bradian: 145, step: 14 }]]);
 	/* The whole flight, not just the absorbed link: min and max drawn
 	 * speed are equal, so nothing hovers and nothing rushes. */
 	let dilated_speeds = [];
@@ -915,6 +920,45 @@ if (!fs.existsSync(log1)) {
 			ambiguous_pair.shell_positions[0][3].shells.map(shell =>
 				!!shell.matched_from_previous)],
 		[140, [false, false]]);
+
+	/* Reduced from replay 110702.1 (the corpus's worst seam jump, 4.24px):
+	 * a dense stream leaves an orphan restatement whose only claim is a
+	 * draw-only visual join, and the orphan is a chained list member whose
+	 * quantised coordinate sits a pixel short of its orbit-recovered exact
+	 * pixel. The join stored the packet coordinate as its endpoint while
+	 * the orphan draws at the orbit pixel, so the sprite teleported at the
+	 * handoff. The reconciliation pass must aim the link at the successor's
+	 * final draw source. */
+	let seam_join = BoloGame.build([
+		record(60, [{ type: "pillbox_list", items: [
+			{ x: 140, y: 133, owner: 1, armour: 15, speed: 100 },
+			{ x: 120, y: 133, owner: 1, armour: 15, speed: 100 },
+		] }]),
+		record(80, [idle_tank]),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 9 },
+			shell_list(9, [[2235, 2139]]),
+		]),
+		record(110, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 9 },
+			shell_list(9, [[2227, 2157], [2230, 2150]]),
+		]),
+		record(120, [shell_list(9, [[2219, 2175], [2222, 2168]])]),
+		record(128, [
+			{ type: "pillbox_fires", pillbox: 1, direction: 9 },
+			shell_list(9, [[1909, 2153], [2213, 2185]]),
+		]),
+	]);
+	let seam_orphan = seam_join.shell_positions[0][4].shells[1];
+	let seam_source = seam_join.shell_positions[0][3].shells[1];
+	check("a visual join's drawn link lands on the successor's recovered " +
+		"orbit pixel, not its quantised packet coordinate",
+		[!!seam_orphan.visual_join,
+			[seam_orphan.pixel_x, seam_orphan.pixel_y],
+			[seam_orphan.pillbox_orbit_pixel_x, seam_orphan.pillbox_orbit_pixel_y],
+			seam_source.next_shell === seam_orphan,
+			[seam_source.next_pixel_x, seam_source.next_pixel_y]],
+		[true, [2213, 2185], [2214, 2186], true, [2214, 2186]]);
 
 	/* The orbit evidence also cuts the other way. This observation sits
 	 * on the stitch's segment and near its uniform-time schedule -- the
