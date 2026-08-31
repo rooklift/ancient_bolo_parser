@@ -493,6 +493,18 @@ function rate(part, whole) {
 	return whole ? (part / whole).toFixed(6) : "-";
 }
 
+/* The corpus directory is private and may embed a player's handle (see
+ * corpus.json), so it is never written to a report verbatim -- hash it
+ * instead. Duplicated in audit-drawn-motion.cjs, report-interpolation-rates.cjs,
+ * find-seam-jumps.cjs, find-hover-links.cjs, and probe-shot-fate-parsimony.cjs
+ * for the same single-file reason as repo_commit (see
+ * audit-drawn-motion.cjs). */
+function hash_input(target) {
+	const { createHash } = require("node:crypto");
+	return `sha256:${createHash("sha256")
+		.update(path.resolve(target)).digest("hex")}`;
+}
+
 function print_report(metrics, input) {
 	let lines = [
 		"# GENERATED - tank-shell bradian consistency; nothing written to disk.",
@@ -607,8 +619,7 @@ function main() {
 	let active = 0;
 
 	let finish = () => {
-		print_report(totals, path.relative(ROOT, options.target)
-			.replace(/\\/g, "/") || options.target);
+		print_report(totals, hash_input(options.target));
 	};
 
 	if (worker_count === 1) {

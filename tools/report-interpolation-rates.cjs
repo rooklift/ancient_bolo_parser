@@ -426,6 +426,18 @@ function content_hash_line(lines) {
 		.update(`${stable.join("\n")}\n`).digest("hex")}`;
 }
 
+/* The corpus directory is private and may embed a player's handle (see
+ * corpus.json), so it is never written to a report verbatim -- hash it
+ * instead. Duplicated in audit-drawn-motion.cjs, find-seam-jumps.cjs,
+ * find-hover-links.cjs, probe-shot-fate-parsimony.cjs, and
+ * measure-tank-shell-bradians.cjs for the same single-file reason as
+ * repo_commit. */
+function hash_input(target) {
+	const { createHash } = require("node:crypto");
+	return `sha256:${createHash("sha256")
+		.update(path.resolve(target)).digest("hex")}`;
+}
+
 function build_report(totals, meta) {
 	let lines = [
 		"# GENERATED - interpolation coverage for one repo state; nothing written to disk.",
@@ -596,7 +608,7 @@ function main() {
 	let finish = () => {
 		process.stdout.write(build_report(totals, {
 			mode,
-			input: path.relative(ROOT, target).replace(/\\/g, "/") || ".",
+			input: hash_input(target),
 			max_position_interpolation_ticks: engines.game.MAX_POSITION_INTERPOLATION_TICKS,
 			max_shell_interpolation_ticks: engines.game.MAX_SHELL_INTERPOLATION_TICKS,
 			max_direction_interpolation_ticks:

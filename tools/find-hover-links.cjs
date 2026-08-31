@@ -137,11 +137,23 @@ function tile(pixel) {
 	return (pixel / 16).toFixed(2);
 }
 
+/* The corpus directory is private and may embed a player's handle (see
+ * corpus.json), so it is never written to a report verbatim -- hash it
+ * instead. Duplicated in audit-drawn-motion.cjs, report-interpolation-rates.cjs,
+ * find-seam-jumps.cjs, probe-shot-fate-parsimony.cjs, and
+ * measure-tank-shell-bradians.cjs for the same single-file reason as
+ * repo_commit (see audit-drawn-motion.cjs). */
+function hash_input(target) {
+	const { createHash } = require("node:crypto");
+	return `sha256:${createHash("sha256")
+		.update(path.resolve(target)).digest("hex")}`;
+}
+
 function print_report(hovers, files, files_failed, top, target) {
 	hovers.sort((a, b) => a.speed - b.speed);
 	let lines = [
 		"# GENERATED - slowest hover links located; nothing written to disk.",
-		`input\t${target}`,
+		`input\t${hash_input(target)}`,
 		`files\t${files}`,
 		`files_failed\t${files_failed}`,
 		`hover_links\t${hovers.length}`,

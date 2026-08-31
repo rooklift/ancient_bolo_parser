@@ -329,6 +329,18 @@ function content_hash_line(lines) {
 		.update(`${stable.join("\n")}\n`).digest("hex")}`;
 }
 
+/* The corpus directory is private and may embed a player's handle (see
+ * corpus.json), so it is never written to a report verbatim -- hash it
+ * instead. Duplicated in report-interpolation-rates.cjs, find-seam-jumps.cjs,
+ * find-hover-links.cjs, probe-shot-fate-parsimony.cjs, and
+ * measure-tank-shell-bradians.cjs for the same single-file reason as
+ * repo_commit. */
+function hash_input(target) {
+	const { createHash } = require("node:crypto");
+	return `sha256:${createHash("sha256")
+		.update(path.resolve(target)).digest("hex")}`;
+}
+
 function print_report(metrics, input) {
 	let lines = [
 		"# GENERATED - drawn shell motion audit; nothing written to disk.",
@@ -423,8 +435,7 @@ function main() {
 	let all_examples = [];
 
 	let finish = () => {
-		print_report(totals, path.relative(ROOT, options.target)
-			.replace(/\\/g, "/") || options.target);
+		print_report(totals, hash_input(options.target));
 		if (!options.describe_backwards) return;
 		let classes = Object.entries(totals.backwards_classes)
 			.sort((a, b) => b[1] - a[1]);
