@@ -960,6 +960,44 @@ if (!fs.existsSync(log1)) {
 			[seam_source.next_pixel_x, seam_source.next_pixel_y]],
 		[true, [2213, 2185], [2214, 2186], true, [2214, 2186]]);
 
+	/* Reduced from replay 110702.1 again, the same volley's final shot: a
+	 * chain whose LAST restatement arrived stale (two orbit steps across a
+	 * twenty-tick gap) followed by an honest impact record four ticks
+	 * later. The impact caps the drawn arrival at its record time, so the
+	 * terminal link had to cover the missing flight inside the four-tick
+	 * stamp window -- a 12 px/tick sprint into the wall, with the chain
+	 * behind it dragged slow by the same stale anchor. The tail slide must
+	 * move the end's drawn position to the stamped time's honest place on
+	 * the ray (leaving exactly the window's worth of flight), and
+	 * smoothing must re-time the chain onto the slid anchor so the handoff
+	 * stays seamless. */
+	let stale_tail = BoloGame.build([
+		record(60, [{ type: "pillbox_list", items: [{
+			x: 140, y: 133, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(80, [idle_tank]),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 9 },
+			shell_list(9, [[2229, 2153]]),
+		]),
+		record(110, [shell_list(9, [[2221, 2172]])]),
+		record(130, [shell_list(9, [[2218, 2179]])]),
+		record(134, [{ type: "explosion", code: 7, x: 137, y: 139 }]),
+	]);
+	let stale_end = stale_tail.shell_positions[0][3].shells[0];
+	let stale_interior = stale_tail.shell_positions[0][2].shells[0];
+	check("a stale chain tail slides forward so the capped impact draws " +
+		"at shell speed",
+		[!!stale_end.next_terminal,
+			[rounded(stale_end.smooth_pixel_x), rounded(stale_end.smooth_pixel_y)],
+			rounded(Math.hypot(stale_end.next_pixel_x - stale_end.smooth_pixel_x,
+				stale_end.next_pixel_y - stale_end.smooth_pixel_y) /
+				(stale_end.next_time - 130)),
+			[rounded(stale_interior.smooth_next_pixel_x),
+				rounded(stale_interior.smooth_next_pixel_y)]],
+		[true, [2202.1715, 2215.6555], 2,
+			[2202.1715, 2215.6555]]);
+
 	/* The orbit evidence also cuts the other way. This observation sits
 	 * on the stitch's segment and near its uniform-time schedule -- the
 	 * geometric gate alone would absorb it -- but its relative position
