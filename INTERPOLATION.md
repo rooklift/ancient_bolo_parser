@@ -78,10 +78,14 @@ the normal-cadence fixture.
 ## Shells: the general machinery
 
 Shells travel at exactly 2 px/tick, which is the backbone of everything.
-Matching runs per *client* (per player slot): shell simulation can migrate
-between machines mid-flight, but joining across clients would create
-convincing false identities, so a migration renders as one shell vanishing
-and another appearing.
+Matching runs per *client* (per player slot), and a chain never crosses
+one. Early work entertained the idea that a shell's simulation could
+migrate between machines mid-flight; that idea is now regarded as highly
+suspicious. Bolo has no orchestration that could hand an in-flight shell
+to another machine, and corpus measurement found no scene that needed
+one. Joining across clients would in any case manufacture convincing
+false identities, so whatever a cross-client coincidence really is, it
+renders as one shell vanishing and another appearing.
 
 For each client, consecutive shell-list snapshots are matched
 (`match_shell_snapshots`). The candidate targets for a shell in snapshot N
@@ -397,15 +401,19 @@ if any exists among the records that produce snapshots.
   recover exact coordinates from quantised chained offsets, and a
   uniquely surviving bradian yields an exact heading. Adopting this took
   all three headline metrics to new records at once.
-- **Cross-client identity is never inferred.** A simulation migration draws
-  as pop-out/pop-in by design.
+- **Cross-client identity is never inferred.** Mid-flight migration of a
+  shell between machines is not believed to happen (no mechanism, and
+  none measured); a scene that looks like one draws as pop-out/pop-in by
+  design rather than being explained by it.
 - **Matching is greedy and local, with a global backstop.** The primary
   matcher works on pairs of consecutive snapshots, mutual best with
   margins. What it leaves behind now goes through the safe core of issue
   #15's *maximum parsimony* idea: a stitching pass reconnects chain
   fragments (the residue's largest cause — margin failures and lag gaps,
-  not cross-client migration, which measurement found essentially never
-  happens), and a per-component maximum-flow pass
+  not cross-client migration: measurement found essentially none, and
+  the concept itself is regarded as highly suspicious, since nothing in
+  Bolo could hand an in-flight shell to another machine), and a
+  per-component maximum-flow pass
   (`resolve_residual_shell_fates`) makes every *forced* assignment among
   unaccounted chain ends, unconsumed shots, origin-less starts, and
   unexplained impacts — an assignment is applied when every maximum

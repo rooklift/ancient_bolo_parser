@@ -605,7 +605,9 @@ collapsed, at the cost of a small terminal give-back, a hover class that
 needs a drawing-side floor, and two dozen more seam jumps. The 9,443
 that remain are chains whose dilation exceeds even the widened windows
 (the bradian audit's growing `no_model` class points the same way) plus
-true cross-client migrations, which draw as pops by design.
+whatever was then being attributed to cross-client migration -- an idea
+since regarded as highly suspicious, since nothing in Bolo could hand an
+in-flight shell to another machine; such scenes draw as pops by design.
 
 ## Leading impacts -- `ad2168d`
 
