@@ -56,3 +56,8 @@ The viewer reconstructs full game state (terrain, pills, bases, tanks, men, shel
 - **[bolorama](https://github.com/astrospark/bolorama)** (Astrospark
   Technologies) — independently reverse-engineered Bolo UDP wire protocol,
   used to cross-check opcode layouts.
+- **[WinBolo](https://github.com/kippandrew/winbolo)** (John Morrison,
+  1998–2008, GPL v2) — an independent GPL reimplementation of Bolo, used to
+  explain behaviour the logs already demonstrate; `viewer/format.js`'s map
+  reader/writer is a port of its `bolo_map.c`, and `viewer/sprites.js`'s
+  terrain tile rules are a port of its `screencalc.c`, using its sprite art.
