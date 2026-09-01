@@ -216,16 +216,19 @@ arc but deliberately not started.
   creation-to-fate stories, so a low-range shot's own fall can starve
   while the flow spends the shot one fate late -- see "The same-record
   starvation shape" in the corpus results file).
-* **Correctness-weighted coverage metric.** The headline rates count
-  explanations, not correct ones -- a lie and a truth score the same,
-  which is why honest give-backs read as losses. Now that the roster
-  vote exists, score every pill link into three bins: vouched (a
-  passing vote agrees), contradicted (should be ~zero -- a regression
-  alarm), and unvouched (no vote passed; the link stands on cost
-  margins alone). Report `rate_links_vouched` beside the coverage
-  rate. Measurement only, no engine change; makes future
-  coverage-for-truth trades legible and sizes whether another dial on
-  the unvouched residue is worth building.
+* **Correctness-weighted coverage metric -- DONE.** The headline rates
+  count explanations, not correct ones -- a lie and a truth score the
+  same, which is why honest give-backs read as losses. Built as
+  `score_pill_links` (measurement only): every pill link is binned
+  vouched / contradicted / unvouched against the roster vote, reported
+  by the rates tool as `rate_links_pill_vouched` and
+  `rate_links_pill_contradicted`, pinned on both fixtures in the test
+  suite. Fixture: 0.608 vouched, 6 contradictions in 32,907 scored --
+  all one client, the roster-ladder off-by-one shape, the metric's
+  first named scenes. Fast ring: 0 contradictions once keyed by
+  snapshot index (time keys collide on same-time pairs there; the
+  engine's own table still uses them -- a quirk on the books). Corpus
+  figures await a holder run. See `docs/interpolation_tests.md`.
 * **The pace / drawn-speed residue.** Rushed terminal links (68,540
   corpus, 3.0+ px/tick final hops) are the one class every lockstep
   dial nudges the wrong way by a few dozen: a lockstep-verified

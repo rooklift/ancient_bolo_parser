@@ -324,6 +324,19 @@ fixture (~92% of corpus impacts counting unseen-source attributions).
 Every change to matching should be judged against those numbers,
 watching for trades between shell continuity and terminal matching.
 
+The match rates also count explanations, not correct ones: a wrong link
+scores the same as a right one. `score_pill_links` supplies the missing
+truth axis for pill chains, scoring every link whose ends both pin an
+orbit step against the advance the pill's own statements elected over
+that record pair (the same roster vote the matchers consult): vouched
+when the step gap equals it, contradicted when a vote passed and the
+link disagrees, unvouched when no vote passed. The rates tool reports
+the bins as `links_*` lines and `rate_links_pill_vouched` /
+`rate_links_pill_contradicted`; contradicted is a regression alarm
+(the pairwise matcher defers to the vote, so a contradiction can only
+come from a link made under other gates or a vote that failed at match
+time), and its fixture counts are pinned in the test suite.
+
 The match rates count explanations, not what the viewer draws, and the
 two can move in opposite directions. `tools/audit-drawn-motion.cjs` is
 the second measurement axis: it samples the drawn link structure

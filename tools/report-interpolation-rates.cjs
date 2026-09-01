@@ -194,6 +194,19 @@ function empty_totals() {
 
 		shell_births: null,
 
+		/* Pill links scored against the statement-roster vote (see
+		 * score_pill_links in viewer/motion.js): the coverage rates count
+		 * explanations, these say how many of the pill ones the pill's own
+		 * statements corroborate. Contradicted should stay near zero. */
+		links_shell: null,
+		links_visual: null,
+		links_no_pill_source: null,
+		links_pill_restated: null,
+		links_pill_unpinned: null,
+		links_pill_vouched: null,
+		links_pill_contradicted: null,
+		links_pill_unvouched: null,
+
 		/* Residual-flow components: what forced_bipartite_assignments in
 		 * viewer/motion.js actually solves, and whether its pathological-
 		 * component cap ever fired. Keys ending in _max take the maximum
@@ -247,6 +260,26 @@ function count_tracks(totals, tracks, prefix, max_ticks) {
 				add(totals, `${prefix}_ticks_interpolated`, duration);
 			}
 		}
+	}
+}
+
+/* Per client, so the roster vote is taken over one sender's statements,
+ * exactly as the engine takes it. Guarded like the other diagnostics so
+ * older repo states report "-". */
+function count_pill_links(totals, engines, game) {
+	if (typeof engines.motion?.score_pill_links !== "function") return;
+	if (!Array.isArray(game.shell_positions)) return;
+	for (let snapshots of game.shell_positions) {
+		if (!Array.isArray(snapshots)) continue;
+		let score = engines.motion.score_pill_links(snapshots);
+		add(totals, "links_shell", score.links);
+		add(totals, "links_visual", score.visual);
+		add(totals, "links_no_pill_source", score.no_pill_source);
+		add(totals, "links_pill_restated", score.restated);
+		add(totals, "links_pill_unpinned", score.unpinned);
+		add(totals, "links_pill_vouched", score.vouched);
+		add(totals, "links_pill_contradicted", score.contradicted);
+		add(totals, "links_pill_unvouched", score.unvouched);
 	}
 }
 
@@ -390,6 +423,7 @@ function count_file(totals, engines, file, diagnostics) {
 	let max_direction_ticks =
 		engines.game.MAX_DIRECTION_INTERPOLATION_TICKS ?? max_ticks;
 	count_shells(totals, game);
+	count_pill_links(totals, engines, game);
 	count_tracks(totals, game.tank_positions, "tank", max_ticks);
 	count_tracks(totals, game.lgm_positions, "lgm", max_ticks);
 	count_tracks(totals, game.tank_directions, "tank_direction",
@@ -494,6 +528,12 @@ function build_report(totals, meta) {
 	rate_line(lines, "shells_unlinked", totals.shells_unlinked, totals.shells);
 	rate_line(lines, "terminals_matched", totals.terminals_matched,
 		totals.terminals);
+	let scored = totals.links_pill_vouched === null ? null
+		: totals.links_pill_vouched + totals.links_pill_contradicted +
+			totals.links_pill_unvouched;
+	rate_line(lines, "links_pill_vouched", totals.links_pill_vouched, scored);
+	rate_line(lines, "links_pill_contradicted",
+		totals.links_pill_contradicted, scored);
 	for (let prefix of ["tank", "lgm", "tank_direction"]) {
 		rate_line(lines, `${prefix}_segments_interpolated`,
 			totals[`${prefix}_segments_interpolated`], totals[`${prefix}_segments`]);
