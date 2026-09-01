@@ -1880,6 +1880,28 @@ under `docs/corpus_runs/`):
   audit to bucket zero-duration links separately would settle it
   without redefining the historical columns.
 
+The same fast-ring regime turned out to damage drawn tank and LGM
+motion through their receive stamps (no identity is at stake, so
+nothing pops -- the raw lerp just wobbles and freezes), fixed by
+`smooth_track_positions` with its own measurement axis,
+`tools/audit-track-motion.cjs`; see `INTERPOLATION.md` and the
+`00304ae` commit messages for the mechanism and the per-fixture
+numbers. The corpus holder's run at `00304ae`
+(`docs/corpus_runs/00304ae-track.txt`, made before the tool stamped
+provenance) settles how widespread the regime is: **29.3% of all
+tank statements and 20.9% of all LGM statements corpus-wide sit at
+the few-tick gaps the pass engages on** -- the fast ring is a large
+minority of the corpus, not a curiosity, consistent with the quarter
+of forward-match failures the shell fix recovered. Post-smoothing the
+corpus draws at `rate_tank_alternation` 0.083348 /
+`rate_lgm_alternation` 0.103984 (mean speed change 0.312838 /
+0.345410), between the untouched normal-cadence fixture and the
+smoothed fast-ring one, as composition predicts. The pre-smoothing
+baseline pair -- the same tool run at `c97a823`, where
+`smoothed_points` reads 0 -- has not been run yet, so the corpus-scale
+improvement is unquantified; the tool runs unchanged against that
+checkout when someone wants the number.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
