@@ -1880,6 +1880,38 @@ under `docs/corpus_runs/`):
   audit to bucket zero-duration links separately would settle it
   without redefining the historical columns.
 
+## The same-record starvation shape -- diagnostic, no dial
+
+Found chasing the fixture's six unmatched `shell_falls` the census calls
+`no_candidate` (the class anatomy: of thirteen unmatched falls, six have
+no story at all, one has a single legal-but-declined candidate, six have
+exactly two dangling candidates each -- dense-volley neighbours -- and
+never a crowd). The owner identified the first probed case, fixture
+record 47,489, as their own tank firing at deliberately low range at an
+enemy LGM: fall 12px from the muzzle, flight ~6 ticks, shot and fall
+reported in the SAME record, the shell never sampled by any list.
+
+The mechanism, confirmed by instrumenting the resolver: the residual
+flow cannot see same-record creation-to-fate stories at all --
+`creation_fate_match` with no extra flight window rejects duration-zero
+pairs, and only the same-record phase (phase three) grants the
+fire-time window. So the flow force-assigned that shot to the NEXT
+record's `pillbox_damage`, which cascaded down the burst: every shot in
+the volley matched one fate late (the roster-ladder off-by-one shape
+again, in the creation/fate ledger), and by the time phase three ran
+the pool was spent and the cost-zero true story starved.
+
+Two caveats now on the record. The census's `no_candidate` can mean "a
+perfect candidate existed but was already spent elsewhere" -- the probe
+reads the post-spend unclaimed lists, so starved fates under-report.
+And the burst itself was genuinely over-subscribed (four shot-shaped
+fates for three unseen shots), so no assignment could have satisfied
+every fate. The owner judged the drawn result -- an honest splash with
+no shell -- visually acceptable, so no dial was built; the candidate
+fix (same-record edges visible to the flow, or phase three running
+before cost-forcing) is on the roadmap's ideas shelf with the falls
+rescue.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
