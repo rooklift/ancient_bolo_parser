@@ -1,0 +1,27 @@
+# GENERATED - record timestamp order per sender; nothing written to disk.
+commit	4bcde21
+files	443
+files_failed	0
+records	13338093
+snapshot_records	13306519
+per_sender_all_pairs	13336505
+per_sender_all_forward	13304380
+per_sender_all_zero	32125
+per_sender_all_backward	0
+per_sender_all_backward_max	0
+per_sender_all_forward_max	93351
+per_sender_snapshots_pairs	13304934
+per_sender_snapshots_forward	13302220
+per_sender_snapshots_zero	2714
+per_sender_snapshots_backward	0
+per_sender_snapshots_backward_max	0
+per_sender_snapshots_forward_max	93871
+whole_file_pairs	13337650
+whole_file_forward	5017949
+whole_file_zero	8319701
+whole_file_backward	0
+whole_file_backward_max	0
+whole_file_forward_max	6823
+files_with_dips	0
+files_with_snapshot_dips	0
+verdict	monotonic
