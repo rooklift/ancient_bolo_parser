@@ -2167,6 +2167,36 @@ composed two-hop span write the same time key and the stitching pass
 reads the two-hop advance for a one-hop join. That is a keying bug
 with a measured population, and the next dial.
 
+## Index-keyed vote table -- `f970ce7`, measured null, reverted
+
+The corpus holder ran both tools at `f970ce7` (the branch head with
+`84c4605`, the index-keyed table, plus the name redaction; raw runs
+under `docs/corpus_runs/` as `f970ce7-*`). Against the `0bfd71d`
+rows:
+
+* The target did not move: `links_pill_contradicted` 89 -> 89, the
+  same twelve classes with the same counts, and the same 29 stitched
+  links on 3-4 tick pairs carrying twice the elected advance. Whatever
+  those are, they are not the time-key collision.
+* The costs were small but real and one-sided: `terminals_matched`
+  -8 (`shell_falls` -4, `tank_hit` -2, `explosion` -1,
+  `pillbox_damage` -1), `shells_matched_forward` -8 with `pop_outs`
+  +8, `pops_paired_forward` 3,230 -> 3,252 (+22, one shell drawn as
+  two -- the audit's most visible class), `hover_links` +2,
+  `pops_paired_backwards` +2; `links_pill_vouched` +32 the only gain.
+
+Reverted in the next commit. The reading: the composed two-hop
+advance that a time key handed a same-time join was, in those eight
+cases, the right answer -- which is consistent with the 29 two-hop
+stitched contradictions being physically right too, a link across a
+same-time pair whose source statement belongs to the earlier of the
+two sender updates. If so the scorer's adjacent-pair vote is the wrong
+yardstick for links that cross a same-time pair, and the alarm's
+residue there is the metric's, not the engine's. Settling it wants
+each link to carry which pass made it (pairwise, stitch, dilated,
+residual, absorption) -- `stitched` is one flag set by several -- and
+that is on the shelf, not built.
+
 ## The same-record starvation shape -- diagnostic, no dial
 
 Found chasing the fixture's six unmatched `shell_falls` the census calls
