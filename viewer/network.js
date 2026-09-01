@@ -8,8 +8,9 @@ const TICKS_PER_SECOND = 50;
 
 /* One verdict on how the game's networking held up, for the header.
  *
- * Two readings of the record stream, taken from what the log cannot help
- * recording -- when packets arrived, and how many the machine never saw:
+ * Three readings of the record stream, taken from what the log cannot
+ * help recording -- when packets arrived, and how many the machine never
+ * saw:
  *
  *   LOSS. The payload's sequence number is bumped by every node a packet
  *   passes, so consecutive records normally step by 1. A step of n means
@@ -19,6 +20,14 @@ const TICKS_PER_SECOND = 50;
  *   STALL. The share of elapsed time spent in gaps where nothing at all
  *   arrived for over half a second -- a freeze the viewer shows whatever
  *   the player count, since no ring cycles that slowly.
+ *
+ *   CYCLE. How long the ring takes to go round: the 90th percentile of
+ *   the gap between one record from a player and the next record from
+ *   the same player. A token ring turns at the speed of its slowest
+ *   link, so this is the log's latency reading -- and it is invisible
+ *   to the other two. A laggy ring drops nothing (the sequence numbers
+ *   march by 1) and need never freeze for the half second STALL wants;
+ *   it just delivers everything slowly.
  *
  * Both are read only over the stretch of SETTLED PLAY, and that qualifier
  * carries most of the accuracy here. While the game is still gathering --
@@ -52,18 +61,33 @@ const TICKS_PER_SECOND = 50;
  *
  * What survives the correction: loss still rises with player count, a ring
  * gaining a hop per player (median 5.2% at two, 6.6% at four, 7.4% at six),
- * and the two readings still agree at r = 0.69 while disagreeing often
- * enough to be worth keeping both -- a game can be steadily choppy without
- * ever freezing -- so the verdict is the worse of them. What does NOT
- * survive: the apparent year-on-year improvement from 2001 to 2005 was
- * almost entirely faster map transfers shortening the gathering phase; in
- * settled play the median barely moves (6.6% to 5.7%) [E:seq-loss].
+ * and the readings disagree often enough to be worth keeping all three
+ * -- a game can be steadily choppy without ever freezing, or laggy
+ * without dropping a thing -- so the verdict is the worst of them. What
+ * does NOT survive: the apparent year-on-year improvement from 2001 to
+ * 2005 was almost entirely faster map transfers shortening the gathering
+ * phase; in settled play the median barely moves (6.6% to 5.7%)
+ * [E:seq-loss].
+ *
+ * The cycle reading earns its place by predicting what the viewer can
+ * actually make of the stream. Across the corpus, the share of shell
+ * observations the motion code fails to chain forward tracks cycle p90
+ * at rho = 0.76, against 0.41 for stall and 0.25 for loss -- and the
+ * loss figure's correlation is mostly player count in disguise: held to
+ * four-player logs it collapses to 0.02 while cycle keeps 0.71. A slow
+ * ring undersamples every shell in flight, and no amount of counting
+ * dropped packets will see it; the poster child is a log with 2.7% loss
+ * whose ring turned every 0.3 s, giving the corpus's worst shell
+ * interpolation on nearly its cleanest loss figure. The cycle bands
+ * alone stage the corpus at median 0.2% / 0.7% / 2.4% / 7.4% of shells
+ * unchained, which is the gradient neither other signal produces. All
+ * of it reproduces with tools/measure-network-agreement.cjs.
  *
  * Scoring interleaved half-minute blocks as if they were separate games
- * gives r = 0.88 on loss and 0.94 on stall, so this is a property of a
- * session rather than of the moment sampled, and fair to state once for a
- * whole game. The thresholds below place the corpus at roughly 43% good,
- * 42% fair, 11% bad, 4% awful. All of it reproduces with
+ * gives r = 0.88 on loss, 0.94 on stall and 0.99 on cycle time, so this
+ * is a property of a session rather than of the moment sampled, and fair
+ * to state once for a whole game. The thresholds below place the corpus at roughly 38% good,
+ * 46% fair, 13% bad, 4% awful. All of it reproduces with
  * tools/measure-network-conditions.cjs. */
 
 const STALL_GAP_TICKS = TICKS_PER_SECOND / 2;  /* silence that reads as a freeze */
@@ -74,6 +98,8 @@ const SETTLE_SHARE = 0.7;       /* of a typical block, to count as up to speed *
 const MIN_SETTLED_RECORDS = 500;
 const LOSS_BANDS = [6, 11, 22];         /* percent of ring slots missing */
 const STALL_BANDS = [2, 7, 18];         /* percent of elapsed time frozen */
+const CYCLE_BANDS = [14, 19, 26];       /* ticks per ring cycle, at p90 */
+const CYCLE_QUANTILE = 0.9;
 const CONDITION_NAMES = ["good", "fair", "bad", "awful"];
 
 function band_of(value, bands) {
@@ -206,8 +232,30 @@ function recorder(records) {
 
 /* The band a pair of readings falls in, exposed so that measurement tools
  * can rate a stretch of records without going back through the trimmer. */
-function network_rating(loss, stall) {
-	return CONDITION_NAMES[Math.max(band_of(loss, LOSS_BANDS), band_of(stall, STALL_BANDS))];
+function network_rating(loss, stall, cycle = 0) {
+	return CONDITION_NAMES[Math.max(band_of(loss, LOSS_BANDS),
+		band_of(stall, STALL_BANDS), band_of(cycle, CYCLE_BANDS))];
+}
+
+/* Ring cycle time over a stretch of records: for each player slot, the
+ * gap from one of its records to the next, pooled and read at the p90.
+ * Viewer-inserted pseudo-records are not ring traffic and holes past
+ * ABSENCE_TICKS are a machine gone, not a slow ring; both stay out. */
+function ring_cycle_ticks(span) {
+	let last_by_player = new Array(16).fill(-1);
+	let gaps = [];
+	for (const rec of span) {
+		if (rec.tankStatus === 0x0f) continue;  /* viewer insert */
+		let player = rec.player & 0x0f;
+		if (last_by_player[player] >= 0) {
+			let gap = rec.time - last_by_player[player];
+			if (gap <= ABSENCE_TICKS) gaps.push(gap);
+		}
+		last_by_player[player] = rec.time;
+	}
+	if (!gaps.length) return 0;
+	gaps.sort((a, b) => a - b);
+	return gaps[Math.floor(CYCLE_QUANTILE * (gaps.length - 1))];
 }
 
 function network_conditions(records) {
@@ -237,8 +285,9 @@ function network_conditions(records) {
 
 	let loss = 100 * missing / Math.max(1, slots);
 	let stall = 100 * frozen / elapsed;
+	let cycle = ring_cycle_ticks(span);
 	return {
-		rating: network_rating(loss, stall), loss, stall,
+		rating: network_rating(loss, stall, cycle), loss, stall, cycle,
 		from: span[0].time, to: span[span.length - 1].time,
 	};
 }
