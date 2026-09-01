@@ -1,12 +1,16 @@
-name: Mac build
+name: Release builds
 
 # Runs only when a release is published (drafts don't count until you hit
-# "Publish release"), builds the Mac apps from the tagged commit, and attaches
-# the zips to that release. Ordinary pushes to main never trigger it.
+# "Publish release"), builds the Windows, Linux, and Mac apps from the tagged
+# commit, and attaches the zips to that release. Ordinary pushes to main never
+# trigger it.
 #
 # It can also be run by hand from the Actions tab: give it an existing release
 # tag to build and attach assets for, or leave the tag blank to just build and
 # get the zips as a workflow artifact.
+#
+# Everything runs on one macOS runner: the Mac builds need codesign, while the
+# Windows and Linux "builds" are just file assembly that works anywhere.
 
 on:
   release:
@@ -46,9 +50,9 @@ jobs:
           version="$(python3 -c "import re; print(re.search(r'ELECTRON_VERSION = \"(.+?)\"', open('builder.py').read()).group(1))")"
           echo "Electron v${version}"
           mkdir -p electron_zipped
-          for arch in arm64 x64; do
-            curl -fsSL --retry 4 -o "electron_zipped/electron-v${version}-darwin-${arch}.zip" \
-              "https://github.com/electron/electron/releases/download/v${version}/electron-v${version}-darwin-${arch}.zip"
+          for asset in win32-x64 linux-x64 darwin-arm64 darwin-x64; do
+            curl -fsSL --retry 4 -o "electron_zipped/electron-v${version}-${asset}.zip" \
+              "https://github.com/electron/electron/releases/download/v${version}/electron-v${version}-${asset}.zip"
           done
 
       - name: Build
@@ -64,17 +68,22 @@ jobs:
             codesign --verify --deep --strict --verbose=2 "${d}Ancient Bolo Log Viewer.app"
           done
 
-      - name: Zip apps # ditto, unlike plain zip, preserves the symlinks inside the .app
+      - name: Zip apps
         working-directory: viewer
         run: |
           for d in dist/*-mac-*/; do
+            # ditto, unlike plain zip, preserves the symlinks inside the .app
             (cd "${d}" && ditto -c -k --keepParent "Ancient Bolo Log Viewer.app" "../$(basename "${d}").zip")
+          done
+          for d in dist/*-windows/ dist/*-linux/; do
+            # -y keeps symlinks as symlinks; both keep the executable bit on the linux binary
+            (cd dist && zip -qry "$(basename "${d}").zip" "$(basename "${d}")")
           done
           ls -la dist/
 
       - uses: actions/upload-artifact@v4
         with:
-          name: mac-builds
+          name: builds
           path: viewer/dist/*.zip
           if-no-files-found: error
 
