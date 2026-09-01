@@ -270,7 +270,9 @@ function dump_carried_pills(s, player, x, y) {
 			p.armour = 0;
 		}
 		/* A dumped pill landing on a mined square removes the mine
-		 * (emulator-observed); no explosion, the mine just vanishes. */
+		 * (emulator-observed). The emulator plays an explosion sound
+		 * for it, but the terrain under the mine is left unchanged: no
+		 * crater, just the mine gone. */
 		demine_square(s, p.x, p.y);
 	}
 }

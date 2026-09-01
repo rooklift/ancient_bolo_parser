@@ -461,8 +461,9 @@ if (!fs.existsSync(log1)) {
 }
 
 // A dumped pill landing on a mined square removes the mine (emulator-
-// observed): no explosion, the mine just vanishes. Unmined neighbours
-// are left alone.
+// observed). The emulator plays an explosion sound but the terrain is
+// not cratered: the mine is simply gone. Unmined neighbours are left
+// alone.
 {
 	const st = BoloGame.initial_state();
 	st.present[0] = true; st.names[0] = "p0";
