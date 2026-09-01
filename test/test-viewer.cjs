@@ -77,10 +77,13 @@ if (!fs.existsSync(log1)) {
 	 * at `5cce199`, per `report-interpolation-rates.cjs -f` on this
 	 * fixture), so a regression of a tenth of a percent fails here rather
 	 * than passing under a floor set when the engine matched ninety
-	 * percent. An honest give-back that crosses a floor -- invented
-	 * explanations leaving the ledger, as at `90925b0` -- moves the floor
-	 * with its measurement on record; the exact terminal census below is
-	 * the tighter lock on the fate side. */
+	 * percent. Note the trade: the floors are close enough that an HONEST
+	 * give-back could fail this check someday -- invented explanations
+	 * leaving the ledger, as at `90925b0`, cost a few dozen matches on
+	 * purpose. A failure here is therefore a question, not a verdict:
+	 * regression, or a deliberate loss? The latter moves the floor, with
+	 * its measurement on record. The exact terminal census below is the
+	 * tighter lock on the fate side. */
 	check("fixture shell interpolation holds its measured records", [
 		shell_metrics.total,
 		shell_metrics.matched >= 73400,
