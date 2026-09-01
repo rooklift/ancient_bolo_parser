@@ -29,6 +29,8 @@
  *
  * Usage:
  *   node tools/audit-track-motion.cjs [replay-or-directory]
+ *       (no arguments: the whole corpus, via BOLO_CORPUS/corpus.json,
+ *       falling back to the committed fixture when neither is set)
  */
 "use strict";
 
@@ -108,7 +110,21 @@ function collect_files(target) {
 function main() {
 	const BoloLog = require(path.join(ROOT, "viewer", "logparse.js"));
 	const BoloGame = require(path.join(ROOT, "viewer", "game.js"));
-	let target = process.argv[2] ? path.resolve(process.argv[2]) : DEFAULT_REPLAY;
+	let target;
+	if (process.argv[2]) {
+		target = path.resolve(process.argv[2]);
+	} else {
+		/* Bare invocation reads the whole corpus, the way the other audit
+		 * tools do; without a configured corpus, the committed fixture. */
+		let corpus = null;
+		try {
+			corpus = require(path.join(ROOT, "tools", "corpus.cjs"))
+				.resolve_corpus_root();
+		} catch (error) {
+			corpus = null;
+		}
+		target = corpus && fs.existsSync(corpus) ? corpus : DEFAULT_REPLAY;
+	}
 	let files = collect_files(target);
 	let kinds = { tank: empty_kind(), lgm: empty_kind() };
 	let failed = 0;
