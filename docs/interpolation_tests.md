@@ -884,29 +884,6 @@ The election record now also carries the pill's unpinned member count
 (`unvoted(2 unpinned)`, `passed:full_tiebreak(1 unpinned)@...`), so an
 orphan under the true advance can be read as the unpinned source it is.
 
-## The vote table keyed by snapshot index
-
-The `0bfd71d` corpus links run left 89 contradictions, 57 of them
-stitched, and 29 of those were stitched links on 3-4 tick pairs whose
-step gap was exactly twice the elected advance: the same-time key
-collision first noted when the scorer was built. The stitching and
-residual passes looked their vote up by `(end.time, start.time)`; on
-a fast ring two snapshots share a time, the one-hop and composed
-two-hop spans write the same key, and the last writer -- the two-hop
-span -- wins, so a join across a same-time pair was gated by twice
-its true advance and accepted a link one whole hop long. Ends and
-starts now carry their snapshot index and the table is keyed by it
-throughout; the scorer's private index keying is gone with the
-parameter that carried it.
-
-Both fixtures are byte-identical on both axes, which is the expected
-result rather than a null: the fast-ring fixture's 662 same-time
-pairs are verbatim re-sends, which carry no vote and so never compose
-a two-hop span, while the corpus scenes are same-time pairs whose
-second packet is a fresh sample. The fix is judged on the corpus
-alone; index keys cannot collide, so it can only remove wrong gates.
-Corpus: awaits a holder run.
-
 ## Findings
 
 * **The branch line now leads the branch point on every headline metric.** At

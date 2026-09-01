@@ -2504,7 +2504,8 @@ function set_roster_vote_recording(on) {
 	record_roster_votes = !!on;
 }
 
-function build_pill_lockstep_reference(snapshots) {
+function build_pill_lockstep_reference(snapshots,
+	key = (i, j) => `${snapshots[i].time}:${snapshots[j].time}`) {
 	let roster = (snapshot, include) => {
 		let by_pill = new Map();
 		for (let shell of snapshot.shells) {
@@ -2560,7 +2561,7 @@ function build_pill_lockstep_reference(snapshots) {
 			for (let j = i + 1; j < snapshots.length &&
 				snapshots[j].time - snapshots[i].time <=
 					MAX_STITCH_GAP_TICKS; j++) {
-				reference.set(`${pill}:${i}:${j}`, advance);
+				reference.set(`${pill}:${key(i, j)}`, advance);
 				let hop = adjacent[j].get(pill);
 				if (hop === undefined) break;
 				advance += hop;
@@ -2571,16 +2572,14 @@ function build_pill_lockstep_reference(snapshots) {
 }
 
 /* The advance the statement rosters establish for this end's pill over
- * (end.index, start.index), or null when no dominant reference exists
- * -- in which case the joins fall back to their ordinary gates, exactly
+ * (end.time, start.time), or null when no dominant reference exists --
+ * in which case the joins fall back to their ordinary gates, exactly
  * as the matcher's lockstep stands down when no common advance
- * exists. Keyed by snapshot index, not record time: on a fast ring two
- * snapshots share a time, and time keys let the composed two-hop span
- * overwrite the one-hop one, so a join across a same-time pair was
- * gated by twice its true advance. The `0bfd71d` corpus links run
- * measured that population -- 29 of the 89 surviving contradictions
- * were stitched links carrying exactly twice the elected advance on
- * 3-4 tick pairs. */
+ * exists. The table is keyed by record time, as the ends and starts
+ * are; on a fast ring two snapshots can share a time, and there the
+ * one-hop and composed two-hop spans write the same key, last writer
+ * winning -- a quirk left as measured (see score_pill_links, which
+ * keys by index instead). */
 function unanimous_lockstep_advance(reference, end, start) {
 	if (!reference) return null;
 	let end_shell = end.shell;
@@ -2588,7 +2587,7 @@ function unanimous_lockstep_advance(reference, end, start) {
 	let states = end_shell.pillbox_orbit_states;
 	if (!states || !states.length) return null;
 	let advance = reference.get(`${end_shell.pillbox_source_x}:` +
-		`${end_shell.pillbox_source_y}:${end.index}:${start.index}`);
+		`${end_shell.pillbox_source_y}:${end.time}:${start.time}`);
 	return advance === undefined ? null : advance;
 }
 
@@ -2625,7 +2624,11 @@ function score_pill_links(snapshots) {
 			score[`votes_${vote.verdict}`]++;
 		}
 	}
-	let reference = build_pill_lockstep_reference(snapshots);
+	/* Keyed by snapshot index, not time: a fast ring lands two sender
+	 * packets in one recorder tick, and time keys would hand a one-hop
+	 * link the composed two-hop advance and call it a contradiction. */
+	let reference = build_pill_lockstep_reference(snapshots,
+		(i, j) => `${i}:${j}`);
 	let index_of = new Map();
 	snapshots.forEach((snapshot, index) => {
 		for (let shell of snapshot.shells) index_of.set(shell, index);
@@ -3257,11 +3260,11 @@ function stitch_shell_chains(snapshots) {
 		let final = index === snapshots.length - 1;
 		for (let shell of snapshot.shells) {
 			if (shell.next_time === undefined && !final) {
-				ends.push({ shell, time: snapshot.time, index });
+				ends.push({ shell, time: snapshot.time });
 			}
 			if (index > 0 && !shell.matched_from_previous &&
 				!shell.starts_at_tank && !shell.starts_at_pillbox) {
-				starts.push({ shell, time: snapshot.time, index });
+				starts.push({ shell, time: snapshot.time });
 			}
 		}
 	}
@@ -3762,11 +3765,11 @@ function resolve_residual_shell_fates(snapshots) {
 		let gap = index > 0 ? snapshot.time - snapshots[index - 1].time : 0;
 		for (let shell of snapshot.shells) {
 			if (shell.next_time === undefined && !final) {
-				ends.push({ shell, time: snapshot.time, index, gap });
+				ends.push({ shell, time: snapshot.time, gap });
 			}
 			if (index > 0 && !shell.matched_from_previous &&
 				!shell.starts_at_tank && !shell.starts_at_pillbox) {
-				starts.push({ shell, time: snapshot.time, index });
+				starts.push({ shell, time: snapshot.time });
 			}
 		}
 		/* Snapshot times never decrease, so every group sharing this
