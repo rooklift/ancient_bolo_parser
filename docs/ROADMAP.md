@@ -208,9 +208,14 @@ byte-identical. Corpus: both shell-side records on (matched forward
 +76, steady links to the audit era's best; contradictions 423 -> 437
 and backwards pops +25 on the books. The rates tool's
 `--describe-links` names every contradiction (record times, pill,
-steps, elected advance) so the +14 can be opened as scenes; that is
-the instrument for the complaint-driven mode from here, alongside the
-audit's `--describe-backwards`.
+steps, elected advance, the matcher's own election over the pair and
+both rosters) so each can be read without the log; that is the
+instrument for the complaint-driven mode from here, alongside the
+audit's `--describe-backwards`. The first corpus links run (437 named)
+found the majority linked LONG by one rung with the engine's own links
+at mixed advances -- wrong links, the mirror of the fixture scene --
+and the election bookkeeping exists to say whether the vote stood
+down or was never held; see the corpus file's links-run section.
 
 ## Ideas shelf
 

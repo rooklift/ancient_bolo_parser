@@ -44,8 +44,12 @@
  * "pairwise|stitched:<step gap minus elected advance>" signatures
  * (link_class lines; a negative delta is a ladder linked short, a
  * positive one linked long) and every contradiction as a link_example
- * line with its record times, pill, steps and elected advance, so each
- * can be opened in the viewer. The three flags can be combined.
+ * line with its record times, pill, steps and elected advance, then
+ * the matcher's own election over that pair as it saw it at the time
+ * (verdict, advance, score against runner-up, the pinned source steps
+ * with "d" on members that held a terminal candidate, the pinned
+ * landings) and the two rosters as final state pins them -- enough to
+ * read a scene without the log. The three flags can be combined.
  *
  * Every metric is a "key<TAB>value" line. A value of "-" means this repo state
  * does not carry the data at all, which is not the same as a count of zero;
@@ -220,6 +224,11 @@ function empty_totals() {
 		links_pill_vouched: null,
 		links_pill_contradicted: null,
 		links_pill_unvouched: null,
+		/* The matcher's roster elections: pills with under three pinned
+		 * sources cannot vote; a vote inside the margin stands down. */
+		roster_votes_unvoted: null,
+		roster_votes_stood_down: null,
+		roster_votes_passed: null,
 
 		/* Residual-flow components: what forced_bipartite_assignments in
 		 * viewer/motion.js actually solves, and whether its pathological-
@@ -296,6 +305,11 @@ function count_pill_links(totals, engines, game) {
 		add(totals, "links_pill_vouched", score.vouched);
 		add(totals, "links_pill_contradicted", score.contradicted);
 		add(totals, "links_pill_unvouched", score.unvouched);
+		if (score.votes_passed !== undefined) {
+			add(totals, "roster_votes_unvoted", score.votes_unvoted);
+			add(totals, "roster_votes_stood_down", score.votes_stood_down);
+			add(totals, "roster_votes_passed", score.votes_passed);
+		}
 	}
 	return scores;
 }
@@ -625,12 +639,32 @@ function link_class_report(diagnostics) {
 		lines.push(`link_class\t${signature}\t${count}`);
 	}
 	for (let { file, record } of diagnostics.examples) {
+		/* The matcher's election over the pair, as it saw it: verdict,
+		 * elected advance with the confident vote's score against its
+		 * runner-up (and the full roster's, when they differ), then the
+		 * pinned source steps ("d" marks a member that held a terminal
+		 * candidate, so abstained) and the pinned landings. "-" is a repo
+		 * state that does not record votes. */
+		let vote = record.match_vote;
+		let vote_text = vote === null || vote === undefined ? "-"
+			: vote.verdict === "unvoted" ? "unvoted"
+			: `${vote.verdict}@${vote.advance}(${vote.score}v${vote.runner_up}` +
+				`${vote.full_advance !== vote.advance ||
+					vote.full_score !== vote.score ||
+					vote.full_runner_up !== vote.runner_up
+					? `;full@${vote.full_advance}(${vote.full_score}v` +
+						`${vote.full_runner_up})` : ""})`;
 		lines.push(`link_example\t${path.basename(file)}` +
 			`\tt${record.time}->${record.next_time}` +
 			`\tpill(${record.pillbox_source_x},${record.pillbox_source_y})` +
 			`\tstep${record.step}->${record.next_step}` +
 			`\tadvance${record.advance}` +
-			`\t${record.stitched ? "stitched" : "pairwise"}`);
+			`\t${record.stitched ? "stitched" : "pairwise"}` +
+			`\tvote=${vote_text}` +
+			`\tsrc=${vote ? vote.sources : "-"}` +
+			`\tdst=${vote ? vote.landings : "-"}` +
+			`\tfinal=${record.final_sources ?? "-"}` +
+			`>${record.final_landings ?? "-"}`);
 	}
 	return lines;
 }
