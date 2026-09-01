@@ -2165,10 +2165,7 @@ pairs: the same-time key collision noted at
 `unanimous_lockstep_advance` -- on a fast ring the one-hop and the
 composed two-hop span write the same time key and the stitching pass
 reads the two-hop advance for a one-hop join. That is a keying bug
-with a measured population; fixed in the commit after this run (ends
-and starts carry their snapshot index, the table is keyed by it),
-byte-identical on both fixtures for the reason the fixture file
-gives, and awaiting its own row.
+with a measured population, and the next dial.
 
 ## The same-record starvation shape -- diagnostic, no dial
 
