@@ -2988,11 +2988,24 @@ function component_min_cost_flow(left_caps, right_caps, edges, skip) {
 /* Sizes of what forced_bipartite_assignments actually solves, so a
  * corpus run can say whether the pathological-component cap below ever
  * fires in practice (#28). Accumulates across calls until reset; the
- * report tool resets per file. */
-let flow_component_stats = { components: 0, edges_max: 0, over_cap: 0 };
+ * report tool resets per file. over_cap_details carries one entry per
+ * capped component -- its edge count and the tick span of its nodes --
+ * so tools/find-flow-cap-components.cjs can locate the scene; it is
+ * only ever appended to in the rare capped case. */
+let flow_component_stats = { components: 0, edges_max: 0, over_cap: 0,
+	over_cap_details: [] };
 
 function reset_flow_component_stats() {
-	flow_component_stats = { components: 0, edges_max: 0, over_cap: 0 };
+	flow_component_stats = { components: 0, edges_max: 0, over_cap: 0,
+		over_cap_details: [] };
+}
+
+/* Both graphs' nodes wrap their subject -- a chain end or start, a
+ * creation group, a fate -- with the time it was seen at, under one of
+ * a few field names. */
+function flow_node_time(node) {
+	return node.time ?? node.creation?.time ?? node.fate?.time ??
+		node.start?.time ?? node.end?.time;
 }
 
 /* Split the graph into connected components and, per component, keep the
@@ -3030,9 +3043,22 @@ function forced_bipartite_assignments(lefts, rights, edges) {
 		flow_component_stats.edges_max = Math.max(
 			flow_component_stats.edges_max, edge_indices.length);
 		/* A pathological component is left unresolved rather than solved
-		 * slowly; measured components stay well under this. */
+		 * slowly; corpus-measured components almost always stay well
+		 * under this (largest seen: 501 edges, twice in 138757). */
 		if (edge_indices.length > 400) {
+			let min_time, max_time;
+			for (let i of edge_indices) {
+				for (let node of [lefts[edges[i].left],
+					rights[edges[i].right]]) {
+					let time = flow_node_time(node);
+					if (time === undefined) continue;
+					if (min_time === undefined || time < min_time) min_time = time;
+					if (max_time === undefined || time > max_time) max_time = time;
+				}
+			}
 			flow_component_stats.over_cap++;
+			flow_component_stats.over_cap_details.push(
+				{ edges: edge_indices.length, min_time, max_time });
 			continue;
 		}
 		let left_ids = [...new Set(edge_indices.map(i => edges[i].left))];
