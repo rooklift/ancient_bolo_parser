@@ -1834,13 +1834,18 @@ function enforce_roster_lockstep_candidates(previous_shells, target_groups,
 	by_previous, by_next, duration, next = null) {
 	let max_advance = Math.ceil(duration / TICKS_PER_SHELL_UPDATE) +
 		DILATED_UPDATE_SLACK;
-	/* Measurement only: every pill's election over this pair is recorded
-	 * on the target snapshot, whatever its verdict, so a link the post-hoc
-	 * vote later contradicts can be read against what the matcher saw at
-	 * the time (score_pill_links attaches it; the rates tool's
-	 * --describe-links prints it). Overwritten on each of the matcher's
-	 * passes; the rosters do not change between them. */
-	let votes = next ? (next.roster_votes ??= new Map()) : null;
+	/* Measurement only, and off unless a measuring caller switches it on
+	 * (set_roster_vote_recording): every pill's election over this pair
+	 * is recorded on the target snapshot, whatever its verdict, so a link
+	 * the post-hoc vote later contradicts can be read against what the
+	 * matcher saw at the time (score_pill_links attaches it; the rates
+	 * tool's --describe-links prints it). Overwritten on each of the
+	 * matcher's passes; the rosters do not change between them. The
+	 * records are small but there are tens of thousands per replay --
+	 * about a tenth again of a built game's heap -- which the viewer
+	 * should not carry for a table it never reads. */
+	let votes = next && record_roster_votes
+		? (next.roster_votes ??= new Map()) : null;
 	let pills = new Map();
 	for (let index = 0; index < previous_shells.length; index++) {
 		let shell = previous_shells[index];
@@ -2439,6 +2444,11 @@ function pill_states_reachable(end_shell, shell, duration) {
  * correct joins beside it. Statements outvote links. */
 const LOCKSTEP_REFERENCE_MIN_SCORE = 3;
 const LOCKSTEP_REFERENCE_MIN_MARGIN = 2;
+
+let record_roster_votes = false;
+function set_roster_vote_recording(on) {
+	record_roster_votes = !!on;
+}
 
 function build_pill_lockstep_reference(snapshots,
 	key = (i, j) => `${snapshots[i].time}:${snapshots[j].time}`) {
@@ -5054,7 +5064,7 @@ const BoloMotion = {
 	tank_position_at, tank_direction_at, lgm_position_at, shell_position_at,
 	shell_birth_positions_at, shell_fall_positions_at,
 	describe_unmatched_terminals, describe_unfated_ends, score_pill_links,
-	reset_flow_component_stats,
+	set_roster_vote_recording, reset_flow_component_stats,
 	flow_component_stats: () => flow_component_stats,
 };
 

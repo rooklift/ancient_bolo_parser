@@ -688,6 +688,11 @@ function load_engines(with_motion) {
 		} catch {
 			engines.motion = null;
 		}
+		/* The election record is off in the viewer (it costs heap the app
+		 * never reads); a measuring process wants it. */
+		if (typeof engines.motion?.set_roster_vote_recording === "function") {
+			engines.motion.set_roster_vote_recording(true);
+		}
 	}
 	if (typeof engines.game.build !== "function" ||
 		typeof engines.log.records !== "function") {
