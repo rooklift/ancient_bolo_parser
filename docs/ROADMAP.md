@@ -206,9 +206,11 @@ forward +6, pops -6, a second tank hit explained, fast-ring fixture
 byte-identical. Corpus: both shell-side records on (matched forward
 +103, `pop_outs` -103, unlinked -36), terminals +135 with `tank_hit`
 +76, steady links to the audit era's best; contradictions 423 -> 437
-and backwards pops +25 on the books. The +14 contradictions want a
-`--describe-links` flag on the rates tool (the scorer already collects
-examples; the tool does not print them) before anyone chases them.
+and backwards pops +25 on the books. The rates tool's
+`--describe-links` names every contradiction (record times, pill,
+steps, elected advance) so the +14 can be opened as scenes; that is
+the instrument for the complaint-driven mode from here, alongside the
+audit's `--describe-backwards`.
 
 ## Ideas shelf
 

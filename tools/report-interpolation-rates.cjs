@@ -36,8 +36,16 @@
  * story (the engine population behind the audit's drawn pop-outs), a
  * tally over "reason:event_type:kind" signatures saying what fate was
  * available and what blocked it (end_class / end_example lines); see
- * describe_unfated_ends in viewer/motion.js. The two flags can be
- * combined.
+ * describe_unfated_ends in viewer/motion.js.
+ *
+ * --describe-links names the contradicted pill links -- links the
+ * statement-roster vote, taken on final state, disagrees with (see
+ * score_pill_links in viewer/motion.js): a tally over
+ * "pairwise|stitched:<step gap minus elected advance>" signatures
+ * (link_class lines; a negative delta is a ladder linked short, a
+ * positive one linked long) and every contradiction as a link_example
+ * line with its record times, pill, steps and elected advance, so each
+ * can be opened in the viewer. The three flags can be combined.
  *
  * Every metric is a "key<TAB>value" line. A value of "-" means this repo state
  * does not carry the data at all, which is not the same as a count of zero;
@@ -59,7 +67,8 @@ const REPORT_FORMAT = 1;
 function usage(message) {
 	if (message) console.error(`error: ${message}`);
 	console.error("usage: node tools/report-interpolation-rates.cjs " +
-		"[--describe-terminals] [--describe-ends] [--workers=N] " +
+		"[--describe-terminals] [--describe-ends] [--describe-links] " +
+		"[--workers=N] " +
 		"[-f <replay> | -d <directory> | -r <directory>]  " +
 		"(no path arguments: the whole corpus)");
 	process.exit(2);
@@ -68,6 +77,7 @@ function usage(message) {
 function parse_args(argv) {
 	let describe_terminals = false;
 	let describe_ends = false;
+	let describe_links = false;
 	let workers = null;
 	argv = argv.filter(arg => {
 		if (arg === "--describe-terminals") {
@@ -76,6 +86,10 @@ function parse_args(argv) {
 		}
 		if (arg === "--describe-ends") {
 			describe_ends = true;
+			return false;
+		}
+		if (arg === "--describe-links") {
+			describe_links = true;
 			return false;
 		}
 		let match = arg.match(/^--workers=(\d+)$/);
@@ -91,13 +105,13 @@ function parse_args(argv) {
 		 * when nothing is configured. */
 		let { corpus_root } = require("./corpus.cjs");
 		return { mode: "recursive", target: corpus_root(),
-			describe_terminals, describe_ends, workers };
+			describe_terminals, describe_ends, describe_links, workers };
 	}
 	if (argv.length !== 2) usage("exactly one flag and one path are required");
 	let mode = modes[argv[0]];
 	if (!mode) usage(`unknown flag ${argv[0]}`);
 	return { mode, target: path.resolve(argv[1]),
-		describe_terminals, describe_ends, workers };
+		describe_terminals, describe_ends, describe_links, workers };
 }
 
 /* Directory listings are sorted so a corpus is visited in the same order on
@@ -267,11 +281,13 @@ function count_tracks(totals, tracks, prefix, max_ticks) {
  * exactly as the engine takes it. Guarded like the other diagnostics so
  * older repo states report "-". */
 function count_pill_links(totals, engines, game) {
-	if (typeof engines.motion?.score_pill_links !== "function") return;
-	if (!Array.isArray(game.shell_positions)) return;
+	let scores = [];
+	if (typeof engines.motion?.score_pill_links !== "function") return null;
+	if (!Array.isArray(game.shell_positions)) return scores;
 	for (let snapshots of game.shell_positions) {
 		if (!Array.isArray(snapshots)) continue;
 		let score = engines.motion.score_pill_links(snapshots);
+		scores.push(score);
 		add(totals, "links_shell", score.links);
 		add(totals, "links_visual", score.visual);
 		add(totals, "links_no_pill_source", score.no_pill_source);
@@ -280,6 +296,28 @@ function count_pill_links(totals, engines, game) {
 		add(totals, "links_pill_vouched", score.vouched);
 		add(totals, "links_pill_contradicted", score.contradicted);
 		add(totals, "links_pill_unvouched", score.unvouched);
+	}
+	return scores;
+}
+
+/* Every contradiction, classified by how far the link disagrees with
+ * the elected advance. Unlike the terminal and end diagnostics there
+ * is no per-file example cap: contradictions are rare by construction
+ * and each one is a scene. */
+function describe_links(diagnostics, scores, file) {
+	if (scores === null) {
+		diagnostics.unsupported = true;
+		return;
+	}
+	for (let score of scores) {
+		for (let record of score.examples || []) {
+			let delta = record.next_step - record.step - record.advance;
+			let signature = `${record.stitched ? "stitched" : "pairwise"}:` +
+				`${delta > 0 ? "+" : ""}${delta}`;
+			diagnostics.classes.set(signature,
+				(diagnostics.classes.get(signature) || 0) + 1);
+			diagnostics.examples.push({ file, record });
+		}
 	}
 }
 
@@ -417,13 +455,15 @@ function count_file(totals, engines, file, diagnostics) {
 		describe_terminals(diagnostics.terminals, engines, game, file);
 	}
 	if (diagnostics?.ends) describe_ends(diagnostics.ends, engines, game, file);
+	let link_scores = null;
 	let max_ticks = engines.game.MAX_POSITION_INTERPOLATION_TICKS;
 	/* Repo states from before facing had a limit of its own bridged it with
 	 * the position limit, so reporting that keeps their numbers honest. */
 	let max_direction_ticks =
 		engines.game.MAX_DIRECTION_INTERPOLATION_TICKS ?? max_ticks;
 	count_shells(totals, game);
-	count_pill_links(totals, engines, game);
+	link_scores = count_pill_links(totals, engines, game);
+	if (diagnostics?.links) describe_links(diagnostics.links, link_scores, file);
 	count_tracks(totals, game.tank_positions, "tank", max_ticks);
 	count_tracks(totals, game.lgm_positions, "lgm", max_ticks);
 	count_tracks(totals, game.tank_directions, "tank_direction",
@@ -573,6 +613,28 @@ function terminal_class_report(diagnostics, label) {
 	return lines;
 }
 
+function link_class_report(diagnostics) {
+	let lines = [];
+	if (diagnostics.unsupported) {
+		lines.push("link_class\t-");
+		return lines;
+	}
+	let classes = [...diagnostics.classes.entries()]
+		.sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
+	for (let [signature, count] of classes) {
+		lines.push(`link_class\t${signature}\t${count}`);
+	}
+	for (let { file, record } of diagnostics.examples) {
+		lines.push(`link_example\t${path.basename(file)}` +
+			`\tt${record.time}->${record.next_time}` +
+			`\tpill(${record.pillbox_source_x},${record.pillbox_source_y})` +
+			`\tstep${record.step}->${record.next_step}` +
+			`\tadvance${record.advance}` +
+			`\t${record.stitched ? "stitched" : "pairwise"}`);
+	}
+	return lines;
+}
+
 function load_engines(with_motion) {
 	let engines;
 	try {
@@ -604,10 +666,11 @@ function load_engines(with_motion) {
 let empty_diagnostics = () =>
 	({ classes: new Map(), examples: [], unsupported: false });
 
-function make_diagnostics(describe_terminals, describe_ends) {
-	return describe_terminals || describe_ends ? {
+function make_diagnostics(describe_terminals, describe_ends, describe_links) {
+	return describe_terminals || describe_ends || describe_links ? {
 		terminals: describe_terminals ? empty_diagnostics() : null,
 		ends: describe_ends ? empty_diagnostics() : null,
+		links: describe_links ? empty_diagnostics() : null,
 	} : null;
 }
 
@@ -631,7 +694,7 @@ function merge_totals(totals, part) {
 }
 
 function merge_diagnostics(diagnostics, part) {
-	for (let side of ["terminals", "ends"]) {
+	for (let side of ["terminals", "ends", "links"]) {
 		if (!diagnostics?.[side] || !part?.[side]) continue;
 		if (part[side].unsupported) diagnostics[side].unsupported = true;
 		for (let [signature, count] of part[side].classes) {
@@ -646,8 +709,8 @@ function run_worker() {
 	let engines = load_engines(true);
 	parentPort.on("message", file => {
 		let totals = empty_totals();
-		let diagnostics = make_diagnostics(
-			workerData.describe_terminals, workerData.describe_ends);
+		let diagnostics = make_diagnostics(workerData.describe_terminals,
+			workerData.describe_ends, workerData.describe_links);
 		let failed = null;
 		try {
 			count_file(totals, engines, file, diagnostics);
@@ -661,13 +724,14 @@ function run_worker() {
 }
 
 function main() {
-	let { mode, target, describe_terminals, describe_ends, workers } =
-		parse_args(process.argv.slice(2));
+	let { mode, target, describe_terminals, describe_ends, describe_links,
+		workers } = parse_args(process.argv.slice(2));
 	let engines = load_engines(true);
 	let files = replay_files(mode, target);
 	if (!files.length) usage(`no replay files found at ${target}`);
 	let totals = empty_totals();
-	let diagnostics = make_diagnostics(describe_terminals, describe_ends);
+	let diagnostics = make_diagnostics(describe_terminals, describe_ends,
+		describe_links);
 
 	let finish = () => {
 		process.stdout.write(build_report(totals, {
@@ -684,6 +748,10 @@ function main() {
 		]) {
 			if (!part) continue;
 			let lines = terminal_class_report(part, label);
+			if (lines.length) process.stdout.write(`${lines.join("\n")}\n`);
+		}
+		if (diagnostics?.links) {
+			let lines = link_class_report(diagnostics.links);
 			if (lines.length) process.stdout.write(`${lines.join("\n")}\n`);
 		}
 	};
@@ -730,7 +798,8 @@ function main() {
 	};
 	for (let i = 0; i < worker_count; i++) {
 		let worker = new Worker(__filename,
-			{ workerData: { describe_terminals, describe_ends } });
+			{ workerData: { describe_terminals, describe_ends,
+				describe_links } });
 		let dispatch = () => {
 			let index = queue.shift();
 			if (index === undefined) {
