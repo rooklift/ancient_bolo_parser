@@ -15,6 +15,13 @@
  * over half a second.  No ring cycles that slowly at any player count, so
  * this is a freeze regardless of how many were playing.
  *
+ * CYCLE: how long the ring takes to go round -- the p90 of the gap between
+ * one record from a player and the next from the same player.  The ring
+ * turns at the speed of its slowest link, so this is the latency reading
+ * the other two are blind to: a laggy ring drops nothing and need never
+ * freeze, it just delivers everything slowly.  Gaps past 30 s are a
+ * machine gone, not a slow ring, and are left out, as network.js does.
+ *
  * THE GATHERING PHASE is the thing that has to be got right.  While a game
  * is still gathering, the ring turns at full speed but the logging machine
  * records only a fraction of it, so the sequence number races ahead and
@@ -95,7 +102,21 @@ function raw_readings(recs) {
 		missing += step - 1;
 		slots += step;
 	}
-	return { loss: 100 * missing / Math.max(1, slots), stall: 100 * frozen / Math.max(1, elapsed) };
+	let last_by_player = new Array(16).fill(-1);
+	let cycle_gaps = [];
+	for (let rec of recs) {
+		if (rec.tankStatus === 0x0f) continue;  /* viewer insert */
+		let player = rec.player & 0x0f;
+		if (last_by_player[player] >= 0) {
+			let gap = rec.time - last_by_player[player];
+			if (gap <= 1500) cycle_gaps.push(gap);
+		}
+		last_by_player[player] = rec.time;
+	}
+	cycle_gaps.sort((a, b) => a - b);
+	let cycle = cycle_gaps.length
+		? cycle_gaps[Math.floor(0.9 * (cycle_gaps.length - 1))] : 0;
+	return { loss: 100 * missing / Math.max(1, slots), stall: 100 * frozen / Math.max(1, elapsed), cycle };
 }
 
 function correlation(xs, ys) {
@@ -171,8 +192,13 @@ console.log(`${rows.length} logs scored under ${ROOT}\n`);
 
 console.log(spread("loss %", rows.map(r => r.whole.loss)));
 console.log(spread("stall %", rows.map(r => r.whole.stall)));
+console.log(spread("cycle t", rows.map(r => r.whole.cycle)));
 console.log("loss/stall correlation: r = " +
 	correlation(rows.map(r => r.whole.loss), rows.map(r => r.whole.stall)).toFixed(3));
+console.log("loss/cycle correlation: r = " +
+	correlation(rows.map(r => r.whole.loss), rows.map(r => r.whole.cycle)).toFixed(3));
+console.log("stall/cycle correlation: r = " +
+	correlation(rows.map(r => r.whole.stall), rows.map(r => r.whole.cycle)).toFixed(3));
 
 console.log("\nuntrimmed, for comparison -- the same logs read end to end:");
 console.log(spread("loss %", rows.map(r => r.untrimmed.loss)));
@@ -205,9 +231,11 @@ for (let n of [...by_players.keys()].sort((x, y) => x - y)) {
 	let loss = group.map(r => r.whole.loss).sort((x, y) => x - y);
 	let raw = group.map(r => r.untrimmed.loss).sort((x, y) => x - y);
 	let stall = group.map(r => r.whole.stall).sort((x, y) => x - y);
+	let cycle = group.map(r => r.whole.cycle).sort((x, y) => x - y);
 	console.log(`  ${n} players  n=${String(group.length).padStart(3)}  ` +
 		`loss p50=${quantile(loss, .5).toFixed(1).padStart(5)}  ` +
-		`stall p50=${quantile(stall, .5).toFixed(1).padStart(5)}` +
+		`stall p50=${quantile(stall, .5).toFixed(1).padStart(5)}  ` +
+		`cycle p50=${quantile(cycle, .5).toFixed(1).padStart(5)}` +
 		`   (untrimmed loss p50=${quantile(raw, .5).toFixed(1).padStart(5)})`);
 }
 
@@ -232,10 +260,13 @@ for (let y of [...by_year.keys()].sort()) {
 console.log("\nsplit-half reliability (is one verdict per game honest?):");
 console.log(`  loss  r = ${correlation(rows.map(r => r.a.loss), rows.map(r => r.b.loss)).toFixed(3)}`);
 console.log(`  stall r = ${correlation(rows.map(r => r.a.stall), rows.map(r => r.b.stall)).toFixed(3)}`);
+console.log(`  cycle r = ${correlation(rows.map(r => r.a.cycle), rows.map(r => r.b.cycle)).toFixed(3)}`);
 let dl = rows.map(r => Math.abs(r.a.loss - r.b.loss)).sort((a, b) => a - b);
 let ds = rows.map(r => Math.abs(r.a.stall - r.b.stall)).sort((a, b) => a - b);
+let dc = rows.map(r => Math.abs(r.a.cycle - r.b.cycle)).sort((a, b) => a - b);
 console.log(`  |loss A - loss B|   p50=${quantile(dl, .5).toFixed(2)} p90=${quantile(dl, .9).toFixed(2)}`);
 console.log(`  |stall A - stall B| p50=${quantile(ds, .5).toFixed(2)} p90=${quantile(ds, .9).toFixed(2)}`);
+console.log(`  |cycle A - cycle B| p50=${quantile(dc, .5).toFixed(2)} p90=${quantile(dc, .9).toFixed(2)}`);
 
 console.log("\nbands as shipped:");
 const NAMES = ["good", "fair", "bad", "awful"];
@@ -243,8 +274,8 @@ let counts = new Map(NAMES.map(n => [n, 0]));
 let same = 0;
 for (let row of rows) {
 	counts.set(row.whole.rating, counts.get(row.whole.rating) + 1);
-	if (BoloNetwork.network_rating(row.a.loss, row.a.stall) ===
-		BoloNetwork.network_rating(row.b.loss, row.b.stall)) same++;
+	if (BoloNetwork.network_rating(row.a.loss, row.a.stall, row.a.cycle) ===
+		BoloNetwork.network_rating(row.b.loss, row.b.stall, row.b.cycle)) same++;
 }
 for (let name of NAMES) {
 	let c = counts.get(name);
@@ -257,5 +288,6 @@ let sorted = rows.slice().sort((a, b) => a.whole.loss - b.whole.loss);
 for (let i = 0; i < sorted.length; i += Math.ceil(sorted.length / 12)) {
 	let r = sorted[i];
 	console.log(`  ${r.whole.rating.padEnd(6)} loss=${r.whole.loss.toFixed(1).padStart(5)}% ` +
-		`stall=${r.whole.stall.toFixed(1).padStart(5)}% ${r.players}p  ${r.file}`);
+		`stall=${r.whole.stall.toFixed(1).padStart(5)}% ` +
+		`cycle=${String(r.whole.cycle).padStart(2)}t ${r.players}p  ${r.file}`);
 }

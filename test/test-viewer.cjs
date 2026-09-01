@@ -2312,6 +2312,27 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	check("freezes are counted as lost time", net2.stall > 25, true);
 	check("freezes alone can rate awful", net2.rating, "awful");
 
+	// Lag alone can damn one the other two readings would pass: a ring
+	// turning slowly drops nothing and none of its gaps reach the half
+	// second a stall needs, but everyone's updates arrive at a crawl.
+	let laggy = [];
+	for (let i = 0; i < 2000; i++)
+		laggy.push({ time: 1000 + i * 20, seq: i & 0x7f, subpackets: [] });
+	let net3 = BoloNetwork.network_conditions(laggy);
+	check("a slow ring loses nothing", net3.loss, 0);
+	check("a slow ring never freezes", net3.stall, 0);
+	check("the cycle reading is the p90 turn time", net3.cycle, 20);
+	check("lag alone can rate bad", net3.rating, "bad");
+	check("a clean ring also cycles fast", net.cycle, 2);
+
+	// The cycle is read per player: two players' records interleaved 10
+	// ticks apart still mean each player is heard from every 20.
+	let pair = [];
+	for (let i = 0; i < 2000; i++)
+		pair.push({ time: 1000 + i * 10, seq: i & 0x7f, player: i & 1, subpackets: [] });
+	check("cycle time is per player, not per record",
+		BoloNetwork.network_conditions(pair).cycle, 20);
+
 	// A duplicate (step 0) is not a loss, and a step across a long silence
 	// is a rejoin whose 7-bit counter may have wrapped: neither is charged.
 	check("a duplicate is not a loss", BoloNetwork.network_conditions([
