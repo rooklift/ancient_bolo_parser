@@ -81,8 +81,10 @@ measured, and the current measured state of record is the
 fast-ring re-sends branch at `917077a` (see its section), which
 carries both shell-side records; `029acac` keeps both terminal-side
 ones; the `3b9d80d` run adds the vouched-link columns with every
-matching metric byte-identical, and `a4822ec` -- doubtful voters
-abstain, see its section -- then moves both shell-side records on. (Earlier
+matching metric byte-identical, `a4822ec` -- doubtful voters abstain,
+see its section -- then moves both shell-side records on, and
+`0bfd71d` -- the symmetric election and orphan tie-break, see its
+section -- moves them on again by the largest step since `917077a`. (Earlier
 revisions of this paragraph pinned the file at `926f391`/`4572cff`, then at
 `a74033a`/`380e333`; later sections were measured from live checkouts of the
 named commits, per their sections.)
@@ -132,7 +134,8 @@ Constant at all ten commits, and worth having once:
 | `4233e94` | residual lockstep veto | 0.995308 | 0.001558 | 0.833192 | 235,747 |
 | `e101787` | pairwise roster lockstep | 0.995494 | 0.001520 | 0.833249 | 235,846 |
 | `917077a` | fast-ring re-sends | 0.996647 | 0.001446 | 0.833054 | 235,759 |
-| `a4822ec` | doubtful voters abstain | **0.996657** | **0.001443** | 0.833123 | 235,835 |
+| `a4822ec` | doubtful voters abstain | 0.996657 | 0.001443 | 0.833123 | 235,835 |
+| `0bfd71d` | symmetric election, orphan tie-break | **0.996726** | **0.001419** | 0.833131 | 235,847 |
 
 The rows below the guard run were measured later, from the corpus
 holder's live checkouts: `97fa412` closes the unmeasured-`main` gap the
@@ -2109,6 +2112,53 @@ The symmetric election with the orphan tie-break is built (fixture
 file has the dial and its fixture numbers: +1 matched, -1 pop,
 elections passed 3,171 -> 3,720, contradictions still 0, fast ring
 byte-identical) and awaits its corpus row.
+
+## The symmetric election and the orphan tie-break -- `0bfd71d`
+
+Built from the `41bb718` links run's reading (previous section) and
+scored on that file before the engine was touched. Corpus
+verification, run by the corpus holder at `0bfd71d` (raw runs under
+`docs/corpus_runs/`: the rates run with `--describe-links`, split into
+`0bfd71d-report.txt` and `0bfd71d-links.txt`, and the audit; zero
+failures):
+
+* Both shell-side records move by the largest step since `917077a`:
+  `shells_matched_forward` +675 (0.996657 -> 0.996726) with `pop_outs`
+  -675 (32,629 -> 31,954), exactly complementary once more;
+  `shells_unlinked` -236 (0.001443 -> 0.001419). The terminal side
+  +15 (`shell_falls` +15, `tank_hit` +12, `explosion` +5,
+  `pillbox_damage` -16, `base_damage` -1); `029acac` keeps both
+  terminal-side records.
+* The elections: `roster_votes_stood_down` 248,170 -> 183,827 and
+  `roster_votes_passed` 497,704 -> 562,225 (+64,521, +13%); unvoted
+  unchanged within 115. One pill election in four now passes.
+* The truth axis: `links_pill_contradicted` **437 -> 89** (-80%,
+  0.000086 -> 0.000017), vouched +4,308, unvouched -2,207, unpinned
+  links 29,244 -> 28,457 (-787: exactness propagating further down
+  correctly linked chains).
+* Mints collapse as mis-linked ladders stop being re-minted:
+  `shells_stream_birth` 1,263 -> 918 (-27%), `shells_unseen_pillbox_birth`
+  -106, `shells_visual_joins` -82, `shell_births` -475,
+  `shells_from_pillbox` -473, while `shells_with_pillbox_source` +454
+  -- provenance carried by links rather than fresh claims, the same
+  signature as `917077a`. `flow_components` -290.
+* Audit, every lie metric down: `pop_ins` -185, `pops_paired_forward`
+  -35, `pops_paired_backwards` 1,407 -> 1,366 (-41, undoing
+  `a4822ec`'s +25 and more), `hover_links` -35, `rush_links` -2,
+  `rate_links_steady` 0.966551 -> 0.966644 (the audit era's best, the
+  2.2-2.5 bucket giving back 408 of `a4822ec`'s 787), `seam_jumps`
+  still 0 / 0.00. On the books: `terminal_links_rushed` +8,
+  `terminals_unseen_pillbox_source` +8.
+
+The remaining 89, read off the links file: 32 pairwise (30 stood
+down, 2 unvoted; 21 of them on 2-4 tick pairs) and **57 stitched**. Of
+the stitched, 38 sit on adjacent snapshot pairs, and in 29 of those
+the link's step gap is exactly twice the elected advance, on 3-4 tick
+pairs: the same-time key collision noted at
+`unanimous_lockstep_advance` -- on a fast ring the one-hop and the
+composed two-hop span write the same time key and the stitching pass
+reads the two-hop advance for a one-hop join. That is a keying bug
+with a measured population, and the next dial.
 
 ## The same-record starvation shape -- diagnostic, no dial
 

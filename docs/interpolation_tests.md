@@ -874,7 +874,11 @@ Fixture, against `2b34a87`:
   0.978660 -> 0.978888, hover / rush / seam untouched at 1 / 0 / 0.
 * Fast-ring fixture: matching and audit byte-identical; elections
   passed 4,830 -> 5,289.
-* Corpus: awaits a holder run.
+* Corpus: both shell-side records on by the largest step since
+  `917077a` (matched forward +675 with `pop_outs` -675, unlinked -236),
+  contradictions 437 -> 89, every audit lie metric down -- see the
+  branch entry in
+  [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md).
 
 The election record now also carries the pill's unpinned member count
 (`unvoted(2 unpinned)`, `passed:full_tiebreak(1 unpinned)@...`), so an
