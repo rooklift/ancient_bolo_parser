@@ -991,6 +991,11 @@ function build(records) {
 		pill_states);
 	let shell_births = BoloMotion.build_shell_births(shell_positions);
 	let shell_fall_segments = BoloMotion.build_shell_fall_segments(shell_positions);
+	/* After shell matching: tank-hit boxes and birth refinement read the
+	 * tracks through track_pixel_at, which stays on packet coordinates;
+	 * the smoothing feeds only the drawing accessor. */
+	BoloMotion.smooth_track_positions(tank_positions);
+	BoloMotion.smooth_track_positions(lgm_positions);
 	effects.sort((a, b) => a.time - b.time);
 
 	return {

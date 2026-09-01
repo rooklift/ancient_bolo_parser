@@ -356,6 +356,87 @@ function build_lgm_positions(records) {
 	return tracks;
 }
 
+/* Absorb receive-stamp jitter out of the drawn tank and LGM tracks, the
+ * same knowing lie smooth_shell_chains tells for shells, told far more
+ * cautiously because these objects genuinely accelerate and turn. On a
+ * fast token ring the sender samples an object once per packet at a
+ * near-constant cadence, but the recorder's stamps bunch (dt=1,3,1,3...
+ * around a true 2), so the renderer's lerp oscillates between fractions
+ * and multiples of the true speed about ten times a second; the same
+ * regime re-states a moving object's position verbatim, drawn as a
+ * freeze and a catch-up jump. Both artifacts put the observed interior
+ * point a few pixels ALONG its own path from where uniform local motion
+ * says its stamp should sit, so each interior point of a continuous run
+ * is repositioned onto the chord between its raw neighbours -- at its
+ * stamped time -- when the correction is small and overwhelmingly
+ * along-track. The asymmetric tolerance is the design: a lying stamp
+ * displaces along the path (speed x stamp error, a few pixels), never
+ * across it, while a genuine corner deviates from its chord mostly
+ * across -- so real maneuvers fail the cross test and are left exactly
+ * as observed. Corrections use raw neighbours only (one pass, no
+ * propagation), and land in smooth_pixel_x/y, which only the drawing
+ * accessor `interpolated_position` reads: `track_pixel_at`, which
+ * matching uses for tank-hit boxes and birth refinement, stays on the
+ * packet coordinates, so this cannot move a matching decision. */
+const TRACK_SMOOTHING_ALONG_PIXELS = 6;
+const TRACK_SMOOTHING_CROSS_PIXELS = 2;
+/* One projection against raw neighbours halves the wobble; the
+ * neighbours are jittered too, so a few repetitions against the
+ * progressively smoothed values converge much further. The tolerances
+ * always bound the TOTAL correction against the raw observation, so
+ * iterating can never move a point further than one pass was allowed
+ * to. */
+const TRACK_SMOOTHING_PASSES = 5;
+
+function smooth_track_positions(tracks) {
+	for (let track of tracks) {
+		for (let pass = 0; pass < TRACK_SMOOTHING_PASSES; pass++) {
+			let proposals = [];
+			for (let i = 1; i + 1 < track.length; i++) {
+				let previous = track[i - 1], point = track[i], next = track[i + 1];
+				if (!point.continuous || !next.continuous) continue;
+				if (point.tank_entry) continue;
+				let before = point.time - previous.time;
+				let after = next.time - point.time;
+				if (before < 0 || after < 0) continue;
+				if (before > MAX_POSITION_INTERPOLATION_TICKS ||
+					after > MAX_POSITION_INTERPOLATION_TICKS) continue;
+				let total = before + after;
+				if (total <= 0) continue;
+				let previous_x = previous.smooth_pixel_x ?? previous.pixel_x;
+				let previous_y = previous.smooth_pixel_y ?? previous.pixel_y;
+				let next_x = next.smooth_pixel_x ?? next.pixel_x;
+				let next_y = next.smooth_pixel_y ?? next.pixel_y;
+				let amount = before / total;
+				let chord_x = previous_x + (next_x - previous_x) * amount;
+				let chord_y = previous_y + (next_y - previous_y) * amount;
+				/* The gate is the total displacement from the RAW observed
+				 * point, decomposed against the current chord. */
+				let delta_x = chord_x - point.pixel_x;
+				let delta_y = chord_y - point.pixel_y;
+				let chord = Math.hypot(next_x - previous_x, next_y - previous_y);
+				let along, cross;
+				if (chord > 0) {
+					let unit_x = (next_x - previous_x) / chord;
+					let unit_y = (next_y - previous_y) / chord;
+					along = Math.abs(delta_x * unit_x + delta_y * unit_y);
+					cross = Math.abs(delta_x * unit_y - delta_y * unit_x);
+				} else {
+					along = Math.hypot(delta_x, delta_y);
+					cross = 0;
+				}
+				if (along > TRACK_SMOOTHING_ALONG_PIXELS ||
+					cross > TRACK_SMOOTHING_CROSS_PIXELS) continue;
+				proposals.push([i, chord_x, chord_y]);
+			}
+			for (let [i, x, y] of proposals) {
+				track[i].smooth_pixel_x = x;
+				track[i].smooth_pixel_y = y;
+			}
+		}
+	}
+}
+
 function track_pixel_at(track, tick) {
 	let lo = 0, hi = track.length;
 	while (lo < hi) {
@@ -4604,6 +4685,10 @@ function interpolated_position(track, object, tick) {
 		(current.parachute !== undefined && current.parachute !== object.parachute)) {
 		return { x: pixel_x / 16 + 0.5, y: pixel_y / 16 + 0.5 };
 	}
+	/* Identity verified on the packet coordinates above; drawing itself
+	 * prefers the jitter-smoothed position (smooth_track_positions). */
+	pixel_x = current.smooth_pixel_x ?? pixel_x;
+	pixel_y = current.smooth_pixel_y ?? pixel_y;
 
 	let next = track[index + 1];
 	/* A confirmed tank entry is the LGM path's true final position. Usually
@@ -4625,8 +4710,8 @@ function interpolated_position(track, object, tick) {
 	if (next && next.continuous && tick < next.time && duration > 0 &&
 		duration <= MAX_POSITION_INTERPOLATION_TICKS) {
 		let amount = (tick - current.time) / duration;
-		pixel_x += (next.pixel_x - current.pixel_x) * amount;
-		pixel_y += (next.pixel_y - current.pixel_y) * amount;
+		pixel_x += ((next.smooth_pixel_x ?? next.pixel_x) - pixel_x) * amount;
+		pixel_y += ((next.smooth_pixel_y ?? next.pixel_y) - pixel_y) * amount;
 	}
 
 	return { x: pixel_x / 16 + 0.5, y: pixel_y / 16 + 0.5 };
@@ -4778,6 +4863,7 @@ const BoloMotion = {
 	MAX_SHELL_INTERPOLATION_TICKS, MAX_DIRECTION_INTERPOLATION_TICKS,
 	append_shell_list, add_shell_point_terminal, add_shell_box_terminal,
 	build_tank_positions, build_tank_directions, build_lgm_positions, track_pixel_at,
+	smooth_track_positions,
 	build_shell_positions, build_shell_births, build_shell_fall_segments,
 	tank_position_at, tank_direction_at, lgm_position_at, shell_position_at,
 	shell_birth_positions_at, shell_fall_positions_at,

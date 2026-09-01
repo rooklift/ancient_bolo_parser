@@ -42,6 +42,26 @@ Interpolation windows are deliberately bounded:
 - An LGM whose status flips to "in tank" gets animated to the tank if his
   last position was close enough, supplying the endpoint the log omits.
 
+Drawing gets the same jitter treatment shells get, told far more
+cautiously (`smooth_track_positions`). On a fast token ring the sender
+samples an object once per packet at near-constant cadence, but the
+receive stamps bunch (dt=1,3,1,3... around a true 2), so the raw lerp
+oscillates between fractions and multiples of the true speed about ten
+times a second — and the same regime re-states a moving object's
+position verbatim, drawn as a freeze and a catch-up jump. Both
+artifacts displace an observation a few pixels *along* its own path
+from where uniform local motion says its stamp should sit, so interior
+points of continuous runs are iteratively repositioned onto the chord
+between their neighbours when the total correction is small and
+overwhelmingly along-track; a genuine corner deviates from its chord
+mostly *across*, fails the cross test, and is left exactly as
+observed. Corrections land in fields only the drawing accessor reads —
+matching's view of the tracks (tank-hit boxes, birth refinement) stays
+on packet coordinates. `tools/audit-track-motion.cjs` measures the
+result: on the fast-ring fixture the pass removes 98% of
+frozen-then-jump beats and cuts drawn-speed wobble by about 40%, and it
+roughly halves both on the normal-cadence fixture.
+
 ## Shells: the general machinery
 
 Shells travel at exactly 2 px/tick, which is the backbone of everything.
