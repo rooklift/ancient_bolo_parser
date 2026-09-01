@@ -78,7 +78,7 @@ death-dump terrain commits (`72adf37`, `b805f2c`), which touch
 `viewer/game.js` -- a module the report loads -- and were unmeasured until
 the `97fa412` run recorded in the headline table: `main`'s HEAD is now
 measured, and the current measured state of record is the
-dilated-continuations branch at `e2bbbfb` (see its section), which
+fast-ring re-sends branch at `917077a` (see its section), which
 carries both shell-side records; `029acac` keeps both terminal-side
 ones. (Earlier
 revisions of this paragraph pinned the file at `926f391`/`4572cff`, then at
@@ -128,7 +128,8 @@ Constant at all ten commits, and worth having once:
 | `716a349` | guard split | 0.995341 | 0.001601 | 0.833183 | 235,739 |
 | `cecdd9d` | pill-wide lockstep | 0.995415 | 0.001547 | 0.833156 | 235,715 |
 | `4233e94` | residual lockstep veto | 0.995308 | 0.001558 | 0.833192 | 235,747 |
-| `e101787` | pairwise roster lockstep | **0.995494** | **0.001520** | 0.833249 | 235,846 |
+| `e101787` | pairwise roster lockstep | 0.995494 | 0.001520 | 0.833249 | 235,846 |
+| `917077a` | fast-ring re-sends | **0.996647** | **0.001446** | 0.833054 | 235,759 |
 
 The rows below the guard run were measured later, from the corpus
 holder's live checkouts: `97fa412` closes the unmeasured-`main` gap the
@@ -151,7 +152,13 @@ rushed-terminal class. `716a349` -- the smoothing guard split, see its
 section -- likewise; its gain is the refused-chain crawl-and-sprint
 class. `cecdd9d` -- the pill-wide lockstep, see its section -- moves
 both shell-side records on again for 51 terminals returned, so
-`029acac` still keeps both terminal-side columns. The `97fa412`..`537cb6d` runs report
+`029acac` still keeps both terminal-side columns. `917077a` -- the
+fast-ring re-sends branch, see its section -- moves both shell-side
+records by the largest single step since the `0d181be` era (+11,319
+matched forward, `pop_outs` down by exactly the complement) for 381
+terminals returned, 342 of which stay explained through
+unseen-pillbox-source attributions; `029acac` still keeps both
+terminal-side columns. The `97fa412`..`537cb6d` runs report
 `files_failed 1` where the campaign runs report 0: one extra, unparseable
 file now sits in the corpus tree and contributes nothing, and every
 per-corpus total (shells, terminals by class, tank and LGM points and
@@ -1800,6 +1807,77 @@ Corpus verification, run by the corpus holder at `2c5d59c`
   base of 68,496 -- newly matched terminals in laggy volleys still
   draw their final hop fast. That is the deferred pace/drawn-speed
   residue, unchanged in character.
+
+## Fast-ring verbatim re-sends -- `917077a`
+
+Motivated by a user-supplied fast-ring log outside the corpus (a
+two-player low-latency game, token circulating every 1-3 ticks against
+the corpus-normal ~12): there the sender's packet rate outpaces its
+shell resampling, over half of all closely-spaced statements restate
+the previous record's shell samples byte-for-byte under a fresh
+receive stamp, and two sender packets occasionally land inside one
+recorder tick. Every verbatim re-send seeded a parallel chain that
+divided the true statement stream with the original and starved into a
+mid-air pop, and every zero-duration snapshot pair fragmented every
+chain crossing it. On that log the branch took
+`rate_shells_matched_forward` 0.9819 -> 0.9986 and `pop_outs` 1,537 ->
+118 while `rate_terminals_matched` held (0.8913 -> 0.8915).
+
+Two engine changes (see `INTERPOLATION.md` and the commit message):
+`link_stale_restatements` links a byte-identical restatement within 4
+ticks as the same statement re-sent (identity, zero advance, states
+copied verbatim, running before birth attribution so a re-send cannot
+consume F4 capacity or be minted as a new shot), and
+`match_shell_snapshots` now matches `duration == 0` pairs instead of
+returning, record order carrying what the tied stamps cannot. Both are
+inert at normal cadence: the fixture report is byte-identical, so this
+branch has no fixture row and its evidence is this corpus run plus the
+motivating log.
+
+Corpus verification, run by the corpus holder at `917077a` (raw runs
+under `docs/corpus_runs/`):
+
+* Both shell-side records move by the largest single step since the
+  `0d181be` era: `shells_matched_forward` +11,319 with `pop_outs`
+  -11,319 (44,051 -> 32,732), exactly complementary; 0.996647 matched /
+  0.001446 unlinked against `e101787`'s 0.995494 / 0.001520. So the
+  corpus does contain fast-ring stretches -- about a quarter of its
+  residual pops were this one mechanism.
+* The mint collapse is the largest yet: `shells_unseen_pillbox_birth`
+  12,384 -> 6,401 (-48%) -- half of all orbit-membership birth claims
+  were verbatim re-sends being minted as second shots --
+  `shells_visual_joins` -899, `shell_births` -6,161,
+  `shells_from_pillbox` -6,080, and provenance flows through links
+  instead of fresh claims (`shells_with_pillbox_source` +12,211,
+  `shells_with_birth` +46,296). `shells_stream_birth` moves +346
+  against the tide, small.
+* The audit's lie metrics follow: `pop_ins` -5,540,
+  `pops_paired_backwards` 2,876 -> 1,382 (-52%), `seam_jumps` still
+  0 / 0.00, and `rate_links_steady` 0.962269 -> 0.966241, the audit
+  era's best -- the 2.2-3.0 buckets shed ~36,600 links onto the steady
+  pace.
+* The terminal give-back: `terminals_matched` -381 (0.833249 ->
+  0.833054; `pillbox_damage` -321, `tank_hit` -87, `base_damage` -6,
+  against `shell_falls` +31, `explosion` +2), leaving `029acac`'s two
+  terminal-side records untouched. 342 of the 381 reappear as
+  `terminals_unseen_pillbox_source` (+342): the impact keeps its
+  firing pill, losing only the shell-to-shell identity -- consistent
+  with the known hazard that a terminal arriving in the same record as
+  a verbatim re-send is pre-linked past and must be recovered by the
+  residual pass, which prices it dilated. A twin rule that stands down
+  when the twin has a live terminal candidate in the same snapshot is
+  the obvious refinement if those 381 are ever worth chasing.
+* `hover_links` +264 and `rush_links` +2,734 / `terminal_links_rushed`
+  +733 are dominated by a metric definition, not drawn motion: the
+  audit scores any zero-duration link as infinite speed, and dt=0
+  links exist at all only since this branch. On the motivating log
+  1,085 of 1,104 rush links were zero-duration and every one drew at
+  zero length after smoothing (none moved more than half a pixel);
+  the corpus decomposition awaits a holder run, but the same
+  arithmetic (real positive-duration rushes 345 -> 19 there) says the
+  drawn-speed story improved rather than regressed. Teaching the
+  audit to bucket zero-duration links separately would settle it
+  without redefining the historical columns.
 
 ## Findings
 
