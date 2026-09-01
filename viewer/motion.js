@@ -2985,6 +2985,16 @@ function component_min_cost_flow(left_caps, right_caps, edges, skip) {
 	};
 }
 
+/* Sizes of what forced_bipartite_assignments actually solves, so a
+ * corpus run can say whether the pathological-component cap below ever
+ * fires in practice (#28). Accumulates across calls until reset; the
+ * report tool resets per file. */
+let flow_component_stats = { components: 0, edges_max: 0, over_cap: 0 };
+
+function reset_flow_component_stats() {
+	flow_component_stats = { components: 0, edges_max: 0, over_cap: 0 };
+}
+
 /* Split the graph into connected components and, per component, keep the
  * assignments every good story agrees on: an edge is accepted when
  * removing it reduces the maximum number of explanations (forced), or
@@ -3016,9 +3026,15 @@ function forced_bipartite_assignments(lefts, rights, edges) {
 
 	let results = [];
 	for (let edge_indices of components.values()) {
+		flow_component_stats.components++;
+		flow_component_stats.edges_max = Math.max(
+			flow_component_stats.edges_max, edge_indices.length);
 		/* A pathological component is left unresolved rather than solved
 		 * slowly; measured components stay well under this. */
-		if (edge_indices.length > 400) continue;
+		if (edge_indices.length > 400) {
+			flow_component_stats.over_cap++;
+			continue;
+		}
 		let left_ids = [...new Set(edge_indices.map(i => edges[i].left))];
 		let right_ids = [...new Set(edge_indices.map(i => edges[i].right))];
 		let left_map = new Map(left_ids.map((id, i) => [id, i]));
@@ -4631,6 +4647,8 @@ const BoloMotion = {
 	tank_position_at, tank_direction_at, lgm_position_at, shell_position_at,
 	shell_birth_positions_at, shell_fall_positions_at,
 	describe_unmatched_terminals, describe_unfated_ends,
+	reset_flow_component_stats,
+	flow_component_stats: () => flow_component_stats,
 };
 
 if (typeof module !== "undefined" && module.exports) {
