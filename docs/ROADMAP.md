@@ -1,10 +1,11 @@
 # Interpolation roadmap
 
 Planned next steps for the shell-reconstruction work, in intended order.
-Written after the forced-assignment / jitter-absorption arc and refreshed
-after the absorption-override / birth-claiming arc; see
-`INTERPOLATION.md` for the current state and the results files for the
-measurement history.
+Written after the forced-assignment / jitter-absorption arc, refreshed
+after the absorption-override / birth-claiming arc, and again after the
+pill lockstep arc (item 9); see the results files for the measurement
+history and `docs/interpolation_tests_corpus.md` for the full
+commit-by-commit account.
 
 ## 1. A drawn-motion audit tool (prerequisite for everything below) -- DONE
 
@@ -172,6 +173,65 @@ measure the false-claim risk before believing it. Explicitly optional.
 * The seam-jump family (129 links, max 3.16 px, stable since
   `a74033a`) is on the books but unexplained; small enough to ignore,
   annoying enough to root-cause someday.
+
+## 9. The pill lockstep arc -- DONE
+
+Ran complaint-driven exactly as item 6 predicted, starting from one
+extra drawn shell in one volley. Eight measured dials: dilated same-orbit
+continuations, the seam closure (81 corpus seam jumps to 0, still 0),
+the tail slide, the smoothing guard split, the shell-list simultaneity
+measurement (4.3M pairs settling [E:shell-list-skew] as a working
+invariant), the pill-wide matcher lockstep, the residual lockstep veto,
+and the pairwise roster lockstep. The statement-roster vote -- the
+pill's own restatements electing the one step advance a sender
+transition carries -- now backs all three engines (pairwise matcher,
+stitching, residual flow). Closing position: every shell-side corpus
+record held (0.995494 matched forward / 0.001520 unlinked), terminal
+rate second only to `029acac`, the audit era's best steady-speed rate,
+stream-birth mints down 55% in the final dial alone. Item 8's hover
+debt largely dissolved along the way (4,164 -> 3,347 without the
+speed floor being built). Full account in the corpus results file.
+
+## Ideas shelf
+
+Unscheduled, in no particular order; each was sized during the lockstep
+arc but deliberately not started.
+
+* **Falls rescue / forced fates.** The unmatched `shell_falls` anatomy
+  (fixture: thirteen cases -- six with no story at all, one with a
+  single legal-but-declined candidate, six with exactly two dangling
+  candidates, never a crowd) says roughly half the 4,368 corpus
+  unmatched falls have a legal declined story. Three doctrine-shaped
+  dials: force a unique legal edge between an unexplained end and an
+  unmatched fall; force FATES, not just assignments, when every
+  max-flow kills an end (N falls with N dangling ends -- the 2x2 case
+  defeats per-edge forcing today even though both deaths are certain,
+  with equivalence-close falls absorbing the pairing ambiguity); and
+  the leader-falls-first tiebreak (fixed 32-step lifetime means the
+  shell further along the shared ray falls first). Each rescue
+  un-freezes an END as well as matching a terminal, so pop-outs and
+  the end census improve together; ~2k terminals would clear
+  `029acac`'s all-time terminal record. Related, same neighbourhood:
+  the same-record starvation fix (the flow cannot see duration-zero
+  creation-to-fate stories, so a low-range shot's own fall can starve
+  while the flow spends the shot one fate late -- see "The same-record
+  starvation shape" in the corpus results file).
+* **Correctness-weighted coverage metric.** The headline rates count
+  explanations, not correct ones -- a lie and a truth score the same,
+  which is why honest give-backs read as losses. Now that the roster
+  vote exists, score every pill link into three bins: vouched (a
+  passing vote agrees), contradicted (should be ~zero -- a regression
+  alarm), and unvouched (no vote passed; the link stands on cost
+  margins alone). Report `rate_links_vouched` beside the coverage
+  rate. Measurement only, no engine change; makes future
+  coverage-for-truth trades legible and sizes whether another dial on
+  the unvouched residue is worth building.
+* **The pace / drawn-speed residue.** Rushed terminal links (68,540
+  corpus, 3.0+ px/tick final hops) are the one class every lockstep
+  dial nudges the wrong way by a few dozen: a lockstep-verified
+  continuation over a lying stamp draws off-pace because the drawn
+  timeline is still the record stamps. The real fix decouples them --
+  judged poor cost/benefit twice now, but the sizing is on file.
 
 ## Standing questions for the project owner
 
