@@ -364,29 +364,51 @@ function build_lgm_positions(records) {
  * around a true 2), so the renderer's lerp oscillates between fractions
  * and multiples of the true speed about ten times a second; the same
  * regime re-states a moving object's position verbatim, drawn as a
- * freeze and a catch-up jump. Both artifacts put the observed interior
- * point a few pixels ALONG its own path from where uniform local motion
- * says its stamp should sit, so each interior point of a continuous run
- * is repositioned onto the chord between its raw neighbours -- at its
- * stamped time -- when the correction is small and overwhelmingly
- * along-track. The asymmetric tolerance is the design: a lying stamp
- * displaces along the path (speed x stamp error, a few pixels), never
- * across it, while a genuine corner deviates from its chord mostly
- * across -- so real maneuvers fail the cross test and are left exactly
- * as observed. Corrections use raw neighbours only (one pass, no
- * propagation), and land in smooth_pixel_x/y, which only the drawing
- * accessor `interpolated_position` reads: `track_pixel_at`, which
- * matching uses for tank-hit boxes and birth refinement, stays on the
- * packet coordinates, so this cannot move a matching decision. */
-const TRACK_SMOOTHING_ALONG_PIXELS = 6;
-const TRACK_SMOOTHING_CROSS_PIXELS = 2;
-/* One projection against raw neighbours halves the wobble; the
- * neighbours are jittered too, so a few repetitions against the
- * progressively smoothed values converge much further. The tolerances
- * always bound the TOTAL correction against the raw observation, so
- * iterating can never move a point further than one pass was allowed
- * to. */
+ * freeze and a catch-up jump. Both artifacts displace an observation a
+ * few pixels ALONG its own path -- a lying stamp shifts a point in
+ * time, never off the trajectory.
+ *
+ * The trajectory itself is sacred: a tank only ever moves on one of
+ * its 16 facings, so a drawn straight run that bends even a couple of
+ * pixels off its heading reads as impossible motion to a player (an
+ * earlier chord-projection version of this pass produced exactly that
+ * -- a tank facing due east drifting gently south -- because near a
+ * corner the chord rotates until off-axis drift counts as "along").
+ * So a point is eligible only where the raw path through it is
+ * STRAIGHT: its raw lateral deviation from the raw line between its
+ * neighbours within a quantisation-sized tolerance. Corner points are
+ * never touched, every correction slides a point along its own
+ * observed line, and the correction is capped by what a lying stamp
+ * can explain -- the local raw chord speed times the largest stamp lie
+ * seen -- so a parked tank, whose local speed is ~0, cannot be dragged
+ * toward its next journey. A verbatim re-send mid-run is collinear by
+ * construction and slides back onto the uniform schedule, erasing the
+ * freeze-and-jump beat.
+ *
+ * A few repetitions against the progressively smoothed values converge
+ * further than one pass, since the neighbours are jittered too;
+ * eligibility and the budget are always judged against the RAW
+ * observations, so iterating cannot compound a correction past what
+ * one pass was allowed. Corrections land in smooth_pixel_x/y, which
+ * only the drawing accessor `interpolated_position` reads:
+ * `track_pixel_at`, which matching uses for tank-hit boxes and birth
+ * refinement, stays on the packet coordinates, so this cannot move a
+ * matching decision. */
+const TRACK_SMOOTHING_LATERAL_PIXELS = 1.5;
+const TRACK_SMOOTHING_JITTER_TICKS = 3;
+const TRACK_SMOOTHING_MAX_PIXELS = 6;
 const TRACK_SMOOTHING_PASSES = 5;
+/* The pass engages only between closely-spaced statements, for the same
+ * reason STALE_RESTATEMENT_MAX_TICKS scopes the shell twin pass: the
+ * stamp lie is one to three ticks whatever the cadence, so against the
+ * corpus-normal ~12-tick restatement gap its speed effect is under ten
+ * percent -- invisible, and the wobble there is mostly the tank's real
+ * acceleration, which a one-point smoother cannot tell from jitter and
+ * would flatten into stair-steps. Against fast-ring one-to-three-tick
+ * gaps the lie dominates and real per-segment speed change is
+ * negligible, so the ambiguity resolves. Normal-cadence replays are
+ * left pixel-for-pixel untouched. */
+const TRACK_SMOOTHING_MAX_GAP_TICKS = 6;
 
 function smooth_track_positions(tracks) {
 	for (let track of tracks) {
@@ -399,10 +421,22 @@ function smooth_track_positions(tracks) {
 				let before = point.time - previous.time;
 				let after = next.time - point.time;
 				if (before < 0 || after < 0) continue;
-				if (before > MAX_POSITION_INTERPOLATION_TICKS ||
-					after > MAX_POSITION_INTERPOLATION_TICKS) continue;
+				if (before > TRACK_SMOOTHING_MAX_GAP_TICKS ||
+					after > TRACK_SMOOTHING_MAX_GAP_TICKS) continue;
 				let total = before + after;
 				if (total <= 0) continue;
+				/* Straightness and the correction budget come from the raw
+				 * observations alone. */
+				let raw_chord_x = next.pixel_x - previous.pixel_x;
+				let raw_chord_y = next.pixel_y - previous.pixel_y;
+				let raw_chord = Math.hypot(raw_chord_x, raw_chord_y);
+				if (raw_chord === 0) continue;
+				let lateral = Math.abs(
+					(point.pixel_x - previous.pixel_x) * raw_chord_y -
+					(point.pixel_y - previous.pixel_y) * raw_chord_x) / raw_chord;
+				if (lateral > TRACK_SMOOTHING_LATERAL_PIXELS) continue;
+				let budget = Math.min(TRACK_SMOOTHING_MAX_PIXELS,
+					TRACK_SMOOTHING_JITTER_TICKS * raw_chord / total);
 				let previous_x = previous.smooth_pixel_x ?? previous.pixel_x;
 				let previous_y = previous.smooth_pixel_y ?? previous.pixel_y;
 				let next_x = next.smooth_pixel_x ?? next.pixel_x;
@@ -410,24 +444,17 @@ function smooth_track_positions(tracks) {
 				let amount = before / total;
 				let chord_x = previous_x + (next_x - previous_x) * amount;
 				let chord_y = previous_y + (next_y - previous_y) * amount;
-				/* The gate is the total displacement from the RAW observed
-				 * point, decomposed against the current chord. */
-				let delta_x = chord_x - point.pixel_x;
-				let delta_y = chord_y - point.pixel_y;
-				let chord = Math.hypot(next_x - previous_x, next_y - previous_y);
-				let along, cross;
-				if (chord > 0) {
-					let unit_x = (next_x - previous_x) / chord;
-					let unit_y = (next_y - previous_y) / chord;
-					along = Math.abs(delta_x * unit_x + delta_y * unit_y);
-					cross = Math.abs(delta_x * unit_y - delta_y * unit_x);
-				} else {
-					along = Math.hypot(delta_x, delta_y);
-					cross = 0;
-				}
-				if (along > TRACK_SMOOTHING_ALONG_PIXELS ||
-					cross > TRACK_SMOOTHING_CROSS_PIXELS) continue;
-				proposals.push([i, chord_x, chord_y]);
+				/* The correction is strictly a slide along the point's own
+				 * raw chord direction -- the projection discards whatever
+				 * lateral component iterated neighbours have accumulated, so
+				 * off-axis drift is impossible by construction. */
+				let unit_x = raw_chord_x / raw_chord;
+				let unit_y = raw_chord_y / raw_chord;
+				let along = (chord_x - point.pixel_x) * unit_x +
+					(chord_y - point.pixel_y) * unit_y;
+				if (Math.abs(along) > budget) continue;
+				proposals.push([i, point.pixel_x + unit_x * along,
+					point.pixel_y + unit_y * along]);
 			}
 			for (let [i, x, y] of proposals) {
 				track[i].smooth_pixel_x = x;

@@ -48,19 +48,32 @@ samples an object once per packet at near-constant cadence, but the
 receive stamps bunch (dt=1,3,1,3... around a true 2), so the raw lerp
 oscillates between fractions and multiples of the true speed about ten
 times a second — and the same regime re-states a moving object's
-position verbatim, drawn as a freeze and a catch-up jump. Both
-artifacts displace an observation a few pixels *along* its own path
-from where uniform local motion says its stamp should sit, so interior
-points of continuous runs are iteratively repositioned onto the chord
-between their neighbours when the total correction is small and
-overwhelmingly along-track; a genuine corner deviates from its chord
-mostly *across*, fails the cross test, and is left exactly as
-observed. Corrections land in fields only the drawing accessor reads —
-matching's view of the tracks (tank-hit boxes, birth refinement) stays
-on packet coordinates. `tools/audit-track-motion.cjs` measures the
-result: on the fast-ring fixture the pass removes 98% of
-frozen-then-jump beats and cuts drawn-speed wobble by about 40%, and it
-roughly halves both on the normal-cadence fixture.
+position verbatim, drawn as a freeze and a catch-up jump. A lying
+stamp shifts an observation in *time*, which displaces it strictly
+*along* its own path — and the path is sacred: a tank only ever moves
+on one of its 16 facings, so a drawn straight run that bends even a
+couple of pixels off its heading reads as impossible motion to a
+player (an early chord-projection version of this pass produced
+exactly that — a tank facing due east drifting gently south). So a
+point is eligible only where the raw path through it is straight
+within quantisation, every correction is a pure slide along the
+point's own raw chord direction (added lateral deviation is zero by
+construction, machine-checked), and the slide is capped by the local
+raw speed times the largest stamp lie seen, so a parked tank cannot
+creep toward its next journey. The pass engages only between
+closely-spaced statements (gaps of a few ticks): at the corpus-normal
+~12-tick cadence the stamp lie is under ten percent of a segment and
+the residual wobble is mostly the tank's genuine acceleration — which
+a one-point smoother cannot tell from jitter and would flatten into
+stair-steps — so normal-cadence replays are left pixel-for-pixel
+untouched, the same scoping that keeps the shell twin pass inert off
+fast rings. Corrections land in fields only the drawing accessor
+reads — matching's view of the tracks (tank-hit boxes, birth
+refinement) stays on packet coordinates.
+`tools/audit-track-motion.cjs` measures the result: on the fast-ring
+fixture the pass removes over 90% of frozen-then-jump beats and cuts
+drawn-speed wobble roughly in half, and it touches nothing at all on
+the normal-cadence fixture.
 
 ## Shells: the general machinery
 
