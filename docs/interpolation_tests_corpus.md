@@ -1810,8 +1810,9 @@ Corpus verification, run by the corpus holder at `2c5d59c`
 
 ## Fast-ring verbatim re-sends -- `917077a`
 
-Motivated by a user-supplied fast-ring log outside the corpus (a
-two-player low-latency game, token circulating every 1-3 ticks against
+Motivated by a user-supplied fast-ring log outside the corpus, since
+committed in redacted form as `fixtures/040601.6` (a two-player
+low-latency game, token circulating every 1-3 ticks against
 the corpus-normal ~12): there the sender's packet rate outpaces its
 shell resampling, over half of all closely-spaced statements restate
 the previous record's shell samples byte-for-byte under a fresh
