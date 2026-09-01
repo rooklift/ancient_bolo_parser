@@ -1,16 +1,44 @@
 name: Mac build
 
+# Runs only when a release is published (drafts don't count until you hit
+# "Publish release"), builds the Mac apps from the tagged commit, and attaches
+# the zips to that release. Ordinary pushes to main never trigger it.
+#
+# It can also be run by hand from the Actions tab: give it an existing release
+# tag to build and attach assets for, or leave the tag blank to just build and
+# get the zips as a workflow artifact.
+
 on:
+  release:
+    types: [published]
   workflow_dispatch:
-  push:
-    branches: ["main", "claude/**"]
-    paths: ["viewer/**", ".github/workflows/mac-build.yml"]
+    inputs:
+      tag:
+        description: "Existing release tag to build and attach assets to (e.g. v1.1.1); leave blank to only build"
+        required: false
+        default: ""
 
 jobs:
   build:
     runs-on: macos-latest
+    permissions:
+      contents: write # needed to upload assets to the release
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG || github.ref }} # build the tagged commit, not whatever main has moved on to
+
+      - name: Check the tag matches the viewer version
+        if: env.RELEASE_TAG != ''
+        working-directory: viewer
+        run: |
+          version="$(python3 -c "import json; print(json.load(open('package.json'))['version'])")"
+          if [ "${RELEASE_TAG}" != "v${version}" ]; then
+            echo "Release tag ${RELEASE_TAG} does not match viewer/package.json version ${version}; refusing to attach mismatched assets."
+            exit 1
+          fi
 
       - name: Download Electron
         working-directory: viewer
@@ -49,3 +77,9 @@ jobs:
           name: mac-builds
           path: viewer/dist/*.zip
           if-no-files-found: error
+
+      - name: Attach zips to the release
+        if: env.RELEASE_TAG != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${RELEASE_TAG}" viewer/dist/*.zip --clobber --repo "${GITHUB_REPOSITORY}"
