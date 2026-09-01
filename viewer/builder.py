@@ -17,7 +17,7 @@ MAC_BUNDLE_ID = "com.rooklift.ancient-bolo-log-viewer"
 # Create a folder called ./electron_zipped and place the Electron asset in it
 # Run ./builder.py from this directory (viewer/)
 #
-# Mac builds are best made on a Mac (or CI Mac, see .github/workflows/mac-build.yml) because the
+# Mac builds are best made on a Mac (or CI Mac, see .github/workflows/release-builds.yml) because the
 # .app must be re-signed after we modify it; without codesign the result won't run on Apple Silicon.
 # The finished .app must be distributed in a way that preserves symlinks, e.g.
 # ditto -c -k --keepParent "Ancient Bolo Log Viewer.app" viewer.zip
@@ -98,9 +98,13 @@ for key, value in zips.items():
 
 	copy_app_files(os.path.join(build_dir, "resources/app"))
 	print("Extracting for {}...".format(key))
-	z = zipfile.ZipFile(value, "r")
-	z.extractall(build_dir)
-	z.close()
+	if key == "linux" and shutil.which("unzip"):
+		# Python's zipfile drops the executable bit on the electron binary; unzip keeps it.
+		subprocess.run(["unzip", "-q", value, "-d", build_dir], check=True)
+	else:
+		z = zipfile.ZipFile(value, "r")
+		z.extractall(build_dir)
+		z.close()
 	if os.path.exists(os.path.join(build_dir, "electron.exe")):
 		os.rename(os.path.join(build_dir, "electron.exe"), os.path.join(build_dir, "{}.exe".format(name)))
 	if os.path.exists(os.path.join(build_dir, "electron")):
