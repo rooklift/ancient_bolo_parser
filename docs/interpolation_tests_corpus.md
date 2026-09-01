@@ -2020,6 +2020,45 @@ input hash, zero failures):
   its source ends one. Net pops -51; the backwards pairs are the
   honest cost on the books, at 0.000143 the rate's second-best ever.
 
+## The 437 contradictions, named -- `3c37c4a` links run
+
+The corpus holder ran the rates tool with `--describe-links` at
+`3c37c4a` (`docs/corpus_runs/3c37c4a-links.txt`; every coverage line
+byte-identical to the `a4822ec` run, the flag adding 19 `link_class`
+and 437 `link_example` lines). Read off the file, no engine access:
+
+* 437 links in 218 scenes (one pill, one record pair): 131 scenes of
+  a single link, 87 of two to seven. In **76 of the 87 multi-link
+  scenes the engine's own links advance by different step counts
+  within one pill over one interval** -- 284 links -- which lockstep
+  forbids, so in those scenes the engine's story is inconsistent on
+  its face and the vote's single advance is the better one. The
+  contradiction alarm is catching wrong links, not wrong votes.
+* The sign is the opposite of the fixture's. 350 links are long
+  (`pairwise:+2` 146, `pairwise:+3` 125, `stitched:+2` 40 -- one rung
+  ahead), 87 short (the fixture's ladder-linked-short shape). For the
+  long class the link's step gap sits at physics (within one of
+  duration/2) 255 times in 350 while the elected advance does 74
+  times, and the gap-to-advance ratio clusters between 1.4 and 2.0:
+  the sender's clock ran slow against the receive stamps, physics
+  expected up to twice the true advance, and cost took the next rung.
+  The largest scene (`101202.3`, pill (2160, 1952), t442170 -> 442182,
+  seven links) is the whole ladder linked one rung long at advances
+  5 and 6 against an elected 3 that explains six of seven statements.
+* 54 of the 131 single-link scenes are stitched joins; the stitching
+  pass reads the time-keyed vote table, so some of those may be the
+  same-time key collision noted at `unanimous_lockstep_advance`
+  rather than a matching error.
+* Why the match-time vote let the long ladders through is not
+  readable from this file: either it stood down (thin pinned landings
+  among deep list members, or an alias inside the margin -- the
+  abstention dial only helps when the spoiler holds a terminal
+  candidate) or it passed and the compressed continuation was not
+  among the candidates. Settling that wants the pill's pinned rosters
+  at both ends and the match-time verdict on each `link_example`
+  line; that bookkeeping is the next instrument, if the 350 are ever
+  chased.
+
 ## The same-record starvation shape -- diagnostic, no dial
 
 Found chasing the fixture's six unmatched `shell_falls` the census calls

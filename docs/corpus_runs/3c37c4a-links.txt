@@ -1,0 +1,542 @@
+# GENERATED - interpolation coverage for one repo state; nothing written to disk.
+format	1
+commit	3c37c4a
+mode	recursive
+input	sha256:9e4933bba5250c6852e6dd1265ed0c35cd98195d6ebfd5623e6b6b91c978fd3b
+max_position_interpolation_ticks	25
+max_shell_interpolation_ticks	50
+max_direction_interpolation_ticks	50
+files	443
+files_failed	0
+shells	9817361
+shells_in_final_snapshot	186
+shells_matched_forward	9784546
+shells_matched_to_snapshot	8162923
+shells_matched_to_terminal	1621623
+shells_unmatched_forward	32815
+shells_matched_from_previous	8162923
+shells_unlinked	14164
+shells_from_tank	652177
+shells_from_pillbox	970946
+shells_with_birth	3575687
+shells_with_pillbox_source	6109399
+terminals	1946439
+terminals_matched	1621623
+terminals_unmatched	324816
+terminals_unseen_pillbox_source	168262
+terminals_unseen_tank_source	78934
+shells_visual_joins	1392
+shells_unseen_pillbox_birth	6388
+shells_stream_birth	1263
+tank_points	9914126
+tank_segments	9910559
+tank_segments_interpolated	9448359
+tank_segments_broken	104386
+tank_segments_overlong	357814
+tank_ticks	122807769
+tank_ticks_interpolated	74723880
+lgm_points	7876644
+lgm_segments	7873515
+lgm_segments_interpolated	7729059
+lgm_segments_broken	129690
+lgm_segments_overlong	14766
+lgm_ticks	112261469
+lgm_ticks_interpolated	59378916
+tank_direction_points	13040825
+tank_direction_segments	13036537
+tank_direction_segments_interpolated	12831230
+tank_direction_segments_broken	105244
+tank_direction_segments_overlong	100063
+tank_direction_ticks	122905850
+tank_direction_ticks_interpolated	102904928
+shell_births	1623123
+links_shell	8162923
+links_visual	1392
+links_no_pill_source	3023254
+links_pill_restated	19867
+links_pill_unpinned	29244
+links_pill_vouched	2898210
+links_pill_contradicted	437
+links_pill_unvouched	2190519
+flow_components	134527
+flow_component_edges_max	332
+flow_components_over_cap	0
+terminals:base_damage	95959
+terminals:explosion	240538
+terminals:pillbox_damage	716235
+terminals:shell_falls	624224
+terminals:tank_hit	269483
+terminals_matched:base_damage	61232
+terminals_matched:explosion	162369
+terminals_matched:pillbox_damage	542273
+terminals_matched:shell_falls	619914
+terminals_matched:tank_hit	235835
+rate_shells_matched_forward	0.996657
+rate_shells_matched_forward_excluding_final_snapshot	0.996676
+rate_shells_unlinked	0.001443
+rate_terminals_matched	0.833123
+rate_links_pill_vouched	0.569486
+rate_links_pill_contradicted	0.000086
+rate_tank_segments_interpolated	0.953363
+rate_tank_ticks_interpolated	0.608462
+rate_lgm_segments_interpolated	0.981653
+rate_lgm_ticks_interpolated	0.528934
+rate_tank_direction_segments_interpolated	0.984251
+rate_tank_direction_ticks_interpolated	0.837266
+content_hash	cfa3cfb104ce1375974f6394ba7fedabcbe5bab5b82df5dab541c1c9b77de4d2
+link_class	pairwise:+2	146
+link_class	pairwise:+3	125
+link_class	stitched:+2	40
+link_class	pairwise:-3	21
+link_class	pairwise:-2	19
+link_class	stitched:-3	17
+link_class	pairwise:+5	16
+link_class	stitched:-2	15
+link_class	stitched:+3	11
+link_class	stitched:-5	9
+link_class	pairwise:+4	5
+link_class	pairwise:+6	4
+link_class	pairwise:-5	2
+link_class	stitched:+5	2
+link_class	pairwise:-10	1
+link_class	pairwise:-4	1
+link_class	stitched:+1	1
+link_class	stitched:-10	1
+link_class	stitched:-7	1
+link_example	032401 ds.me vs wharf.bers	t189390->189404	pill(2144,1936)	step22->30	advance5	pairwise
+link_example	032601 ds.sol vs bers.mad	t9208673->9208677	pill(768,2432)	step5->11	advance3	stitched
+link_example	032601 ds.sol vs bers.mad	t9183868->9183872	pill(736,2256)	step16->17	advance3	stitched
+link_example	032601 ds.sol vs bers.mad	t9183872->9183876	pill(736,2256)	step17->21	advance2	stitched
+link_example	040301pins.sluggo vs ds.nix	t1100716->1100732	pill(1760,1408)	step10->12	advance5	stitched
+link_example	040301pins.sluggo vs ds.nix	t1100716->1100732	pill(1760,1408)	step7->15	advance5	pairwise
+link_example	040301pins.sluggo vs ds.nix	t1100716->1100732	pill(1760,1408)	step12->20	advance5	pairwise
+link_example	040301pins.sluggo vs ds.nix	t1100716->1100732	pill(1760,1408)	step15->17	advance5	stitched
+link_example	040301pins.sluggo vs ds.nix	t1100732->1100743	pill(1760,1408)	step15->20	advance8	pairwise
+link_example	040301pins.sluggo vs ds.nix	t1100732->1100743	pill(1760,1408)	step12->23	advance8	stitched
+link_example	040301pins.sluggo vs ds.nix	t1100732->1100743	pill(1760,1408)	step17->28	advance8	stitched
+link_example	040301pins.sluggo vs ds.nix	t1100732->1100743	pill(1760,1408)	step20->25	advance8	pairwise
+link_example	040301pins.sluggo vs ds.nix	t1075230->1075245	pill(1840,1616)	step24->30	advance4	pairwise
+link_example	040501.1 ds vs bitch	t4899752->4899754	pill(2144,1888)	step12->16	advance2	pairwise
+link_example	040601 surviving	t1682605->1682617	pill(1792,1968)	step14->21	advance4	pairwise
+link_example	040601 surviving	t1682605->1682617	pill(1792,1968)	step12->18	advance4	pairwise
+link_example	040601 surviving	t1682605->1682617	pill(1792,1968)	step9->16	advance4	pairwise
+link_example	040601.1 funny game	t1866248->1866276	pill(1088,2528)	step15->31	advance10	pairwise
+link_example	040601.1 funny game	t1866248->1866276	pill(1088,2528)	step12->25	advance10	pairwise
+link_example	040601.1 funny game	t1866248->1866276	pill(1088,2528)	step6->19	advance10	pairwise
+link_example	040601.1 funny game	t1872996->1873005	pill(1072,2528)	step3->11	advance6	stitched
+link_example	040601.1 funny game	t1872996->1873005	pill(1072,2528)	step5->9	advance6	pairwise
+link_example	041001 soup.ok vs ds.vip	t113020->113036	pill(2032,1824)	step22->30	advance5	pairwise
+link_example	041201.1 need help west!!	t6825649->6825653	pill(1744,1888)	step22->28	advance3	stitched
+link_example	041201.1 need help west!!	t6817077->6817081	pill(2096,2224)	step4->8	advance2	stitched
+link_example	041201.1 need help west!!	t6817088->6817092	pill(2096,2224)	step4->8	advance2	stitched
+link_example	041601.1 fury.kax vs ds.red	t7711146->7711150	pill(2400,2064)	step13->17	advance2	pairwise
+link_example	041601.1 fury.kax vs ds.red	t7711166->7711170	pill(2400,2064)	step23->27	advance2	pairwise
+link_example	041601.1 fury.kax vs ds.red	t7725815->7725819	pill(2080,1968)	step24->28	advance2	pairwise
+link_example	041601.1 fury.kax vs ds.red	t7733275->7733278	pill(2032,2144)	step4->8	advance2	stitched
+link_example	041601.1 fury.kax vs ds.red	t7713357->7713360	pill(1872,2048)	step25->28	advance1	stitched
+link_example	041801 ds.mw.red vs b.sol	t4313245->4313251	pill(2240,1840)	step8->10	advance4	pairwise
+link_example	041801.2 ds vs red	t5784010->5784013	pill(2032,1808)	step5->9	advance2	stitched
+link_example	042401 ds.mad vs b.fury	t3402341->3402345	pill(1952,2224)	step13->17	advance2	pairwise
+link_example	042401 ds.mad vs b.fury	t3402361->3402365	pill(1952,2224)	step14->20	advance3	pairwise
+link_example	042401 ds.mad vs b.fury	t3405800->3405804	pill(2336,1952)	step4->8	advance2	stitched
+link_example	042401 ds.mad vs b.fury	t3427846->3427850	pill(2192,2064)	step9->13	advance2	pairwise
+link_example	042401.2 ds.mad vs fury.b	t3485297->3485300	pill(1168,2336)	step8->12	advance2	pairwise
+link_example	042401.2 ds.mad vs fury.b	t3485307->3485310	pill(1168,2336)	step13->17	advance2	pairwise
+link_example	042401.2 ds.mad vs fury.b	t3501612->3501621	pill(1072,2336)	step24->31	advance5	stitched
+link_example	042501.2 ds.nix vs flag.slug	t4812618->4812637	pill(1120,2416)	step21->31	advance5	pairwise
+link_example	042501.2 ds.nix vs flag.slug	t4840160->4840175	pill(752,2256)	step21->29	advance5	pairwise
+link_example	042501.3 an.gb.nx vs ds.red.!	t4873072->4873090	pill(2240,2128)	step9->13	advance6	stitched
+link_example	042501.3 an.gb.nx vs ds.red.!	t4873072->4873090	pill(2240,2128)	step22->31	advance6	pairwise
+link_example	042501.3 an.gb.nx vs ds.red.!	t4873072->4873090	pill(2240,2128)	step7->15	advance6	pairwise
+link_example	042501.3 an.gb.nx vs ds.red.!	t4926714->4926725	pill(2128,1808)	step5->10	advance7	pairwise
+link_example	042501.4 ds.red vs max.nix	t29708->29722	pill(2400,2032)	step15->23	advance5	pairwise
+link_example	042501.4 ds.red vs max.nix	t29708->29722	pill(2400,2032)	step13->20	advance5	pairwise
+link_example	042501.4 ds.red vs max.nix	t29708->29722	pill(2400,2032)	step10->18	advance5	pairwise
+link_example	042501.4 ds.red vs max.nix	t29708->29722	pill(2400,2032)	step8->15	advance5	pairwise
+link_example	042501.4 ds.red vs max.nix	t38803->38812	pill(2048,2272)	step16->22	advance11	pairwise
+link_example	042501.4 ds.red vs max.nix	t90235->90248	pill(1760,1968)	step13->20	advance4	pairwise
+link_example	042501.4 ds.red vs max.nix	t90235->90248	pill(1760,1968)	step10->17	advance4	pairwise
+link_example	042501.4 ds.red vs max.nix	t90235->90248	pill(1760,1968)	step8->14	advance4	pairwise
+link_example	042501.4 ds.red vs max.nix	t90235->90248	pill(1760,1968)	step5->12	advance4	pairwise
+link_example	042501.4 ds.red vs max.nix	t90235->90248	pill(1760,1968)	step3->9	advance4	pairwise
+link_example	050401.4 soup.red vs deadsy.ds	t204449->204461	pill(912,2160)	step21->28	advance4	pairwise
+link_example	050401.4 soup.red vs deadsy.ds	t204449->204461	pill(912,2160)	step19->25	advance4	pairwise
+link_example	050401.4 soup.red vs deadsy.ds	t204449->204461	pill(912,2160)	step16->23	advance4	pairwise
+link_example	050401.4 soup.red vs deadsy.ds	t204449->204461	pill(912,2160)	step14->20	advance4	pairwise
+link_example	050401.4 soup.red vs deadsy.ds	t204449->204461	pill(912,2160)	step11->18	advance4	pairwise
+link_example	050701 ds.check  vs b.zeke	t2920074->2920083	pill(2416,2000)	step17->22	advance3	pairwise
+link_example	050701 ds.check  vs b.zeke	t2909853->2909857	pill(2096,2208)	step9->13	advance2	pairwise
+link_example	050701 ds.check  vs b.zeke	t2909862->2909866	pill(2096,2208)	step14->18	advance2	stitched
+link_example	051601 ds.pic vs sol.fury	t209153->209157	pill(2144,1936)	step15->19	advance2	pairwise
+link_example	051601 ds.pic vs sol.fury	t215874->215877	pill(1920,2224)	step25->31	advance3	stitched
+link_example	051601 ds.pic vs sol.fury	t232033->232036	pill(2112,1824)	step1->5	advance2	stitched
+link_example	052101 dd.dead.slug vsds.nix.o	t672756->672776	pill(2032,2288)	step23->24	advance6	stitched
+link_example	052101 dd.dead.slug vsds.nix.o	t672756->672776	pill(2032,2288)	step25->26	advance6	stitched
+link_example	052101 dd.dead.slug vsds.nix.o	t672756->672776	pill(2032,2288)	step20->31	advance6	pairwise
+link_example	052101 dd.dead.slug vsds.nix.o	t672756->672776	pill(2032,2288)	step18->29	advance6	stitched
+link_example	052101.1 nix.anna  vs ds.o	t880212->880225	pill(1888,1872)	step13->18	advance3	pairwise
+link_example	052101.1 nix.anna  vs ds.o	t880212->880225	pill(1888,1872)	step18->24	advance3	pairwise
+link_example	052101.1 nix.anna  vs ds.o	t880212->880225	pill(1888,1872)	step8->13	advance3	pairwise
+link_example	052101.1 nix.anna  vs ds.o	t880212->880225	pill(1888,1872)	step3->8	advance3	stitched
+link_example	052101.1 nix.anna  vs ds.o	t880212->880225	pill(1888,1872)	step0->6	advance3	pairwise
+link_example	052101.3 ds.o vs anna.skippy	t990026->990030	pill(1936,1952)	step25->31	advance3	stitched
+link_example	052101.3 ds.o vs anna.skippy	t999717->999721	pill(2160,2096)	step19->23	advance2	pairwise
+link_example	052401 ds.slicer vs fury.o	t3538265->3538270	pill(2144,2240)	step17->19	advance4	pairwise
+link_example	052401.2 ds.slicer vs mad.fury	t3721744->3721775	pill(2272,2112)	step8->20	advance14	stitched
+link_example	052401.2 ds.slicer vs mad.fury	t3721744->3721775	pill(2272,2112)	step6->22	advance14	pairwise
+link_example	052401.3 ds.fury vs slicer.soup	t244262->244266	pill(2064,1760)	step0->6	advance3	stitched
+link_example	052401.3 ds.fury vs slicer.soup	t242698->242702	pill(2000,2336)	step6->7	advance3	pairwise
+link_example	060501 soup.flag vs ds.check	t17425617->17425620	pill(2016,2272)	step2->6	advance2	pairwise
+link_example	060501 soup.flag vs ds.check	t17427347->17427351	pill(2016,2112)	step19->23	advance2	pairwise
+link_example	060501 soup.flag vs ds.check	t17427355->17427359	pill(2016,2112)	step23->27	advance2	stitched
+link_example	060501 soup.flag vs ds.check	t17406331->17406335	pill(2144,2272)	step7->11	advance2	pairwise
+link_example	060501 soup.flag vs ds.check	t17427110->17427114	pill(2000,2096)	step17->21	advance2	pairwise
+link_example	062201 ds.cb vs nix.nat	t2316612->2316630	pill(1776,2448)	step3->4	advance4	stitched
+link_example	062201 ds.cb vs nix.nat	t2316612->2316630	pill(1776,2448)	step0->7	advance4	pairwise
+link_example	062201 ds.cb vs nix.nat	t2316612->2316630	pill(1776,2448)	step20->29	advance4	pairwise
+link_example	062201 ds.cb vs nix.nat	t2316612->2316630	pill(1776,2448)	step18->27	advance4	pairwise
+link_example	062201 ds.cb vs nix.nat	t2316612->2316630	pill(1776,2448)	step8->9	advance4	stitched
+link_example	062201 ds.cb vs nix.nat	t2316630->2316639	pill(1776,2448)	step7->13	advance9	pairwise
+link_example	062201 ds.cb vs nix.nat	t2316630->2316639	pill(1776,2448)	step4->16	advance9	stitched
+link_example	062201 ds.cb vs nix.nat	t2316630->2316639	pill(1776,2448)	step27->31	advance9	pairwise
+link_example	062201 ds.cb vs nix.nat	t2316630->2316639	pill(1776,2448)	step9->21	advance9	stitched
+link_example	062601.1 sluggo.ÔêÜ vs dux.ds	t1142651->1142665	pill(2176,1920)	step20->23	advance5	stitched
+link_example	062601.1 sluggo.ÔêÜ vs dux.ds	t1142651->1142665	pill(2176,1920)	step18->25	advance5	pairwise
+link_example	062601.1 sluggo.ÔêÜ vs dux.ds	t1145137->1145151	pill(2288,2016)	step15->21	advance4	pairwise
+link_example	062601.1 sluggo.ÔêÜ vs dux.ds	t1145137->1145151	pill(2288,2016)	step12->19	advance4	pairwise
+link_example	062601.1 sluggo.ÔêÜ vs dux.ds	t1145137->1145151	pill(2288,2016)	step10->16	advance4	pairwise
+link_example	062701 ds.O vs check.avram-cb	t4569531->4569555	pill(1920,1920)	step11->23	advance10	pairwise
+link_example	062701 ds.O vs check.avram-cb	t4569531->4569555	pill(1920,1920)	step8->21	advance10	pairwise
+link_example	062701 ds.O vs check.avram-cb	t4569531->4569555	pill(1920,1920)	step6->18	advance10	pairwise
+link_example	062701 ds.O vs check.avram-cb	t4569531->4569555	pill(1920,1920)	step3->16	advance10	pairwise
+link_example	062701 ds.O vs check.avram-cb	t4569531->4569555	pill(1920,1920)	step0->13	advance10	pairwise
+link_example	062701 ds.O vs check.avram-cb	t4582369->4582385	pill(2000,2096)	step12->19	advance5	stitched
+link_example	062701.1 nat.slug.ds vs nix.O.!	t5084186->5084209	pill(1808,1936)	step15->27	advance7	pairwise
+link_example	062701.1 nat.slug.ds vs nix.O.!	t5084186->5084209	pill(1808,1936)	step12->24	advance7	pairwise
+link_example	062701.1 nat.slug.ds vs nix.O.!	t5069945->5069965	pill(1872,2464)	step12->21	advance7	pairwise
+link_example	062701.1 nat.slug.ds vs nix.O.!	t5069945->5069965	pill(1872,2464)	step9->19	advance7	pairwise
+link_example	062701.1 nat.slug.ds vs nix.O.!	t5069945->5069965	pill(1872,2464)	step7->16	advance7	pairwise
+link_example	062701.1 nat.slug.ds vs nix.O.!	t5069945->5069965	pill(1872,2464)	step4->14	advance7	pairwise
+link_example	062701.1 nat.slug.ds vs nix.O.!	t5069945->5069965	pill(1872,2464)	step1->11	advance7	pairwise
+link_example	082701.1	t7812385->7812400	pill(2176,1920)	step8->18	advance8	stitched
+link_example	082701.1	t7801433->7801450	pill(2288,2048)	step9->20	advance9	stitched
+link_example	082701.1	t7803310->7803314	pill(2224,1936)	step8->12	advance2	pairwise
+link_example	082701.1	t7813301->7813304	pill(2224,2192)	step8->12	advance2	stitched
+link_example	082701.2	t7771688->7771715	pill(1808,1872)	step8->23	advance13	stitched
+link_example	092601	t96214->96218	pill(2016,2224)	step24->28	advance2	pairwise
+link_example	101901.1	t2908014->2908024	pill(1904,2128)	step15->20	advance7	pairwise
+link_example	101901.1	t2908014->2908024	pill(1904,2128)	step13->17	advance7	pairwise
+link_example	101901.1	t2908014->2908024	pill(1904,2128)	step10->15	advance7	pairwise
+link_example	101901.1	t2908014->2908024	pill(1904,2128)	step8->12	advance7	pairwise
+link_example	101901.1	t2908014->2908024	pill(1904,2128)	step5->9	advance7	pairwise
+link_example	101901.1	t2917206->2917224	pill(2144,1888)	step10->20	advance6	pairwise
+link_example	101901.1	t2917206->2917224	pill(2144,1888)	step6->16	advance6	pairwise
+link_example	101901.1	t2917206->2917224	pill(2144,1888)	step3->12	advance6	pairwise
+link_example	101901.1	t2917206->2917224	pill(2144,1888)	step0->9	advance6	pairwise
+link_example	101901.1	t2892950->2892963	pill(2000,2096)	step24->31	advance4	pairwise
+link_example	012302	t9705043->9705068	pill(1824,2064)	step8->21	advance9	pairwise
+link_example	012302	t9705043->9705068	pill(1824,2064)	step19->31	advance9	pairwise
+link_example	012302	t9705043->9705068	pill(1824,2064)	step15->28	advance9	pairwise
+link_example	012302	t9705043->9705068	pill(1824,2064)	step12->24	advance9	pairwise
+link_example	012302	t9793632->9793650	pill(2176,1872)	step14->22	advance11	stitched
+link_example	012302	t9790726->9790745	pill(2176,1856)	step12->22	advance8	pairwise
+link_example	012802	t15921246->15921260	pill(2224,1888)	step16->23	advance5	pairwise
+link_example	012802	t15921246->15921260	pill(2224,1888)	step13->21	advance5	pairwise
+link_example	012802	t15921246->15921260	pill(2224,1888)	step10->18	advance5	pairwise
+link_example	012802	t15921246->15921260	pill(2224,1888)	step8->15	advance5	pairwise
+link_example	012802	t15921246->15921260	pill(2224,1888)	step5->13	advance5	pairwise
+link_example	012802	t15921246->15921260	pill(2224,1888)	step3->10	advance5	pairwise
+link_example	012802.1	t16012701->16012715	pill(2352,1936)	step3->11	advance5	pairwise
+link_example	012802.1	t16012701->16012715	pill(2352,1936)	step14->22	advance5	pairwise
+link_example	012802.1	t16012701->16012715	pill(2352,1936)	step12->19	advance5	pairwise
+link_example	012802.1	t16012701->16012715	pill(2352,1936)	step9->17	advance5	pairwise
+link_example	012802.1	t16012701->16012715	pill(2352,1936)	step6->14	advance5	pairwise
+link_example	012802.1	t16012701->16012715	pill(2352,1936)	step1->8	advance5	pairwise
+link_example	06dec2001slug005 sl.tr vs mj.ds	t1936976->1936992	pill(2080,1952)	step22->23	advance6	stitched
+link_example	06dec2001slug005 sl.tr vs mj.ds	t1936976->1936992	pill(2080,1952)	step20->28	advance6	pairwise
+link_example	06dec2001slug005 sl.tr vs mj.ds	t1936976->1936992	pill(2080,1952)	step17->26	advance6	pairwise
+link_example	2001.12.3.rt.ÔêÜ.spuff.it.ds	t5265832->5265850	pill(2272,2160)	step12->22	advance5	pairwise
+link_example	2001.12.3.rt.ÔêÜ.spuff.it.ds	t5265832->5265850	pill(2272,2160)	step2->9	advance5	pairwise
+link_example	2001.12.3.rt.ÔêÜ.spuff.it.ds	t5263335->5263349	pill(1680,1744)	step12->20	advance5	pairwise
+link_example	2001.12.3.rt.ÔêÜ.spuff.it.ds	t5263335->5263349	pill(1680,1744)	step10->17	advance5	pairwise
+link_example	2001.12.3.rt.ÔêÜ.spuff.it.ds	t5263335->5263349	pill(1680,1744)	step15->22	advance5	pairwise
+link_example	2001.12.3.rt.ÔêÜ.spuff.it.ds	t5263335->5263349	pill(1680,1744)	step7->15	advance5	pairwise
+link_example	2001.12.3.rt.ÔêÜ.spuff.it.ds	t5263335->5263349	pill(1680,1744)	step4->12	advance5	pairwise
+link_example	2001.12.3.rt.ÔêÜ.spuff.it.ds	t5263335->5263349	pill(1680,1744)	step2->9	advance5	pairwise
+link_example	060402	t17530818->17530839	pill(2160,2192)	step6->7	advance6	stitched
+link_example	060402	t17530818->17530839	pill(2160,2192)	step4->15	advance6	pairwise
+link_example	060402	t17530818->17530839	pill(2160,2192)	step1->12	advance6	pairwise
+link_example	060402	t17530818->17530839	pill(2160,2192)	step9->10	advance6	stitched
+link_example	071502 ds.xapple vs nef.dydx	t1034530->1034543	pill(2240,2048)	step24->31	advance5	pairwise
+link_example	071502 ds.xapple vs nef.dydx	t1034530->1034543	pill(2240,2048)	step19->26	advance5	pairwise
+link_example	071502 ds.xapple vs nef.dydx	t1058450->1058467	pill(2112,2256)	step14->23	advance7	pairwise
+link_example	071502 ds.xapple vs nef.dydx	t1058450->1058467	pill(2112,2256)	step19->28	advance7	pairwise
+link_example	071502 ds.xapple vs nef.dydx	t1064078->1064093	pill(2224,2160)	step7->15	advance6	pairwise
+link_example	091102 red vs ds	t273635->273653	pill(2208,1856)	step4->15	advance9	stitched
+link_example	091102 red vs ds	t273653->273679	pill(2208,1856)	step15->23	advance10	stitched
+link_example	091102 red vs ds	t269825->269831	pill(2080,2064)	step3->9	advance4	stitched
+link_example	091102 red vs ds	t269831->269855	pill(2080,2064)	step9->18	advance11	stitched
+link_example	091102 red vs ds	t269855->269866	pill(2080,2064)	step18->26	advance6	stitched
+link_example	091102 red vs ds	t269866->269880	pill(2080,2064)	step26->30	advance6	stitched
+link_example	091402	t13019753->13019775	pill(2064,1952)	step12->23	advance9	pairwise
+link_example	091402	t13019753->13019775	pill(2064,1952)	step9->21	advance9	pairwise
+link_example	091402	t13019753->13019775	pill(2064,1952)	step6->18	advance9	pairwise
+link_example	091402	t13019753->13019775	pill(2064,1952)	step4->15	advance9	pairwise
+link_example	091402	t13019753->13019775	pill(2064,1952)	step1->13	advance9	pairwise
+link_example	091402.3	t13754432->13754448	pill(1984,2224)	step12->16	advance6	stitched
+link_example	091402.3	t13754432->13754448	pill(1984,2224)	step10->18	advance6	pairwise
+link_example	101102.1 red.ds vs sq.nat	t87255->87270	pill(2048,2064)	step13->21	advance6	pairwise
+link_example	101102.1 red.ds vs sq.nat	t60615->60632	pill(2240,1776)	step18->22	advance6	stitched
+link_example	101102.1 red.ds vs sq.nat	t60615->60632	pill(2240,1776)	step16->24	advance6	pairwise
+link_example	101102.1 red.ds vs sq.nat	t60615->60632	pill(2240,1776)	step11->14	advance6	stitched
+link_example	101102.1 red.ds vs sq.nat	t60615->60632	pill(2240,1776)	step8->17	advance6	pairwise
+link_example	101102.1 red.ds vs sq.nat	t93641->93660	pill(2512,1888)	step15->24	advance6	pairwise
+link_example	101102.1 red.ds vs sq.nat	t93641->93660	pill(2512,1888)	step10->18	advance6	pairwise
+link_example	101102.2 ds.red vs sq.nix	t169532->169545	pill(2272,1872)	step24->31	advance5	pairwise
+link_example	101202.10 ds.red vs mj.slug	t1094490->1094510	pill(2240,2128)	step3->5	advance5	stitched
+link_example	101202.10 ds.red vs mj.slug	t1094490->1094510	pill(2240,2128)	step14->16	advance5	stitched
+link_example	101202.10 ds.red vs mj.slug	t1094490->1094510	pill(2240,2128)	step11->21	advance5	pairwise
+link_example	101202.3 ds.mj vs soup.slug	t442170->442182	pill(2160,1952)	step16->22	advance3	pairwise
+link_example	101202.3 ds.mj vs soup.slug	t442170->442182	pill(2160,1952)	step13->19	advance3	pairwise
+link_example	101202.3 ds.mj vs soup.slug	t442170->442182	pill(2160,1952)	step11->16	advance3	pairwise
+link_example	101202.3 ds.mj vs soup.slug	t442170->442182	pill(2160,1952)	step8->14	advance3	pairwise
+link_example	101202.3 ds.mj vs soup.slug	t442170->442182	pill(2160,1952)	step6->11	advance3	pairwise
+link_example	101202.3 ds.mj vs soup.slug	t442170->442182	pill(2160,1952)	step3->9	advance3	pairwise
+link_example	101202.3 ds.mj vs soup.slug	t442170->442182	pill(2160,1952)	step1->6	advance3	pairwise
+link_example	101202.6 ds.mj vs slug.red	t819687->819699	pill(1808,2048)	step23->30	advance4	pairwise
+link_example	101202.6 ds.mj vs slug.red	t819687->819699	pill(1808,2048)	step21->27	advance4	pairwise
+link_example	101202.9 ds.red vs mj.slug	t957006->957021	pill(1872,1888)	step14->22	advance5	pairwise
+link_example	101202.9 ds.red vs mj.slug	t957006->957021	pill(1872,1888)	step11->19	advance5	pairwise
+link_example	101202.9 ds.red vs mj.slug	t957006->957021	pill(1872,1888)	step9->16	advance5	pairwise
+link_example	101202.9 ds.red vs mj.slug	t970555->970569	pill(2048,1984)	step4->5	advance4	stitched
+link_example	101202.9 ds.red vs mj.slug	t970555->970569	pill(2048,1984)	step1->8	advance4	pairwise
+link_example	101402.4 ds.slug vs soup.mj	t180970->180984	pill(1856,2112)	step24->31	advance4	pairwise
+link_example	101402.4 ds.slug vs soup.mj	t180970->180984	pill(1856,2112)	step22->28	advance4	pairwise
+link_example	101402.4 ds.slug vs soup.mj	t180970->180984	pill(1856,2112)	step19->26	advance4	pairwise
+link_example	101402.4 ds.slug vs soup.mj	t180970->180984	pill(1856,2112)	step17->23	advance4	pairwise
+link_example	101502.1 ds.ÔêÜ.clif vs slug.mj.osc	t127546->127565	pill(1600,1728)	step22->31	advance7	pairwise
+link_example	101502.1 ds.ÔêÜ.clif vs slug.mj.osc	t127546->127565	pill(1600,1728)	step19->29	advance7	pairwise
+link_example	101502.2 ds.nix vs fart.mj	t575291->575309	pill(1920,1968)	step20->28	advance3	pairwise
+link_example	101502.2 ds.nix vs fart.mj	t575291->575309	pill(1920,1968)	step22->31	advance3	pairwise
+link_example	101602.2 ds.osc vs slug.mj	t1462641->1462661	pill(2096,2208)	step18->28	advance7	pairwise
+link_example	101602.2 ds.osc vs slug.mj	t1462641->1462661	pill(2096,2208)	step16->20	advance7	stitched
+link_example	101602.2 ds.osc vs slug.mj	t1462641->1462661	pill(2096,2208)	step13->23	advance7	pairwise
+link_example	101602.2 ds.osc vs slug.mj	t1462641->1462661	pill(2096,2208)	step8->17	advance7	pairwise
+link_example	101602.2 ds.osc vs slug.mj	t1462641->1462661	pill(2096,2208)	step0->10	advance7	pairwise
+link_example	102102.1 dy.clif.ds vs nix.osc.tah	t418867->418885	pill(2080,2112)	step21->30	advance7	pairwise
+link_example	102102.1 dy.clif.ds vs nix.osc.tah	t418867->418885	pill(2080,2112)	step18->28	advance7	pairwise
+link_example	102102.1 dy.clif.ds vs nix.osc.tah	t418867->418885	pill(2080,2112)	step16->25	advance7	pairwise
+link_example	102202.2 ds.mj vs slug.ultra	t298036->298045	pill(2112,2000)	step9->14	advance3	pairwise
+link_example	102602.1	t151513->151532	pill(2208,2224)	step7->17	advance8	pairwise
+link_example	103002.6 ds.red vs osc.sq	t473890->473908	pill(2272,2000)	step16->21	advance15	pairwise
+link_example	103002.6 ds.red vs osc.sq	t473890->473908	pill(2272,2000)	step10->18	advance15	stitched
+link_example	110102.2 ds.ÔêÜ vs flag.misp	t85464->85474	pill(2144,2160)	step25->31	advance3	pairwise
+link_example	110102.2 ds.ÔêÜ vs flag.misp	t85464->85474	pill(2144,2160)	step23->28	advance3	pairwise
+link_example	110102.2 ds.ÔêÜ vs flag.misp	t85464->85474	pill(2144,2160)	step20->26	advance3	pairwise
+link_example	110702.1 ds.osc.clif	t277330->277344	pill(1888,2080)	step5->12	advance4	pairwise
+link_example	110702.1 ds.osc.clif	t277330->277344	pill(1888,2080)	step23->30	advance4	pairwise
+link_example	110702.1 ds.osc.clif	t277330->277344	pill(1888,2080)	step20->27	advance4	pairwise
+link_example	110702.1 ds.osc.clif	t277330->277344	pill(1888,2080)	step18->24	advance4	pairwise
+link_example	110702.1 ds.osc.clif	t277330->277344	pill(1888,2080)	step8->9	advance4	stitched
+link_example	110702.1 ds.osc.clif	t288477->288489	pill(1920,2016)	step24->31	advance4	pairwise
+link_example	110702.1 ds.osc.clif	t288477->288489	pill(1920,2016)	step18->19	advance4	stitched
+link_example	110702.1 ds.osc.clif	t288477->288489	pill(1920,2016)	step15->22	advance4	pairwise
+link_example	110702.1 ds.osc.clif	t288477->288489	pill(1920,2016)	step12->13	advance4	stitched
+link_example	110702.1 ds.osc.clif	t288477->288489	pill(1920,2016)	step9->16	advance4	pairwise
+link_example	110702.1 ds.osc.clif	t115797->115815	pill(1920,1936)	step11->20	advance5	pairwise
+link_example	110702.1 ds.osc.clif	t115797->115815	pill(1920,1936)	step6->16	advance5	pairwise
+link_example	110802.3	t5175275->5175285	pill(2512,1888)	step19->24	advance8	pairwise
+link_example	110802.3	t5175275->5175285	pill(2512,1888)	step16->22	advance8	pairwise
+link_example	110802.3	t5175275->5175285	pill(2512,1888)	step14->19	advance8	pairwise
+link_example	110802.3	t5175275->5175285	pill(2512,1888)	step11->17	advance8	pairwise
+link_example	110802.3	t5175275->5175285	pill(2512,1888)	step9->14	advance8	pairwise
+link_example	110802.3	t5175275->5175285	pill(2512,1888)	step6->11	advance8	pairwise
+link_example	110802.3	t5192835->5192849	pill(2000,2064)	step5->13	advance5	pairwise
+link_example	110802.3	t5192835->5192849	pill(2000,2064)	step23->31	advance5	pairwise
+link_example	110802.3	t5192835->5192849	pill(2000,2064)	step8->15	advance5	pairwise
+link_example	110802.3	t5240015->5240027	pill(1792,2176)	step25->30	advance8	pairwise
+link_example	110802.3	t5240015->5240027	pill(1792,2176)	step19->24	advance8	pairwise
+link_example	111302.1	t136176->136179	pill(928,2112)	step6->10	advance2	stitched
+link_example	111302.1	t157845->157849	pill(688,2288)	step24->28	advance2	stitched
+link_example	112202.2 ds.dux vs mj.nat	t4265235->4265253	pill(1968,1840)	step17->18	advance4	stitched
+link_example	112202.2 ds.dux vs mj.nat	t4265235->4265253	pill(1968,1840)	step14->23	advance4	pairwise
+link_example	112202.2 ds.dux vs mj.nat	t4265235->4265253	pill(1968,1840)	step11->21	advance4	pairwise
+link_example	112202.5	t4924077->4924080	pill(1904,2080)	step6->8	advance7	stitched
+link_example	112202.5	t4924079->4924085	pill(1904,2080)	step20->22	advance7	stitched
+link_example	022603.1 ds.nature vs mj.ankle	t727029->727040	pill(1952,1888)	step10->15	advance7	pairwise
+link_example	022603.3 ds.ankle vs nature.mj	t808370->808390	pill(2032,2176)	step21->30	advance7	pairwise
+link_example	022603.5 nature.mj vs ds.ankle	t878413->878429	pill(2016,1840)	step13->22	advance6	pairwise
+link_example	022603.5 nature.mj vs ds.ankle	t911295->911308	pill(1936,2064)	step4->10	advance8	pairwise
+link_example	031403.1	t83737->83749	pill(1824,2112)	step23->29	advance4	pairwise
+link_example	061903.1 ds vs. vert	t4082422->4082425	pill(1984,2080)	step5->9	advance2	pairwise
+link_example	061903.1 ds vs. vert	t4184370->4184374	pill(1920,2096)	step21->25	advance2	pairwise
+link_example	061903.1 ds vs. vert	t4230611->4230614	pill(2032,2272)	step25->29	advance2	stitched
+link_example	061903.1 ds vs. vert	t4156439->4156442	pill(2000,2240)	step1->5	advance2	stitched
+link_example	061903.1 ds vs. vert	t4245845->4245849	pill(2016,2064)	step19->23	advance2	stitched
+link_example	061903.2 ds vs vert	t4289777->4289780	pill(2240,2240)	step20->24	advance2	stitched
+link_example	061903.2 ds vs vert	t4425764->4425789	pill(2016,2048)	step1->16	advance13	stitched
+link_example	061903.2 ds vs vert	t4425769->4425792	pill(2016,2048)	step4->17	advance11	stitched
+link_example	061903.2 ds vs vert	t4431620->4431623	pill(2032,1888)	step1->5	advance2	pairwise
+link_example	061903.2 ds vs vert	t4431626->4431629	pill(2032,1888)	step4->8	advance2	pairwise
+link_example	061903.2 ds vs vert	t4447692->4447736	pill(2176,2032)	step4->28	advance22	stitched
+link_example	061903.2 ds vs vert	t4562252->4562278	pill(2000,2048)	step7->22	advance13	stitched
+link_example	061903.3 ds vs vert	t4631857->4631860	pill(1888,1824)	step19->23	advance2	pairwise
+link_example	061903.4 ds vs vert	t4678287->4678290	pill(2160,2032)	step27->31	advance2	stitched
+link_example	061903.6 ds vs vert	t542358->542361	pill(1952,1952)	step26->30	advance2	stitched
+link_example	061903.6 ds vs vert	t547121->547125	pill(1856,2240)	step0->9	advance3	pairwise
+link_example	061903.6 ds vs vert	t556726->556730	pill(2064,1776)	step5->9	advance2	stitched
+link_example	062603.2 nix.vert vs pins.ds	t5228851->5228864	pill(2016,2096)	step20->26	advance4	pairwise
+link_example	062603.2 nix.vert vs pins.ds	t5228851->5228864	pill(2016,2096)	step25->31	advance4	pairwise
+link_example	062603.2 nix.vert vs pins.ds	t5228851->5228864	pill(2016,2096)	step22->29	advance4	pairwise
+link_example	062603.2 nix.vert vs pins.ds	t5149711->5149720	pill(2032,2112)	step5->10	advance3	pairwise
+link_example	072203.3 ds.pins vs red.osc	t25792156->25792176	pill(2048,2192)	step20->30	advance8	pairwise
+link_example	072203.3 ds.pins vs red.osc	t25792156->25792176	pill(2048,2192)	step17->28	advance8	pairwise
+link_example	072303.1 ds vs pins	t516071->516075	pill(2064,2032)	step21->27	advance3	stitched
+link_example	073003.1 ds.pins vs nix.vert	t8351261->8351275	pill(2096,1888)	step13->21	advance5	pairwise
+link_example	073003.1 ds.pins vs nix.vert	t8351261->8351275	pill(2096,1888)	step10->18	advance5	pairwise
+link_example	122903.4 flag.clifvds.ÔêÜ	t212488->212501	pill(1072,2528)	step14->21	advance5	pairwise
+link_example	122903.5 flag.cliffvds.ÔêÜ	t259417->259429	pill(1088,2336)	step9->15	advance4	pairwise
+link_example	122903.5 flag.cliffvds.ÔêÜ	t259417->259429	pill(1088,2336)	step6->13	advance4	pairwise
+link_example	011504.1 ds.darth vs clif.nix	t10318445->10318464	pill(2160,2000)	step7->17	advance8	pairwise
+link_example	030404.6 ds.nix vs vert.phart	t3770842->3770856	pill(2080,1952)	step22->29	advance5	pairwise
+link_example	031704.1 ds.clif vs phart.mj	t39791545->39791559	pill(1984,2304)	step21->29	advance5	pairwise
+link_example	031704.1 ds.clif vs phart.mj	t39791545->39791559	pill(1984,2304)	step16->19	advance5	stitched
+link_example	031704.1 ds.clif vs phart.mj	t39791545->39791559	pill(1984,2304)	step14->21	advance5	pairwise
+link_example	031704.1 ds.clif vs phart.mj	t39805949->39805964	pill(2096,2208)	step23->31	advance6	pairwise
+link_example	032204.2 ds.nix vs vert.mj	t358374->358392	pill(2096,1888)	step12->23	advance9	stitched
+link_example	032204.2 ds.nix vs vert.mj	t281651->281655	pill(2320,2256)	step8->12	advance2	stitched
+link_example	032204.2 ds.nix vs vert.mj	t332440->332444	pill(2096,1904)	step15->21	advance3	stitched
+link_example	032204.2 ds.nix vs vert.mj	t376966->376970	pill(1856,1888)	step3->7	advance2	stitched
+link_example	032304.1 mj.red vs ds.ÔêÜ	t17420390->17420394	pill(720,2544)	step10->14	advance2	pairwise
+link_example	032304.1 mj.red vs ds.ÔêÜ	t17405563->17405567	pill(784,2336)	step12->16	advance2	stitched
+link_example	032404.4 check.nix vs ds.vert	t3918743->3918749	pill(2080,2080)	step26->29	advance6	pairwise
+link_example	033104.1 ds.ÔêÜ vs osc.red	t25436070->25436085	pill(2048,1984)	step16->23	advance5	pairwise
+link_example	033104.1 ds.ÔêÜ vs osc.red	t25436070->25436085	pill(2048,1984)	step11->18	advance5	pairwise
+link_example	033104.1 ds.ÔêÜ vs osc.red	t25436070->25436085	pill(2048,1984)	step5->13	advance5	pairwise
+link_example	033104.1 ds.ÔêÜ vs osc.red	t25436070->25436085	pill(2048,1984)	step2->10	advance5	pairwise
+link_example	033104.1 ds.ÔêÜ vs osc.red	t25436070->25436085	pill(2048,1984)	step13->21	advance5	pairwise
+link_example	033104.1 ds.ÔêÜ vs osc.red	t25436070->25436085	pill(2048,1984)	step8->16	advance5	pairwise
+link_example	033104.3 ds.red vs ÔêÜ.vert	t105016->105020	pill(768,2336)	step3->9	advance3	pairwise
+link_example	042304.2 ds.mj vs nix.red	t3442640->3442653	pill(2272,1936)	step18->25	advance5	pairwise
+link_example	042304.2 ds.mj vs nix.red	t3442640->3442653	pill(2272,1936)	step23->30	advance5	pairwise
+link_example	042304.2 ds.mj vs nix.red	t3442640->3442653	pill(2272,1936)	step20->23	advance5	stitched
+link_example	050304.2 ÔêÜ.vader vs ds.xapple	t17779191->17779205	pill(1888,2224)	step13->21	advance5	pairwise
+link_example	050304.2 ÔêÜ.vader vs ds.xapple	t17779191->17779205	pill(1888,2224)	step10->18	advance5	pairwise
+link_example	050304.2 ÔêÜ.vader vs ds.xapple	t17779191->17779205	pill(1888,2224)	step8->15	advance5	pairwise
+link_example	050304.2 ÔêÜ.vader vs ds.xapple	t17779191->17779205	pill(1888,2224)	step5->13	advance5	pairwise
+link_example	050604.1 ds vs ÔêÜ.vader	t30766620->30766633	pill(2032,2048)	step22->29	advance5	pairwise
+link_example	060104.1 ds.nix vs mj.clif	t14680502->14680515	pill(1808,2064)	step23->30	advance5	pairwise
+link_example	060104.1 ds.nix vs mj.clif	t14687802->14687815	pill(2128,2048)	step20->27	advance5	pairwise
+link_example	070104.1 ds.ÔêÜ vs osc.nat	t12957354->12957368	pill(2336,1968)	step15->22	advance5	pairwise
+link_example	070104.1 ds.ÔêÜ vs osc.nat	t12957354->12957368	pill(2336,1968)	step12->20	advance5	pairwise
+link_example	070104.1 ds.ÔêÜ vs osc.nat	t12957354->12957368	pill(2336,1968)	step10->17	advance5	pairwise
+link_example	070104.1 ds.ÔêÜ vs osc.nat	t12957354->12957368	pill(2336,1968)	step7->15	advance5	pairwise
+link_example	070104.1 ds.ÔêÜ vs osc.nat	t12957354->12957368	pill(2336,1968)	step4->12	advance5	pairwise
+link_example	070104.1 ds.ÔêÜ vs osc.nat	t12957354->12957368	pill(2336,1968)	step1->9	advance5	pairwise
+link_example	070104.1 ds.ÔêÜ vs osc.nat	t13007814->13007825	pill(1776,2048)	step6->12	advance4	pairwise
+link_example	071204.1 ds.vert vs nix.nat	t482698->482715	pill(2080,2032)	step12->21	advance4	pairwise
+link_example	071204.1 ds.vert vs nix.nat	t482698->482715	pill(2080,2032)	step9->16	advance4	pairwise
+link_example	071204.1 ds.vert vs nix.nat	t428482->428495	pill(1904,1632)	step11->17	advance4	pairwise
+link_example	071204.1 ds.vert vs nix.nat	t428482->428495	pill(1904,1632)	step8->15	advance4	pairwise
+link_example	071204.1 ds.vert vs nix.nat	t428482->428495	pill(1904,1632)	step5->12	advance4	pairwise
+link_example	071204.1 ds.vert vs nix.nat	t428482->428495	pill(1904,1632)	step13->20	advance4	pairwise
+link_example	071204.1 ds.vert vs nix.nat	t428482->428495	pill(1904,1632)	step16->22	advance4	pairwise
+link_example	071204.1 ds.vert vs nix.nat	t428482->428495	pill(1904,1632)	step3->9	advance4	pairwise
+link_example	071204.1 ds.vert vs nix.nat	t455850->455860	pill(2144,2016)	step18->24	advance3	pairwise
+link_example	071204.1 ds.vert vs nix.nat	t455850->455860	pill(2144,2016)	step16->21	advance3	pairwise
+link_example	071204.1 ds.vert vs nix.nat	t455850->455860	pill(2144,2016)	step13->19	advance3	pairwise
+link_example	071204.1 ds.vert vs nix.nat	t455850->455860	pill(2144,2016)	step11->16	advance3	pairwise
+link_example	071204.1 ds.vert vs nix.nat	t455850->455860	pill(2144,2016)	step8->14	advance3	pairwise
+link_example	071204.1 ds.vert vs nix.nat	t455850->455860	pill(2144,2016)	step6->11	advance3	pairwise
+link_example	072604.1 ds.mj vs nix.osc	t11554280->11554293	pill(1920,2176)	step12->19	advance5	pairwise
+link_example	072604.1 ds.mj vs nix.osc	t11554280->11554293	pill(1920,2176)	step7->14	advance5	pairwise
+link_example	072604.1 ds.mj vs nix.osc	t11516342->11516360	pill(1680,2256)	step8->15	advance5	pairwise
+link_example	072604.1 ds.nix vs oscar.mj	t17139844->17139857	pill(1888,2208)	step10->16	advance4	pairwise
+link_example	072604.1 ds.nix vs oscar.mj	t17139844->17139857	pill(1888,2208)	step7->14	advance4	pairwise
+link_example	072604.1 ds.nix vs oscar.mj	t17202592->17202603	pill(1808,2048)	step24->30	advance4	pairwise
+link_example	072704.2 mj.ds vs nix.osc	t21701712->21701726	pill(2064,1760)	step23->30	advance5	pairwise
+link_example	072704.2 mj.ds vs nix.osc	t21701712->21701726	pill(2064,1760)	step17->25	advance5	pairwise
+link_example	072704.2 mj.ds vs nix.osc	t21701712->21701726	pill(2064,1760)	step20->28	advance5	pairwise
+link_example	072704.3 nix.mj vs ds.osc	t21780825->21780839	pill(2048,2112)	step12->19	advance5	pairwise
+link_example	072704.3 nix.mj vs ds.osc	t21780825->21780839	pill(2048,2112)	step6->14	advance5	pairwise
+link_example	072704.3 nix.mj vs ds.osc	t21780825->21780839	pill(2048,2112)	step14->22	advance5	pairwise
+link_example	072704.3 nix.mj vs ds.osc	t21780825->21780839	pill(2048,2112)	step9->17	advance5	pairwise
+link_example	072704.3 nix.mj vs ds.osc	t21780825->21780839	pill(2048,2112)	step1->9	advance5	pairwise
+link_example	072904.1 ds.nix vs flag.ÔêÜ	t30144358->30144371	pill(2096,1792)	step15->20	advance3	stitched
+link_example	072904.1 ds.nix vs flag.ÔêÜ	t30144358->30144371	pill(2096,1792)	step12->18	advance3	pairwise
+link_example	072904.1 ds.nix vs flag.ÔêÜ	t30144358->30144371	pill(2096,1792)	step10->15	advance3	pairwise
+link_example	072904.1 ds.nix vs flag.ÔêÜ	t30144358->30144371	pill(2096,1792)	step4->5	advance3	stitched
+link_example	072904.1 ds.nix vs flag.ÔêÜ	t30144358->30144371	pill(2096,1792)	step2->7	advance3	pairwise
+link_example	072904.1 ds.nix vs flag.ÔêÜ	t30144371->30144377	pill(2096,1792)	step20->24	advance6	pairwise
+link_example	072904.1 ds.nix vs flag.ÔêÜ	t30144371->30144377	pill(2096,1792)	step18->21	advance6	pairwise
+link_example	072904.1 ds.nix vs flag.ÔêÜ	t30144371->30144377	pill(2096,1792)	step15->19	advance6	pairwise
+link_example	072904.1 ds.nix vs flag.ÔêÜ	t30144371->30144377	pill(2096,1792)	step7->11	advance6	pairwise
+link_example	072904.1 ds.nix vs flag.ÔêÜ	t30144371->30144377	pill(2096,1792)	step5->13	advance6	stitched
+link_example	072904.3 ds.nix vs mj.ÔêÜ.c	t17572945->17572955	pill(2176,2064)	step10->14	advance3	stitched
+link_example	080304.1 osc.flag vs ds.mj	t52019890->52019905	pill(2128,2048)	step12->20	advance6	pairwise
+link_example	080304.1 osc.flag vs ds.mj	t51989537->51989557	pill(1936,1952)	step18->28	advance5	pairwise
+link_example	080304.1 osc.flag vs ds.mj	t51989537->51989557	pill(1936,1952)	step21->31	advance5	pairwise
+link_example	080304.1 osc.flag vs ds.mj	t52025424->52025437	pill(2240,2080)	step21->28	advance5	pairwise
+link_example	080304.1 osc.flag vs ds.mj	t52046410->52046424	pill(1872,1952)	step21->29	advance5	pairwise
+link_example	080404.6 ds.red vs flag.mj	t753711->753720	pill(2016,2192)	step8->13	advance3	pairwise
+link_example	080504.1 ds vs oscar	t60963609->60963615	pill(2176,1888)	step27->30	advance5	pairwise
+link_example	080504.1 ds vs oscar	t60963609->60963615	pill(2176,1888)	step25->27	advance5	pairwise
+link_example	081204.3 mj.red vs ds.ÔêÜ	t218806->218815	pill(2128,2016)	step6->7	advance3	stitched
+link_example	081204.3 mj.red vs ds.ÔêÜ	t218806->218815	pill(2128,2016)	step4->9	advance3	pairwise
+link_example	081204.4 ds.mj vs red.flag	t523578->523587	pill(1872,2160)	step5->10	advance3	pairwise
+link_example	081204.4 ds.mj vs red.flag	t503685->503695	pill(2016,2272)	step24->30	advance3	pairwise
+link_example	081204.4 ds.mj vs red.flag	t503685->503695	pill(2016,2272)	step22->27	advance3	pairwise
+link_example	082004.1 nix.osc vs mj.ds	t281714->281729	pill(1840,2048)	step4->12	advance5	pairwise
+link_example	082004.1 nix.osc vs mj.ds	t281714->281739	pill(1840,2048)	step19->22	advance13	stitched
+link_example	082004.1 nix.osc vs mj.ds	t281714->281729	pill(1840,2048)	step17->24	advance5	pairwise
+link_example	082004.1 nix.osc vs mj.ds	t281714->281729	pill(1840,2048)	step14->22	advance5	pairwise
+link_example	082004.1 nix.osc vs mj.ds	t281714->281729	pill(1840,2048)	step12->19	advance5	pairwise
+link_example	082004.1 nix.osc vs mj.ds	t281714->281729	pill(1840,2048)	step9->17	advance5	pairwise
+link_example	082004.1 nix.osc vs mj.ds	t281714->281729	pill(1840,2048)	step7->9	advance5	stitched
+link_example	082704.3 oscar vs ds	t42257416->42257422	pill(2096,2080)	step26->30	advance7	pairwise
+link_example	082704.3 oscar vs ds	t42257416->42257422	pill(2096,2080)	step23->27	advance7	pairwise
+link_example	082704.3 oscar vs ds	t42257416->42257422	pill(2096,2080)	step7->10	advance7	pairwise
+link_example	083004.1 osc.fredde vs ds.ÔêÜ	t55444360->55444375	pill(2064,2208)	step23->24	advance4	stitched
+link_example	083004.1 osc.fredde vs ds.ÔêÜ	t55444360->55444375	pill(2064,2208)	step20->27	advance4	pairwise
+link_example	091304.1 ds.mj vs nix.ÔêÜ	t15364596->15364600	pill(1936,2224)	step2->6	advance2	pairwise
+link_example	091304.2 ds.mj vs nix.ÔêÜ	t15390335->15390339	pill(2192,1904)	step12->16	advance2	pairwise
+link_example	091304.4 ds.nat vs mj.nix	t15954113->15954120	pill(2352,2256)	step17->20	advance5	pairwise
+link_example	091304.4 ds.nat vs mj.nix	t15954113->15954120	pill(2352,2256)	step7->10	advance5	pairwise
+link_example	121504.6 ds.nix vs edax.cliffa	t4674781->4674797	pill(2288,1952)	step7->8	advance6	stitched
+link_example	121504.6 ds.nix vs edax.cliffa	t4674781->4674797	pill(2288,1952)	step5->13	advance6	pairwise
+link_example	121504.6 ds.nix vs edax.cliffa	t4674781->4674797	pill(2288,1952)	step2->11	advance6	pairwise
+link_example	121604.1 nix.red vs ds.ÔêÜ	t5120047->5120059	pill(2048,2144)	step9->10	advance4	stitched
+link_example	121604.1 nix.red vs ds.ÔêÜ	t5120047->5120059	pill(2048,2144)	step24->31	advance4	pairwise
+link_example	121604.1 nix.red vs ds.ÔêÜ	t5120047->5120059	pill(2048,2144)	step22->28	advance4	pairwise
+link_example	121604.1 nix.red vs ds.ÔêÜ	t5120047->5120059	pill(2048,2144)	step14->21	advance4	pairwise
+link_example	121604.1 nix.red vs ds.ÔêÜ	t5120047->5120059	pill(2048,2144)	step6->13	advance4	pairwise
+link_example	121604.1 nix.red vs ds.ÔêÜ	t5072725->5072731	pill(2224,2080)	step12->17	advance8	pairwise
+link_example	122704.5 ds vs oscar	t312967->312980	pill(2288,2048)	step1->2	advance6	stitched
+link_example	122704.5 ds vs oscar	t312980->312985	pill(2288,2048)	step2->10	advance3	stitched
+link_example	011205.2 ds vs cliffa	t22717030->22717043	pill(816,1040)	step24->30	advance3	pairwise
+link_example	011205.2 ds vs cliffa	t22717030->22717043	pill(816,1040)	step22->27	advance3	pairwise
+link_example	020205.2 ds vs cliffa	t25803368->25803375	pill(2000,1632)	step15->20	advance7	stitched
+link_example	020205.2 ds vs cliffa	t25803368->25803375	pill(2000,1632)	step13->17	advance7	pairwise
+link_example	020205.2 ds vs cliffa	t25803368->25803375	pill(2000,1632)	step10->14	advance7	pairwise
+link_example	020205.2 ds vs cliffa	t25803368->25803375	pill(2000,1632)	step7->11	advance7	pairwise
+link_example	020205.2 ds vs cliffa	t25803368->25803375	pill(2000,1632)	step4->9	advance7	stitched
+link_example	030705.4 ds vs jhood	t26576576->26576580	pill(2176,2224)	step3->9	advance3	pairwise
+link_example	030705.4 ds vs jhood	t26556970->26556972	pill(2192,2144)	step16->17	advance3	pairwise
+link_example	030705.5 ds vs jhood	t26648865->26648869	pill(1968,1856)	step17->21	advance2	pairwise
+link_example	030705.5 ds vs jhood	t26614286->26614289	pill(2128,2112)	step9->13	advance2	pairwise
+link_example	030805.4 ds vs jhood	t31020667->31020670	pill(1808,2064)	step17->21	advance2	pairwise
+link_example	031705.1 ds.nix vs cliffa.vert	t4353540->4353553	pill(912,2496)	step8->15	advance5	pairwise
+link_example	052805.2 ds.nature vs vert.pins	t35413596->35413605	pill(1968,1840)	step17->22	advance3	pairwise
+link_example	052805.2 ds.nature vs vert.pins	t35413596->35413605	pill(1968,1840)	step12->17	advance3	pairwise
+link_example	052805.3 ds.nature vs vert.pins	t35537592->35537601	pill(2064,1920)	step4->9	advance3	pairwise
+link_example	20010330 c	t200745->200754	pill(736,2416)	step13->18	advance3	pairwise
+link_example	20010330 c	t200745->200754	pill(736,2416)	step8->13	advance3	pairwise
+link_example	20020730.1	t185158->185175	pill(2288,2112)	step15->24	advance7	pairwise
+link_example	20020730.1	t185158->185175	pill(2288,2112)	step10->19	advance7	pairwise
+link_example	20020730.1	t159609->159629	pill(1952,2096)	step14->25	advance8	pairwise
+link_example	20020730.1	t159609->159629	pill(1952,2096)	step12->22	advance8	pairwise
+link_example	20020730.1	t159609->159629	pill(1952,2096)	step9->20	advance8	pairwise
+link_example	20020730.1	t159609->159629	pill(1952,2096)	step7->17	advance8	pairwise
+link_example	20020730.1	t159609->159629	pill(1952,2096)	step4->15	advance8	pairwise
+link_example	20020730.1	t159609->159629	pill(1952,2096)	step1->12	advance8	pairwise
+link_example	31jan2001slug004	t1485226->1485236	pill(1808,2032)	step22->29	advance9	pairwise
