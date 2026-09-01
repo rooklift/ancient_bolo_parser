@@ -34,6 +34,13 @@ create it as `{"root": "/path/to/logs"}`, or set `BOLO_CORPUS` in the
 environment. **An agent re-running this should ask the user where the corpus
 is** rather than guessing, since `corpus.json` is absent from a fresh clone.
 The three logs known to be hacked or broken are excluded.
+Corpus logs are named after the players in them, and this repository
+carries no player handles: wherever a tool prints a replay's name
+(the `*_example` diagnostic lines, and so the archived runs) it is
+reduced to its leading date digits plus six hex characters of the
+basename's SHA-256 (`replay_label` in `tools/corpus.cjs`), which the
+holder can match against the corpus by digesting each basename. The
+committed fixtures' names are digits already and print verbatim.
 
 * 443 files, 221,354,707 bytes. The one `.txt` in the tree is excluded by the
   tool's own extension filter, so the file count the tool reports is the log

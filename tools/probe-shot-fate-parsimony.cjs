@@ -28,6 +28,7 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { replay_label } = require("./corpus.cjs");
 const { Worker, isMainThread, parentPort } = require("node:worker_threads");
 
 const ROOT = path.join(__dirname, "..");
@@ -460,7 +461,7 @@ function analyze_file(file, engines, metrics) {
 		if (metrics.largest.length < 5 ||
 			nodes > metrics.largest[metrics.largest.length - 1].nodes) {
 			metrics.largest.push({
-				nodes, edges: component_edges, file: path.basename(file),
+				nodes, edges: component_edges, file: replay_label(file),
 			});
 			metrics.largest.sort((a, b) => b.nodes - a.nodes);
 			metrics.largest = metrics.largest.slice(0, 5);

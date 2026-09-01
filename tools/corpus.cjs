@@ -64,4 +64,19 @@ function resolve_corpus_root() {
 	return parsed.root;
 }
 
-module.exports = { corpus_root, resolve_corpus_root, CONFIG };
+/* A replay's name as the tools may print it. Corpus logs are named
+ * after the players in them, and this repository carries no player
+ * handles, so a name is reduced to its leading date digits plus six hex
+ * characters of the basename's SHA-256 -- enough for the corpus holder
+ * to find the file (the same digest of each candidate's basename) and
+ * for two scenes to be told apart, nothing more. The committed
+ * fixtures' names are digits already and print verbatim. */
+function replay_label(file) {
+	let name = path.basename(file);
+	if (/^n?[0-9.]+$/.test(name)) return name;
+	let digest = require("node:crypto").createHash("sha256")
+		.update(name, "utf8").digest("hex").slice(0, 6);
+	return `${(name.match(/^[0-9.]*/) || [""])[0]}~${digest}`;
+}
+
+module.exports = { corpus_root, resolve_corpus_root, replay_label, CONFIG };

@@ -99,92 +99,92 @@ link_class	pairwise:-10	1
 link_class	stitched:+1	1
 link_class	stitched:+5	1
 link_class	stitched:-7	1
-link_example	032601 ds.sol vs bers.mad	t9208673->9208677	pill(768,2432)	step5->11	advance3	stitched	vote=passed:confident@3(6v3)	src=2,5,8,11d,16,18,21,24d	dst=5,8,11,19,21,24	final=2,5,8,11,16,18,21,24>3,5,8,11,19,21,24
-link_example	032601 ds.sol vs bers.mad	t9183868->9183872	pill(736,2256)	step16->17	advance3	stitched	vote=passed:confident@3(6v3)	src=1,3,6,8,14,16,19	dst=4,6,9,11,14,17,19	final=1,3,6,8,14,16,19>1,4,6,11,14,17,19
-link_example	032601 ds.sol vs bers.mad	t9183872->9183876	pill(736,2256)	step17->21	advance2	stitched	vote=passed:confident@2(7v4)	src=1,4,6,11,14,17,19	dst=3,6,8,11,13,16,19,21	final=1,4,6,11,14,17,19>1,3,6,8,13,16,19,21
-link_example	040301pins.sluggo vs ds.nix	t1075230->1075245	pill(1840,1616)	step24->30	advance4	pairwise	vote=stood_down@4(3v3;full@4(5v5))	src=9d,11d,14d,16,19,21,24d,26d,29d,31d	dst=20,23,25,28,30	final=9,11,14,16,19,21,24,26,29,31>1,4,20,23,25,28,30
-link_example	040501.1 ds vs bitch	t4899752->4899754	pill(2144,1888)	step12->16	advance2	pairwise	vote=stood_down@2(8v7)	src=1,6,9,12,17,19,22,24	dst=3,8,11,14,16,19,21,24,26,29,31	final=1,6,9,12,17,19,22,24,29>3,8,11,16,19,21,24,26
-link_example	040601.1 funny game	t1872996->1873005	pill(1072,2528)	step3->11	advance6	stitched	vote=stood_down@6(7v6;full@1(7v7))	src=0,3,5,8,10,13,15,18,20d	dst=6,9,11,14,16,19,21	final=0,3,5,8,10,13,15,18,20>4,6,9,11,14,16,19,21
-link_example	040601.1 funny game	t1872996->1873005	pill(1072,2528)	step5->9	advance6	pairwise	vote=stood_down@6(7v6;full@1(7v7))	src=0,3,5,8,10,13,15,18,20d	dst=6,9,11,14,16,19,21	final=0,3,5,8,10,13,15,18,20>4,6,9,11,14,16,19,21
-link_example	041201.1 need help west!!	t6825649->6825653	pill(1744,1888)	step22->28	advance3	stitched	vote=passed:confident@3(9v6)	src=0,3,9,12,15,17,20,22,25,27d,31d	dst=3,6,9,12,15,18,20,23,25,28	final=0,3,9,12,15,17,20,22,25,27,31>3,9,12,15,18,20,23,25,28
-link_example	041201.1 need help west!!	t6817077->6817081	pill(2096,2224)	step4->8	advance2	stitched	vote=passed:confident@2(4v1)	src=1,4,6,14	dst=3,6,8,16	final=1,4,6,14>1,3,6,8,16
-link_example	041201.1 need help west!!	t6817088->6817092	pill(2096,2224)	step4->8	advance2	stitched	vote=passed:confident@2(3v1)	src=1,4,6,19d	dst=3,6,8	final=1,4,6,19>3,6,8
-link_example	041601.1 fury.kax vs ds.red	t7711166->7711170	pill(2400,2064)	step23->27	advance2	pairwise	vote=stood_down@2(4v3)	src=18,20,23,25	dst=20,22,25,27,30	final=18,20,23,25>20,22,25,27
-link_example	041601.1 fury.kax vs ds.red	t7725815->7725819	pill(2080,1968)	step24->28	advance2	pairwise	vote=stood_down@2(8v7)	src=1,4,6,9,11,14,16,24	dst=3,6,8,11,13,16,18,21,23,26,28	final=1,4,6,9,11,14,16,24>1,3,6,8,11,13,16,18,28
-link_example	041601.1 fury.kax vs ds.red	t7733275->7733278	pill(2032,2144)	step4->8	advance2	stitched	vote=passed:confident@2(6v3;full@2(6v4))	src=1,4,6,9d,11,14,16	dst=3,6,8,13,16,18	final=1,4,6,9,11,14,16>1,3,6,8,13,16,18
-link_example	041601.1 fury.kax vs ds.red	t7713357->7713360	pill(1872,2048)	step25->28	advance1	stitched	vote=passed:confident@1(3v1)	src=8,17,25	dst=9,18,26,28,31	final=8,17,25>9,18,26,28
-link_example	041801 ds.mw.red vs b.sol	t4313245->4313251	pill(2240,1840)	step8->10	advance4	pairwise	vote=stood_down@4(9v8)	src=3,6,8,11,13,16,18,21,23,26,28d	dst=7,12,15,17,20,22,25,27,30	final=3,6,8,11,13,16,18,21,23,26,28>7,10,12,15,17,20,22,25,27,30
-link_example	041801.2 ds vs red	t5784010->5784013	pill(2032,1808)	step5->9	advance2	stitched	vote=passed:confident@2(5v2)	src=2,5,7,25,28,31d	dst=4,7,9,27,30	final=2,5,7,25,28,31>1,4,7,9,27,30
-link_example	042401 ds.mad vs b.fury	t3402341->3402345	pill(1952,2224)	step13->17	advance2	pairwise	vote=stood_down@2(6v5)	src=5,8,10,13,15,18	dst=7,10,12,15,17,20,25,31	final=5,8,10,13,15,18>7,10,12,15,17,20
-link_example	042401 ds.mad vs b.fury	t3402361->3402365	pill(1952,2224)	step14->20	advance3	pairwise	vote=stood_down@3(3v3)	src=14,17,19	dst=17,20,22,25,27,30	final=14,17,19>17,20,22
-link_example	042401 ds.mad vs b.fury	t3405800->3405804	pill(2336,1952)	step4->8	advance2	stitched	vote=passed:confident@2(3v1)	src=1,4,6	dst=3,6,8	final=1,4,6>3,6,8
-link_example	042401.2 ds.mad vs fury.b	t3485297->3485300	pill(1168,2336)	step8->12	advance2	pairwise	vote=stood_down@2(7v6)	src=0,3,5,8,13,16,21	dst=2,5,7,10,12,15,18,20,23	final=0,3,5,8,13,16,21>2,5,7,12,15,18
-link_example	042401.2 ds.mad vs fury.b	t3485307->3485310	pill(1168,2336)	step13->17	advance2	pairwise	vote=stood_down@2(6v5)	src=5,8,10,13,18,21	dst=7,10,12,15,17,20,23,25	final=5,8,10,13,18,21>7,10,12,17,20,23
-link_example	042401.2 ds.mad vs fury.b	t3501612->3501621	pill(1072,2336)	step24->31	advance5	stitched	vote=-	src=-	dst=-	final=5,8,10,13,15,18,21,24,26,29>10,13,15,18,20,23,26,29,31
-link_example	050701 ds.check  vs b.zeke	t2909853->2909857	pill(2096,2208)	step9->13	advance2	pairwise	vote=stood_down@2(4v3)	src=1,4,6,9,11	dst=6,8,11,13	final=1,4,6,9,11>0,3,6,8,11,13
-link_example	050701 ds.check  vs b.zeke	t2909862->2909866	pill(2096,2208)	step14->18	advance2	stitched	vote=passed:confident@2(6v3)	src=3,6,9,11,14,16	dst=5,8,11,13,16,18	final=3,6,9,11,14,16>2,5,8,11,13,16,18
-link_example	051601 ds.pic vs sol.fury	t215874->215877	pill(1920,2224)	step25->31	advance3	stitched	vote=passed:confident@3(11v9)	src=3,5,8,10,13,15,18,20,23,25,28,31d	dst=6,8,11,13,16,18,21,23,26,28,31	final=3,5,8,10,13,15,18,20,23,25,28,31>6,8,11,13,16,18,21,23,26,28,31
-link_example	051601 ds.pic vs sol.fury	t232033->232036	pill(2112,1824)	step1->5	advance2	stitched	vote=passed:confident@2(5v3)	src=1,3,6,8,11,13d	dst=3,5,8,10,13	final=1,3,6,8,11,13>3,5,8,10,13
-link_example	052101.3 ds.o vs anna.skippy	t990026->990030	pill(1936,1952)	step25->31	advance3	stitched	vote=passed:confident@3(6v4)	src=15,18,20,23,25,28,31d	dst=18,21,23,26,28,31	final=15,18,20,23,25,28,31>18,21,23,26,28,31
-link_example	052101.3 ds.o vs anna.skippy	t999717->999721	pill(2160,2096)	step19->23	advance2	pairwise	vote=stood_down@2(4v3)	src=19,21,24,26	dst=21,23,26,28,31	final=19,21,24,26>21,23,26,28
-link_example	052401 ds.slicer vs fury.o	t3538265->3538270	pill(2144,2240)	step17->19	advance4	pairwise	vote=stood_down@4(7v6)	src=2,5,7,10,12,15,17,20,23d	dst=9,11,14,16,19,21,24	final=2,5,7,10,12,15,17,20,23>3,6,9,11,14,16,19,21,24
-link_example	052401.3 ds.fury vs slicer.soup	t244262->244266	pill(2064,1760)	step0->6	advance3	stitched	vote=passed:confident@3(4v1;full@3(5v2))	src=0,3,5,9d,12d,16	dst=3,6,8,12,19	final=0,3,5,9,12,16>1,3,6,8,12,19
-link_example	060501 soup.flag vs ds.check	t17425617->17425620	pill(2016,2272)	step2->6	advance2	pairwise	vote=stood_down@2(5v4)	src=2,4,7,9,17,20d	dst=4,6,9,11,14,16,19	final=2,4,7,9,17,20>1,4,6,9,11,19
-link_example	060501 soup.flag vs ds.check	t17427320->17427351	pill(2016,2112)	step6->23	advance15	stitched	vote=-	src=-	dst=-	final=3,6,8,11,13,16>3,21,23
-link_example	060501 soup.flag vs ds.check	t17406331->17406335	pill(2144,2272)	step7->11	advance2	pairwise	vote=stood_down@2(4v3)	src=2,4,7,18	dst=4,6,9,11,14,16,20	final=2,4,7,9,18>1,4,6,11,20
-link_example	060501 soup.flag vs ds.check	t17427110->17427114	pill(2000,2096)	step17->21	advance2	pairwise	vote=stood_down@2(4v3)	src=17,19,22,24,30d	dst=19,21,24,26,29	final=17,19,22,24,30>19,21,24,26
-link_example	062701 ds.O vs check.avram-cb	t4582369->4582385	pill(2000,2096)	step12->19	advance5	stitched	vote=passed:confident@5(6v4)	src=9,12,14,17,20,25	dst=14,17,19,22,24,25,30	final=9,12,14,17,20,25>14,19,22,25,30
+link_example	032601~b9e33d	t9208673->9208677	pill(768,2432)	step5->11	advance3	stitched	vote=passed:confident@3(6v3)	src=2,5,8,11d,16,18,21,24d	dst=5,8,11,19,21,24	final=2,5,8,11,16,18,21,24>3,5,8,11,19,21,24
+link_example	032601~b9e33d	t9183868->9183872	pill(736,2256)	step16->17	advance3	stitched	vote=passed:confident@3(6v3)	src=1,3,6,8,14,16,19	dst=4,6,9,11,14,17,19	final=1,3,6,8,14,16,19>1,4,6,11,14,17,19
+link_example	032601~b9e33d	t9183872->9183876	pill(736,2256)	step17->21	advance2	stitched	vote=passed:confident@2(7v4)	src=1,4,6,11,14,17,19	dst=3,6,8,11,13,16,19,21	final=1,4,6,11,14,17,19>1,3,6,8,13,16,19,21
+link_example	040301~d7ef0d	t1075230->1075245	pill(1840,1616)	step24->30	advance4	pairwise	vote=stood_down@4(3v3;full@4(5v5))	src=9d,11d,14d,16,19,21,24d,26d,29d,31d	dst=20,23,25,28,30	final=9,11,14,16,19,21,24,26,29,31>1,4,20,23,25,28,30
+link_example	040501.1~ffe1f6	t4899752->4899754	pill(2144,1888)	step12->16	advance2	pairwise	vote=stood_down@2(8v7)	src=1,6,9,12,17,19,22,24	dst=3,8,11,14,16,19,21,24,26,29,31	final=1,6,9,12,17,19,22,24,29>3,8,11,16,19,21,24,26
+link_example	040601.1~864166	t1872996->1873005	pill(1072,2528)	step3->11	advance6	stitched	vote=stood_down@6(7v6;full@1(7v7))	src=0,3,5,8,10,13,15,18,20d	dst=6,9,11,14,16,19,21	final=0,3,5,8,10,13,15,18,20>4,6,9,11,14,16,19,21
+link_example	040601.1~864166	t1872996->1873005	pill(1072,2528)	step5->9	advance6	pairwise	vote=stood_down@6(7v6;full@1(7v7))	src=0,3,5,8,10,13,15,18,20d	dst=6,9,11,14,16,19,21	final=0,3,5,8,10,13,15,18,20>4,6,9,11,14,16,19,21
+link_example	041201.1~6586dd	t6825649->6825653	pill(1744,1888)	step22->28	advance3	stitched	vote=passed:confident@3(9v6)	src=0,3,9,12,15,17,20,22,25,27d,31d	dst=3,6,9,12,15,18,20,23,25,28	final=0,3,9,12,15,17,20,22,25,27,31>3,9,12,15,18,20,23,25,28
+link_example	041201.1~6586dd	t6817077->6817081	pill(2096,2224)	step4->8	advance2	stitched	vote=passed:confident@2(4v1)	src=1,4,6,14	dst=3,6,8,16	final=1,4,6,14>1,3,6,8,16
+link_example	041201.1~6586dd	t6817088->6817092	pill(2096,2224)	step4->8	advance2	stitched	vote=passed:confident@2(3v1)	src=1,4,6,19d	dst=3,6,8	final=1,4,6,19>3,6,8
+link_example	041601.1~ba52db	t7711166->7711170	pill(2400,2064)	step23->27	advance2	pairwise	vote=stood_down@2(4v3)	src=18,20,23,25	dst=20,22,25,27,30	final=18,20,23,25>20,22,25,27
+link_example	041601.1~ba52db	t7725815->7725819	pill(2080,1968)	step24->28	advance2	pairwise	vote=stood_down@2(8v7)	src=1,4,6,9,11,14,16,24	dst=3,6,8,11,13,16,18,21,23,26,28	final=1,4,6,9,11,14,16,24>1,3,6,8,11,13,16,18,28
+link_example	041601.1~ba52db	t7733275->7733278	pill(2032,2144)	step4->8	advance2	stitched	vote=passed:confident@2(6v3;full@2(6v4))	src=1,4,6,9d,11,14,16	dst=3,6,8,13,16,18	final=1,4,6,9,11,14,16>1,3,6,8,13,16,18
+link_example	041601.1~ba52db	t7713357->7713360	pill(1872,2048)	step25->28	advance1	stitched	vote=passed:confident@1(3v1)	src=8,17,25	dst=9,18,26,28,31	final=8,17,25>9,18,26,28
+link_example	041801~650934	t4313245->4313251	pill(2240,1840)	step8->10	advance4	pairwise	vote=stood_down@4(9v8)	src=3,6,8,11,13,16,18,21,23,26,28d	dst=7,12,15,17,20,22,25,27,30	final=3,6,8,11,13,16,18,21,23,26,28>7,10,12,15,17,20,22,25,27,30
+link_example	041801.2~5f232d	t5784010->5784013	pill(2032,1808)	step5->9	advance2	stitched	vote=passed:confident@2(5v2)	src=2,5,7,25,28,31d	dst=4,7,9,27,30	final=2,5,7,25,28,31>1,4,7,9,27,30
+link_example	042401~909fa4	t3402341->3402345	pill(1952,2224)	step13->17	advance2	pairwise	vote=stood_down@2(6v5)	src=5,8,10,13,15,18	dst=7,10,12,15,17,20,25,31	final=5,8,10,13,15,18>7,10,12,15,17,20
+link_example	042401~909fa4	t3402361->3402365	pill(1952,2224)	step14->20	advance3	pairwise	vote=stood_down@3(3v3)	src=14,17,19	dst=17,20,22,25,27,30	final=14,17,19>17,20,22
+link_example	042401~909fa4	t3405800->3405804	pill(2336,1952)	step4->8	advance2	stitched	vote=passed:confident@2(3v1)	src=1,4,6	dst=3,6,8	final=1,4,6>3,6,8
+link_example	042401.2~3bb981	t3485297->3485300	pill(1168,2336)	step8->12	advance2	pairwise	vote=stood_down@2(7v6)	src=0,3,5,8,13,16,21	dst=2,5,7,10,12,15,18,20,23	final=0,3,5,8,13,16,21>2,5,7,12,15,18
+link_example	042401.2~3bb981	t3485307->3485310	pill(1168,2336)	step13->17	advance2	pairwise	vote=stood_down@2(6v5)	src=5,8,10,13,18,21	dst=7,10,12,15,17,20,23,25	final=5,8,10,13,18,21>7,10,12,17,20,23
+link_example	042401.2~3bb981	t3501612->3501621	pill(1072,2336)	step24->31	advance5	stitched	vote=-	src=-	dst=-	final=5,8,10,13,15,18,21,24,26,29>10,13,15,18,20,23,26,29,31
+link_example	050701~698a69	t2909853->2909857	pill(2096,2208)	step9->13	advance2	pairwise	vote=stood_down@2(4v3)	src=1,4,6,9,11	dst=6,8,11,13	final=1,4,6,9,11>0,3,6,8,11,13
+link_example	050701~698a69	t2909862->2909866	pill(2096,2208)	step14->18	advance2	stitched	vote=passed:confident@2(6v3)	src=3,6,9,11,14,16	dst=5,8,11,13,16,18	final=3,6,9,11,14,16>2,5,8,11,13,16,18
+link_example	051601~027d1c	t215874->215877	pill(1920,2224)	step25->31	advance3	stitched	vote=passed:confident@3(11v9)	src=3,5,8,10,13,15,18,20,23,25,28,31d	dst=6,8,11,13,16,18,21,23,26,28,31	final=3,5,8,10,13,15,18,20,23,25,28,31>6,8,11,13,16,18,21,23,26,28,31
+link_example	051601~027d1c	t232033->232036	pill(2112,1824)	step1->5	advance2	stitched	vote=passed:confident@2(5v3)	src=1,3,6,8,11,13d	dst=3,5,8,10,13	final=1,3,6,8,11,13>3,5,8,10,13
+link_example	052101.3~8e5bb1	t990026->990030	pill(1936,1952)	step25->31	advance3	stitched	vote=passed:confident@3(6v4)	src=15,18,20,23,25,28,31d	dst=18,21,23,26,28,31	final=15,18,20,23,25,28,31>18,21,23,26,28,31
+link_example	052101.3~8e5bb1	t999717->999721	pill(2160,2096)	step19->23	advance2	pairwise	vote=stood_down@2(4v3)	src=19,21,24,26	dst=21,23,26,28,31	final=19,21,24,26>21,23,26,28
+link_example	052401~a52b34	t3538265->3538270	pill(2144,2240)	step17->19	advance4	pairwise	vote=stood_down@4(7v6)	src=2,5,7,10,12,15,17,20,23d	dst=9,11,14,16,19,21,24	final=2,5,7,10,12,15,17,20,23>3,6,9,11,14,16,19,21,24
+link_example	052401.3~34f1e8	t244262->244266	pill(2064,1760)	step0->6	advance3	stitched	vote=passed:confident@3(4v1;full@3(5v2))	src=0,3,5,9d,12d,16	dst=3,6,8,12,19	final=0,3,5,9,12,16>1,3,6,8,12,19
+link_example	060501~03e520	t17425617->17425620	pill(2016,2272)	step2->6	advance2	pairwise	vote=stood_down@2(5v4)	src=2,4,7,9,17,20d	dst=4,6,9,11,14,16,19	final=2,4,7,9,17,20>1,4,6,9,11,19
+link_example	060501~03e520	t17427320->17427351	pill(2016,2112)	step6->23	advance15	stitched	vote=-	src=-	dst=-	final=3,6,8,11,13,16>3,21,23
+link_example	060501~03e520	t17406331->17406335	pill(2144,2272)	step7->11	advance2	pairwise	vote=stood_down@2(4v3)	src=2,4,7,18	dst=4,6,9,11,14,16,20	final=2,4,7,9,18>1,4,6,11,20
+link_example	060501~03e520	t17427110->17427114	pill(2000,2096)	step17->21	advance2	pairwise	vote=stood_down@2(4v3)	src=17,19,22,24,30d	dst=19,21,24,26,29	final=17,19,22,24,30>19,21,24,26
+link_example	062701~7386a6	t4582369->4582385	pill(2000,2096)	step12->19	advance5	stitched	vote=passed:confident@5(6v4)	src=9,12,14,17,20,25	dst=14,17,19,22,24,25,30	final=9,12,14,17,20,25>14,19,22,25,30
 link_example	082701.1	t7812385->7812400	pill(2176,1920)	step8->18	advance8	stitched	vote=-	src=-	dst=-	final=0,3,5,8,13,15,18,21,23,26>3,6,8,18,21,23,26
 link_example	082701.1	t7801433->7801450	pill(2288,2048)	step9->20	advance9	stitched	vote=-	src=-	dst=-	final=1,3,6,9,11,14,16,19>2,5,7,10,12,15,20,23,25,28
 link_example	082701.1	t7813301->7813304	pill(2224,2192)	step8->12	advance2	stitched	vote=passed:confident@2(4v2)	src=3,5,8,10	dst=5,7,10,12	final=3,5,8,10>2,5,7,10,12
 link_example	082701.2	t7771688->7771715	pill(1808,1872)	step8->23	advance13	stitched	vote=-	src=-	dst=-	final=3,5,8,10,13,16,19,21>0,3,5,8,10,13,16,18,23
-link_example	091102 red vs ds	t273635->273653	pill(2208,1856)	step4->15	advance9	stitched	vote=-	src=-	dst=-	final=1,4,6,9,11,14,16,20,25>2,5,8,10,15,18,20,23,25
-link_example	091102 red vs ds	t273653->273679	pill(2208,1856)	step15->23	advance10	stitched	vote=-	src=-	dst=-	final=2,5,8,10,15,18,20,23,25>4,7,9,12,15,18,20,23,28,30
-link_example	091102 red vs ds	t269825->269831	pill(2080,2064)	step3->9	advance4	stitched	vote=-	src=-	dst=-	final=0,3,8,10,14>2,4,9,12,14,18
-link_example	091102 red vs ds	t269831->269855	pill(2080,2064)	step9->18	advance11	stitched	vote=-	src=-	dst=-	final=2,4,9,12,14,18>2,5,8,10,13,15,18,23
-link_example	091102 red vs ds	t269855->269866	pill(2080,2064)	step18->26	advance6	stitched	vote=-	src=-	dst=-	final=2,5,8,10,13,15,18,23>2,5,8,11,14,16,19,21,26,29
-link_example	091102 red vs ds	t269866->269880	pill(2080,2064)	step26->30	advance6	stitched	vote=-	src=-	dst=-	final=2,5,8,11,14,16,19,21,26,29>1,5,8,11,14,17,20,22,25,27,30
+link_example	091102~fd9a62	t273635->273653	pill(2208,1856)	step4->15	advance9	stitched	vote=-	src=-	dst=-	final=1,4,6,9,11,14,16,20,25>2,5,8,10,15,18,20,23,25
+link_example	091102~fd9a62	t273653->273679	pill(2208,1856)	step15->23	advance10	stitched	vote=-	src=-	dst=-	final=2,5,8,10,15,18,20,23,25>4,7,9,12,15,18,20,23,28,30
+link_example	091102~fd9a62	t269825->269831	pill(2080,2064)	step3->9	advance4	stitched	vote=-	src=-	dst=-	final=0,3,8,10,14>2,4,9,12,14,18
+link_example	091102~fd9a62	t269831->269855	pill(2080,2064)	step9->18	advance11	stitched	vote=-	src=-	dst=-	final=2,4,9,12,14,18>2,5,8,10,13,15,18,23
+link_example	091102~fd9a62	t269855->269866	pill(2080,2064)	step18->26	advance6	stitched	vote=-	src=-	dst=-	final=2,5,8,10,13,15,18,23>2,5,8,11,14,16,19,21,26,29
+link_example	091102~fd9a62	t269866->269880	pill(2080,2064)	step26->30	advance6	stitched	vote=-	src=-	dst=-	final=2,5,8,11,14,16,19,21,26,29>1,5,8,11,14,17,20,22,25,27,30
 link_example	102602.1	t151513->151532	pill(2208,2224)	step7->17	advance8	pairwise	vote=stood_down@8(4v3;full@3(5v5))	src=2,4,7,9,12d,14d,17d,19d	dst=10,12,15,17,20	final=2,4,7,9,12,14,17,19>2,5,7,10,12,15,17,20
-link_example	103002.6 ds.red vs osc.sq	t473890->473908	pill(2272,2000)	step16->21	advance15	pairwise	vote=unvoted	src=10,16d	dst=	final=0,3,6,10,16>1,4,7,10,18,21,25
-link_example	103002.6 ds.red vs osc.sq	t473890->473908	pill(2272,2000)	step10->18	advance15	stitched	vote=unvoted	src=10,16d	dst=	final=0,3,6,10,16>1,4,7,10,18,21,25
+link_example	103002.6~fb1834	t473890->473908	pill(2272,2000)	step16->21	advance15	pairwise	vote=unvoted	src=10,16d	dst=	final=0,3,6,10,16>1,4,7,10,18,21,25
+link_example	103002.6~fb1834	t473890->473908	pill(2272,2000)	step10->18	advance15	stitched	vote=unvoted	src=10,16d	dst=	final=0,3,6,10,16>1,4,7,10,18,21,25
 link_example	111302.1	t136176->136179	pill(928,2112)	step6->10	advance2	stitched	vote=passed:confident@2(4v2)	src=1,3,6,8	dst=3,5,8,10	final=1,3,6,8>0,3,5,8,10
 link_example	111302.1	t157845->157849	pill(688,2288)	step24->28	advance2	stitched	vote=passed:confident@2(11v8)	src=1,3,6,8,11,13,16,19,21,24,26	dst=3,5,8,10,13,15,18,21,23,26,28	final=1,3,6,8,11,13,16,19,21,24,26>3,5,8,10,13,15,18,21,23,26,28
 link_example	112202.5	t4924077->4924080	pill(1904,2080)	step6->8	advance7	stitched	vote=-	src=-	dst=-	final=1,3,6,8,11,13,16,18,21,23,26,30>0,3,8,10,13,20,28
 link_example	112202.5	t4924079->4924085	pill(1904,2080)	step20->22	advance7	stitched	vote=-	src=-	dst=-	final=3,5,8,13,15,18,20,23,25,28>2,5,12,15,22
-link_example	061903.1 ds vs. vert	t4230611->4230614	pill(2032,2272)	step25->29	advance2	stitched	vote=passed:confident@2(8v6)	src=10,12,15,17,20,22,25,27,30d	dst=12,14,17,19,22,24,27,29	final=10,12,15,17,20,22,25,27,30>12,14,17,19,22,24,27,29
-link_example	061903.1 ds vs. vert	t4156439->4156442	pill(2000,2240)	step1->5	advance2	stitched	vote=passed:confident@2(5v3)	src=1,3,6,9,12,20d	dst=3,5,8,11,14	final=1,3,6,9,12,20>3,5,8,11,14
-link_example	061903.1 ds vs. vert	t4245845->4245849	pill(2016,2064)	step19->23	advance2	stitched	vote=passed:confident@2(9v5)	src=4,7,10,13,19,21,24,26,29	dst=6,9,12,15,21,23,26,28,31	final=4,7,10,13,19,21,24,26,29>6,9,12,15,21,23,26,28,31
-link_example	061903.2 ds vs vert	t4289777->4289780	pill(2240,2240)	step20->24	advance2	stitched	vote=passed:confident@2(9v5)	src=1,4,6,9,11,14,17,20,22	dst=3,6,8,11,13,16,19,22,24	final=1,4,6,9,11,14,17,20,22>3,6,8,11,13,16,19,22,24
-link_example	061903.2 ds vs vert	t4425764->4425789	pill(2016,2048)	step1->16	advance13	stitched	vote=-	src=-	dst=-	final=1,3,16,18,26>11,16,29,31
-link_example	061903.2 ds vs vert	t4425769->4425792	pill(2016,2048)	step4->17	advance11	stitched	vote=-	src=-	dst=-	final=1,4,19,21>12,17,30
-link_example	061903.2 ds vs vert	t4431620->4431623	pill(2032,1888)	step1->5	advance2	pairwise	vote=stood_down@2(6v5)	src=1,3,6,8,11,16	dst=3,5,8,10,13,15,18	final=1,3,6,8,11,16>3,5,8,10,18
-link_example	061903.2 ds vs vert	t4431626->4431629	pill(2032,1888)	step4->8	advance2	pairwise	vote=stood_down@2(6v5)	src=1,4,6,9,11,19	dst=3,6,8,11,13,16,18,21	final=1,4,6,9,11,19>3,6,8,11,13,21
-link_example	061903.2 ds vs vert	t4447692->4447736	pill(2176,2032)	step4->28	advance22	stitched	vote=-	src=-	dst=-	final=1,4,9,11,15>8,11,14,17,20,23,28,31
-link_example	061903.2 ds vs vert	t4562252->4562278	pill(2000,2048)	step7->22	advance13	stitched	vote=-	src=-	dst=-	final=2,4,7,9,12,14,17,20>2,5,7,10,12,15,17,20,22
-link_example	061903.3 ds vs vert	t4631857->4631860	pill(1888,1824)	step19->23	advance2	stitched	vote=passed:full@2(4v3;full@2(5v3))	src=19,21,24,26,29d	dst=21,23,26,28,31	final=19,21,24,26,29>21,23,26,28,31
-link_example	061903.4 ds vs vert	t4678287->4678290	pill(2160,2032)	step27->31	advance2	stitched	vote=passed:confident@2(7v3;full@2(7v4))	src=3,6,8,11d,16,19,27,29	dst=5,8,10,18,21,24,26,29,31	final=3,6,8,11,16,19,27,29>5,8,10,18,21,29,31
-link_example	061903.6 ds vs vert	t542358->542361	pill(1952,1952)	step26->30	advance2	stitched	vote=passed:confident@2(11v7)	src=2,5,7,10,12,15,18,21,23,26,28,31d	dst=4,7,9,12,14,17,20,23,25,28,30	final=2,5,7,10,12,15,18,21,23,26,28,31>4,7,9,12,14,17,20,23,25,28,30
-link_example	061903.6 ds vs vert	t556726->556730	pill(2064,1776)	step5->9	advance2	stitched	vote=passed:confident@2(8v4;full@2(8v5))	src=2,5,7,10d,13,15,18,20,23	dst=4,7,9,15,17,20,22,25	final=2,5,7,10,13,15,18,20,23>2,4,7,9,15,17,20,22,25
-link_example	072203.3 ds.pins vs red.osc	t25792156->25792176	pill(2048,2192)	step20->30	advance8	pairwise	vote=stood_down@8(2v2;full@3(5v5))	src=2d,5d,7d,10d,12d,15,17,20d,22d,25d,27d	dst=10,23,25,28,30	final=2,5,7,10,12,15,17,20,22,25,27>10,23,28,30
-link_example	072203.3 ds.pins vs red.osc	t25792156->25792176	pill(2048,2192)	step17->28	advance8	pairwise	vote=stood_down@8(2v2;full@3(5v5))	src=2d,5d,7d,10d,12d,15,17,20d,22d,25d,27d	dst=10,23,25,28,30	final=2,5,7,10,12,15,17,20,22,25,27>10,23,28,30
-link_example	072303.1 ds vs pins	t516071->516075	pill(2064,2032)	step21->27	advance3	stitched	vote=passed:confident@3(9v7)	src=3,6,9,12,15,18,21,24,26,31d	dst=6,9,12,15,18,21,24,27,29	final=3,6,9,12,15,18,21,24,26,31>6,9,12,15,18,21,24,27,29
-link_example	032204.2 ds.nix vs vert.mj	t358374->358392	pill(2096,1888)	step12->23	advance9	stitched	vote=-	src=-	dst=-	final=7,12,17,20,23,25,28,30>16,21,23,26,29
-link_example	032204.2 ds.nix vs vert.mj	t281651->281655	pill(2320,2256)	step8->12	advance2	stitched	vote=passed:confident@2(4v2)	src=3,5,8,10	dst=5,7,10,12	final=3,5,8,10>2,5,7,10,12
-link_example	032204.2 ds.nix vs vert.mj	t332440->332444	pill(2096,1904)	step15->21	advance3	stitched	vote=passed:confident@3(7v4)	src=2,5,7,10,12,15,18	dst=5,8,10,13,15,18,21	final=2,5,7,10,12,15,18>0,3,5,8,10,13,15,18,21
-link_example	032204.2 ds.nix vs vert.mj	t376966->376970	pill(1856,1888)	step3->7	advance2	stitched	vote=passed:confident@2(5v3)	src=3,5,8,10,13	dst=5,7,10,12,15	final=3,5,8,10,13>2,5,7,10,12,15
-link_example	032304.1 mj.red vs ds.ÔêÜ	t17405563->17405567	pill(784,2336)	step12->16	advance2	stitched	vote=passed:confident@2(6v4)	src=2,4,7,9,12,14,17d	dst=4,6,9,10,11,14,16	final=2,4,7,9,12,14,17>1,4,6,9,11,14,16
-link_example	033104.3 ds.red vs ÔêÜ.vert	t105016->105020	pill(768,2336)	step3->9	advance3	pairwise	vote=stood_down@3(4v3)	src=3,6,9,11	dst=6,9,12,14,17	final=3,6,9,11>3,6,9,12,14
-link_example	072904.3 ds.nix vs mj.ÔêÜ.c	t17572945->17572955	pill(2176,2064)	step10->14	advance3	stitched	vote=passed:confident@3(8v5;full@3(9v5))	src=3,5,8,10,13,16,18,21,23,27d,31d	dst=6,8,11,16,19,21,24,26,30	final=3,5,8,10,13,16,18,21,23,27,31>3,6,8,11,14,16,19,21,24,26,30
-link_example	091304.1 ds.mj vs nix.ÔêÜ	t15364596->15364600	pill(1936,2224)	step2->6	advance2	pairwise	vote=stood_down@2(3v2)	src=2,4,7,12d	dst=4,6,9,11	final=2,4,7,12>1,4,6,9
-link_example	091304.2 ds.mj vs nix.ÔêÜ	t15390335->15390339	pill(2192,1904)	step12->16	advance2	pairwise	vote=stood_down@2(8v7)	src=2,4,7,9,12,17,19,22,27d	dst=4,6,9,11,14,16,19,21,24,26	final=2,4,7,9,12,17,19,22,27>1,4,6,9,11,16,19,21,24
-link_example	122704.5 ds vs oscar	t312967->312980	pill(2288,2048)	step1->2	advance6	stitched	vote=-	src=-	dst=-	final=1,4,6,20,22,25,27>2,10,26,28
-link_example	122704.5 ds vs oscar	t312980->312985	pill(2288,2048)	step2->10	advance3	stitched	vote=passed:confident@3(3v1)	src=10,26,28	dst=2,7,10,13,29,31	final=2,10,26,28>10,13,29,31
-link_example	020205.2 ds vs cliffa	t25803368->25803375	pill(2000,1632)	step15->20	advance7	stitched	vote=stood_down@7(4v3;full@2(4v4))	src=4,7,10,13,15,18d	dst=6,9,11,14,17,20	final=2,4,7,10,13,15,18>1,4,9,11,14,17,20
-link_example	020205.2 ds vs cliffa	t25803368->25803375	pill(2000,1632)	step13->17	advance7	pairwise	vote=stood_down@7(4v3;full@2(4v4))	src=4,7,10,13,15,18d	dst=6,9,11,14,17,20	final=2,4,7,10,13,15,18>1,4,9,11,14,17,20
-link_example	020205.2 ds vs cliffa	t25803368->25803375	pill(2000,1632)	step10->14	advance7	pairwise	vote=stood_down@7(4v3;full@2(4v4))	src=4,7,10,13,15,18d	dst=6,9,11,14,17,20	final=2,4,7,10,13,15,18>1,4,9,11,14,17,20
-link_example	020205.2 ds vs cliffa	t25803368->25803375	pill(2000,1632)	step7->11	advance7	pairwise	vote=stood_down@7(4v3;full@2(4v4))	src=4,7,10,13,15,18d	dst=6,9,11,14,17,20	final=2,4,7,10,13,15,18>1,4,9,11,14,17,20
-link_example	020205.2 ds vs cliffa	t25803368->25803375	pill(2000,1632)	step4->9	advance7	stitched	vote=stood_down@7(4v3;full@2(4v4))	src=4,7,10,13,15,18d	dst=6,9,11,14,17,20	final=2,4,7,10,13,15,18>1,4,9,11,14,17,20
-link_example	030705.4 ds vs jhood	t26556970->26556972	pill(2192,2144)	step16->17	advance3	pairwise	vote=unvoted	src=6,16	dst=	final=3,6,9,16>6,9,17,19
-link_example	030705.5 ds vs jhood	t26648865->26648869	pill(1968,1856)	step17->21	advance2	pairwise	vote=stood_down@2(7v6)	src=9,12,14,17,19,22,24,30d	dst=11,14,16,19,21,24,26,29	final=9,12,14,17,19,22,24,30>11,14,16,19,21,24,26
-link_example	030705.5 ds vs jhood	t26614286->26614289	pill(2128,2112)	step9->13	advance2	pairwise	vote=stood_down@2(9v8)	src=6,9,11,14,16,19,21,24,26	dst=8,11,13,16,18,21,23,26,28,31	final=6,9,11,14,16,19,21,24,26>8,11,13,16,18,21,23,26,28
-link_example	030805.4 ds vs jhood	t31020667->31020670	pill(1808,2064)	step17->21	advance2	pairwise	vote=stood_down@2(3v2)	src=17,19,22	dst=6,9,12,19,21,22,24	final=17,19,22>19,21,24
+link_example	061903.1~2d9503	t4230611->4230614	pill(2032,2272)	step25->29	advance2	stitched	vote=passed:confident@2(8v6)	src=10,12,15,17,20,22,25,27,30d	dst=12,14,17,19,22,24,27,29	final=10,12,15,17,20,22,25,27,30>12,14,17,19,22,24,27,29
+link_example	061903.1~2d9503	t4156439->4156442	pill(2000,2240)	step1->5	advance2	stitched	vote=passed:confident@2(5v3)	src=1,3,6,9,12,20d	dst=3,5,8,11,14	final=1,3,6,9,12,20>3,5,8,11,14
+link_example	061903.1~2d9503	t4245845->4245849	pill(2016,2064)	step19->23	advance2	stitched	vote=passed:confident@2(9v5)	src=4,7,10,13,19,21,24,26,29	dst=6,9,12,15,21,23,26,28,31	final=4,7,10,13,19,21,24,26,29>6,9,12,15,21,23,26,28,31
+link_example	061903.2~53ebd8	t4289777->4289780	pill(2240,2240)	step20->24	advance2	stitched	vote=passed:confident@2(9v5)	src=1,4,6,9,11,14,17,20,22	dst=3,6,8,11,13,16,19,22,24	final=1,4,6,9,11,14,17,20,22>3,6,8,11,13,16,19,22,24
+link_example	061903.2~53ebd8	t4425764->4425789	pill(2016,2048)	step1->16	advance13	stitched	vote=-	src=-	dst=-	final=1,3,16,18,26>11,16,29,31
+link_example	061903.2~53ebd8	t4425769->4425792	pill(2016,2048)	step4->17	advance11	stitched	vote=-	src=-	dst=-	final=1,4,19,21>12,17,30
+link_example	061903.2~53ebd8	t4431620->4431623	pill(2032,1888)	step1->5	advance2	pairwise	vote=stood_down@2(6v5)	src=1,3,6,8,11,16	dst=3,5,8,10,13,15,18	final=1,3,6,8,11,16>3,5,8,10,18
+link_example	061903.2~53ebd8	t4431626->4431629	pill(2032,1888)	step4->8	advance2	pairwise	vote=stood_down@2(6v5)	src=1,4,6,9,11,19	dst=3,6,8,11,13,16,18,21	final=1,4,6,9,11,19>3,6,8,11,13,21
+link_example	061903.2~53ebd8	t4447692->4447736	pill(2176,2032)	step4->28	advance22	stitched	vote=-	src=-	dst=-	final=1,4,9,11,15>8,11,14,17,20,23,28,31
+link_example	061903.2~53ebd8	t4562252->4562278	pill(2000,2048)	step7->22	advance13	stitched	vote=-	src=-	dst=-	final=2,4,7,9,12,14,17,20>2,5,7,10,12,15,17,20,22
+link_example	061903.3~fe868c	t4631857->4631860	pill(1888,1824)	step19->23	advance2	stitched	vote=passed:full@2(4v3;full@2(5v3))	src=19,21,24,26,29d	dst=21,23,26,28,31	final=19,21,24,26,29>21,23,26,28,31
+link_example	061903.4~ca2c7e	t4678287->4678290	pill(2160,2032)	step27->31	advance2	stitched	vote=passed:confident@2(7v3;full@2(7v4))	src=3,6,8,11d,16,19,27,29	dst=5,8,10,18,21,24,26,29,31	final=3,6,8,11,16,19,27,29>5,8,10,18,21,29,31
+link_example	061903.6~28e9a2	t542358->542361	pill(1952,1952)	step26->30	advance2	stitched	vote=passed:confident@2(11v7)	src=2,5,7,10,12,15,18,21,23,26,28,31d	dst=4,7,9,12,14,17,20,23,25,28,30	final=2,5,7,10,12,15,18,21,23,26,28,31>4,7,9,12,14,17,20,23,25,28,30
+link_example	061903.6~28e9a2	t556726->556730	pill(2064,1776)	step5->9	advance2	stitched	vote=passed:confident@2(8v4;full@2(8v5))	src=2,5,7,10d,13,15,18,20,23	dst=4,7,9,15,17,20,22,25	final=2,5,7,10,13,15,18,20,23>2,4,7,9,15,17,20,22,25
+link_example	072203.3~641e64	t25792156->25792176	pill(2048,2192)	step20->30	advance8	pairwise	vote=stood_down@8(2v2;full@3(5v5))	src=2d,5d,7d,10d,12d,15,17,20d,22d,25d,27d	dst=10,23,25,28,30	final=2,5,7,10,12,15,17,20,22,25,27>10,23,28,30
+link_example	072203.3~641e64	t25792156->25792176	pill(2048,2192)	step17->28	advance8	pairwise	vote=stood_down@8(2v2;full@3(5v5))	src=2d,5d,7d,10d,12d,15,17,20d,22d,25d,27d	dst=10,23,25,28,30	final=2,5,7,10,12,15,17,20,22,25,27>10,23,28,30
+link_example	072303.1~ef9a69	t516071->516075	pill(2064,2032)	step21->27	advance3	stitched	vote=passed:confident@3(9v7)	src=3,6,9,12,15,18,21,24,26,31d	dst=6,9,12,15,18,21,24,27,29	final=3,6,9,12,15,18,21,24,26,31>6,9,12,15,18,21,24,27,29
+link_example	032204.2~c10759	t358374->358392	pill(2096,1888)	step12->23	advance9	stitched	vote=-	src=-	dst=-	final=7,12,17,20,23,25,28,30>16,21,23,26,29
+link_example	032204.2~c10759	t281651->281655	pill(2320,2256)	step8->12	advance2	stitched	vote=passed:confident@2(4v2)	src=3,5,8,10	dst=5,7,10,12	final=3,5,8,10>2,5,7,10,12
+link_example	032204.2~c10759	t332440->332444	pill(2096,1904)	step15->21	advance3	stitched	vote=passed:confident@3(7v4)	src=2,5,7,10,12,15,18	dst=5,8,10,13,15,18,21	final=2,5,7,10,12,15,18>0,3,5,8,10,13,15,18,21
+link_example	032204.2~c10759	t376966->376970	pill(1856,1888)	step3->7	advance2	stitched	vote=passed:confident@2(5v3)	src=3,5,8,10,13	dst=5,7,10,12,15	final=3,5,8,10,13>2,5,7,10,12,15
+link_example	032304.1~ade09d	t17405563->17405567	pill(784,2336)	step12->16	advance2	stitched	vote=passed:confident@2(6v4)	src=2,4,7,9,12,14,17d	dst=4,6,9,10,11,14,16	final=2,4,7,9,12,14,17>1,4,6,9,11,14,16
+link_example	033104.3~22792e	t105016->105020	pill(768,2336)	step3->9	advance3	pairwise	vote=stood_down@3(4v3)	src=3,6,9,11	dst=6,9,12,14,17	final=3,6,9,11>3,6,9,12,14
+link_example	072904.3~de8f06	t17572945->17572955	pill(2176,2064)	step10->14	advance3	stitched	vote=passed:confident@3(8v5;full@3(9v5))	src=3,5,8,10,13,16,18,21,23,27d,31d	dst=6,8,11,16,19,21,24,26,30	final=3,5,8,10,13,16,18,21,23,27,31>3,6,8,11,14,16,19,21,24,26,30
+link_example	091304.1~6b9790	t15364596->15364600	pill(1936,2224)	step2->6	advance2	pairwise	vote=stood_down@2(3v2)	src=2,4,7,12d	dst=4,6,9,11	final=2,4,7,12>1,4,6,9
+link_example	091304.2~e5e9b6	t15390335->15390339	pill(2192,1904)	step12->16	advance2	pairwise	vote=stood_down@2(8v7)	src=2,4,7,9,12,17,19,22,27d	dst=4,6,9,11,14,16,19,21,24,26	final=2,4,7,9,12,17,19,22,27>1,4,6,9,11,16,19,21,24
+link_example	122704.5~1949e6	t312967->312980	pill(2288,2048)	step1->2	advance6	stitched	vote=-	src=-	dst=-	final=1,4,6,20,22,25,27>2,10,26,28
+link_example	122704.5~1949e6	t312980->312985	pill(2288,2048)	step2->10	advance3	stitched	vote=passed:confident@3(3v1)	src=10,26,28	dst=2,7,10,13,29,31	final=2,10,26,28>10,13,29,31
+link_example	020205.2~537de0	t25803368->25803375	pill(2000,1632)	step15->20	advance7	stitched	vote=stood_down@7(4v3;full@2(4v4))	src=4,7,10,13,15,18d	dst=6,9,11,14,17,20	final=2,4,7,10,13,15,18>1,4,9,11,14,17,20
+link_example	020205.2~537de0	t25803368->25803375	pill(2000,1632)	step13->17	advance7	pairwise	vote=stood_down@7(4v3;full@2(4v4))	src=4,7,10,13,15,18d	dst=6,9,11,14,17,20	final=2,4,7,10,13,15,18>1,4,9,11,14,17,20
+link_example	020205.2~537de0	t25803368->25803375	pill(2000,1632)	step10->14	advance7	pairwise	vote=stood_down@7(4v3;full@2(4v4))	src=4,7,10,13,15,18d	dst=6,9,11,14,17,20	final=2,4,7,10,13,15,18>1,4,9,11,14,17,20
+link_example	020205.2~537de0	t25803368->25803375	pill(2000,1632)	step7->11	advance7	pairwise	vote=stood_down@7(4v3;full@2(4v4))	src=4,7,10,13,15,18d	dst=6,9,11,14,17,20	final=2,4,7,10,13,15,18>1,4,9,11,14,17,20
+link_example	020205.2~537de0	t25803368->25803375	pill(2000,1632)	step4->9	advance7	stitched	vote=stood_down@7(4v3;full@2(4v4))	src=4,7,10,13,15,18d	dst=6,9,11,14,17,20	final=2,4,7,10,13,15,18>1,4,9,11,14,17,20
+link_example	030705.4~e7ff42	t26556970->26556972	pill(2192,2144)	step16->17	advance3	pairwise	vote=unvoted	src=6,16	dst=	final=3,6,9,16>6,9,17,19
+link_example	030705.5~64753e	t26648865->26648869	pill(1968,1856)	step17->21	advance2	pairwise	vote=stood_down@2(7v6)	src=9,12,14,17,19,22,24,30d	dst=11,14,16,19,21,24,26,29	final=9,12,14,17,19,22,24,30>11,14,16,19,21,24,26
+link_example	030705.5~64753e	t26614286->26614289	pill(2128,2112)	step9->13	advance2	pairwise	vote=stood_down@2(9v8)	src=6,9,11,14,16,19,21,24,26	dst=8,11,13,16,18,21,23,26,28,31	final=6,9,11,14,16,19,21,24,26>8,11,13,16,18,21,23,26,28
+link_example	030805.4~1fcff1	t31020667->31020670	pill(1808,2064)	step17->21	advance2	pairwise	vote=stood_down@2(3v2)	src=17,19,22	dst=6,9,12,19,21,22,24	final=17,19,22>19,21,24
