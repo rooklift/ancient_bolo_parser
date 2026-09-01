@@ -619,8 +619,13 @@ if (!fs.existsSync(log1)) {
 		record(100, [shell_list(4, [[160, 160]])]),
 		record(112, [shell_list(5, [[184, 160]])]),
 	]);
+	/* An end with no forward story draws at its restatement and then
+	 * vanishes, rather than hanging there until the sender's next record:
+	 * a shell is either flying at 2 px/tick or gone (issue #42). */
 	check("different shell directions never match",
-		rounded(position(changed_direction, 106).x), 10.5);
+		[rounded(position(changed_direction, 100).x),
+			position(changed_direction, 101),
+			position(changed_direction, 106)], [10.5, null, null]);
 
 	/* Two same-ray successors a pixel either side of schedule: no identity
 	 * is claimed (the margin refuses, and no origin propagates), but the
@@ -651,14 +656,16 @@ if (!fs.existsSync(log1)) {
 			[shell_list(4, [[262, 160]])]),
 	]);
 	check("shell stops beyond its lag window",
-		rounded(position(excessive_lag, 125).x), 10.5);
+		[rounded(position(excessive_lag, 100).x), position(excessive_lag, 125)],
+		[10.5, null]);
 
 	let delayed_impact = BoloGame.build([
 		record(100, [shell_list(4, [[160, 160]])]),
 		record(140, [{ type: "shell_falls", x: 11, y: 10, pixel: 0 }]),
 	]);
 	check("shell does not infer an early impact across long lag",
-		rounded(position(delayed_impact, 125).x), 10.5);
+		[rounded(position(delayed_impact, 100).x), position(delayed_impact, 125)],
+		[10.5, null]);
 
 	let precise_impact = BoloGame.build([
 		record(100, [shell_list(4, [[160, 160]])]),
@@ -2176,16 +2183,18 @@ if (!fs.existsSync(log1)) {
 		record(112, [shell_list(4, [[184, 166]])]),
 		record(124, [{ type: "explosion", code: 0, x: 13, y: 11 }]),
 	]);
-	check("tile impact without fine heading stays at final frame",
-		[rounded(position(coarse_only_impact, 118).x),
-			rounded(position(coarse_only_impact, 118).y)], [12, 10.875]);
+	check("tile impact without fine heading draws its final frame then vanishes",
+		[rounded(position(coarse_only_impact, 112).x),
+			rounded(position(coarse_only_impact, 112).y),
+			position(coarse_only_impact, 118)], [12, 10.875, null]);
 
 	let separate_clients = BoloGame.build([
 		record(100, [shell_list(4, [[160, 160]])], 0),
 		record(112, [shell_list(4, [[184, 160]])], 1),
 	]);
 	check("shell identities never cross clients",
-		rounded(position(separate_clients, 106).x), 10.5);
+		[rounded(position(separate_clients, 100).x), position(separate_clients, 106)],
+		[10.5, null]);
 }
 
 // Tank positions interpolate between nearby restatements. A long lag, or a

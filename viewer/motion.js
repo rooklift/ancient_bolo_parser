@@ -5097,7 +5097,14 @@ function shell_position_at(game, player, shell, index, tick) {
 		x: pixel_x / 16 + 0.5,
 		y: pixel_y / 16 + 0.5,
 	});
-	if (position.next_time === undefined) return exact_position();
+	/* No forward story: a shell is either in flight at 2 px/tick or gone,
+	 * so holding it at its last restatement until the sender's next record
+	 * draws something that never happens. Drop it as soon as the clock
+	 * moves past the restatement, the same way a link that reached its
+	 * terminal is dropped below (issue #42). */
+	if (position.next_time === undefined) {
+		return tick > snapshot.time ? null : exact_position();
+	}
 	if (tick >= position.next_time) {
 		return position.next_terminal ? null : exact_position();
 	}

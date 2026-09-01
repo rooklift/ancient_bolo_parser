@@ -291,6 +291,17 @@ because the drawn timeline is already built from the restatement clock,
 and a splash coinciding with the drawn shell beats a splash the shell
 visibly hasn't reached.
 
+A chain end with no forward story at all — no successor, no terminal —
+draws at its last restatement and then vanishes, rather than hanging at
+that point until the sender's next record replaces the list. A shell is
+either flying at 2 px/tick or gone, so the hold drew something that never
+happens; and the corpus census says most such ends are real deaths
+(range-end falls whose event never arrived, impacts a volley sibling
+claimed), for which the vanish is right and a coast along the heading
+would be a fly-through. Where the engine genuinely lost a live shell the
+result is vanish then pop-in instead of freeze then jump — still wrong,
+but no longer a hovering shell.
+
 Between matching and drawing there is a smoothing pass: jittered on-path
 restatements are *absorbed* into their chain (with a temporal gate so a
 trailing shell on the same segment is never claimed), and each chain is
