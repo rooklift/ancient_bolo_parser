@@ -192,7 +192,7 @@ stream-birth mints down 55% in the final dial alone. Item 8's hover
 debt largely dissolved along the way (4,164 -> 3,347 without the
 speed floor being built). Full account in the corpus results file.
 
-## 10. Doubtful voters abstain -- DONE on the fixture, corpus pending
+## 10. Doubtful voters abstain -- DONE
 
 The first complaint the vouched-link metric produced, chased as item 6
 predicted: the owner watched the metric's named scene (fixture records
@@ -203,7 +203,12 @@ Members holding a terminal candidate now abstain from the gated vote,
 the full roster still having to rank the same advance first (see
 `docs/interpolation_tests.md`). Fixture: contradictions 6 -> 0, matched
 forward +6, pops -6, a second tank hit explained, fast-ring fixture
-byte-identical. Corpus run wanted before the row is final.
+byte-identical. Corpus: both shell-side records on (matched forward
++103, `pop_outs` -103, unlinked -36), terminals +135 with `tank_hit`
++76, steady links to the audit era's best; contradictions 423 -> 437
+and backwards pops +25 on the books. The +14 contradictions want a
+`--describe-links` flag on the rates tool (the scorer already collects
+examples; the tool does not print them) before anyone chases them.
 
 ## Ideas shelf
 

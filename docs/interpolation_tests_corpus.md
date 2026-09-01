@@ -81,7 +81,8 @@ measured, and the current measured state of record is the
 fast-ring re-sends branch at `917077a` (see its section), which
 carries both shell-side records; `029acac` keeps both terminal-side
 ones; the `3b9d80d` run adds the vouched-link columns with every
-matching metric byte-identical, see its section. (Earlier
+matching metric byte-identical, and `a4822ec` -- doubtful voters
+abstain, see its section -- then moves both shell-side records on. (Earlier
 revisions of this paragraph pinned the file at `926f391`/`4572cff`, then at
 `a74033a`/`380e333`; later sections were measured from live checkouts of the
 named commits, per their sections.)
@@ -130,7 +131,8 @@ Constant at all ten commits, and worth having once:
 | `cecdd9d` | pill-wide lockstep | 0.995415 | 0.001547 | 0.833156 | 235,715 |
 | `4233e94` | residual lockstep veto | 0.995308 | 0.001558 | 0.833192 | 235,747 |
 | `e101787` | pairwise roster lockstep | 0.995494 | 0.001520 | 0.833249 | 235,846 |
-| `917077a` | fast-ring re-sends | **0.996647** | **0.001446** | 0.833054 | 235,759 |
+| `917077a` | fast-ring re-sends | 0.996647 | 0.001446 | 0.833054 | 235,759 |
+| `a4822ec` | doubtful voters abstain | **0.996657** | **0.001443** | 0.833123 | 235,835 |
 
 The rows below the guard run were measured later, from the corpus
 holder's live checkouts: `97fa412` closes the unmeasured-`main` gap the
@@ -1949,6 +1951,72 @@ Corpus verification, run by the corpus holder at `3b9d80d`
   roster, dilated gaps. Those links stand on cost margins alone, as
   they always did; the metric now says how many there are, and sizes
   whether another dial on that residue is worth building.
+
+## Doubtful voters abstain -- `a4822ec`
+
+The vouched-link metric's first complaint, chased from the fixture
+scene its six contradictions named (records #111355 -> #111359 on
+client 2; the fixture file has the scene and the dial). A pill's roster
+election stood down one short of its margin because a shell that died
+over the pair cast the deciding vote for the rung-shift alias -- a
+dead shell's position plus one fire cadence landing on its neighbour's
+true landing -- and cost then linked the ladder one rung short,
+popping the trailing shell and leaving the record's second tank hit
+unmatched. Members holding a terminal candidate over the pair now
+abstain from the vote that must pass the score-3 / margin-2 gates,
+the full roster still having to rank the same advance first, so an
+alias the full vote would not lead can never win through it. Fixture:
+contradictions 6 -> 0, matched forward +6, pops -6, fast-ring fixture
+byte-identical on both axes.
+
+Corpus verification, run by the corpus holder at `a4822ec` (raw runs
+under `docs/corpus_runs/`, both stamped with the commit and the pinned
+input hash, zero failures):
+
+* Both shell-side records move on: `shells_matched_forward` +103
+  (0.996647 -> 0.996657) with `pop_outs` -103 (32,732 -> 32,629),
+  exactly complementary as at `917077a`; `shells_unlinked` -36
+  (0.001446 -> 0.001443).
+* The terminal side gains too, for once in the same direction:
+  `terminals_matched` +135 (0.833054 -> 0.833123), `tank_hit` +76 --
+  the scene's shape, a pill firing into a tank at close range and the
+  ladder's second hit going unexplained -- `shell_falls` +27,
+  `pillbox_damage` +24, `explosion` +9, `base_damage` -1. 34 of the
+  135 come back from `terminals_unseen_pillbox_source` (an unseen
+  attribution becoming a seen shell's death). `029acac` keeps both
+  terminal-side records (0.833354 / 236,059), now by 231 terminals.
+* Mints fall as mis-linked ladders stop being re-minted:
+  `shells_unseen_pillbox_birth` -13, `shells_stream_birth` -6,
+  `shell_births` -20, `shells_from_pillbox` -22,
+  `shells_with_pillbox_source` -119 (provenance that a wrong link had
+  carried down a chain). `flow_components` -111: fewer fragments
+  reach the residual pass.
+* The truth axis: `links_pill_vouched` +436 (0.569387 -> 0.569486),
+  `links_pill_unvouched` -569 -- more pairs now hold a passing vote --
+  and `links_pill_contradicted` 423 -> 437 (+14, 0.000083 ->
+  0.000086). The +14 is the alarm doing its job on a change to the
+  very vote it scores: a pairwise election now passes where it used
+  to stand down, and in fourteen places the post-hoc vote (taken with
+  the fates decided, dying shells out of the source roster) disagrees
+  with the link the match-time one admitted. Fourteen in 5.09 million
+  is inside the "tens are worth a look" band the metric's own section
+  set, not the "hundreds are a regression" one; the report tool has
+  no way yet to name them (the scorer collects examples per client,
+  the tool does not print them), which is the obvious next
+  instrument.
+* Audit: `rate_links_steady` 0.966241 -> 0.966551, the audit era's
+  best again, the 1.5-1.8 bucket shedding 3,208 links and the 1.0-1.5
+  bucket 173 onto the steady pace (+2,499) and the 2.2-2.5 bucket
+  (+787) -- the admitted continuations are dilated, eight steps over a
+  compressed twelve-tick stamp draw at 2.7 px/tick, the pace residue
+  the roadmap's ideas shelf already carries. `hover_links` -13,
+  `rush_links` +5, `terminal_links_rushed` +6, `seam_jumps` still
+  0 / 0.00. The pop ledger: `pop_outs` -103 against `pop_ins` +52 and
+  `pops_paired_backwards` +25 (1,382 -> 1,407) -- a passing vote
+  evicts outside candidates from a claimed landing, so where the
+  evicted shell was the true owner its target now starts a chain and
+  its source ends one. Net pops -51; the backwards pairs are the
+  honest cost on the books, at 0.000143 the rate's second-best ever.
 
 ## The same-record starvation shape -- diagnostic, no dial
 

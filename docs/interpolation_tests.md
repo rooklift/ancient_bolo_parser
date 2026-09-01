@@ -814,7 +814,11 @@ Fixture, against the `3b9d80d` state:
   0.978165 -> 0.978660 (the 1.5-1.8 bucket -20, 2.2-2.5 -5, 1.8-2.2
   +31), hover / rush / seam untouched at 1 / 0 / 0.
 * Fast-ring fixture: report and audit byte-identical.
-* Corpus: awaits a holder run.
+* Corpus: both shell-side records move on (matched forward +103 with
+  `pop_outs` -103, unlinked -36), terminals +135 (`tank_hit` +76),
+  steady links to the audit era's best; contradictions 423 -> 437 and
+  backwards pops +25 on the books -- see the branch entry in
+  [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md).
 
 ## Findings
 
