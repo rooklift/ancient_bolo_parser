@@ -902,29 +902,49 @@ function pillbox_shell_terminal_match(previous, terminal, duration, start_time,
 				enters_terminal = pixel_x === terminal.pixel_x &&
 					pixel_y === terminal.pixel_y;
 			} else {
-				let min_x = terminal.min_x, min_y = terminal.min_y;
-				/* A tank-hit packet gives the tank's eventual recorded box. The
-				 * shell can reach it earlier while the tank is moving, so test this
-				 * exact orbit point against the tank track at its arrival time. */
-				if (terminal.event_type === "tank_hit" && terminal.tank_track) {
-					let arrival_time = start_time +
-						distance / SHELL_SPEED_PIXELS_PER_TICK;
-					let tank_position = track_pixel_at(terminal.tank_track, arrival_time);
-					if (tank_position) {
-						min_x = tank_position.pixel_x;
-						min_y = tank_position.pixel_y;
-					}
-					hitbox_pixel_x = min_x;
-					hitbox_pixel_y = min_y;
-				}
 				let tolerance = terminal.event_type === "tank_hit"
 					? SHELL_TANK_HIT_TOLERANCE_PIXELS : 0;
 				let centre_x = pixel_x + 8;
 				let centre_y = pixel_y + 8;
-				enters_terminal = centre_x >= min_x - tolerance &&
+				let enters_box = (min_x, min_y) =>
+					centre_x >= min_x - tolerance &&
 					centre_x < min_x + 16 + tolerance &&
 					centre_y >= min_y - tolerance &&
 					centre_y < min_y + 16 + tolerance;
+				enters_terminal = enters_box(terminal.min_x, terminal.min_y);
+				/* A tank-hit packet gives the tank's eventual recorded box. The
+				 * shell can reach it earlier while the tank is moving, so this
+				 * exact orbit point is also tested against the tank track at its
+				 * arrival time, and either box is accepted. The track is the
+				 * recorder's interpolation, but the collision happened in the
+				 * SENDER's simulation, whose picture of a remote tank is the last
+				 * restatement it received -- at best the one the recorder logged
+				 * a ring-round earlier, which is the packet box itself. A tank
+				 * crossing the shell's path at full speed moves 7 px per round,
+				 * so the interpolated box can slide out from under a corner graze
+				 * the sender registered against its stale box (fredde_vs_oscar,
+				 * tick 5264529: pill 10's bradian-233 shell passes tank 3's
+				 * south-west corner 2 px outside the packet box but 3 px outside
+				 * the track box, with the hit reported in the very next record and
+				 * otherwise unexplained). The hitbox placed for the effect follows
+				 * whichever box the shell entered, the track box when both. */
+				if (terminal.event_type === "tank_hit" && terminal.tank_track) {
+					let arrival_time = start_time +
+						distance / SHELL_SPEED_PIXELS_PER_TICK;
+					let tank_position = track_pixel_at(terminal.tank_track,
+						arrival_time);
+					hitbox_pixel_x = terminal.min_x;
+					hitbox_pixel_y = terminal.min_y;
+					if (tank_position) {
+						let enters_track_box = enters_box(tank_position.pixel_x,
+							tank_position.pixel_y);
+						if (enters_track_box || !enters_terminal) {
+							hitbox_pixel_x = tank_position.pixel_x;
+							hitbox_pixel_y = tank_position.pixel_y;
+							enters_terminal = enters_track_box;
+						}
+					}
+				}
 			}
 			if (enters_terminal) {
 				matches.push({

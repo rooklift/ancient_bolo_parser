@@ -97,8 +97,15 @@ are:
    `shell_falls` (FB) is an exact terminal point; tank hits (FC), pillbox
    damage (9n), base damage (An) and shot-attributable explosions (7T) are
    16 px boxes the shell centre must enter. Tank-hit boxes are tested
-   against the *interpolated* tank track at the shell's arrival time, since
-   the tank may have moved since the packet's stated position. Identical
+   both as the packet states them and against the *interpolated* tank
+   track at the shell's arrival time, and either box is accepted: the
+   tank may have moved since the packet's stated position, but the
+   collision happened in the sender's simulation, whose picture of a
+   remote tank is the last restatement it received -- at best the one
+   the recorder logged a ring-round earlier, which is the packet box.
+   A tank crossing the shell's path at full speed moves 7 px per round,
+   enough for the interpolated box to slide out from under a corner
+   graze the sender registered against its stale box. Identical
    terminals are interchangeable and carry multiplicity (capacity), since
    two shells can die in one tile in one interval.
 

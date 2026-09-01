@@ -173,10 +173,10 @@ if (!fs.existsSync(log1)) {
 			described, described === unexplained, reasons_sound,
 			classes.get("explosion:no_candidate:-"),
 			classes.get("pillbox_damage:end_continued:T"),
-		], [1030, true, true, 240, 89]);
+		], [1012, true, true, 240, 89]);
 		check("fixture same-record unseen shots claimed without cost", [
 			matched, unseen.pill, unseen.tank,
-		], [20696, 1223, 1126]);
+		], [20716, 1222, 1125]);
 
 		/* The end-side mirror: every chain end with no forward story gets
 		 * a class; the census must equal the unmatched-forward count less
@@ -205,7 +205,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture end-side census reconciles", [
 			ends_described, ends_described === unfated, end_reasons_sound,
 			fate_open,
-		], [292, true, true, 19]);
+		], [273, true, true, 22]);
 	}
 
 	/* The truth axis: every pill link scored against the statement-roster
@@ -230,7 +230,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture pill links scored against the roster vote", [
 			score.links, score.vouched, score.contradicted, score.unvouched,
 			score.unpinned, score.restated, [...score.clients],
-		], [52765, 20060, 0, 12859, 48, 0, []]);
+		], [52764, 20080, 0, 12842, 44, 0, []]);
 		/* The elections themselves: most pills cannot vote at all (under
 		 * three pinned sources), and of those that can, a vote inside the
 		 * margin stands down. The scene that motivated abstention is
@@ -251,7 +251,7 @@ if (!fs.existsSync(log1)) {
 			scene.verdict, scene.advance, scene.score, scene.runner_up,
 			scene.full_score, scene.full_runner_up, scene.sources,
 			scene.landings,
-		], [9918, 1989, 3720, "passed", 8, 5, 3, 5, 4,
+		], [9918, 1998, 3711, "passed", 8, 5, 3, 5, 4,
 			"6,9,11,14,17,19d,22d", "14,17,19,22,25"]);
 	}
 
@@ -1986,6 +1986,52 @@ if (!fs.existsSync(log1)) {
 		[near_corner_shell.next_terminal_event_type,
 			near_corner_shell.next_pixel_x, near_corner_shell.next_pixel_y],
 		["tank_hit", 1929, 1868]);
+
+	/* The sender's stale box. Pill 10's bradian-233 shot in
+	 * fredde_vs_oscar (tick 5264529): tank 3 is driving south-east at
+	 * full speed across the shell's path, and the hit arrives in the very
+	 * next record, before the tank's own restatement for that round. The
+	 * orbit passes the tank's south-west corner 2 px outside the box the
+	 * packet states -- the last position the sender had for the tank --
+	 * but the recorder's interpolated track has already carried the box
+	 * 3 px further east, past the tolerance, so the track test alone
+	 * leaves the shell unfated and the hit unexplained. Either box now
+	 * counts; the effect sits on the box the shell entered. */
+	let stale_box_tank_hit = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 124, y: 148, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(90, []),
+		record(100, [{
+			type: "tank_position", x: 122, y: 144, pixelX: 9, pixelY: 9,
+			direction: 6, inBoat: false, hidden: false, dying: false,
+			speed: 64, motion: 0,
+		}, { type: "pillbox_fires", pillbox: 0, direction: 15 },
+		shell_list(15, [[1975, 2354]])]),
+		record(109, [{
+			type: "tank_position", x: 123, y: 145, pixelX: 0, pixelY: 0,
+			direction: 6, inBoat: false, hidden: false, dying: false,
+			speed: 64, motion: 0,
+		}, shell_list(15, [[1964, 2337]])]),
+		record(119, [{ type: "tank_hit", direction: 15, tank: 0 }]),
+		record(119, [{
+			type: "tank_position", x: 123, y: 145, pixelX: 7, pixelY: 6,
+			direction: 6, inBoat: false, hidden: false, dying: false,
+			speed: 64, motion: 0,
+		}]),
+	]);
+	let stale_box_shell = stale_box_tank_hit.shell_positions[0][2].shells[0];
+	check("tank-hit box the sender knew recovers a graze the track has left",
+		[stale_box_shell.next_terminal_event_type,
+			stale_box_shell.next_pixel_x, stale_box_shell.next_pixel_y,
+			rounded(stale_box_shell.next_time)],
+		["tank_hit", 1958, 2327, 114.831]);
+	let stale_box_effect = stale_box_tank_hit.effects.find(effect =>
+		effect.type === "tank_hit");
+	check("tank-hit effect sits on the packet box the shell entered",
+		[stale_box_effect.x * 16 + stale_box_effect.px,
+			stale_box_effect.y * 16 + stale_box_effect.py],
+		[1968, 2320]);
 
 	let pill_orbit_overrules_ray = BoloGame.build([
 		record(80, [{ type: "pillbox_list", items: [{

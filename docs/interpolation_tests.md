@@ -884,6 +884,50 @@ The election record now also carries the pill's unpinned member count
 (`unvoted(2 unpinned)`, `passed:full_tiebreak(1 unpinned)@...`), so an
 orphan under the true advance can be read as the unpinned source it is.
 
+## The sender's stale tank box -- either box counts
+
+Prompted by replay `122204.3_ds.fredde_vs_oscar`, tick 5264529 (about
+7554 records in): pill 10's direction-15 shell, pinned to bradian 233
+step 7 at (1964, 2337), draws no further, and the `tank_hit` on tank 3
+in player 2's very next record goes unexplained. Tank 3 is driving
+south-east at full speed across the shell's path. The orbit walks past
+the tank's south-west corner: at step 9 the shell centre is 2.8 px
+outside the *interpolated* track box, past the 2 px tolerance, and every
+later step is further out because the box keeps moving east while the
+shell moves west. Against the box the packet itself states -- tank 3's
+5264529 restatement -- step 10 is 2 px outside, inside the tolerance.
+
+That packet box is the honest one for this collision. It happened in
+the sender's simulation, and the sender's picture of a remote tank is
+the last restatement it received: in ring order player 3's record
+follows player 2's, so the freshest position player 2 had during the
+interval was the one the recorder had logged a round earlier, which is
+exactly the packet box. The track refinement (`422c5ff`) was written for
+a tank driving *into* a shell earlier than its packet box suggests; for
+a tank driving away it moves the box out from under a graze the sender
+registered. `pillbox_shell_terminal_match` now tests both boxes and
+accepts either, placing the effect on the box the shell entered (the
+track box when both). Only the pill-orbit branch changes: the ordinary
+ray branch never used the track.
+
+Fixture, against `57dca12`:
+
+* `rate_shells_matched_forward` 0.996041 -> 0.996298
+* `rate_shells_unlinked` 0.001844 -> 0.001736 (136 -> 128)
+* `rate_terminals_matched` 0.859647 -> 0.860478 -- +20 net:
+  `tank_hit` 3189 -> 3212, `pillbox_damage` -2, `shell_falls` -1
+* `links_pill_vouched` 20060 -> 20080, contradicted still 0
+* Over the fixture, `040601.6` and the motivating replay together:
+  `tank_hit` 4285 -> 4327, unlinked 263 -> 248, contradicted 0
+* A 3 px tolerance instead recovers the scene too (`tank_hit` 4317 over
+  the same three files) but is a fudge where this is the mechanism;
+  the corpus run is owed and will say whether the wider acceptance
+  steals hits from rival shells
+
+The scene is pinned in `test/test-viewer.cjs` ("tank-hit box the sender
+knew recovers a graze the track has left"), with the tank restated
+*after* the hit record as in the log, and fails on the previous engine.
+
 ## Findings
 
 * **The branch line now leads the branch point on every headline metric.** At
