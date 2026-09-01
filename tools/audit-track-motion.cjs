@@ -95,6 +95,38 @@ function audit_tracks(tracks, metrics) {
 	}
 }
 
+/* Output provenance and the one-line result digest, duplicated from
+ * audit-drawn-motion.cjs like every single-file tool here, so this file
+ * stays droppable into historical worktrees for baseline re-runs. */
+function repo_commit() {
+	const { execSync } = require("node:child_process");
+	const run = (command) => execSync(command,
+		{ cwd: ROOT, stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+	try {
+		let hash = run("git rev-parse --short HEAD");
+		return run("git status --porcelain -uno") ? `${hash}-dirty` : hash;
+	} catch {
+		return "unknown";
+	}
+}
+
+function content_hash_line(lines) {
+	const { createHash } = require("node:crypto");
+	let stable = lines.filter(line => {
+		let key = line.split("\t")[0];
+		return key !== "commit" && key !== "input" &&
+			key !== "content_hash" && !key.endsWith("_ms");
+	});
+	return `content_hash\t${createHash("sha256")
+		.update(`${stable.join("\n")}\n`).digest("hex")}`;
+}
+
+function hash_input(target) {
+	const { createHash } = require("node:crypto");
+	return `sha256:${createHash("sha256")
+		.update(path.resolve(target)).digest("hex")}`;
+}
+
 function collect_files(target) {
 	let stat = fs.statSync(target);
 	if (!stat.isDirectory()) return [target];
@@ -140,22 +172,28 @@ function main() {
 		audit_tracks(game.tank_positions || [], kinds.tank);
 		audit_tracks(game.lgm_positions || [], kinds.lgm);
 	}
-	console.log("# GENERATED - drawn track motion audit; nothing written to disk.");
-	console.log(`files\t${files.length}`);
-	console.log(`files_failed\t${failed}`);
+	let lines = [
+		"# GENERATED - drawn track motion audit; nothing written to disk.",
+		`commit\t${repo_commit()}`,
+		`input\t${hash_input(target)}`,
+		`files\t${files.length}`,
+		`files_failed\t${failed}`,
+	];
 	for (let [kind, m] of Object.entries(kinds)) {
-		console.log(`${kind}_points\t${m.points}`);
-		console.log(`${kind}_smoothed_points\t${m.smoothed_points}`);
-		console.log(`${kind}_segments\t${m.segments}`);
-		console.log(`${kind}_zero_duration_pairs\t${m.zero_duration_pairs}`);
-		console.log(`${kind}_stale_sandwiches\t${m.stale_sandwiches}`);
-		console.log(`${kind}_moving_pairs\t${m.moving_pairs}`);
-		console.log(`${kind}_alternating_pairs\t${m.alternating_pairs}`);
-		console.log(`rate_${kind}_alternation\t${m.moving_pairs
+		lines.push(`${kind}_points\t${m.points}`);
+		lines.push(`${kind}_smoothed_points\t${m.smoothed_points}`);
+		lines.push(`${kind}_segments\t${m.segments}`);
+		lines.push(`${kind}_zero_duration_pairs\t${m.zero_duration_pairs}`);
+		lines.push(`${kind}_stale_sandwiches\t${m.stale_sandwiches}`);
+		lines.push(`${kind}_moving_pairs\t${m.moving_pairs}`);
+		lines.push(`${kind}_alternating_pairs\t${m.alternating_pairs}`);
+		lines.push(`rate_${kind}_alternation\t${m.moving_pairs
 			? (m.alternating_pairs / m.moving_pairs).toFixed(6) : "0"}`);
-		console.log(`${kind}_mean_speed_change\t${m.moving_pairs
+		lines.push(`${kind}_mean_speed_change\t${m.moving_pairs
 			? (m.speed_change_sum / m.moving_pairs).toFixed(6) : "0"}`);
 	}
+	lines.push(content_hash_line(lines));
+	console.log(lines.join("\n"));
 }
 
 main();
