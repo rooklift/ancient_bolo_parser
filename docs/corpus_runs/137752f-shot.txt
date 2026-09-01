@@ -1,0 +1,25 @@
+# GENERATED - shot_fired direction semantics; nothing written to disk.
+commit	137752f
+files	443
+files_failed	0
+shot_fired_total	764209
+eq_packet_dir	712804
+eq_prev_dir	44091
+eq_neither	7314
+neither_between	6023
+neither_dist_1	6886
+turning_total	101947
+turning_eq_packet	51584
+turning_eq_prev	44091
+turning_eq_neither	6272
+steady_eq_prev	0
+steady_eq_neither	1042
+shell_same_record_eq_packet	625332
+shell_same_record_eq_prev	36131
+shell_same_record_neither	3734
+shell_next_record_only_eq_packet	11121
+shell_next_record_only_eq_prev	86
+shell_next_record_only_neither	72
+shell_unseen_eq_packet	76351
+shell_unseen_eq_prev	7874
+shell_unseen_neither	3508
