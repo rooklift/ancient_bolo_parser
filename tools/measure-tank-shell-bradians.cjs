@@ -42,6 +42,7 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { replay_label } = require("./corpus.cjs");
 const { Worker, isMainThread, parentPort } = require("node:worker_threads");
 
 const ROOT = path.join(__dirname, "..");
@@ -436,7 +437,7 @@ function analyze_file(file, engines, metrics) {
 			if (!recovered_any &&
 				metrics.failure_samples.length < MAX_FAILURE_SAMPLES) {
 				metrics.failure_samples.push({
-					file: path.basename(file),
+					file: replay_label(file),
 					player: chain.player,
 					direction: chain.direction,
 					tank_origin: chain.tank_origin,

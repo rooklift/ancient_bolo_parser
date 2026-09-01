@@ -65,6 +65,7 @@ const { Worker, isMainThread, parentPort, workerData } =
 	require("node:worker_threads");
 
 const ROOT = path.join(__dirname, "..");
+const { replay_label } = require("./corpus.cjs");
 const SKIPPED_EXTENSIONS = /\.(txt|md|json|zip|sit|hqx|png|jpg|gif|bmp|py)$/i;
 const REPORT_FORMAT = 1;
 
@@ -616,7 +617,7 @@ function terminal_class_report(diagnostics, label) {
 				`${record.candidate.direction !== undefined
 					? `,d${record.candidate.direction}` : ""})`
 			: "candidate=-";
-		lines.push(`${label}_example\t${path.basename(file)}` +
+		lines.push(`${label}_example\t${replay_label(file)}` +
 			`\tt${record.time}\t${record.event_type}` +
 			`${record.terminal_type ? `\t${record.terminal_type}` : ""}` +
 			`\t(${record.pixel_x},${record.pixel_y})` +
@@ -657,7 +658,7 @@ function link_class_report(diagnostics) {
 					vote.full_runner_up !== vote.runner_up
 					? `;full@${vote.full_advance}(${vote.full_score}v` +
 						`${vote.full_runner_up})` : ""})`;
-		lines.push(`link_example\t${path.basename(file)}` +
+		lines.push(`link_example\t${replay_label(file)}` +
 			`\tt${record.time}->${record.next_time}` +
 			`\tpill(${record.pillbox_source_x},${record.pillbox_source_y})` +
 			`\tstep${record.step}->${record.next_step}` +
