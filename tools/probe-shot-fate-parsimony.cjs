@@ -173,7 +173,8 @@ function collect_creations(game_result, BoloMotion) {
 /* Chains and unseen-source terminals consumed creations inside the
  * matcher; replay that consumption greedily so the residue is what the
  * matcher genuinely left unexplained. Tank births live in the firer's own
- * restatements; pill shells migrate, so pill consumption ignores player. */
+ * restatements; pill shells ride in whichever machine simulates the pill,
+ * so pill consumption ignores player. */
 function consume_creations(creations, chains, terminals) {
 	let free = creations.map(() => true);
 	let pools = new Map();
@@ -401,12 +402,16 @@ function analyze_file(file, engines, metrics) {
 				unite(chain_base + j, fate_base + fates_sorted[k].i);
 			}
 		}
-		/* Migration continuation: a shell whose simulation moved to another
-		 * machine vanishes from one client's restatements and appears,
-		 * mid-flight and originless, in another's. Restatement timing
-		 * interleaves, so the new stream can begin before or after the old
-		 * one's last record; project the candidate's head along its flight
-		 * to the vanished chain's end time and compare positions there. */
+		/* "Migration continuation", kept as a control: the hypothesis that a
+		 * shell's simulation moved to another machine, vanishing from one
+		 * client's restatements and appearing mid-flight and originless in
+		 * another's. The idea is regarded as highly suspicious (Bolo has no
+		 * orchestration for it, and the corpus has never needed it); this
+		 * edge class exists to keep measuring how rarely the geometry even
+		 * admits it. Restatement timing interleaves, so the new stream can
+		 * begin before or after the old one's last record; project the
+		 * candidate's head along its flight to the vanished chain's end time
+		 * and compare positions there. */
 		for (let m = 0; m < residual_chains.length; m++) {
 			let next_chain = residual_chains[m];
 			if (m === j || next_chain.has_origin ||

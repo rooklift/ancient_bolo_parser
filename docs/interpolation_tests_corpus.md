@@ -605,7 +605,9 @@ collapsed, at the cost of a small terminal give-back, a hover class that
 needs a drawing-side floor, and two dozen more seam jumps. The 9,443
 that remain are chains whose dilation exceeds even the widened windows
 (the bradian audit's growing `no_model` class points the same way) plus
-true cross-client migrations, which draw as pops by design.
+whatever was then being attributed to cross-client migration -- an idea
+since regarded as highly suspicious, since nothing in Bolo could hand an
+in-flight shell to another machine; such scenes draw as pops by design.
 
 ## Leading impacts -- `ad2168d`
 
@@ -2264,6 +2266,76 @@ corpus; the holder's run at `4bcde21` (`4bcde21-time.txt`):
   minutes): a sender falling silent, never a stamp going back.
 
 The assumption is now corpus-established, not assumed.
+
+## The sender's stale tank box -- `ccc8ec3`, and its rushed-link correction
+
+Motivated by replay `122204.3_ds.fredde_vs_oscar`, tick 5264529: a pill
+shell pinned to one orbit passes a fast-moving tank's corner 2 px
+outside the box the packet states but 3 px outside the recorder's
+interpolated track box, and the tank hit in the very next record goes
+unexplained. The packet box is the one the sender's simulation collided
+against -- its last restatement of the tank, a ring-round behind the
+recorder's track -- so the orbit walk now accepts it as well as the
+track box (see the fixture file's entry for the mechanism).
+
+Corpus, run by the corpus holder at `ccc8ec3` against `a0ade53` (raw
+runs under `docs/corpus_runs/` as `ccc8ec3-report.txt` and
+`ccc8ec3-audit.txt`, 443 files, zero failures):
+
+* `rate_shells_matched_forward` 0.996726 -> 0.996914, a new best
+* `rate_shells_unlinked` 0.001419 -> 0.001379 (13,928 -> 13,539), a new
+  best
+* `rate_terminals_matched` 0.833131 -> 0.834069, a new best: +1,827 net,
+  `tank_hit` +1,862 (235,847 -> 237,709), the other four classes
+  giving back 35 between them (`pillbox_damage` -17, `explosion` -9,
+  `shell_falls` -7, `base_damage` -2)
+* `links_pill_vouched` +407, `links_pill_contradicted` 89 -> 92
+* audit `pop_outs` 31,954 -> 30,114, backwards pops 1,366 -> 1,356,
+  seam jumps still zero
+* **`terminal_links_rushed` 69,287 -> 82,149** -- the one line the
+  fixture did not predict, and 12,862 more than the terminal links
+  gained. The three-file diff of rushed links between the two engines
+  gave the cause exactly: every new rushed link is a pill shell whose
+  last restatement already sits inside the packet box -- where the
+  tank is *about to be* -- accepted at step zero as a zero-length,
+  zero-duration terminal link, where the track walk had found the
+  collision a step or two on at 2 px/tick. The fixture's rate lines
+  are blind to it because the terminal is matched either way.
+
+`30d5351` gives the track box first refusal over the whole orbit walk
+and only then walks the packet box, never from step zero. On the three
+local files that removes every new rushed link (fixture
+`terminal_links_rushed` 461 -> 461 against the first form's 598) and
+leaves every rate line of the fixture unchanged, at a price of two tank
+hits over the three files.
+
+Corpus, run by the corpus holder at `30d5351` (`30d5351-report.txt` and
+`30d5351-audit.txt`, 443 files, zero failures), against `a0ade53` with
+`ccc8ec3` in brackets:
+
+* `rate_shells_matched_forward` 0.996726 -> 0.996882 (0.996914), a new
+  best on a clean run
+* `rate_shells_unlinked` 0.001419 -> 0.001384 (0.001379): 13,928 ->
+  13,591
+* `rate_terminals_matched` 0.833131 -> 0.833914 (0.834069): +1,525 net,
+  `tank_hit` +1,552 (235,847 -> 237,399), `shell_falls` -10,
+  `explosion` -9, `pillbox_damage` -8, `base_damage` 0
+* `links_pill_vouched` +366, `links_pill_contradicted` 89 -> 94 (92)
+* audit `pop_outs` 31,954 -> 30,423 (30,114), backwards pops 1,366 ->
+  1,360, seam jumps still zero, `rate_links_steady` flat at 0.9666
+* **`terminal_links_rushed` 69,287 -> 69,411** (82,149): the 12,862
+  zero-length links are gone, and the 124 that remain are the shape
+  the three-file diff showed -- rescued shells whose arrival is capped
+  at a hit record a tick or so later, the cost already accepted for
+  lagging events
+
+The correction kept 83% of the first form's tank-hit gain and 83% of
+its pop-out reduction while returning the rushed-link count to within
+0.2% of baseline. `build_ms` 302,768 -> 318,146 across the two runs on
+the holder's machine, which is run-to-run variation: the change adds one
+box test per orbit step in tank-hit candidate evaluation and a bounded
+second walk only when the first finds nothing, and local timing of the
+fixture build shows no difference beyond noise.
 
 ## Findings
 
