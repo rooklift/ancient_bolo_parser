@@ -8,8 +8,9 @@
 		"bolodump": "bin/dump.js"
 	},
 	"scripts": {
-		"test": "node test/test.js && node test/test-viewer.cjs && node test/test-robustness.cjs && node test/test-pillbox_shell_orbits.cjs && node test/test-webm.cjs",
+		"test": "node test/test.js && node test/test-viewer.cjs && node test/test-robustness.cjs && node test/test-pillbox_shell_orbits.cjs && node test/test-webm.cjs && node test/test-check-record-time-order.cjs",
 		"build:interpolation-report": "node tools/build-interpolation-report.cjs",
+		"check:record-time-order": "node tools/check-record-time-order.cjs",
 		"measure:pillbox-orbits": "node tools/measure-pillbox-orbit-effect.cjs",
 		"measure:pillbox-tank-hits": "node tools/measure-pillbox-tank-hit-tolerance.cjs"
 	},
