@@ -905,10 +905,25 @@ interval was the one the recorder had logged a round earlier, which is
 exactly the packet box. The track refinement (`422c5ff`) was written for
 a tank driving *into* a shell earlier than its packet box suggests; for
 a tank driving away it moves the box out from under a graze the sender
-registered. `pillbox_shell_terminal_match` now tests both boxes and
-accepts either, placing the effect on the box the shell entered (the
-track box when both). Only the pill-orbit branch changes: the ordinary
-ray branch never used the track.
+registered. `pillbox_shell_terminal_match` now walks the orbit against
+the track box as before and, when that walk finds nothing, walks it
+again against the packet box, placing the effect on the box the shell
+entered. Only the pill-orbit branch changes: the ordinary ray branch
+never used the track.
+
+The first form of this (`ccc8ec3`) tested both boxes at every step and
+took the first entry. The corpus run caught what the fixture rates
+could not: `terminal_links_rushed` 69,287 -> 82,149 while terminal links
+rose by only 1,827. Every new rushed link was the same shape -- a shell
+last seen where the tank is *about to be*, inside the packet box at
+step zero, matched as a zero-length, zero-duration link where the
+track walk had found the collision a step or two on at 2 px/tick. The
+track now keeps first refusal over the whole walk, and the packet-box
+walk never starts at step zero. On the three local files that removes
+every one of the new rushed links (the three left on `040601.6` are
+rescued shells whose arrival is capped at a hit record one tick later,
+the cost already accepted for lagging events), at a price of two tank
+hits over the three files against the first form.
 
 Fixture, against `57dca12`:
 
@@ -919,10 +934,13 @@ Fixture, against `57dca12`:
 * `links_pill_vouched` 20060 -> 20080, contradicted still 0
 * Over the fixture, `040601.6` and the motivating replay together:
   `tank_hit` 4285 -> 4327, unlinked 263 -> 248, contradicted 0
+* Audit: `pop_outs` 292 -> 273, `terminal_links_rushed` 461 -> 461
+  (the first form had it at 598), seam jumps still zero
 * A 3 px tolerance instead recovers the scene too (`tank_hit` 4317 over
-  the same three files) but is a fudge where this is the mechanism;
-  the corpus run is owed and will say whether the wider acceptance
-  steals hits from rival shells
+  the same three files) but is a fudge where this is the mechanism
+* Corpus: the first form's run is under `ccc8ec3` in
+  [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md); the
+  restructured walk's run is owed
 
 The scene is pinned in `test/test-viewer.cjs` ("tank-hit box the sender
 knew recovers a graze the track has left"), with the tank restated

@@ -890,70 +890,85 @@ function pillbox_shell_terminal_match(previous, terminal, duration, start_time,
 		 * whose collision event follows. Other point terminals must be a later
 		 * simulated coordinate. FB range expiry was handled separately above. */
 		let first_step = previous_state.step + (terminal.type === "box" ? 0 : 1);
-		for (let step = first_step;
-			step <= orbit.positions.length; step++) {
-			let position = pillbox_orbit_position(orbit, step);
-			let pixel_x = previous.pillbox_source_x + position[0];
-			let pixel_y = previous.pillbox_source_y + position[1];
-			let distance = Math.hypot(position[0] - previous_position[0],
-				position[1] - previous_position[1]);
-			let enters_terminal, hitbox_pixel_x, hitbox_pixel_y;
-			if (terminal.type === "point") {
-				enters_terminal = pixel_x === terminal.pixel_x &&
-					pixel_y === terminal.pixel_y;
-			} else {
-				let tolerance = terminal.event_type === "tank_hit"
-					? SHELL_TANK_HIT_TOLERANCE_PIXELS : 0;
-				let centre_x = pixel_x + 8;
-				let centre_y = pixel_y + 8;
-				let enters_box = (min_x, min_y) =>
-					centre_x >= min_x - tolerance &&
-					centre_x < min_x + 16 + tolerance &&
-					centre_y >= min_y - tolerance &&
-					centre_y < min_y + 16 + tolerance;
-				enters_terminal = enters_box(terminal.min_x, terminal.min_y);
-				/* A tank-hit packet gives the tank's eventual recorded box. The
-				 * shell can reach it earlier while the tank is moving, so this
-				 * exact orbit point is also tested against the tank track at its
-				 * arrival time, and either box is accepted. The track is the
-				 * recorder's interpolation, but the collision happened in the
-				 * SENDER's simulation, whose picture of a remote tank is the last
-				 * restatement it received -- at best the one the recorder logged
-				 * a ring-round earlier, which is the packet box itself. A tank
-				 * crossing the shell's path at full speed moves 7 px per round,
-				 * so the interpolated box can slide out from under a corner graze
-				 * the sender registered against its stale box (fredde_vs_oscar,
-				 * tick 5264529: pill 10's bradian-233 shell passes tank 3's
-				 * south-west corner 2 px outside the packet box but 3 px outside
-				 * the track box, with the hit reported in the very next record and
-				 * otherwise unexplained). The hitbox placed for the effect follows
-				 * whichever box the shell entered, the track box when both. */
-				if (terminal.event_type === "tank_hit" && terminal.tank_track) {
-					let arrival_time = start_time +
-						distance / SHELL_SPEED_PIXELS_PER_TICK;
-					let tank_position = track_pixel_at(terminal.tank_track,
-						arrival_time);
-					hitbox_pixel_x = terminal.min_x;
-					hitbox_pixel_y = terminal.min_y;
-					if (tank_position) {
-						let enters_track_box = enters_box(tank_position.pixel_x,
-							tank_position.pixel_y);
-						if (enters_track_box || !enters_terminal) {
-							hitbox_pixel_x = tank_position.pixel_x;
-							hitbox_pixel_y = tank_position.pixel_y;
-							enters_terminal = enters_track_box;
-						}
+		let tolerance = terminal.event_type === "tank_hit"
+			? SHELL_TANK_HIT_TOLERANCE_PIXELS : 0;
+		let packet_box = () => [terminal.min_x, terminal.min_y];
+		/* Walk the orbit forward from `from_step` to the first point that
+		 * enters the terminal; `box_at` names the box to test at a given
+		 * flight distance, and `place_hitbox` says whether the effect should
+		 * follow that box. */
+		let walk = (from_step, box_at, place_hitbox) => {
+			for (let step = from_step; step <= orbit.positions.length; step++) {
+				let position = pillbox_orbit_position(orbit, step);
+				let pixel_x = previous.pillbox_source_x + position[0];
+				let pixel_y = previous.pillbox_source_y + position[1];
+				let distance = Math.hypot(position[0] - previous_position[0],
+					position[1] - previous_position[1]);
+				let enters_terminal, hitbox_pixel_x, hitbox_pixel_y;
+				if (terminal.type === "point") {
+					enters_terminal = pixel_x === terminal.pixel_x &&
+						pixel_y === terminal.pixel_y;
+				} else {
+					let [min_x, min_y] = box_at(distance);
+					if (place_hitbox) {
+						hitbox_pixel_x = min_x;
+						hitbox_pixel_y = min_y;
 					}
+					let centre_x = pixel_x + 8;
+					let centre_y = pixel_y + 8;
+					enters_terminal = centre_x >= min_x - tolerance &&
+						centre_x < min_x + 16 + tolerance &&
+						centre_y >= min_y - tolerance &&
+						centre_y < min_y + 16 + tolerance;
+				}
+				if (enters_terminal) {
+					return {
+						bradian: orbit.bradian, step, position, distance,
+						hitbox_pixel_x, hitbox_pixel_y,
+					};
 				}
 			}
-			if (enters_terminal) {
-				matches.push({
-					bradian: orbit.bradian, step, position, distance,
-					hitbox_pixel_x, hitbox_pixel_y,
-				});
-				break;
-			}
+			return null;
+		};
+		let match;
+		if (terminal.event_type === "tank_hit" && terminal.tank_track) {
+			/* A tank-hit packet gives the tank's eventual recorded box. The
+			 * shell can reach it earlier while the tank is moving, so the
+			 * orbit is walked first against the tank track at each point's
+			 * arrival time, and the effect follows that box. The track is the
+			 * recorder's interpolation, though, and the collision happened in
+			 * the SENDER's simulation, whose picture of a remote tank is the
+			 * last restatement it received -- at best the one the recorder
+			 * logged a ring-round earlier, which is the packet box itself. A
+			 * tank crossing the shell's path at full speed moves 7 px per
+			 * round, so the interpolated box can slide out from under a
+			 * corner graze the sender registered against its stale box
+			 * (fredde_vs_oscar, tick 5264529: pill 10's bradian-233 shell
+			 * passes tank 3's south-west corner 2 px outside the packet box
+			 * but 3 px outside the track box, with the hit reported in the
+			 * very next record and otherwise unexplained). So when the track
+			 * walk finds nothing, the orbit is walked again against the
+			 * packet box. The track keeps first refusal over the WHOLE walk,
+			 * not step by step: the packet box is where the tank ends up, and
+			 * a shell last seen where the tank is about to be would otherwise
+			 * match at step zero as a zero-length, zero-duration link where
+			 * the track walk finds the collision a step or two on at true
+			 * speed (the corpus run at ccc8ec3 drew 12,862 more rushed
+			 * terminal links that way). The fallback also never starts at
+			 * step zero, so it cannot manufacture such a link itself. */
+			match = walk(first_step, distance => {
+				let arrival_time = start_time +
+					distance / SHELL_SPEED_PIXELS_PER_TICK;
+				let tank_position = track_pixel_at(terminal.tank_track,
+					arrival_time);
+				return tank_position
+					? [tank_position.pixel_x, tank_position.pixel_y]
+					: packet_box();
+			}, true) || walk(previous_state.step + 1, packet_box, true);
+		} else {
+			match = walk(first_step, packet_box, false);
 		}
+		if (match) matches.push(match);
 	}
 	let expected_distance = duration * SHELL_SPEED_PIXELS_PER_TICK;
 	for (let match of matches) {

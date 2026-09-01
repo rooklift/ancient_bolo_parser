@@ -2267,6 +2267,50 @@ corpus; the holder's run at `4bcde21` (`4bcde21-time.txt`):
 
 The assumption is now corpus-established, not assumed.
 
+## The sender's stale tank box -- `ccc8ec3`, and its rushed-link correction
+
+Motivated by replay `122204.3_ds.fredde_vs_oscar`, tick 5264529: a pill
+shell pinned to one orbit passes a fast-moving tank's corner 2 px
+outside the box the packet states but 3 px outside the recorder's
+interpolated track box, and the tank hit in the very next record goes
+unexplained. The packet box is the one the sender's simulation collided
+against -- its last restatement of the tank, a ring-round behind the
+recorder's track -- so the orbit walk now accepts it as well as the
+track box (see the fixture file's entry for the mechanism).
+
+Corpus, run by the corpus holder at `ccc8ec3` against `a0ade53` (raw
+runs under `docs/corpus_runs/` as `ccc8ec3-report.txt` and
+`ccc8ec3-audit.txt`, 443 files, zero failures):
+
+* `rate_shells_matched_forward` 0.996726 -> 0.996914, a new best
+* `rate_shells_unlinked` 0.001419 -> 0.001379 (13,928 -> 13,539), a new
+  best
+* `rate_terminals_matched` 0.833131 -> 0.834069, a new best: +1,827 net,
+  `tank_hit` +1,862 (235,847 -> 237,709), the other four classes
+  giving back 35 between them (`pillbox_damage` -17, `explosion` -9,
+  `shell_falls` -7, `base_damage` -2)
+* `links_pill_vouched` +407, `links_pill_contradicted` 89 -> 92
+* audit `pop_outs` 31,954 -> 30,114, backwards pops 1,366 -> 1,356,
+  seam jumps still zero
+* **`terminal_links_rushed` 69,287 -> 82,149** -- the one line the
+  fixture did not predict, and 12,862 more than the terminal links
+  gained. The three-file diff of rushed links between the two engines
+  gave the cause exactly: every new rushed link is a pill shell whose
+  last restatement already sits inside the packet box -- where the
+  tank is *about to be* -- accepted at step zero as a zero-length,
+  zero-duration terminal link, where the track walk had found the
+  collision a step or two on at 2 px/tick. The fixture's rate lines
+  are blind to it because the terminal is matched either way.
+
+The follow-up commit gives the track box first refusal over the whole
+orbit walk and only then walks the packet box, never from step zero.
+On the three local files that removes every new rushed link (fixture
+`terminal_links_rushed` 461 -> 461 against the first form's 598) and
+leaves every rate line of the fixture unchanged, at a price of two tank
+hits over the three files. Its corpus run is owed; the expectation is
+`terminal_links_rushed` back near 69,300 with the terminal and pop
+gains intact.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
