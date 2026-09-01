@@ -2229,6 +2229,42 @@ fix (same-record edges visible to the flow, or phase three running
 before cost-forcing) is on the roadmap's ideas shelf with the falls
 rescue.
 
+## Two quadratic scans removed -- `a0ade53`; the time-order assertion -- `4bcde21`
+
+A performance audit of `viewer/motion.js`, measured by replicating the
+fixture in time: `build_shell_positions` ran 3.8s / 8.7s / 22.5s at 1x /
+2x / 4x, quadratic in replay length. Profiling put the excess in the
+residual pass: `absorb_intermediate_observations` scanned every snapshot
+from the replay's first record once per stitch and per forced terminal,
+and the pass's final write-back filtered the whole creation-group list
+once per snapshot. Both now index by time (a binary search and a map).
+The same run is 2.6s / 5.4s / 10.1s, and the fixture reports are
+byte-identical.
+
+Corpus verification, run by the corpus holder at `a0ade53` (raw runs
+under `docs/corpus_runs/` as `a0ade53-report.txt` and
+`a0ade53-audit.txt`, zero failures): both reports are identical to the
+`0bfd71d` runs in every line but the commit stamp and the audit's timing
+lines, `content_hash` included (`1d0a56ac...` and `6e20ab36...`). The
+audit's `build_ms` 388,841 -> 302,768 (-22%) on the holder's machine.
+
+The passes that binary-search per-client lists rest on a sender's record
+stamps never running backwards, which the branch had only checked on the
+two fixtures. `tools/check-record-time-order.cjs` now asserts it over a
+corpus; the holder's run at `4bcde21` (`4bcde21-time.txt`):
+
+* 443 files, 13,338,093 records, 13,336,505 same-sender pairs: **zero
+  backwards steps** in every population -- all records, snapshot-making
+  records, and whole-file order across senders. `verdict monotonic`.
+* Zero-length same-sender steps: 32,125 over all records, 2,714 among
+  snapshot-making ones (the fast-ring same-tick pairs the zero-duration
+  matching exists for). Whole-file order is 62% zero steps (8.3M of
+  13.3M), the ring's same-tick bursts.
+* The largest same-sender forward gap is 93,351 ticks (about 31
+  minutes): a sender falling silent, never a stamp going back.
+
+The assumption is now corpus-established, not assumed.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
