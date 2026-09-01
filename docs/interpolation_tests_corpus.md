@@ -2064,6 +2064,52 @@ and 437 `link_example` lines). Read off the file, no engine access:
   beside the rates (fixture: 9,918 / 2,538 / 3,171 -- the vote decides
   one election in five). The next links run reads all 218 scenes.
 
+## The 437 read with their elections -- `41bb718` links run
+
+The corpus holder re-ran `--describe-links` at `41bb718`
+(`docs/corpus_runs/41bb718-links.txt`, coverage lines byte-identical
+to `a4822ec`, each `link_example` now carrying the matcher's election
+over its pair). Corpus-wide the matcher held 2,469,176 elections:
+1,723,302 unvoted (under three pinned sources), 248,170 stood down,
+497,704 passed -- the vote decides one election in five, as on the
+fixture.
+
+* **Every pairwise contradiction is a stand-down.** 340 pairwise: 335
+  stood down, 5 unvoted, 0 passed. Of 376 stand-downs in all, 369
+  had the matcher's best advance equal to the post-hoc vote's; the
+  margin shortfall was one in 310 and a tie in 66; 346 had a dying
+  member in the source roster. The matcher knew the advance and could
+  not clear the gate.
+* **The first abstention dial regressed 84 scenes.** In 84 of the 140
+  pairwise stand-down scenes the full roster cleared the gates (e.g.
+  `stood_down@5(2v2;full@5(4v2))`, three of five members dying and
+  abstaining) and only the confident vote's failure blocked the pass
+  -- contradictions `a4822ec` introduced, hidden inside its net +14.
+* **The rule matrix**, scored on the file against all 140 scenes
+  (310 links), agreement meaning the elected advance equals the
+  post-hoc vote's:
+
+  | rule | passes | agree | disagree |
+  | --- | --- | --- | --- |
+  | current (confident must pass, full leads) | 0 | 0 | 0 |
+  | symmetric abstention | 84 | 84 | 0 |
+  | symmetric + orphan tie-break | 110 | 110 | 0 |
+  | orphan tie-break alone, no abstention | 107 | 107 | 0 |
+
+  The 30 scenes neither rule reaches are tied or short of score
+  three with the true advance itself carrying an orphan -- an
+  unpinned source, now counted on the election record for the next
+  run.
+* Stitched contradictions (97) are a different population: 34 sit on
+  pairs whose election passed and 19 on pairs with no adjacent
+  election at all; the stitching pass reads the time-keyed reference,
+  and those want their own reading.
+
+The symmetric election with the orphan tie-break is built (fixture
+file has the dial and its fixture numbers: +1 matched, -1 pop,
+elections passed 3,171 -> 3,720, contradictions still 0, fast ring
+byte-identical) and awaits its corpus row.
+
 ## The same-record starvation shape -- diagnostic, no dial
 
 Found chasing the fixture's six unmatched `shell_falls` the census calls

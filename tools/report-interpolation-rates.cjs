@@ -647,8 +647,11 @@ function link_class_report(diagnostics) {
 		 * state that does not record votes. */
 		let vote = record.match_vote;
 		let vote_text = vote === null || vote === undefined ? "-"
-			: vote.verdict === "unvoted" ? "unvoted"
-			: `${vote.verdict}@${vote.advance}(${vote.score}v${vote.runner_up}` +
+			: vote.verdict === "unvoted"
+				? `unvoted${vote.unpinned ? `(${vote.unpinned} unpinned)` : ""}`
+			: `${vote.verdict}${vote.by ? `:${vote.by}` : ""}` +
+				`${vote.unpinned ? `(${vote.unpinned} unpinned)` : ""}` +
+				`@${vote.advance}(${vote.score}v${vote.runner_up}` +
 				`${vote.full_advance !== vote.advance ||
 					vote.full_score !== vote.score ||
 					vote.full_runner_up !== vote.runner_up

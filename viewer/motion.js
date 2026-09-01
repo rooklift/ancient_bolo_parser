@@ -1851,15 +1851,18 @@ function enforce_roster_lockstep_candidates(previous_shells, target_groups,
 		let shell = previous_shells[index];
 		if (shell.pillbox_source_x === undefined) continue;
 		let step = pinned_orbit_step(shell.pillbox_orbit_states);
-		if (step === null) continue;
 		let key = `${shell.pillbox_source_x}:${shell.pillbox_source_y}`;
 		let pill = pills.get(key);
 		if (!pill) {
 			pills.set(key, pill = {
 				source_x: shell.pillbox_source_x,
 				source_y: shell.pillbox_source_y,
-				members: [],
+				members: [], unpinned: 0,
 			});
+		}
+		if (step === null) {
+			pill.unpinned++;
+			continue;
 		}
 		/* A member holding a terminal candidate over this pair may be
 		 * dying; see the election below for what its vote is worth. */
@@ -1883,7 +1886,8 @@ function enforce_roster_lockstep_candidates(previous_shells, target_groups,
 			});
 		};
 		if (source_steps.size < LOCKSTEP_REFERENCE_MIN_SCORE) {
-			record({ verdict: "unvoted", landings: "" });
+			record({ verdict: "unvoted", landings: "",
+				unpinned: pill.unpinned });
 			continue;
 		}
 		/* The target roster is pinned from raw positions: targets carry no
@@ -1912,12 +1916,17 @@ function enforce_roster_lockstep_candidates(previous_shells, target_groups,
 		 * and cost then links the ladder one rung short. A death is
 		 * undecided at match time, but a member holding a terminal
 		 * candidate over this pair is at least a doubtful voter, so the
-		 * election is held twice: the doubtful members abstain from the
-		 * vote that must pass the score and margin gates, and the full
-		 * roster must still rank the same advance first (ties allowed).
-		 * Abstention can only lower scores, so an alias the full vote
-		 * would not lead can never win through it; what the rule buys
-		 * is the margin a dead shell's coincidence was denying. */
+		 * election is held twice, with and without the doubtful members,
+		 * and passes when either vote clears the gates while the other
+		 * still ranks the same advance first (ties allowed; a confident
+		 * roster too small to vote does not object). Abstention can only
+		 * lower scores, so an alias the full vote would not lead can
+		 * never win through it; what it buys is the margin a dead
+		 * shell's coincidence was denying. The first, one-way form of
+		 * this rule required the confident vote itself to pass, and the
+		 * corpus links run at `41bb718` found 84 scenes where three
+		 * dying members' abstention had thinned the roster below the
+		 * gates that the full vote cleared -- hence symmetric. */
 		let elect = steps => {
 			let scores = new Map();
 			let best = null, best_score = 0, runner_up = 0;
@@ -1937,23 +1946,68 @@ function enforce_roster_lockstep_candidates(previous_shells, target_groups,
 			}
 			return { best, best_score, runner_up, scores };
 		};
+		let confident_steps = new Set(pill.members
+			.filter(member => !member.dying).map(member => member.step));
 		let full = elect(source_steps);
-		let confident = elect(new Set(pill.members
-			.filter(member => !member.dying).map(member => member.step)));
-		let passed = confident.best_score >= LOCKSTEP_REFERENCE_MIN_SCORE &&
-			confident.best_score >=
-				confident.runner_up + LOCKSTEP_REFERENCE_MIN_MARGIN &&
-			full.scores.get(confident.best) >= full.best_score;
+		let confident = elect(confident_steps);
+		/* An orphan landing: a pinned target at a step beyond the advance
+		 * with no pinned source one advance behind it. A newborn sits at
+		 * step <= advance, so under the TRUE advance an orphan can only be
+		 * a source the matcher failed to pin; under the rung-shift alias
+		 * they are structural -- the ladder's lowest landings are left
+		 * without a source. So when the margin gate fails by one or a
+		 * tie, an orphan-free leader whose every rival within one carries
+		 * an orphan is the consistent story and takes the election. The
+		 * corpus links run at `41bb718` measured this: of 140 pairwise
+		 * stand-downs later contradicted by the post-hoc vote, the
+		 * symmetric gates below rescue 84 and the tie-break 26 more, all
+		 * 110 agreeing with the post-hoc vote, none disagreeing. */
+		let orphans = advance => {
+			let count = 0;
+			for (let step of landings.keys()) {
+				if (step > advance && !source_steps.has(step - advance)) count++;
+			}
+			return count;
+		};
+		let gates = election => election.best !== null &&
+			election.best_score >= LOCKSTEP_REFERENCE_MIN_SCORE &&
+			election.best_score >=
+				election.runner_up + LOCKSTEP_REFERENCE_MIN_MARGIN;
+		let tiebreak = election => election.best !== null &&
+			election.best_score >= LOCKSTEP_REFERENCE_MIN_SCORE &&
+			!orphans(election.best) &&
+			[...election.scores].every(([advance, score]) =>
+				advance === election.best ||
+				score < election.best_score - 1 || orphans(advance) > 0);
+		/* Symmetric: the confident vote may pass with the full roster
+		 * leading the same advance, or the full vote may pass with the
+		 * confident voters leading the same advance (or too few of them
+		 * to speak). Either way the abstainers can veto an alias they
+		 * would not themselves lead, and never manufacture a stand-down
+		 * by their absence. */
+		let full_leads = advance =>
+			full.scores.get(advance) >= full.best_score;
+		let confident_leads = advance =>
+			confident_steps.size < LOCKSTEP_REFERENCE_MIN_SCORE ||
+			confident.scores.get(advance) >= confident.best_score;
+		let by = gates(confident) && full_leads(confident.best) ? "confident"
+			: gates(full) && confident_leads(full.best) ? "full"
+			: tiebreak(confident) && full_leads(confident.best)
+				? "confident_tiebreak"
+			: tiebreak(full) && confident_leads(full.best) ? "full_tiebreak"
+			: null;
+		let best = by === null ? null
+			: by.startsWith("full") ? full.best : confident.best;
 		record({
-			verdict: passed ? "passed" : "stood_down",
+			verdict: by === null ? "stood_down" : "passed", by,
 			advance: confident.best, score: confident.best_score,
 			runner_up: confident.runner_up,
 			full_advance: full.best, full_score: full.best_score,
 			full_runner_up: full.runner_up,
+			unpinned: pill.unpinned,
 			landings: [...landings.keys()].sort((a, b) => a - b).join(","),
 		});
-		if (!passed) continue;
-		let best = confident.best;
+		if (by === null) continue;
 
 		for (let member of pill.members) {
 			for (let candidate of by_previous[member.index]) {

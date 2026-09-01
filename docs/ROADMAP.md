@@ -217,6 +217,20 @@ at mixed advances -- wrong links, the mirror of the fixture scene --
 and the election bookkeeping exists to say whether the vote stood
 down or was never held; see the corpus file's links-run section.
 
+## 11. The symmetric election and the orphan tie-break -- built, corpus pending
+
+The second complaint the vouched-link metric produced, read straight
+off the `41bb718` links run: every pairwise contradiction was a
+stand-down in which the matcher knew the advance and missed the margin
+by one or a tie -- the ladder alias is structural for long rosters --
+and item 10's one-way abstention had itself regressed 84 scenes by
+thinning the roster below the gates. The election now passes when
+either vote clears the gates with the other leading the same advance,
+and an orphan-free leader wins a margin-one or tied election when every
+rival within one leaves a high-step landing without a source. Scored
+against all 140 stand-down scenes before building: 110 rescued, all
+agreeing with the post-hoc vote. See `docs/interpolation_tests.md`.
+
 ## Ideas shelf
 
 Unscheduled, in no particular order; each was sized during the lockstep
