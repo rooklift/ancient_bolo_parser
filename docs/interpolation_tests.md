@@ -50,7 +50,9 @@ and packaging, so v1.0.8's numbers are still `main`'s.
   `links_pill_unpinned`, `links_pill_restated` (verbatim re-sends, zero
   advance by identity), `links_visual` and `links_no_pill_source` are
   reported beside them so the denominator is honest. Contradicted is a
-  regression alarm, not a coverage figure.
+  regression alarm, not a coverage figure; `--describe-links` prints
+  every contradiction as a scene (record times, pill, steps, elected
+  advance) with a class tally by how far the link disagrees.
 * Tank and LGM track coverage is reported too, but is byte-identical at all ten
   commits, so it is omitted below. For the record: `rate_tank_ticks_interpolated`
   0.687960 and `rate_lgm_ticks_interpolated` 0.435824 throughout. Note that the

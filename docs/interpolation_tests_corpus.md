@@ -2000,10 +2000,12 @@ input hash, zero failures):
   the fates decided, dying shells out of the source roster) disagrees
   with the link the match-time one admitted. Fourteen in 5.09 million
   is inside the "tens are worth a look" band the metric's own section
-  set, not the "hundreds are a regression" one; the report tool has
-  no way yet to name them (the scorer collects examples per client,
-  the tool does not print them), which is the obvious next
-  instrument.
+  set, not the "hundreds are a regression" one. The rates tool's
+  `--describe-links` (added right after this run) prints every
+  contradiction as a `link_example` line with its record times, pill,
+  steps and elected advance, and a `link_class` tally by how far each
+  link disagrees with the vote; a holder run with the flag names the
+  fourteen.
 * Audit: `rate_links_steady` 0.966241 -> 0.966551, the audit era's
   best again, the 1.5-1.8 bucket shedding 3,208 links and the 1.0-1.5
   bucket 173 onto the steady pace (+2,499) and the 2.2-2.5 bucket

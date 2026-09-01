@@ -2556,22 +2556,23 @@ function score_pill_links(snapshots) {
 			else if (step_b - step_a === advance) score.vouched++;
 			else {
 				score.contradicted++;
-				if (score.examples.length < SCORE_EXAMPLES_PER_CLIENT) {
-					score.examples.push({
-						time: snapshots[index_of.get(shell)].time,
-						next_time: snapshots[index_of.get(next)].time,
-						pillbox_source_x: shell.pillbox_source_x,
-						pillbox_source_y: shell.pillbox_source_y,
-						step: step_a, next_step: step_b, advance,
-						stitched: !!next.stitched,
-					});
-				}
+				/* Every contradiction is kept, not a sample: they are rare
+				 * (hundreds corpus-wide) and each one is a scene worth
+				 * opening, which is what the rates tool's --describe-links
+				 * prints them for. */
+				score.examples.push({
+					time: snapshots[index_of.get(shell)].time,
+					next_time: snapshots[index_of.get(next)].time,
+					pillbox_source_x: shell.pillbox_source_x,
+					pillbox_source_y: shell.pillbox_source_y,
+					step: step_a, next_step: step_b, advance,
+					stitched: !!next.stitched,
+				});
 			}
 		}
 	}
 	return score;
 }
-const SCORE_EXAMPLES_PER_CLIENT = 8;
 
 /* A join the ordinary physics refused, admissible only because the
  * sender's record clock is known to lie: the start must sit forward on
