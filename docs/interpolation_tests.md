@@ -938,9 +938,11 @@ Fixture, against `57dca12`:
   (the first form had it at 598), seam jumps still zero
 * A 3 px tolerance instead recovers the scene too (`tank_hit` 4317 over
   the same three files) but is a fudge where this is the mechanism
-* Corpus: the first form's run is under `ccc8ec3` in
+* Corpus: both forms are measured under `ccc8ec3` in
   [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md); the
-  restructured walk's run is owed
+  restructured walk (`30d5351`) keeps `tank_hit` +1,552 and pop-outs
+  -1,531 over 443 logs with `terminal_links_rushed` back within 124 of
+  baseline
 
 The scene is pinned in `test/test-viewer.cjs` ("tank-hit box the sender
 knew recovers a graze the track has left"), with the tank restated

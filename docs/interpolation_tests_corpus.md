@@ -2302,14 +2302,40 @@ runs under `docs/corpus_runs/` as `ccc8ec3-report.txt` and
   collision a step or two on at 2 px/tick. The fixture's rate lines
   are blind to it because the terminal is matched either way.
 
-The follow-up commit gives the track box first refusal over the whole
-orbit walk and only then walks the packet box, never from step zero.
-On the three local files that removes every new rushed link (fixture
+`30d5351` gives the track box first refusal over the whole orbit walk
+and only then walks the packet box, never from step zero. On the three
+local files that removes every new rushed link (fixture
 `terminal_links_rushed` 461 -> 461 against the first form's 598) and
 leaves every rate line of the fixture unchanged, at a price of two tank
-hits over the three files. Its corpus run is owed; the expectation is
-`terminal_links_rushed` back near 69,300 with the terminal and pop
-gains intact.
+hits over the three files.
+
+Corpus, run by the corpus holder at `30d5351` (`30d5351-report.txt` and
+`30d5351-audit.txt`, 443 files, zero failures), against `a0ade53` with
+`ccc8ec3` in brackets:
+
+* `rate_shells_matched_forward` 0.996726 -> 0.996882 (0.996914), a new
+  best on a clean run
+* `rate_shells_unlinked` 0.001419 -> 0.001384 (0.001379): 13,928 ->
+  13,591
+* `rate_terminals_matched` 0.833131 -> 0.833914 (0.834069): +1,525 net,
+  `tank_hit` +1,552 (235,847 -> 237,399), `shell_falls` -10,
+  `explosion` -9, `pillbox_damage` -8, `base_damage` 0
+* `links_pill_vouched` +366, `links_pill_contradicted` 89 -> 94 (92)
+* audit `pop_outs` 31,954 -> 30,423 (30,114), backwards pops 1,366 ->
+  1,360, seam jumps still zero, `rate_links_steady` flat at 0.9666
+* **`terminal_links_rushed` 69,287 -> 69,411** (82,149): the 12,862
+  zero-length links are gone, and the 124 that remain are the shape
+  the three-file diff showed -- rescued shells whose arrival is capped
+  at a hit record a tick or so later, the cost already accepted for
+  lagging events
+
+The correction kept 83% of the first form's tank-hit gain and 83% of
+its pop-out reduction while returning the rushed-link count to within
+0.2% of baseline. `build_ms` 302,768 -> 318,146 across the two runs on
+the holder's machine, which is run-to-run variation: the change adds one
+box test per orbit step in tank-hit candidate evaluation and a bounded
+second walk only when the first finds nothing, and local timing of the
+fixture build shows no difference beyond noise.
 
 ## Findings
 
