@@ -192,6 +192,19 @@ stream-birth mints down 55% in the final dial alone. Item 8's hover
 debt largely dissolved along the way (4,164 -> 3,347 without the
 speed floor being built). Full account in the corpus results file.
 
+## 10. Doubtful voters abstain -- DONE on the fixture, corpus pending
+
+The first complaint the vouched-link metric produced, chased as item 6
+predicted: the owner watched the metric's named scene (fixture records
+#111355 -> #111359) and saw the trailing shell vanish. The roster
+election had stood down one short of its margin because a shell that
+died over the pair cast the deciding vote for the rung-shift alias.
+Members holding a terminal candidate now abstain from the gated vote,
+the full roster still having to rank the same advance first (see
+`docs/interpolation_tests.md`). Fixture: contradictions 6 -> 0, matched
+forward +6, pops -6, a second tank hit explained, fast-ring fixture
+byte-identical. Corpus run wanted before the row is final.
+
 ## Ideas shelf
 
 Unscheduled, in no particular order; each was sized during the lockstep
