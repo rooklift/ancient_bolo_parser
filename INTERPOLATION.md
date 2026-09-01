@@ -364,6 +364,14 @@ and pop-ins, and backwards pops. Every matching change is judged on both
 axes; `docs/interpolation_tests_corpus.md` carries the corpus history of
 both.
 
+Several of the passes above binary-search time-sorted lists (chain
+ends and starts, fate and creation groups, and the snapshots themselves),
+which rests on a sender's record stamps never running backwards.
+`tools/check-record-time-order.cjs` asserts that over a corpus: it
+counts every adjacent same-sender record pair by the sign of its time
+step, prints each backwards step as a `dip_example`, and exits non-zero
+if any exists among the records that produce snapshots.
+
 ## Known limits and open ideas
 
 - **Tank shots now get discrete-simulation treatment too.** Corpus
