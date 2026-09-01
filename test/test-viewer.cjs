@@ -228,6 +228,28 @@ if (!fs.existsSync(log1)) {
 			score.links, score.vouched, score.contradicted, score.unvouched,
 			score.unpinned, score.restated, [...score.clients],
 		], [52764, 20049, 0, 12866, 51, 0, []]);
+		/* The elections themselves: most pills cannot vote at all (under
+		 * three pinned sources), and of those that can, a vote inside the
+		 * margin stands down. The scene that motivated abstention is
+		 * pinned in full: the confident vote elects 8 by 5 to 3 where the
+		 * full roster -- the two dying members marked "d" voting -- had it
+		 * 5 to 4, one short of the margin. */
+		let votes = { unvoted: 0, stood_down: 0, passed: 0 };
+		for (let snapshots of game.shell_positions) {
+			let part = BoloMotion.score_pill_links(snapshots);
+			votes.unvoted += part.votes_unvoted;
+			votes.stood_down += part.votes_stood_down;
+			votes.passed += part.votes_passed;
+		}
+		let scene = game.shell_positions[2].find(s => s.time === 9726685)
+			.roster_votes.get("1872:2272");
+		check("fixture roster elections and the abstention scene", [
+			votes.unvoted, votes.stood_down, votes.passed,
+			scene.verdict, scene.advance, scene.score, scene.runner_up,
+			scene.full_score, scene.full_runner_up, scene.sources,
+			scene.landings,
+		], [9918, 2538, 3171, "passed", 8, 5, 3, 5, 4,
+			"6,9,11,14,17,19d,22d", "14,17,19,22,25"]);
 	}
 
 	let pill_burst = { total: 0, matched: 0 };

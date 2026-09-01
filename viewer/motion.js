@@ -1831,9 +1831,16 @@ function enforce_pillbox_lockstep_candidates(previous_shells, by_previous,
  * vote passes, nothing changes -- the rule vetoes contradictions of a
  * dominant story, it never invents one. */
 function enforce_roster_lockstep_candidates(previous_shells, target_groups,
-	by_previous, by_next, duration) {
+	by_previous, by_next, duration, next = null) {
 	let max_advance = Math.ceil(duration / TICKS_PER_SHELL_UPDATE) +
 		DILATED_UPDATE_SLACK;
+	/* Measurement only: every pill's election over this pair is recorded
+	 * on the target snapshot, whatever its verdict, so a link the post-hoc
+	 * vote later contradicts can be read against what the matcher saw at
+	 * the time (score_pill_links attaches it; the rates tool's
+	 * --describe-links prints it). Overwritten on each of the matcher's
+	 * passes; the rosters do not change between them. */
+	let votes = next ? (next.roster_votes ??= new Map()) : null;
 	let pills = new Map();
 	for (let index = 0; index < previous_shells.length; index++) {
 		let shell = previous_shells[index];
@@ -1861,7 +1868,19 @@ function enforce_roster_lockstep_candidates(previous_shells, target_groups,
 	let claims = [];
 	for (let pill of pills.values()) {
 		let source_steps = new Set(pill.members.map(member => member.step));
-		if (source_steps.size < LOCKSTEP_REFERENCE_MIN_SCORE) continue;
+		let record = verdict => {
+			if (!votes) return;
+			votes.set(`${pill.source_x}:${pill.source_y}`, {
+				...verdict,
+				sources: pill.members.map(member =>
+					`${member.step}${member.dying ? "d" : ""}`).sort(
+					(a, b) => parseInt(a, 10) - parseInt(b, 10)).join(","),
+			});
+		};
+		if (source_steps.size < LOCKSTEP_REFERENCE_MIN_SCORE) {
+			record({ verdict: "unvoted", landings: "" });
+			continue;
+		}
 		/* The target roster is pinned from raw positions: targets carry no
 		 * orbit states of their own yet, but an orbit point is an exact
 		 * measured coordinate, so a raw position pins a step just as a
@@ -1916,10 +1935,19 @@ function enforce_roster_lockstep_candidates(previous_shells, target_groups,
 		let full = elect(source_steps);
 		let confident = elect(new Set(pill.members
 			.filter(member => !member.dying).map(member => member.step)));
-		if (confident.best_score < LOCKSTEP_REFERENCE_MIN_SCORE ||
-			confident.best_score <
-				confident.runner_up + LOCKSTEP_REFERENCE_MIN_MARGIN ||
-			full.scores.get(confident.best) < full.best_score) continue;
+		let passed = confident.best_score >= LOCKSTEP_REFERENCE_MIN_SCORE &&
+			confident.best_score >=
+				confident.runner_up + LOCKSTEP_REFERENCE_MIN_MARGIN &&
+			full.scores.get(confident.best) >= full.best_score;
+		record({
+			verdict: passed ? "passed" : "stood_down",
+			advance: confident.best, score: confident.best_score,
+			runner_up: confident.runner_up,
+			full_advance: full.best, full_score: full.best_score,
+			full_runner_up: full.runner_up,
+			landings: [...landings.keys()].sort((a, b) => a - b).join(","),
+		});
+		if (!passed) continue;
 		let best = confident.best;
 
 		for (let member of pill.members) {
@@ -2158,7 +2186,7 @@ function match_shell_snapshots(previous, next) {
 		if (enforce_pillbox_lockstep_candidates(previous.shells, by_previous,
 			by_next)) changed = true;
 		if (enforce_roster_lockstep_candidates(previous.shells, target_groups,
-			by_previous, by_next, duration)) changed = true;
+			by_previous, by_next, duration, next)) changed = true;
 		if (!changed) break;
 		for (let choices of by_previous) choices.sort((a, b) => a.cost - b.cost);
 		for (let choices of by_next) choices.sort((a, b) => a.cost - b.cost);
@@ -2522,7 +2550,16 @@ function score_pill_links(snapshots) {
 	let score = {
 		links: 0, visual: 0, no_pill_source: 0, restated: 0, unpinned: 0,
 		vouched: 0, contradicted: 0, unvouched: 0, examples: [],
+		/* How often the matcher's election was available at all: a pill
+		 * with fewer than three pinned sources cannot vote, and a vote
+		 * inside the margin stands down. */
+		votes_unvoted: 0, votes_stood_down: 0, votes_passed: 0,
 	};
+	for (let snapshot of snapshots) {
+		for (let vote of snapshot.roster_votes?.values() ?? []) {
+			score[`votes_${vote.verdict}`]++;
+		}
+	}
 	/* Keyed by snapshot index, not time: a fast ring lands two sender
 	 * packets in one recorder tick, and time keys would hand a one-hop
 	 * link the composed two-hop advance and call it a contradiction. */
@@ -2560,13 +2597,27 @@ function score_pill_links(snapshots) {
 				 * (hundreds corpus-wide) and each one is a scene worth
 				 * opening, which is what the rates tool's --describe-links
 				 * prints them for. */
+				let i = index_of.get(shell), j = index_of.get(next);
+				let key = `${shell.pillbox_source_x}:${shell.pillbox_source_y}`;
+				let roster = snapshot => snapshot.shells
+					.filter(other => `${other.pillbox_source_x}:` +
+						`${other.pillbox_source_y}` === key)
+					.map(other => pinned_orbit_step(other.pillbox_orbit_states))
+					.filter(step => step !== null).sort((a, b) => a - b)
+					.join(",");
 				score.examples.push({
-					time: snapshots[index_of.get(shell)].time,
-					next_time: snapshots[index_of.get(next)].time,
+					time: snapshots[i].time, next_time: snapshots[j].time,
 					pillbox_source_x: shell.pillbox_source_x,
 					pillbox_source_y: shell.pillbox_source_y,
 					step: step_a, next_step: step_b, advance,
 					stitched: !!next.stitched,
+					/* The matcher's own election over this pair, when the
+					 * link is a pairwise one (a stitch spans snapshots the
+					 * matcher never paired). */
+					match_vote: j === i + 1
+						? snapshots[j].roster_votes?.get(key) ?? null : null,
+					final_sources: roster(snapshots[i]),
+					final_landings: roster(snapshots[j]),
 				});
 			}
 		}

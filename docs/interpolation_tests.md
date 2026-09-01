@@ -52,7 +52,16 @@ and packaging, so v1.0.8's numbers are still `main`'s.
   reported beside them so the denominator is honest. Contradicted is a
   regression alarm, not a coverage figure; `--describe-links` prints
   every contradiction as a scene (record times, pill, steps, elected
-  advance) with a class tally by how far the link disagrees.
+  advance) with a class tally by how far the link disagrees, plus the
+  matcher's own election over that pair as it saw it -- verdict,
+  advance, score against runner-up, the pinned source steps with "d"
+  on members that held a terminal candidate, the pinned landings --
+  and both rosters as final state pins them.
+* `roster_votes_unvoted` / `roster_votes_stood_down` /
+  `roster_votes_passed` -- how often the matcher's election was
+  available at all: a pill with under three pinned sources cannot vote,
+  a vote inside the score-3 / margin-2 gates stands down. On the
+  fixture 9,918 / 2,538 / 3,171: the vote decides one election in five.
 * Tank and LGM track coverage is reported too, but is byte-identical at all ten
   commits, so it is omitted below. For the record: `rate_tank_ticks_interpolated`
   0.687960 and `rate_lgm_ticks_interpolated` 0.435824 throughout. Note that the

@@ -2056,8 +2056,13 @@ and 437 `link_example` lines). Read off the file, no engine access:
   candidate) or it passed and the compressed continuation was not
   among the candidates. Settling that wants the pill's pinned rosters
   at both ends and the match-time verdict on each `link_example`
-  line; that bookkeeping is the next instrument, if the 350 are ever
-  chased.
+  line -- recorded since the commit after this run: the matcher keeps
+  every pill's election per record pair on the target snapshot
+  (measurement only, output byte-identical), the scorer attaches it
+  and both final rosters to each contradiction, and the tool prints
+  them, with `roster_votes_unvoted / stood_down / passed` totals
+  beside the rates (fixture: 9,918 / 2,538 / 3,171 -- the vote decides
+  one election in five). The next links run reads all 218 scenes.
 
 ## The same-record starvation shape -- diagnostic, no dial
 
