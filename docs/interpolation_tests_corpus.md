@@ -1892,15 +1892,30 @@ provenance) settles how widespread the regime is: **29.3% of all
 tank statements and 20.9% of all LGM statements corpus-wide sit at
 the few-tick gaps the pass engages on** -- the fast ring is a large
 minority of the corpus, not a curiosity, consistent with the quarter
-of forward-match failures the shell fix recovered. Post-smoothing the
-corpus draws at `rate_tank_alternation` 0.083348 /
-`rate_lgm_alternation` 0.103984 (mean speed change 0.312838 /
-0.345410), between the untouched normal-cadence fixture and the
-smoothed fast-ring one, as composition predicts. The pre-smoothing
-baseline pair -- the same tool run at `c97a823`, where
-`smoothed_points` reads 0 -- has not been run yet, so the corpus-scale
-improvement is unquantified; the tool runs unchanged against that
-checkout when someone wants the number.
+of forward-match failures the shell fix recovered. The pre-smoothing
+baseline pair (`docs/corpus_runs/c97a823-track.txt`: today's tool
+dropped into a `c97a823` worktree, the run stamping `commit unknown`
+because the drop-in sat outside git's view -- the corpus holder
+attests the checkout was `c97a8232a71ec655095f1a52346cc13d34cd574b`)
+quantifies the corpus-scale gain, with its own validity marks: the
+same corpus input hash as every pinned run, `smoothed_points` 0
+proving the raw engine, and `segments` and `zero_duration_pairs`
+byte-identical to the smoothed run, since smoothing moves positions
+and never structure. Measured:
+
+* `rate_tank_alternation` 0.139317 -> 0.083348 (-40.2%), mean speed
+  change 0.435823 -> 0.312838 (-28.2%), stale sandwiches 131,678 ->
+  85,769 (-34.9%), with `moving_pairs` +192,987 as healed freezes
+  rejoin the moving census. (Composition from the two fixtures had
+  predicted "roughly 13-14% -> 8.3%"; the measured 13.93% -> 8.33%
+  lands on it.)
+* `rate_lgm_alternation` 0.163542 -> 0.103984 (-36.4%), mean
+  0.479763 -> 0.345410 (-28.0%), stale sandwiches -1.3% -- the LGM
+  freeze census is dominated by real work pauses at normal cadence,
+  left alone by design.
+
+Post-smoothing the corpus draws between the untouched normal-cadence
+fixture and the smoothed fast-ring one, as composition predicts.
 
 ## The same-record starvation shape -- diagnostic, no dial
 

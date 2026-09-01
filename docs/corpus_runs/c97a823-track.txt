@@ -1,0 +1,24 @@
+# GENERATED - drawn track motion audit; nothing written to disk.
+commit	unknown
+input	sha256:9e4933bba5250c6852e6dd1265ed0c35cd98195d6ebfd5623e6b6b91c978fd3b
+files	443
+files_failed	0
+tank_points	9914126
+tank_smoothed_points	0
+tank_segments	9448359
+tank_zero_duration_pairs	1954
+tank_stale_sandwiches	131678
+tank_moving_pairs	7822113
+tank_alternating_pairs	1089757
+rate_tank_alternation	0.139317
+tank_mean_speed_change	0.435823
+lgm_points	7876644
+lgm_smoothed_points	0
+lgm_segments	7729059
+lgm_zero_duration_pairs	1561
+lgm_stale_sandwiches	681259
+lgm_moving_pairs	2962665
+lgm_alternating_pairs	484520
+rate_lgm_alternation	0.163542
+lgm_mean_speed_change	0.479763
+content_hash	b4453c058d81b001f36c41a4fa068d06c3224078e3ab2f58de73b42019ec74e7
