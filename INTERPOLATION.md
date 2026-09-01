@@ -224,6 +224,18 @@ filtering over a finite state space:
   (`enforce_pillbox_lockstep_candidates`), pruning candidates no jointly
   consistent story supports; when no common advance exists (a fall
   mid-interval, a dropped restatement) it stands down rather than guess.
+  The pill's own statements also vote on the advance
+  (`enforce_roster_lockstep_candidates`): the step-pinned roster in one
+  snapshot is scored against the pinned roster in the next for every
+  plausible advance, and a winner explaining at least three shells by a
+  margin of two prunes every member's off-lockstep continuation. A
+  near-regular ladder maps onto its own future at the true advance
+  minus the fire cadence too, and the deciding vote between the two is
+  often cast by a shell that in fact died over the pair, so members
+  holding a terminal candidate abstain from the vote that must pass the
+  gates, while the full roster must still rank the same advance first.
+  The fixture doc's "doubtful voters" section has the scene that
+  motivated it.
 - When the surviving states all agree on one pixel, the shell's **exact
   true position** in the underlying simulation is recovered
   (`pillbox_orbit_pixel_x/y`) — usually there is only one possibility —

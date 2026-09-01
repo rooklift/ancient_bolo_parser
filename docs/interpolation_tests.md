@@ -770,6 +770,52 @@ Fast-ring fixture (`040601.6`):
 
 Both fixtures' counts are pinned in `test/test-viewer.cjs`.
 
+## Doubtful voters abstain -- the roster election's alias tie-break
+
+The metric's first named scene, chased at the owner's request after
+watching the trailing shell vanish. Records #111355 -> #111359 on
+client 2 (above): the match-time roster vote had 5 landings for
+advance 8 against 4 for advance 3, one short of the margin gate, so it
+stood down and cost linked the ladder one rung short. Advance 3 is the
+rung-shift alias -- a near-regular ladder maps onto its own future at
+the true advance minus the fire cadence -- and its deciding fourth
+vote was cast by the step-22 shell, which in fact died in the tank-hit
+box that record: a dead shell's position plus one cadence landed on
+its neighbour's true landing. The target record carried a second
+tank-hit that the engine's story left unmatched; under advance 8 the
+step-19 shell dies in it, the trailing shell continues, and nothing
+pops.
+
+The dial (`enforce_roster_lockstep_candidates`): a member holding a
+terminal candidate over the pair is a doubtful voter. The election is
+held twice -- doubtful members abstain from the vote that must pass
+the score-3 / margin-2 gates, and the full roster must still rank the
+same advance first (ties allowed). Abstention can only lower scores,
+so an alias the full vote would not lead can never win through it;
+what the rule buys is the margin a dead shell's coincidence was
+denying. A death stays undecided at match time exactly as before: the
+passing vote prunes candidates by lockstep physics, and a doubtful
+member that in fact continued keeps its lockstep-consistent
+continuation.
+
+Fixture, against the `3b9d80d` state:
+
+* `shells_matched_forward` 73,454 -> 73,460, `shells_unlinked`
+  137 -> 136, `terminals_matched` 20,695 -> 20,696 (`tank_hit` +1: the
+  second hit in the scene), `shell_births` 20,731 -> 20,727 with
+  `shells_unseen_pillbox_birth` 21 -> 20 and `shells_stream_birth`
+  7 -> 4 -- mints that were mis-linked ladders being re-minted, now
+  linked instead. `flow_components` 1,220 -> 1,217.
+* Contradictions 6 -> **0**: all six, the 9,627,041 scene included, were
+  this one mechanism. Vouched 20,019 -> 20,049, unvouched
+  12,882 -> 12,866, unpinned 52 -> 51.
+* Audit: `pop_outs` 299 -> 293, `pop_ins` 263 -> 262,
+  `pops_paired_forward` 12 -> 11, `rate_links_steady`
+  0.978165 -> 0.978660 (the 1.5-1.8 bucket -20, 2.2-2.5 -5, 1.8-2.2
+  +31), hover / rush / seam untouched at 1 / 0 / 0.
+* Fast-ring fixture: report and audit byte-identical.
+* Corpus: awaits a holder run.
+
 ## Findings
 
 * **The branch line now leads the branch point on every headline metric.** At

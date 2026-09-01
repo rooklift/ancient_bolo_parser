@@ -122,7 +122,7 @@ if (!fs.existsSync(log1)) {
 	}
 	check("fixture orbit-membership and stream-provenance birth claims",
 		[orbit_births.unseen, orbit_births.stream, orbit_births.sound],
-		[21, 7, true]);
+		[20, 4, true]);
 
 	/* Terminal-failure diagnostics: read-only classification of every
 	 * terminal that ends the pipeline with no matched shell and no
@@ -170,10 +170,10 @@ if (!fs.existsSync(log1)) {
 			described, described === unexplained, reasons_sound,
 			classes.get("explosion:no_candidate:-"),
 			classes.get("pillbox_damage:end_continued:T"),
-		], [1031, true, true, 240, 89]);
+		], [1030, true, true, 240, 89]);
 		check("fixture same-record unseen shots claimed without cost", [
 			matched, unseen.pill, unseen.tank,
-		], [20695, 1223, 1126]);
+		], [20696, 1223, 1126]);
 
 		/* The end-side mirror: every chain end with no forward story gets
 		 * a class; the census must equal the unmatched-forward count less
@@ -202,16 +202,17 @@ if (!fs.existsSync(log1)) {
 		check("fixture end-side census reconciles", [
 			ends_described, ends_described === unfated, end_reasons_sound,
 			fate_open,
-		], [299, true, true, 19]);
+		], [293, true, true, 19]);
 	}
 
 	/* The truth axis: every pill link scored against the statement-roster
 	 * vote (see score_pill_links). Contradicted is the regression alarm --
 	 * the pairwise matcher defers to the vote, so a contradiction can only
 	 * come from a link made under other gates, or from a vote that failed
-	 * at match time and passes on final state. The fixture's six are the
-	 * latter, all on client 2, and are pinned so a change that adds or
-	 * removes one is seen. */
+	 * at match time and passes on final state. The fixture had six of the
+	 * latter, all on client 2, until doubtful voters learned to abstain
+	 * (see enforce_roster_lockstep_candidates); zero is pinned so a
+	 * change that brings one back is seen. */
 	{
 		const BoloMotion = require("../viewer/motion.js");
 		let score = { links: 0, restated: 0, unpinned: 0, vouched: 0,
@@ -226,7 +227,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture pill links scored against the roster vote", [
 			score.links, score.vouched, score.contradicted, score.unvouched,
 			score.unpinned, score.restated, [...score.clients],
-		], [52759, 20019, 6, 12882, 52, 0, [2]]);
+		], [52764, 20049, 0, 12866, 51, 0, []]);
 	}
 
 	let pill_burst = { total: 0, matched: 0 };

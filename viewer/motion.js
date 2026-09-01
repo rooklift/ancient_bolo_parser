@@ -1849,7 +1849,10 @@ function enforce_roster_lockstep_candidates(previous_shells, target_groups,
 				members: [],
 			});
 		}
-		pill.members.push({ index, step });
+		/* A member holding a terminal candidate over this pair may be
+		 * dying; see the election below for what its vote is worth. */
+		pill.members.push({ index, step, dying: by_previous[index].some(
+			candidate => candidate.target.terminal) });
 	}
 
 	let changed = false;
@@ -1876,22 +1879,48 @@ function enforce_roster_lockstep_candidates(previous_shells, target_groups,
 			if (!indices) landings.set(step, indices = []);
 			indices.push(next_index);
 		}
-		let best = null, best_score = 0, runner_up = 0;
-		for (let advance = 1; advance <= max_advance; advance++) {
-			let score = 0;
-			for (let step of source_steps) {
-				if (landings.has(step + advance)) score++;
+		/* The election. A near-regular ladder maps onto its own future at
+		 * the true advance minus the fire cadence too (the rung-shift
+		 * alias), and the deciding vote between the two is often cast by
+		 * a shell that in fact died over the pair: its position plus one
+		 * cadence lands on a neighbour's true landing, and the alias
+		 * comes within one of the truth, so the margin gate stands down
+		 * and cost then links the ladder one rung short. A death is
+		 * undecided at match time, but a member holding a terminal
+		 * candidate over this pair is at least a doubtful voter, so the
+		 * election is held twice: the doubtful members abstain from the
+		 * vote that must pass the score and margin gates, and the full
+		 * roster must still rank the same advance first (ties allowed).
+		 * Abstention can only lower scores, so an alias the full vote
+		 * would not lead can never win through it; what the rule buys
+		 * is the margin a dead shell's coincidence was denying. */
+		let elect = steps => {
+			let scores = new Map();
+			let best = null, best_score = 0, runner_up = 0;
+			for (let advance = 1; advance <= max_advance; advance++) {
+				let score = 0;
+				for (let step of steps) {
+					if (landings.has(step + advance)) score++;
+				}
+				scores.set(advance, score);
+				if (score > best_score) {
+					runner_up = best_score;
+					best_score = score;
+					best = advance;
+				} else if (score > runner_up) {
+					runner_up = score;
+				}
 			}
-			if (score > best_score) {
-				runner_up = best_score;
-				best_score = score;
-				best = advance;
-			} else if (score > runner_up) {
-				runner_up = score;
-			}
-		}
-		if (best_score < LOCKSTEP_REFERENCE_MIN_SCORE ||
-			best_score < runner_up + LOCKSTEP_REFERENCE_MIN_MARGIN) continue;
+			return { best, best_score, runner_up, scores };
+		};
+		let full = elect(source_steps);
+		let confident = elect(new Set(pill.members
+			.filter(member => !member.dying).map(member => member.step)));
+		if (confident.best_score < LOCKSTEP_REFERENCE_MIN_SCORE ||
+			confident.best_score <
+				confident.runner_up + LOCKSTEP_REFERENCE_MIN_MARGIN ||
+			full.scores.get(confident.best) < full.best_score) continue;
+		let best = confident.best;
 
 		for (let member of pill.members) {
 			for (let candidate of by_previous[member.index]) {
