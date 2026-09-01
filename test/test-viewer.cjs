@@ -2184,7 +2184,7 @@ if (!fs.existsSync(log1)) {
 		record(100, [shell_list(4, [[160, 160]])], 0),
 		record(112, [shell_list(4, [[184, 160]])], 1),
 	]);
-	check("shell identities do not migrate between clients",
+	check("shell identities never cross clients",
 		rounded(position(separate_clients, 106).x), 10.5);
 }
 

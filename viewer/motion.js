@@ -4780,10 +4780,13 @@ function slide_compressed_chain_heads(snapshots) {
 }
 
 /* Per-client shell restatements used only for drawing. Keeping separate
- * client tracks is intentional: there is no evidence that technical shell
- * ownership migrates in flight, and joining across clients would create
- * especially convincing false identities. A possible migration therefore
- * renders conservatively as one shell disappearing and another appearing. */
+ * client tracks is intentional: chains never cross clients. The idea that
+ * a shell's ownership could migrate between machines in flight is
+ * regarded as highly suspicious -- Bolo has no orchestration that could
+ * do it, and corpus measurement found no scene that needed it -- and
+ * joining across clients would create especially convincing false
+ * identities. Whatever a cross-client coincidence really is, it renders
+ * conservatively as one shell disappearing and another appearing. */
 function build_shell_positions(records, terminals, pillbox_sources_by_record,
 	tank_sources_by_record, tank_positions = null, pill_states = []) {
 	if (tank_positions) {
