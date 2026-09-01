@@ -205,6 +205,30 @@ if (!fs.existsSync(log1)) {
 		], [299, true, true, 19]);
 	}
 
+	/* The truth axis: every pill link scored against the statement-roster
+	 * vote (see score_pill_links). Contradicted is the regression alarm --
+	 * the pairwise matcher defers to the vote, so a contradiction can only
+	 * come from a link made under other gates, or from a vote that failed
+	 * at match time and passes on final state. The fixture's six are the
+	 * latter, all on client 2, and are pinned so a change that adds or
+	 * removes one is seen. */
+	{
+		const BoloMotion = require("../viewer/motion.js");
+		let score = { links: 0, restated: 0, unpinned: 0, vouched: 0,
+			contradicted: 0, unvouched: 0, clients: new Set() };
+		game.shell_positions.forEach((snapshots, client) => {
+			let part = BoloMotion.score_pill_links(snapshots);
+			for (let key of Object.keys(score)) {
+				if (typeof part[key] === "number") score[key] += part[key];
+			}
+			if (part.contradicted) score.clients.add(client);
+		});
+		check("fixture pill links scored against the roster vote", [
+			score.links, score.vouched, score.contradicted, score.unvouched,
+			score.unpinned, score.restated, [...score.clients],
+		], [52759, 20019, 6, 12882, 52, 0, [2]]);
+	}
+
 	let pill_burst = { total: 0, matched: 0 };
 	for (let snapshot of game.shell_positions[1]) {
 		let seconds = (snapshot.time - game.t0) / BoloLog.TICKS_PER_SECOND;
@@ -2466,6 +2490,28 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	check("an attached-log insert is not the last record", BoloNetwork.recorder(
 		with_quit(ring(1000), 2).concat([{ time: 1e9, seq: 0, player: 0, tankStatus: 0x0f, subpackets: [] }])), 2);
 	check("no records, no recorder", BoloNetwork.recorder([]), null);
+}
+
+// The fast-ring fixture: two sender packets in one recorder tick are
+// common there, so it is where a time-keyed vote table hands a one-hop
+// link the composed two-hop advance and calls it a contradiction (381 of
+// them, every one on a same-time pair). The scorer keys by snapshot index
+// and must find none; the verbatim re-sends it excludes are counted too.
+const log2 = path.join(root, "fixtures", "040601.6");
+if (!fs.existsSync(log2)) {
+	console.log("skip: fixtures/040601.6 not present; fast-ring scoring test skipped");
+} else {
+	const BoloMotion = require("../viewer/motion.js");
+	const game2 = BoloGame.build(
+		[...BoloLog.records(new Uint8Array(fs.readFileSync(log2)))]);
+	let score = { links: 0, restated: 0, vouched: 0, contradicted: 0 };
+	for (let snapshots of game2.shell_positions) {
+		let part = BoloMotion.score_pill_links(snapshots);
+		for (let key of Object.keys(score)) score[key] += part[key];
+	}
+	check("fast-ring fixture pill links: re-sends excluded, no contradictions", [
+		score.links, score.restated, score.vouched, score.contradicted,
+	], [80432, 1679, 26962, 0]);
 }
 
 process.exit(failures ? 1 : 0);

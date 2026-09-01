@@ -40,6 +40,17 @@ and packaging, so v1.0.8's numbers are still `main`'s.
   drawn from the moment it was fired rather than from the first snapshot showing
   it. Not the same as `shells_with_birth`; before v1.0.8 only tank shells
   qualified.
+* `rate_links_pill_vouched` / `rate_links_pill_contradicted` -- the truth axis
+  the coverage rates lack. Every shell-to-shell link of a pill chain whose
+  ends both pin an orbit step is scored against the advance the pill's own
+  statements elected over that record pair (the roster vote the matchers
+  consult): vouched when the step gap equals it, contradicted when a vote
+  passed and the link disagrees, unvouched when no vote passed and the link
+  stands on cost margins alone. The rates are over the scored population;
+  `links_pill_unpinned`, `links_pill_restated` (verbatim re-sends, zero
+  advance by identity), `links_visual` and `links_no_pill_source` are
+  reported beside them so the denominator is honest. Contradicted is a
+  regression alarm, not a coverage figure.
 * Tank and LGM track coverage is reported too, but is byte-identical at all ten
   commits, so it is omitted below. For the record: `rate_tank_ticks_interpolated`
   0.687960 and `rate_lgm_ticks_interpolated` 0.435824 throughout. Note that the
@@ -698,6 +709,52 @@ Fixture:
 * Corpus: rush links down 17.5%, terminals flat, backwards pops up 278
   -- see the branch entry in
   [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md).
+
+## The vouched-link metric -- measurement only
+
+The headline rates count explanations, and a wrong link scores the same
+as a right one, which is why honest give-backs have always read as
+losses. With the statement-roster vote in the engine, every pill link
+can now be scored against it after the fact (`score_pill_links` in
+`viewer/motion.js`, reported by `report-interpolation-rates.cjs` as the
+`links_*` lines and the two `rate_links_pill_*` rates). Nothing in the
+engine changes; the scorer reads final state.
+
+Fixture (`n20021018.2`):
+
+* 52,759 shell-to-shell links: 19,797 from chains with no pill source,
+  3 visual joins, 0 verbatim re-sends, 52 with an unpinned end
+  (exactness lost downstream of a stitch -- roadmap item 8's debt, now
+  with a number), leaving 32,907 scored.
+* `rate_links_pill_vouched` 0.608351 (20,019),
+  `rate_links_pill_contradicted` 0.000182 (6), unvouched 12,882.
+* The six contradictions are all pairwise links on client 2, and they
+  look real: at tick 9,726,673 three shells of the pill at (1872, 2272)
+  are linked twelve ticks on with step advances of 6, 5 and 5 while the
+  pill's roster elected 8 -- the roster-ladder off-by-one shape, each
+  link one stream-mate short, the vote at match time evidently not
+  passing where the post-hoc one does. The others, at 9,627,041, are a
+  single pill's links advancing 9 against an elected 6. The first scenes
+  the metric has named; on the books, not chased.
+
+Fast-ring fixture (`040601.6`):
+
+* 80,432 links, 1,679 of them verbatim re-sends, 33,142 without a pill
+  source, 4 visual joins, 153 unpinned; 45,454 scored, 26,962 vouched
+  (0.593171), **0 contradicted**, 18,492 unvouched.
+* The zero is the scorer's own correction. The engine's vote table is
+  keyed by record time, and on a fast ring two snapshots can share a
+  time, so the one-hop and the composed two-hop span write the same key
+  and the last writer wins. Scored through time keys the fixture showed
+  381 contradictions, every one on a same-time pair with the link
+  advancing 1 against a "vote" of 2; keyed by snapshot index they
+  vanish. The engine's stitching and residual passes still read the
+  time-keyed table, so on a fast ring a join across a same-time pair can
+  be gated by the neighbouring span's advance -- a quirk now noted at
+  `unanimous_lockstep_advance` and left as measured, since fixing it is
+  an engine change that wants the corpus rig.
+
+Both fixtures' counts are pinned in `test/test-viewer.cjs`.
 
 ## Findings
 

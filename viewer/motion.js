@@ -2383,7 +2383,8 @@ function pill_states_reachable(end_shell, shell, duration) {
 const LOCKSTEP_REFERENCE_MIN_SCORE = 3;
 const LOCKSTEP_REFERENCE_MIN_MARGIN = 2;
 
-function build_pill_lockstep_reference(snapshots) {
+function build_pill_lockstep_reference(snapshots,
+	key = (i, j) => `${snapshots[i].time}:${snapshots[j].time}`) {
 	let roster = (snapshot, include) => {
 		let by_pill = new Map();
 		for (let shell of snapshot.shells) {
@@ -2439,8 +2440,7 @@ function build_pill_lockstep_reference(snapshots) {
 			for (let j = i + 1; j < snapshots.length &&
 				snapshots[j].time - snapshots[i].time <=
 					MAX_STITCH_GAP_TICKS; j++) {
-				reference.set(`${pill}:${snapshots[i].time}:${snapshots[j].time}`,
-					advance);
+				reference.set(`${pill}:${key(i, j)}`, advance);
 				let hop = adjacent[j].get(pill);
 				if (hop === undefined) break;
 				advance += hop;
@@ -2454,7 +2454,11 @@ function build_pill_lockstep_reference(snapshots) {
  * (end.time, start.time), or null when no dominant reference exists --
  * in which case the joins fall back to their ordinary gates, exactly
  * as the matcher's lockstep stands down when no common advance
- * exists. */
+ * exists. The table is keyed by record time, as the ends and starts
+ * are; on a fast ring two snapshots can share a time, and there the
+ * one-hop and composed two-hop spans write the same key, last writer
+ * winning -- a quirk left as measured (see score_pill_links, which
+ * keys by index instead). */
 function unanimous_lockstep_advance(reference, end, start) {
 	if (!reference) return null;
 	let end_shell = end.shell;
@@ -2465,6 +2469,80 @@ function unanimous_lockstep_advance(reference, end, start) {
 		`${end_shell.pillbox_source_y}:${end.time}:${start.time}`);
 	return advance === undefined ? null : advance;
 }
+
+/* Measurement only: score every settled pill link against the statement
+ * roster vote, so the coverage rates gain a truth axis. The headline
+ * rates count explanations, and a wrong link scores the same as a right
+ * one; here each shell-to-shell link whose ends both pin an orbit step
+ * is checked against the advance the pill's own statements elected over
+ * that record pair. Vouched: the step gap equals the elected advance.
+ * Contradicted: a vote passed and the link disagrees with it -- the
+ * pairwise matcher already defers to this vote, so a contradiction can
+ * only come from a stitch or residual join made under its own gates,
+ * and the count is a regression alarm rather than a coverage figure.
+ * Unvouched: no dominant vote over that pair, so the link stands on
+ * cost margins alone. The vote is not independent of the link (its two
+ * statements are among the voters), but the score and margin gates
+ * mean no single link elects its own advance. Verbatim re-sends carry
+ * zero advance by identity and visual joins claim no identity at all,
+ * so both stay out of the scored population, as do links from
+ * unsourced chains and links with an unpinned end -- the last being
+ * exactness lost downstream of a stitch, reported so the debt is
+ * visible. Reads final state; changes nothing. */
+function score_pill_links(snapshots) {
+	let score = {
+		links: 0, visual: 0, no_pill_source: 0, restated: 0, unpinned: 0,
+		vouched: 0, contradicted: 0, unvouched: 0, examples: [],
+	};
+	/* Keyed by snapshot index, not time: a fast ring lands two sender
+	 * packets in one recorder tick, and time keys would hand a one-hop
+	 * link the composed two-hop advance and call it a contradiction. */
+	let reference = build_pill_lockstep_reference(snapshots,
+		(i, j) => `${i}:${j}`);
+	let index_of = new Map();
+	snapshots.forEach((snapshot, index) => {
+		for (let shell of snapshot.shells) index_of.set(shell, index);
+	});
+	for (let snapshot of snapshots) {
+		for (let shell of snapshot.shells) {
+			let next = shell.next_shell;
+			if (!next) continue;
+			score.links++;
+			if (next.visual_join) { score.visual++; continue; }
+			if (shell.pillbox_source_x === undefined) {
+				score.no_pill_source++;
+				continue;
+			}
+			if (next.stale_restatement) { score.restated++; continue; }
+			let step_a = pinned_orbit_step(shell.pillbox_orbit_states);
+			let step_b = pinned_orbit_step(next.pillbox_orbit_states);
+			if (step_a === null || step_b === null) {
+				score.unpinned++;
+				continue;
+			}
+			let advance = reference.get(`${shell.pillbox_source_x}:` +
+				`${shell.pillbox_source_y}:${index_of.get(shell)}:` +
+				`${index_of.get(next)}`);
+			if (advance === undefined) score.unvouched++;
+			else if (step_b - step_a === advance) score.vouched++;
+			else {
+				score.contradicted++;
+				if (score.examples.length < SCORE_EXAMPLES_PER_CLIENT) {
+					score.examples.push({
+						time: snapshots[index_of.get(shell)].time,
+						next_time: snapshots[index_of.get(next)].time,
+						pillbox_source_x: shell.pillbox_source_x,
+						pillbox_source_y: shell.pillbox_source_y,
+						step: step_a, next_step: step_b, advance,
+						stitched: !!next.stitched,
+					});
+				}
+			}
+		}
+	}
+	return score;
+}
+const SCORE_EXAMPLES_PER_CLIENT = 8;
 
 /* A join the ordinary physics refused, admissible only because the
  * sender's record clock is known to lie: the start must sit forward on
@@ -4894,7 +4972,7 @@ const BoloMotion = {
 	build_shell_positions, build_shell_births, build_shell_fall_segments,
 	tank_position_at, tank_direction_at, lgm_position_at, shell_position_at,
 	shell_birth_positions_at, shell_fall_positions_at,
-	describe_unmatched_terminals, describe_unfated_ends,
+	describe_unmatched_terminals, describe_unfated_ends, score_pill_links,
 	reset_flow_component_stats,
 	flow_component_stats: () => flow_component_stats,
 };
