@@ -53,7 +53,7 @@ The viewer reconstructs full game state (terrain, pills, bases, tanks, men, shel
   parser preserved that knowledge.
 - Two anonymous Bolo players who recorded and provided a large corpus of
   real log files from the 2000s.
-- **[bolorama](https://github.com/astrospark/bolorama)** (Astrospark
+- **[Bolorama](https://github.com/astrospark/bolorama)** (Astrospark
   Technologies) — independently reverse-engineered Bolo UDP wire protocol,
   used to cross-check opcode layouts.
 - **[WinBolo](https://github.com/kippandrew/winbolo)** (**John Morrison**,
