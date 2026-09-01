@@ -53,7 +53,7 @@ if (!fs.existsSync(log1)) {
 	check("recorder identified with earliest name", game.recorder,
 		{ player: 0, name: "Jarvis@wolf.step.uwu.com" });
 
-	let shell_metrics = { total: 0, matched: 0, falls: 0 };
+	let shell_metrics = { total: 0, matched: 0, falls: 0, unlinked: 0 };
 	let matched_effect_terminals = new Set();
 	for (let snapshots of game.shell_positions) {
 		for (let snapshot of snapshots) {
@@ -65,20 +65,31 @@ if (!fs.existsSync(log1)) {
 			for (let shell of snapshot.shells) {
 				shell_metrics.total++;
 				if (shell.next_time !== undefined) shell_metrics.matched++;
+				else if (!shell.matched_from_previous) shell_metrics.unlinked++;
 				if (shell.next_terminal_type === "point") shell_metrics.falls++;
 			}
 		}
 	}
 	let synthetic_births = game.shell_births.reduce((count, births) =>
 		count + births.length, 0);
-	check("fixture shell interpolation remains broadly effective", [
+	/* The floors sit a few dozen shells under the measured state
+	 * (73,454 matched forward, 137 unlinked, 8,467 falls, 20,731 births
+	 * at `5cce199`, per `report-interpolation-rates.cjs -f` on this
+	 * fixture), so a regression of a tenth of a percent fails here rather
+	 * than passing under a floor set when the engine matched ninety
+	 * percent. An honest give-back that crosses a floor -- invented
+	 * explanations leaving the ledger, as at `90925b0` -- moves the floor
+	 * with its measurement on record; the exact terminal census below is
+	 * the tighter lock on the fate side. */
+	check("fixture shell interpolation holds its measured records", [
 		shell_metrics.total,
-		shell_metrics.matched >= 67000,
-		shell_metrics.falls >= 8000,
-		synthetic_births >= 8500,
-	], [73753, true, true, true]);
+		shell_metrics.matched >= 73400,
+		shell_metrics.unlinked <= 150,
+		shell_metrics.falls >= 8450,
+		synthetic_births >= 20700,
+	], [73753, true, true, true, true]);
 	check("fixture impact effects follow matched shell arrival", [
-		matched_effect_terminals.size >= 18000,
+		matched_effect_terminals.size >= 20650,
 		[...matched_effect_terminals].every(terminal =>
 			terminal.effect.time === terminal.match_time),
 		[...matched_effect_terminals].some(terminal =>
