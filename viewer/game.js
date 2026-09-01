@@ -166,6 +166,12 @@ function mine_square(s, x, y) {
 	if (t >= 2 && t <= 7) set_terrain(s, x, y, t + 8);
 }
 
+/* Remove a mine from a square, leaving the underlying terrain. */
+function demine_square(s, x, y) {
+	const t = s.grid[y * MAP_SIZE + x];
+	if (t >= 10 && t <= 15) set_terrain(s, x, y, t - 8);
+}
+
 function base_at(s, x, y) {
 	return s.bases.some(b => b.x === x && b.y === y);
 }
@@ -263,6 +269,9 @@ function dump_carried_pills(s, player, x, y) {
 			p.y = y;
 			p.armour = 0;
 		}
+		/* A dumped pill landing on a mined square removes the mine
+		 * (emulator-observed); no explosion, the mine just vanishes. */
+		demine_square(s, p.x, p.y);
 	}
 }
 
