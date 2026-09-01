@@ -69,6 +69,26 @@ are:
    terminals are interchangeable and carry multiplicity (capacity), since
    two shells can die in one tile in one interval.
 
+Before any of that competition, verbatim re-sends are taken off the
+table (`link_stale_restatements`). On a fast token ring (a two-player
+low-latency game circulates the token every 2–4 ticks, against the
+corpus-normal ~12) the sender's packet rate outpaces its shell
+resampling, and over half of all closely-spaced statements restate the
+previous record's samples byte-for-byte under a fresh receive stamp.
+Zero displacement over positive time is impossible physics for a live
+shell, so the pairwise matcher rightly refuses it — but left there, each
+re-send seeds a parallel chain that divides the true statement stream
+with the original and later starves and pops mid-air. The byte equality
+that breaks the physics is itself proof of identity within a few ticks
+(heads are exact; the same shell has provably moved, no stream-mate can
+have arrived, and an orbit never revisits a pixel), so a verbatim pair —
+members must repeat their chained offset bytes too — is linked as one
+statement re-sent: identity, zero advance, hypothesis states copied
+verbatim. The same fast-ring regime lands two sender packets inside one
+recorder tick, so a zero-duration snapshot pair is matched rather than
+skipped: record order still orders the statements, and the orbit tables
+arbitrate without needing the clock.
+
 Assignment is deliberately conservative: only **mutually best** pairs are
 accepted, and only when each wins by a margin (`SHELL_MATCH_MARGIN`) over
 its alternatives. An unmatched pop is safer than a smooth but invented path.

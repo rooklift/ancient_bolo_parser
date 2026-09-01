@@ -42,6 +42,15 @@ const SHELL_MATCH_MARGIN = 3;
 const SHELL_EQUIVALENT_ENDPOINT_PIXELS = 2;
 const SHELL_EQUIVALENT_TIME_TICKS = 1;
 const SHELL_TANK_BIRTH_ERROR_PIXELS = 16;
+/* The widest receive-stamp gap across which a verbatim shell restatement
+ * is read as the SAME statement re-sent rather than a different shell
+ * (link_stale_restatements). The bound is what makes byte equality proof:
+ * within it the same shell has provably moved (2 px/tick, and heads are
+ * exact), and no stream-mate can have arrived — an angry pill fires at
+ * most every 5-6 ticks, and an orbit never revisits a pixel. On the
+ * corpus's normal ~12-tick restatement cadence the bound is never even
+ * reached, so the pass only engages on fast-ring logs. */
+const STALE_RESTATEMENT_MAX_TICKS = 4;
 const PILLBOX_ORBITS = PillboxShellOrbits.orbits;
 const PILLBOX_ORBITS_BY_BRADIAN = new Map(PILLBOX_ORBITS.map(orbit =>
 	[orbit.bradian, orbit]));
@@ -1172,7 +1181,7 @@ function mark_unseen_pillbox_terminals(source_groups, terminals,
 
 function mark_new_pillbox_shells(previous, next) {
 	let duration = next.time - previous.time;
-	if (duration <= 0 || duration > MAX_POSITION_INTERPOLATION_TICKS) return;
+	if (duration < 0 || duration > MAX_POSITION_INTERPOLATION_TICKS) return;
 	let maximum_distance = duration * SHELL_SPEED_PIXELS_PER_TICK +
 		SHELL_MATCH_ERROR_PIXELS * 2;
 	let source_groups = [];
@@ -1199,6 +1208,9 @@ function mark_new_pillbox_shells(previous, next) {
 		}]) {
 			if (origin.pixel_x === undefined) continue;
 			for (let shell of next.shells) {
+				/* A verbatim re-send already carries its identity; letting it
+				 * consume fire capacity would attribute the shot twice. */
+				if (shell.matched_from_previous) continue;
 				if (shell.direction !== group.direction) continue;
 				let delta_x = shell.pixel_x - origin.pixel_x;
 				let delta_y = shell.pixel_y - origin.pixel_y;
@@ -1821,6 +1833,92 @@ function enforce_roster_lockstep_candidates(previous_shells, target_groups,
 	return true;
 }
 
+/* On a fast token ring the sender's packet rate outpaces its shell
+ * resampling, so consecutive records routinely restate the previous
+ * record's shell samples verbatim under a fresh receive stamp — over
+ * half of all closely-spaced statements in the fast-ring logs that
+ * motivated this. Zero displacement over positive time is impossible
+ * physics for a live shell, so the pairwise matcher rightly refuses
+ * such a continuation; without this pass each re-send seeds a parallel
+ * chain that divides the true statement stream with the original and
+ * later starves and pops mid-air. But the byte equality that breaks
+ * the physics is itself proof of identity within
+ * STALE_RESTATEMENT_MAX_TICKS (see the constant for the argument), so
+ * a verbatim pair is linked as one statement re-sent: an identity
+ * continuation with zero advance, every hypothesis state copied
+ * verbatim rather than advanced. A member (index > 0) must repeat its
+ * chained offset bytes as well as its reconstructed position, making
+ * the equality bytewise for the whole list prefix. The re-send's stamp
+ * still heads the ongoing chain, understating the next link's true
+ * flight time by at most the gap — the same small clock lie ordinary
+ * stamp jitter already inflicts, absorbed by the matcher's margins and
+ * the smoothing pass. Runs before birth attribution and matching so a
+ * re-send can neither consume a pill-fire's capacity nor compete as a
+ * fresh identity. */
+function link_stale_restatements(previous, next) {
+	let duration = next.time - previous.time;
+	if (duration < 0 || duration > STALE_RESTATEMENT_MAX_TICKS) return;
+	let pairs = [];
+	let twin_uses = new Map();
+	for (let target of next.shells) {
+		if (target.matched_from_previous) continue;
+		let twin = null, ambiguous = false;
+		for (let shell of previous.shells) {
+			if (shell.next_time !== undefined) continue;
+			if (shell.direction !== target.direction ||
+				shell.pixel_x !== target.pixel_x ||
+				shell.pixel_y !== target.pixel_y ||
+				(shell.position_uncertainty || 0) !==
+					(target.position_uncertainty || 0) ||
+				shell.shell_offset_x !== target.shell_offset_x ||
+				shell.shell_offset_y !== target.shell_offset_y) continue;
+			if (twin) { ambiguous = true; break; }
+			twin = shell;
+		}
+		if (!twin || ambiguous) continue;
+		twin_uses.set(twin, (twin_uses.get(twin) || 0) + 1);
+		pairs.push({ twin, target });
+	}
+	for (let { twin, target } of pairs) {
+		/* Two byte-identical statements in ONE record would make the twin
+		 * ambiguous the other way; stand down rather than guess. */
+		if (twin_uses.get(twin) !== 1) continue;
+		twin.next_time = next.time;
+		twin.next_pixel_x = twin.pillbox_orbit_pixel_x ??
+			twin.tank_exact_pixel_x ?? target.pixel_x;
+		twin.next_pixel_y = twin.pillbox_orbit_pixel_y ??
+			twin.tank_exact_pixel_y ?? target.pixel_y;
+		twin.next_shell = target;
+		target.matched_from_previous = true;
+		target.stale_restatement = true;
+		if (twin.pillbox_source_x !== undefined) {
+			target.pillbox_source_x = twin.pillbox_source_x;
+			target.pillbox_source_y = twin.pillbox_source_y;
+			target.pillbox_source_distance = twin.pillbox_source_distance;
+		}
+		if (twin.birth_pixel_x !== undefined) {
+			target.birth_time = twin.birth_time;
+			target.birth_pixel_x = twin.birth_pixel_x;
+			target.birth_pixel_y = twin.birth_pixel_y;
+		}
+		if (twin.pillbox_orbit_states) {
+			set_pillbox_orbit_states(target, twin.pillbox_orbit_states);
+		}
+		if (twin.tank_bradian_states) {
+			set_tank_bradian_states(target,
+				twin.tank_bradian_states.map(state => ({ ...state })));
+		}
+		if (twin.heading_origin_x !== undefined) {
+			target.heading_origin_x = twin.heading_origin_x;
+			target.heading_origin_y = twin.heading_origin_y;
+		}
+		if (twin.heading_x !== undefined) {
+			target.heading_x = twin.heading_x;
+			target.heading_y = twin.heading_y;
+		}
+	}
+}
+
 /* Match only mutually best candidates, and only when each wins by a useful
  * margin over its alternatives. Shell lists carry no IDs and may gain or
  * lose entries at any restatement, so an unmatched pop is safer than a
@@ -1829,16 +1927,27 @@ function enforce_roster_lockstep_candidates(previous_shells, target_groups,
  * from the track's first trusted point or weapon source. */
 function match_shell_snapshots(previous, next) {
 	let duration = next.time - previous.time;
-	if (duration <= 0 || duration > MAX_SHELL_INTERPOLATION_TICKS) return;
+	/* A zero gap is real on a fast ring: two of the sender's packets can
+	 * land inside one recorder tick, the second a step further along.
+	 * Record order still orders the statements, and the cost machinery
+	 * needs no time to arbitrate -- the orbit tables demand a forward
+	 * step and exact geometry whatever the stamps claim -- so a tied
+	 * stamp is matched rather than fragmenting every chain that crosses
+	 * it. Negative durations stay refused. */
+	if (duration < 0 || duration > MAX_SHELL_INTERPOLATION_TICKS) return;
+	link_stale_restatements(previous, next);
 	mark_new_pillbox_shells(previous, next);
 
 	let target_groups = shell_target_groups(next);
 	let by_previous = Array.from({ length: previous.shells.length }, () => []);
 	let by_next = Array.from({ length: target_groups.length }, () => []);
 	for (let previous_index = 0; previous_index < previous.shells.length; previous_index++) {
+		/* Already continued by its verbatim re-send; its story goes on from
+		 * the re-send's statement, not from here. */
+		if (previous.shells[previous_index].next_time !== undefined) continue;
 		for (let next_index = 0; next_index < target_groups.length; next_index++) {
 			let target = target_groups[next_index].target;
-			if (target.starts_at_pillbox) continue;
+			if (target.starts_at_pillbox || target.matched_from_previous) continue;
 			let match;
 			if (target.terminal) {
 				if (duration > MAX_POSITION_INTERPOLATION_TICKS) continue;
