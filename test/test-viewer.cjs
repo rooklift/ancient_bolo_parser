@@ -36,6 +36,9 @@ if (!fs.existsSync(log1)) {
 	const recs = [...BoloLog.records(buf)];
 	check("records parsed (CJS parser)", recs.length, 120840);
 
+	/* Off in the viewer, on for measurement: the election record the
+	 * scoring checks below read. */
+	require("../viewer/motion.js").set_roster_vote_recording(true);
 	const game = BoloGame.build(recs);
 	check("map name", game.final.gameInfo.mapName, "Fly Swatter IV");
 	check("pills", game.final.pills.length, 16);
