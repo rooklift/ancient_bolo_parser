@@ -2961,7 +2961,14 @@ function absorb_intermediate_observations(snapshots, end, start,
 		? { pillbox_orbit_states: target_orbit_states } : null);
 	let absorbed = [];
 	let floor_step = -1;
-	for (let snapshot of snapshots) {
+	/* Snapshots are built in record order and so time-sorted, so the
+	 * gap's slice starts at a binary-searched index rather than a scan
+	 * from the replay's first record: this runs once per stitch and per
+	 * forced terminal, and the scan made the pass quadratic in replay
+	 * length. */
+	for (let index = first_at_or_after(snapshots, end.time);
+		index < snapshots.length; index++) {
+		let snapshot = snapshots[index];
 		if (snapshot.time <= end.time) continue;
 		if (snapshot.time >= final_time) break;
 		let candidates = [];
@@ -4262,18 +4269,29 @@ function resolve_residual_shell_fates(snapshots) {
 	 * resolver claimed for an origin or an impact is not available to
 	 * explain anything else, and counting it again would dress exhausted
 	 * sources up as open stories. */
+	let creations_by_time = new Map();
+	for (let creation of creation_groups) {
+		let run = creations_by_time.get(creation.time);
+		if (!run) creations_by_time.set(creation.time, run = []);
+		run.push(creation);
+	}
 	for (let snapshot of snapshots) {
 		for (let [key, kind] of [
 			["unclaimed_pillbox_sources", "pill"],
 			["unclaimed_tank_sources", "tank"],
 		]) {
 			if (!snapshot[key]) continue;
-			snapshot[key] = creation_groups
-				.filter(creation => creation.kind === kind &&
-					creation.time === snapshot.time)
-				.map(creation => ({ ...creation, count: creation.count -
-					(creation_spent.get(creation) || 0) }))
-				.filter(creation => creation.count > 0);
+			/* Indexed by time rather than filtered per snapshot: the
+			 * filter walked every creation group for every snapshot,
+			 * quadratic in replay length and the pass's largest cost. */
+			let remaining = [];
+			for (let creation of creations_by_time.get(snapshot.time) || []) {
+				if (creation.kind !== kind) continue;
+				let count = creation.count -
+					(creation_spent.get(creation) || 0);
+				if (count > 0) remaining.push({ ...creation, count });
+			}
+			snapshot[key] = remaining;
 		}
 	}
 }
