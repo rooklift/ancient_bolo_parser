@@ -235,6 +235,22 @@ births -27%, every audit lie metric down. What remains is mostly the
 stitching pass reading the time-keyed vote table on same-time pairs
 (item 12). See `docs/interpolation_tests.md`.
 
+## 12. The vote table keyed by snapshot index -- measured null, REVERTED
+
+The `0bfd71d` links run's residue looked like the same-time key
+collision noted when the scorer was built: 29 of the 89 surviving
+contradictions were stitched links on 3-4 tick pairs carrying exactly
+twice the elected advance. Keying the stitching and residual passes'
+vote table by snapshot index (`84c4605`) was byte-identical on both
+fixtures and, on the corpus, a null on its target (89 -> 89, the same
+29) at a cost of 8 terminals, 8 forward matches and 22 forward-paired
+pops. Reverted. The reading: the composed two-hop advance is the right
+answer for a join across a same-time pair, so those 29 are most likely
+the scorer's yardstick being wrong there, not wrong links. On the
+shelf: a per-link record of which pass made it (pairwise, stitch,
+dilated, residual, absorption -- `stitched` is one flag set by
+several), which would settle it in one run.
+
 ## Ideas shelf
 
 Unscheduled, in no particular order; each was sized during the lockstep
