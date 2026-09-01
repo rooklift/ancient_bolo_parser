@@ -217,7 +217,7 @@ at mixed advances -- wrong links, the mirror of the fixture scene --
 and the election bookkeeping exists to say whether the vote stood
 down or was never held; see the corpus file's links-run section.
 
-## 11. The symmetric election and the orphan tie-break -- built, corpus pending
+## 11. The symmetric election and the orphan tie-break -- DONE
 
 The second complaint the vouched-link metric produced, read straight
 off the `41bb718` links run: every pairwise contradiction was a
@@ -229,7 +229,11 @@ either vote clears the gates with the other leading the same advance,
 and an orphan-free leader wins a margin-one or tied election when every
 rival within one leaves a high-step landing without a source. Scored
 against all 140 stand-down scenes before building: 110 rescued, all
-agreeing with the post-hoc vote. See `docs/interpolation_tests.md`.
+agreeing with the post-hoc vote. Corpus: matched forward +675 with
+`pop_outs` -675, unlinked -236, contradictions 437 -> 89, stream
+births -27%, every audit lie metric down. What remains is mostly the
+stitching pass reading the time-keyed vote table on same-time pairs
+(item 12). See `docs/interpolation_tests.md`.
 
 ## Ideas shelf
 
