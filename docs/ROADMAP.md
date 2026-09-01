@@ -235,6 +235,17 @@ births -27%, every audit lie metric down. What remains is mostly the
 stitching pass reading the time-keyed vote table on same-time pairs
 (item 12). See `docs/interpolation_tests.md`.
 
+## 12. The vote table keyed by snapshot index -- built, corpus pending
+
+The `0bfd71d` links run's residue: 29 of the 89 surviving
+contradictions were stitched links on 3-4 tick pairs carrying exactly
+twice the elected advance -- the stitching pass reading a time-keyed
+vote table on same-time pairs, where the composed two-hop span
+overwrites the one-hop one. Ends and starts now carry their snapshot
+index and the table is keyed by it. Byte-identical on both fixtures
+(their same-time pairs are verbatim re-sends, which never vote), so
+the corpus row is the whole verdict.
+
 ## Ideas shelf
 
 Unscheduled, in no particular order; each was sized during the lockstep
