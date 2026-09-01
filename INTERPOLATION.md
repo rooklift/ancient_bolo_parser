@@ -231,11 +231,17 @@ filtering over a finite state space:
   margin of two prunes every member's off-lockstep continuation. A
   near-regular ladder maps onto its own future at the true advance
   minus the fire cadence too, and the deciding vote between the two is
-  often cast by a shell that in fact died over the pair, so members
-  holding a terminal candidate abstain from the vote that must pass the
-  gates, while the full roster must still rank the same advance first.
-  The fixture doc's "doubtful voters" section has the scene that
-  motivated it.
+  often cast by a shell that in fact died over the pair, so the
+  election is held with and without the members holding a terminal
+  candidate and passes when either vote clears the gates while the
+  other still ranks the same advance first. And because a long
+  near-regular ladder lets the alias score within one of the truth
+  forever, a margin-one or tied election goes to an orphan-free leader
+  when every rival within one leaves a high-step landing with no
+  source one advance behind it -- structural under the alias,
+  impossible under the truth unless a source went unpinned. The
+  fixture doc's "doubtful voters" and "symmetric election" sections
+  have the scenes and the corpus reading that motivated each.
 - When the surviving states all agree on one pixel, the shell's **exact
   true position** in the underlying simulation is recovered
   (`pillbox_orbit_pixel_x/y`) — usually there is only one possibility —

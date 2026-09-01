@@ -831,6 +831,55 @@ Fixture, against the `3b9d80d` state:
   backwards pops +25 on the books -- see the branch entry in
   [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md).
 
+## The symmetric election and the orphan tie-break
+
+What the corpus links run at `41bb718` (every contradiction with the
+matcher's own election attached) said, read off the file: of 340
+pairwise contradictions, 335 were **stand-downs** and none a passed
+vote, and in 369 of all 376 stand-downs the matcher's best advance was
+the post-hoc vote's -- lost by a margin of one in 310 and a tie in 66.
+The ladder alias is structural: a near-regular ladder maps onto its
+own future at the true advance plus or minus its period, and a long
+landing roster lets that alias score within one of the truth forever,
+so the margin-2 gate is unattainable for long ladders. The run also
+caught the first abstention dial regressing: in 84 of the 140 pairwise
+stand-down scenes the FULL roster cleared the gates and only the
+thinned confident vote (three of five members dying and abstaining)
+blocked it -- contradictions that dial introduced, hidden inside a net
++14.
+
+Two rules, scored against those 140 scenes before touching the engine
+(`docs/interpolation_tests_corpus.md` has the matrix):
+
+* **Symmetric abstention.** The election passes when either vote
+  clears the gates while the other still ranks the same advance first
+  (a confident roster too small to vote does not object). Rescues 84
+  scenes.
+* **Orphan tie-break.** An orphan landing is a pinned target beyond
+  the advance with no pinned source one advance behind it; a newborn
+  sits at step <= advance, so under the true advance an orphan can only
+  be a source the matcher failed to pin, while under the alias they are
+  structural. When the gate fails by one or a tie, an orphan-free
+  leader whose every rival within one carries an orphan takes the
+  election. Rescues 26 more; all 110 agree with the post-hoc vote and
+  none disagree.
+
+Fixture, against `2b34a87`:
+
+* `shells_matched_forward` 73,460 -> 73,461, `shells_stream_birth`
+  4 -> 3, `shell_births` 20,727 -> 20,726; `links_pill_unpinned`
+  51 -> 48, vouched 20,049 -> 20,060, contradictions still 0;
+  `roster_votes_passed` 3,171 -> 3,720 (stood down 2,538 -> 1,989).
+* Audit: `pop_outs` 293 -> 292, `rate_links_steady`
+  0.978660 -> 0.978888, hover / rush / seam untouched at 1 / 0 / 0.
+* Fast-ring fixture: matching and audit byte-identical; elections
+  passed 4,830 -> 5,289.
+* Corpus: awaits a holder run.
+
+The election record now also carries the pill's unpinned member count
+(`unvoted(2 unpinned)`, `passed:full_tiebreak(1 unpinned)@...`), so an
+orphan under the true advance can be read as the unpinned source it is.
+
 ## Findings
 
 * **The branch line now leads the branch point on every headline metric.** At
