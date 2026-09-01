@@ -193,6 +193,14 @@ function empty_totals() {
 		tank_direction_ticks_interpolated: null,
 
 		shell_births: null,
+
+		/* Residual-flow components: what forced_bipartite_assignments in
+		 * viewer/motion.js actually solves, and whether its pathological-
+		 * component cap ever fired. Keys ending in _max take the maximum
+		 * when merged rather than the sum. */
+		flow_components: null,
+		flow_component_edges_max: null,
+		flow_components_over_cap: null,
 	};
 }
 
@@ -200,6 +208,11 @@ function empty_totals() {
  * that never had the field reports "-" rather than a misleading zero. */
 function add(totals, key, amount) {
 	totals[key] = (totals[key] === null ? 0 : totals[key]) + amount;
+}
+
+function add_max(totals, key, amount) {
+	totals[key] = totals[key] === null ? amount
+		: Math.max(totals[key], amount);
 }
 
 function add_by_type(totals, key, type, amount) {
@@ -355,7 +368,18 @@ function describe_ends(diagnostics, engines, game, file) {
 function count_file(totals, engines, file, diagnostics) {
 	let bytes = new Uint8Array(fs.readFileSync(file));
 	let records = [...engines.log.records(bytes)];
+	/* The motion module's flow-component counters accumulate across
+	 * builds; reset so the read after this build is this file's alone. */
+	if (typeof engines.motion?.reset_flow_component_stats === "function") {
+		engines.motion.reset_flow_component_stats();
+	}
 	let game = engines.game.build(records);
+	if (typeof engines.motion?.flow_component_stats === "function") {
+		let flow = engines.motion.flow_component_stats();
+		add(totals, "flow_components", flow.components);
+		add_max(totals, "flow_component_edges_max", flow.edges_max);
+		add(totals, "flow_components_over_cap", flow.over_cap);
+	}
 	if (diagnostics?.terminals) {
 		describe_terminals(diagnostics.terminals, engines, game, file);
 	}
@@ -560,7 +584,8 @@ function merge_totals(totals, part) {
 				totals[key].set(type, (totals[key].get(type) || 0) + count);
 			}
 		} else if (part[key] !== null) {
-			totals[key] = (totals[key] === null ? 0 : totals[key]) + part[key];
+			if (key.endsWith("_max")) add_max(totals, key, part[key]);
+			else totals[key] = (totals[key] === null ? 0 : totals[key]) + part[key];
 		}
 	}
 }
@@ -578,8 +603,7 @@ function merge_diagnostics(diagnostics, part) {
 }
 
 function run_worker() {
-	let engines = load_engines(
-		workerData.describe_terminals || workerData.describe_ends);
+	let engines = load_engines(true);
 	parentPort.on("message", file => {
 		let totals = empty_totals();
 		let diagnostics = make_diagnostics(
@@ -599,7 +623,7 @@ function run_worker() {
 function main() {
 	let { mode, target, describe_terminals, describe_ends, workers } =
 		parse_args(process.argv.slice(2));
-	let engines = load_engines(describe_terminals || describe_ends);
+	let engines = load_engines(true);
 	let files = replay_files(mode, target);
 	if (!files.length) usage(`no replay files found at ${target}`);
 	let totals = empty_totals();
