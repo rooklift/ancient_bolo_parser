@@ -939,7 +939,14 @@ function build(records) {
 		for (let sub of rec.subpackets) {
 			if (sub.type === "pillbox_fires") {
 				let pill = s.pills[sub.pillbox];
-				let alternate = sub.direction === 0 && sub.pillbox > 0
+				/* The direction-0 index fault is Bolo's BRAD_TO_PACK(x) =
+				 * ((x)+8)>>4 overflowing to 0x10 for west-of-north bradians
+				 * and ORing into the index nibble: the report is true_n|1,
+				 * so only an ODD index can be corrupt (to n-1), and an even
+				 * one is always right — corpus-verified: 0 west-side shots
+				 * in 1,650 even-index events, all 2,123 impossible carried
+				 * fires odd. See FORMAT.md [E:pill-fire-index]. */
+				let alternate = sub.direction === 0 && (sub.pillbox & 1)
 					? s.pills[sub.pillbox - 1] : null;
 				let pill_available = pill && pill.inTank === null;
 				let alternate_available = alternate && alternate.inTank === null;
