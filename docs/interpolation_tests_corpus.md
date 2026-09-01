@@ -80,7 +80,8 @@ the `97fa412` run recorded in the headline table: `main`'s HEAD is now
 measured, and the current measured state of record is the
 fast-ring re-sends branch at `917077a` (see its section), which
 carries both shell-side records; `029acac` keeps both terminal-side
-ones. (Earlier
+ones; the `3b9d80d` run adds the vouched-link columns with every
+matching metric byte-identical, see its section. (Earlier
 revisions of this paragraph pinned the file at `926f391`/`4572cff`, then at
 `a74033a`/`380e333`; later sections were measured from live checkouts of the
 named commits, per their sections.)
@@ -1916,6 +1917,38 @@ and never structure. Measured:
 
 Post-smoothing the corpus draws between the untouched normal-cadence
 fixture and the smoothed fast-ring one, as composition predicts.
+
+## The vouched-link metric -- `3b9d80d`, measurement only
+
+No engine change: `score_pill_links` bins every settled pill link
+against the statement-roster vote after the fact (the fixture file's
+section carries the definition, the six fixture contradictions and the
+fast-ring keying finding that made the scorer key by snapshot index).
+Corpus verification, run by the corpus holder at `3b9d80d`
+(`docs/corpus_runs/3b9d80d-report.txt`):
+
+* The engine is provably untouched: every pre-existing line of the
+  report is byte-identical to the `917077a` run, `content_hash` aside,
+  so the matching state of record stays `917077a` and this run adds
+  columns rather than moving any.
+* 8,162,955 shell-to-shell links: 3,023,189 from chains with no pill
+  source, 1,393 visual joins, 19,867 verbatim re-sends, 29,221 with an
+  unpinned end (item 8's stitch-exactness debt is 0.36% of all links
+  at corpus scale), leaving 5,089,285 scored.
+* `rate_links_pill_vouched` 0.569387 (2,897,774),
+  `rate_links_pill_contradicted` **0.000083** (423), unvouched
+  2,191,088 (43.1%).
+* The contradiction rate is under half the fixture's 0.000182, so the
+  corpus is no worse than the hand-picked sample on the one truth axis
+  now available. 423 links in 5.09 million is the alarm's baseline: a
+  change that moves it by tens is worth a look, one that moves it by
+  hundreds is a regression whatever the coverage rates say.
+* The unvouched 43% is the honest size of the residue the roster vote
+  cannot see -- pairs where no dominant advance passed the score-3 /
+  margin-2 gates: sparse pills, dying and newborn shells thinning the
+  roster, dilated gaps. Those links stand on cost margins alone, as
+  they always did; the metric now says how many there are, and sizes
+  whether another dial on that residue is worth building.
 
 ## The same-record starvation shape -- diagnostic, no dial
 

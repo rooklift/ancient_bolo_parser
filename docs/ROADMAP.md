@@ -227,8 +227,9 @@ arc but deliberately not started.
   all one client, the roster-ladder off-by-one shape, the metric's
   first named scenes. Fast ring: 0 contradictions once keyed by
   snapshot index (time keys collide on same-time pairs there; the
-  engine's own table still uses them -- a quirk on the books). Corpus
-  figures await a holder run. See `docs/interpolation_tests.md`.
+  engine's own table still uses them -- a quirk on the books). Corpus: 5,089,285 scored, 0.569 vouched, 423
+  contradicted (0.000083), every matching metric byte-identical. See
+  `docs/interpolation_tests.md` and the corpus file.
 * **The pace / drawn-speed residue.** Rushed terminal links (68,540
   corpus, 3.0+ px/tick final hops) are the one class every lockstep
   dial nudges the wrong way by a few dozen: a lockstep-verified
