@@ -729,13 +729,27 @@ Fixture (`n20021018.2`):
 * `rate_links_pill_vouched` 0.608351 (20,019),
   `rate_links_pill_contradicted` 0.000182 (6), unvouched 12,882.
 * The six contradictions are all pairwise links on client 2, and they
-  look real: at tick 9,726,673 three shells of the pill at (1872, 2272)
-  are linked twelve ticks on with step advances of 6, 5 and 5 while the
-  pill's roster elected 8 -- the roster-ladder off-by-one shape, each
-  link one stream-mate short, the vote at match time evidently not
-  passing where the post-hoc one does. The others, at 9,627,041, are a
-  single pill's links advancing 9 against an elected 6. The first scenes
-  the metric has named; on the books, not chased.
+  look real. Five are one scene: records #111355 -> #111359 (player 2,
+  ticks 9,726,673 -> 9,726,685, 7521.1 s into the replay), the pill at
+  pixel (1872, 2272) with seven live shells on bradian 231 at steps
+  6/9/11/14/17/19/22, restated twelve ticks later at 14/17/19/22/25.
+  The engine linked 19->25, 17->22, 14->19, 11->17 and 9->14 -- step
+  advances of 6, 5, 5, 6, 5, mixed within one pill over one interval,
+  which lockstep forbids -- popped the step-6 shell, and matched 22 to
+  a tank-hit box. The roster elects 8 (five exact landings against
+  three for 5 and two for 6), under which every shell advances
+  together, 6 becomes the 14, 17 becomes the 25 that hits the tank,
+  and 19 and 22 are the two deaths. Record #111355 arrived 16 ticks
+  after the sender's previous record and #111359 a punctual 12 after
+  it: the first stamp was late, the interval reads compressed, and
+  cost preferred the shorter hops. At match time the deep list members
+  were still unpinned (chained-offset quantisation), so the roster vote
+  had too few landings to pass and stood down; the chain's later links
+  pinned them, and the post-hoc vote sees the ladder shifted one rung.
+  The sixth, records #81575 -> #81579 (ticks 9,627,041 -> 9,627,057),
+  is a single link of the pill at (2064, 1792) advancing 9 against an
+  elected 6. The first scenes the metric has named; on the books, not
+  chased.
 
 Fast-ring fixture (`040601.6`):
 
