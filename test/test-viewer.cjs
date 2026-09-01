@@ -460,6 +460,23 @@ if (!fs.existsSync(log1)) {
 	check("second pill skips the building, takes the next river square", [st.pills[1].x, st.pills[1].y], [11, 9]);
 }
 
+// A dumped pill landing on a mined square removes the mine (emulator-
+// observed): no explosion, the mine just vanishes. Unmined neighbours
+// are left alone.
+{
+	const st = BoloGame.initial_state();
+	st.present[0] = true; st.names[0] = "p0";
+	st.grid.fill(7, 0, 256 * 20); /* grass rows 0-19 */
+	st.grid[10 * 256 + 10] = 15; /* mined grass on the death square */
+	st.grid[9 * 256 + 11] = 15; /* mined grass off the drop path */
+	st.tanks[0] = { x: 10, y: 10, px: 0, py: 0, dir: 0, inBoat: false, hidden: false, dying: false, speed: 0, lastSeen: 0, dead: false };
+	st.pills = [{ x: 0, y: 0, owner: 0, armour: 15, speed: 50, inTank: 0 }];
+	BoloGame.apply_record(st, { time: 0, seq: 0, status: 0, player: 0, tankStatus: 7, tankDir: 0, subpackets: [{ type: "tank_death", code: 1 }] }, null, null);
+	check("pill dumped on the mined death square", [st.pills[0].x, st.pills[0].y], [10, 10]);
+	check("mine removed under the dumped pill", st.grid[10 * 256 + 10], 7);
+	check("mine off the drop square survives", st.grid[9 * 256 + 11], 15);
+}
+
 // Shell-list offsets are CHAINED (each relative to the previous shell),
 // not relative to the list's first shell.
 {
