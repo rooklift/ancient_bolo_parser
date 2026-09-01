@@ -884,6 +884,70 @@ The election record now also carries the pill's unpinned member count
 (`unvoted(2 unpinned)`, `passed:full_tiebreak(1 unpinned)@...`), so an
 orphan under the true advance can be read as the unpinned source it is.
 
+## The sender's stale tank box -- either box counts
+
+Prompted by replay `122204.3_ds.fredde_vs_oscar`, tick 5264529 (about
+7554 records in): pill 10's direction-15 shell, pinned to bradian 233
+step 7 at (1964, 2337), draws no further, and the `tank_hit` on tank 3
+in player 2's very next record goes unexplained. Tank 3 is driving
+south-east at full speed across the shell's path. The orbit walks past
+the tank's south-west corner: at step 9 the shell centre is 2.8 px
+outside the *interpolated* track box, past the 2 px tolerance, and every
+later step is further out because the box keeps moving east while the
+shell moves west. Against the box the packet itself states -- tank 3's
+5264529 restatement -- step 10 is 2 px outside, inside the tolerance.
+
+That packet box is the honest one for this collision. It happened in
+the sender's simulation, and the sender's picture of a remote tank is
+the last restatement it received: in ring order player 3's record
+follows player 2's, so the freshest position player 2 had during the
+interval was the one the recorder had logged a round earlier, which is
+exactly the packet box. The track refinement (`422c5ff`) was written for
+a tank driving *into* a shell earlier than its packet box suggests; for
+a tank driving away it moves the box out from under a graze the sender
+registered. `pillbox_shell_terminal_match` now walks the orbit against
+the track box as before and, when that walk finds nothing, walks it
+again against the packet box, placing the effect on the box the shell
+entered. Only the pill-orbit branch changes: the ordinary ray branch
+never used the track.
+
+The first form of this (`ccc8ec3`) tested both boxes at every step and
+took the first entry. The corpus run caught what the fixture rates
+could not: `terminal_links_rushed` 69,287 -> 82,149 while terminal links
+rose by only 1,827. Every new rushed link was the same shape -- a shell
+last seen where the tank is *about to be*, inside the packet box at
+step zero, matched as a zero-length, zero-duration link where the
+track walk had found the collision a step or two on at 2 px/tick. The
+track now keeps first refusal over the whole walk, and the packet-box
+walk never starts at step zero. On the three local files that removes
+every one of the new rushed links (the three left on `040601.6` are
+rescued shells whose arrival is capped at a hit record one tick later,
+the cost already accepted for lagging events), at a price of two tank
+hits over the three files against the first form.
+
+Fixture, against `57dca12`:
+
+* `rate_shells_matched_forward` 0.996041 -> 0.996298
+* `rate_shells_unlinked` 0.001844 -> 0.001736 (136 -> 128)
+* `rate_terminals_matched` 0.859647 -> 0.860478 -- +20 net:
+  `tank_hit` 3189 -> 3212, `pillbox_damage` -2, `shell_falls` -1
+* `links_pill_vouched` 20060 -> 20080, contradicted still 0
+* Over the fixture, `040601.6` and the motivating replay together:
+  `tank_hit` 4285 -> 4327, unlinked 263 -> 248, contradicted 0
+* Audit: `pop_outs` 292 -> 273, `terminal_links_rushed` 461 -> 461
+  (the first form had it at 598), seam jumps still zero
+* A 3 px tolerance instead recovers the scene too (`tank_hit` 4317 over
+  the same three files) but is a fudge where this is the mechanism
+* Corpus: both forms are measured under `ccc8ec3` in
+  [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md); the
+  restructured walk (`30d5351`) keeps `tank_hit` +1,552 and pop-outs
+  -1,531 over 443 logs with `terminal_links_rushed` back within 124 of
+  baseline
+
+The scene is pinned in `test/test-viewer.cjs` ("tank-hit box the sender
+knew recovers a graze the track has left"), with the tank restated
+*after* the hit record as in the log, and fails on the previous engine.
+
 ## Findings
 
 * **The branch line now leads the branch point on every headline metric.** At
