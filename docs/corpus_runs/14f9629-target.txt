@@ -1,0 +1,79 @@
+======================================================================
+443 logs, 1,162,752 pill fires
+
+Direction-0 odd-index fires resolved to pill n-1 by hostility and range:
+       15,334   (both pills fit in 5,268; the named one is kept there)
+
+Fires set aside:
+    pill unresolved (missing or carried)           0
+    pill dead                                  5,598
+    sender has no live tank                      391
+    sender not hostile to the pill             4,125   (must be ~0; 166 of them direction 0 with an odd index)
+        of those: the sender's own pill 3; the sender's own records carried a 9n for
+        that pill within 100 ticks 1,674; the pill changed owner within 100 ticks 0
+        how the model holds them allied: from game info 4, an accept between the two 762,
+        only the clique merge of a third party's accept 3,356
+    sender's tank out of range                   187
+    sender the only hostile tank in range  1,050,183   (uninformative)
+
+Fires where the sender is taken as the target: 1,152,451; sender's tank hidden in forest
+at the time in 4,329 (0.4%) -- ~0 if a pill cannot target a hidden tank.
+
+Massaging: of those 1,152,451 fires the sender's tank is against the pill (within 24 px) in 14,763,
+and the fire direction equals the tank's facing in 5,763 of them (39.0%);
+apart from the pill the two coincide in 75,749 of 1,137,688 (6.7%; 1 in 16 by chance).
+
+Deflection: the direction nibble against the bearing to the sender's tank, in sectors,
+split by the tank's motion across the pill's line of sight (from its last two positions):
+                                     exact    1 off    2 off   3+ off
+    tank still or unknown          254,980   14,678       80    2,875
+    moving, nibble leads it        473,280  373,573    9,241    3,422
+    moving, nibble trails it             0   19,787      258      277
+    (a leading pill puts the moving rows' misses in the first of the two, not the second)
+
+Contested fires (two or more hostile tanks in range): 102,268
+    sender is the nearest hostile tank        95,485   93.4%
+    expected if the simulator were random     50,731   49.6%
+    sender nearest among VISIBLE hostiles     97,741   95.6%   (rivals hidden in forest excluded)
+    sender beaten by a nearer hostile tank, by margin:
+        1-8 px           4,401   4.3%
+        9-16 px          1,014   1.0%
+        17-32 px           764   0.7%
+        33-64 px           580   0.6%
+        over 64 px          24   0.0%
+        of the 6,783 losses, the nearer tank was hidden in forest in 2,257, and
+        restated less recently than the sender's in 834
+
+Aim, on the same contested fires (102,268): the direction nibble against
+the bearing from the pill to each tank, in 16 coarse sectors:
+    exactly at the sender's tank              66,381   64.9%
+    one sector off the sender, not rival      26,755   26.2%
+    at the nearest rival, not the sender         515   0.5%
+    ambiguous or neither                       8,617   8.4%   (1,021 of them massage-shaped: touching, fired along the facing)
+
+Allied-sender fires, the first 24 (replay names redacted):
+    052101~bd1e36 rec 69311 t701539 sender 0 pill 4 owner 1 ally:clique dir 12 facing 5 dist 57px hit-by-sender no
+    101502.1~ac361f rec 13430 t185195 sender 5 pill 5 owner 1 ally:clique dir 2 facing 12 dist 127px hit-by-sender no
+    101502.1~ac361f rec 13460 t185290 sender 5 pill 5 owner 1 ally:clique dir 2 facing 12 dist 127px hit-by-sender no
+    101502.1~ac361f rec 13495 t185395 sender 5 pill 5 owner 1 ally:clique dir 2 facing 12 dist 127px hit-by-sender no
+    101502.1~ac361f rec 13531 t185490 sender 5 pill 5 owner 1 ally:clique dir 2 facing 12 dist 127px hit-by-sender no
+    101502.1~ac361f rec 13572 t185598 sender 5 pill 5 owner 1 ally:clique dir 2 facing 12 dist 127px hit-by-sender no
+    101502.1~ac361f rec 13665 t185864 sender 0 pill 4 owner 5 ally:direct dir 4 facing 13 dist 103px hit-by-sender no
+    101502.1~ac361f rec 13690 t185950 sender 0 pill 4 owner 5 ally:direct dir 5 facing 13 dist 100px hit-by-sender no
+    101502.1~ac361f rec 13715 t186033 sender 3 pill 9 owner 2 ally:clique dir 4 facing 11 dist 114px hit-by-sender no
+    101502.1~ac361f rec 13720 t186033 sender 0 pill 4 owner 5 ally:direct dir 5 facing 13 dist 100px hit-by-sender yes
+    101502.1~ac361f rec 13720 t186033 sender 0 pill 4 owner 5 ally:direct dir 5 facing 13 dist 100px hit-by-sender yes
+    101502.1~ac361f rec 13726 t186047 sender 0 pill 4 owner 5 ally:direct dir 5 facing 13 dist 100px hit-by-sender yes
+    101502.1~ac361f rec 13726 t186047 sender 0 pill 4 owner 5 ally:direct dir 5 facing 13 dist 100px hit-by-sender yes
+    101502.1~ac361f rec 13726 t186047 sender 0 pill 4 owner 5 ally:direct dir 5 facing 13 dist 100px hit-by-sender yes
+    101502.1~ac361f rec 13732 t186064 sender 0 pill 4 owner 5 ally:direct dir 5 facing 13 dist 100px hit-by-sender yes
+    101502.1~ac361f rec 13732 t186064 sender 0 pill 4 owner 5 ally:direct dir 5 facing 13 dist 100px hit-by-sender yes
+    101502.1~ac361f rec 13732 t186064 sender 0 pill 4 owner 5 ally:direct dir 5 facing 13 dist 100px hit-by-sender yes
+    101502.1~ac361f rec 13751 t186124 sender 3 pill 9 owner 2 ally:clique dir 5 facing 11 dist 114px hit-by-sender no
+    101502.1~ac361f rec 13793 t186243 sender 3 pill 9 owner 2 ally:clique dir 6 facing 11 dist 58px hit-by-sender no
+    101502.1~ac361f rec 13793 t186243 sender 3 pill 9 owner 2 ally:clique dir 7 facing 11 dist 58px hit-by-sender no
+    101502.1~ac361f rec 13794 t186243 sender 1 pill 12 owner 0 ally:clique dir 13 facing 6 dist 118px hit-by-sender no
+    101502.1~ac361f rec 13799 t186261 sender 3 pill 9 owner 2 ally:clique dir 7 facing 11 dist 52px hit-by-sender no
+    101502.1~ac361f rec 13799 t186261 sender 3 pill 9 owner 2 ally:clique dir 7 facing 11 dist 52px hit-by-sender no
+    101502.1~ac361f rec 13801 t186261 sender 5 pill 5 owner 1 ally:clique dir 3 facing 4 dist 120px hit-by-sender no
+======================================================================
