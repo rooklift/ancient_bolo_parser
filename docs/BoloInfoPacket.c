@@ -1,1 +1,222 @@
-/* Sample code to access Bolo's game infomation packet interface *//* (C) 1993-1995 Stuart Cheshire <cheshire@cs.stanford.edu>/* Unix C file -- tabs are 8 spaces -- compile with gcc for best results *//* run with "a.out <port-number>" to listen on a UDP port for games starting *//* run with "a.out <port-number> <hostname>" to ping a running Bolo game and   then wait for replies. *//* run with "a.out <port-number> <subnet-broadcast-address> to locate ALL   Bolo games running within a particular IP broadcast domain. *//* There is no reliability here -- this is just to illustrate how to send and   receive the packets. You may wish to do retransmissions and timeouts. */#include <stdio.h>#include <sys/types.h>#include <sys/socket.h>#include <netinet/in.h>#include <netdb.h>#include <sys/time.h>/* Bolo uses little-endian byte ordering -- like the BBC micro's 6502processor, 80x86 series, Acorn Risk Machine, and DEC computers, andunlike Macs and Suns. The following macro should convert to and fromlocal byte ordering on any unix machine. I don't know a better way todo it, but a good compiler will optimize it out anyway. */#define netshort(X) (htons(X) >> 8 | htons(X) << 8)/* Macs count time since Midnight, 1st Jan 1904. Unix counts from 1970.   This value adjusts for the 66 years and 17 leap-days difference. */#define TIME_ADJUST (((1970 - 1904) * 365 + 17) * 24 * 60 * 60)/* Also note the following two bugs in Bolo 0.99, 0.99.1 and 0.99.2:1. The GameID was intended to be simply an opaque identifier todistinguish games. Hence I did not make Bolo put the components incanonical network byte order, since IDs were not supposed to bedisassembled, but just compared for equality or inequality. However, Ichanged my mind and decided that it is useful (or at least interesting)to know when and where a game started. So, for now, the game timestamp isin the wrong byte order. This will be fixed in a future version of Bolo.2. The Mac system call "GetDateTime" returns the time in LOCAL time,not GMT. Bolo neglects to convert this time to GMT before sending itover the network, resulting in the game start time being given in localtime for the Mac that started it. There is no way at present to convertthis time to a real time, except if you happen to know what time zonethe offending Mac is in. This will be fixed in a future version of Bolo. *//* Bolo 0.99.3 and 0.99.4 were not publicly released *//* Bolo 0.99.5 fixes the GMT problem but not the byte ordering. Thisdecision was made so as not to break the existing bolo tracker code.When a future version of the Bolo Information interface is designedthe byte ordering (and many other things) will be corrected. *//* Convert Bolo's pascal string to C string so we can work with it easily */static void PtoCStr(unsigned char *string)	{	int i, len = string[0];	for (i=0; i<len; i++) string[i] = string[i+1];	string[len] = 0;	}typedef struct { u_char c[36]; } u_char36;typedef u_char  BYTE;typedef u_short WORD;#define BoloVersion_Major    0x00#define BoloVersion_Minor    0x99#define BoloVersion_Revision 0x05#define BoloPacket_Request   13#define BoloPacket_Response  14typedef struct	{	BYTE signature[4];	/* 'Bolo' */	BYTE versionMajor;	/* 0x00   */	BYTE versionMinor;	/* 0x99   */	BYTE versionRevision;	/* 0x05   */	BYTE type;		/* 13 for request, 14 for response */	} BOLOHEADER;typedef struct	{	struct in_addr firstmachine;	u_long start_time;	} GAMEID;typedef struct	{	BOLOHEADER h;	u_char36 mapname;    /* Pascal string (first byte is length)         */	GAMEID gameid;	     /* 8 byte unique ID for game (combination       */			     /* of starting machine address & timestamp)     */	BYTE gametype;	     /* Game type (1, 2 or 3: open, tourn. & strict) */	BYTE allow_mines;    /* 0x80 for normal hidden mines                 */			     /* 0xC0 for all mines visible                   */	BYTE allow_AI;	     /* 0 for no AI tanks, 1 for AI tanks allowed    */	BYTE spare1;	     /* 0                                            */	long start_delay;    /* if non zero, time until game starts, (50ths) */	long time_limit;     /* if non zero, time until game ends, (50ths)   */	WORD num_players;    /* number of players                            */	WORD free_pills;     /* number of free (neutral) pillboxes           */	WORD free_bases;     /* number of free (neutral) refuelling bases    */	BYTE has_password;   /* non-zero if game has password set            */	BYTE spare2;	     /* 0                                            */	} INFO_PACKET;static void sendquery(int s, char **argv)	{	static const BOLOHEADER h =		{		{ "Bolo" },		BoloVersion_Major,		BoloVersion_Minor,		BoloVersion_Revision,		BoloPacket_Request		};	struct sockaddr_in rmtaddr;	rmtaddr.sin_family      = AF_INET;	rmtaddr.sin_port        = htons(atoi(argv[1]));	rmtaddr.sin_addr.s_addr = inet_addr(argv[2]);	if (rmtaddr.sin_addr.s_addr == -1)		{	   	struct hostent *hp = gethostbyname(argv[2]);	   	if (!hp) { fprintf(stderr, "%s: unknown host\n", argv[2]); exit(1); }	   	rmtaddr.sin_family = hp->h_addrtype;	   	bcopy(hp->h_addr, (char *) &rmtaddr.sin_addr, hp->h_length);		}       	sendto(s, &h, sizeof(h), 0, (struct sockaddr *)&rmtaddr, sizeof(rmtaddr));	}static void printip(struct in_addr address)	{	union { BYTE b[4]; struct in_addr address; } a;	a.address = address;	printf("%d.", a.b[0]);	printf("%d.", a.b[1]);	printf("%d.", a.b[2]);	printf("%d" , a.b[3]);	}int main(int argc, char **argv)	{	int s;	struct sockaddr_in lcladdr;	u_short localport = 0;   	if (argc != 2 && argc != 3)		{		fprintf(stderr, "Usage: %s <local port>\n", argv[0]);		fprintf(stderr, "Usage: %s <remote port> <remote machine>\n", argv[0]);		exit(1);		}	/* Open socket */	s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);	if (s < 0) { perror("socket"); exit(1); }	/* Bind socket to local UDP port number */	lcladdr.sin_family      = AF_INET;	if (argc==2) lcladdr.sin_port = htons(atoi(argv[1]));	else         lcladdr.sin_port = 0;	lcladdr.sin_addr.s_addr = INADDR_ANY;	if (bind(s, (struct sockaddr *)&lcladdr, sizeof(lcladdr)) < 0) { perror("bind"); exit(1); }	if (argc==3) sendquery(s, argv);	/* Receive the data */	while(1)		{		time_t timenow, gametime;		char *timestring, *ptr;		INFO_PACKET info;		struct sockaddr_in from;		int fromlen = sizeof(from);		int packetlen = recvfrom(s, &info, sizeof(info), 0, (struct sockaddr *)&from, &fromlen);		if (packetlen != sizeof(info)) continue;		if (info.h.signature[0]    != 'B'  ||		    info.h.signature[1]    != 'o'  ||		    info.h.signature[2]    != 'l'  ||		    info.h.signature[3]    != 'o'  ||		    info.h.versionMajor    != BoloVersion_Major    ||		    info.h.versionMinor    != BoloVersion_Minor    ||		    info.h.type            != BoloPacket_Response   ) continue;				PtoCStr(info.mapname.c);		info.num_players = netshort(info.num_players);		info.free_pills  = netshort(info.free_pills);		info.free_bases  = netshort(info.free_bases);		time(&timenow);		gametime = ntohl(info.gameid.start_time) - TIME_ADJUST;		printf("%s", ctime(&timenow));       		printf("Bolo player at ");		printip(from.sin_addr);		printf(" on map \"%s\" running since\n", info.mapname.c);		ptr = timestring = asctime(gmtime(&gametime));		while (*ptr && *ptr != '\n') ptr++;		*ptr = 0;		printf("%s", timestring);		if (info.h.versionRevision < 5) printf(" (local time for Mac at ");		else printf(" GMT (Started by Mac at ");		printip(info.gameid.firstmachine);		printf(")\n");		printf("Options: ");		switch(info.gametype)			{			case 1: printf("Open Game"); break;			case 2: printf("Tournament"); break;			case 3: printf("Strict Tournament"); break;			}		if (info.allow_mines == 0x80) printf(", Hidden mines");		if (info.allow_AI) printf(", AI tanks allowed");		if (info.has_password) printf(", Password set");		printf("\nPlayers in game:%2d, Neutral pillboxes:%2d, Neutral Refueling Bases:%2d\n\n", info.num_players, info.free_pills, info.free_bases);		fflush(stdout);		}	}
+/* Sample code to access Bolo's game infomation packet interface */
+/* (C) 1993-1995 Stuart Cheshire <cheshire@cs.stanford.edu>
+/* Unix C file -- tabs are 8 spaces -- compile with gcc for best results */
+/* run with "a.out <port-number>" to listen on a UDP port for games starting */
+/* run with "a.out <port-number> <hostname>" to ping a running Bolo game and
+   then wait for replies. */
+/* run with "a.out <port-number> <subnet-broadcast-address> to locate ALL
+   Bolo games running within a particular IP broadcast domain. */
+/* There is no reliability here -- this is just to illustrate how to send and
+   receive the packets. You may wish to do retransmissions and timeouts. */
+
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <sys/time.h>
+
+/* Bolo uses little-endian byte ordering -- like the BBC micro's 6502
+processor, 80x86 series, Acorn Risk Machine, and DEC computers, and
+unlike Macs and Suns. The following macro should convert to and from
+local byte ordering on any unix machine. I don't know a better way to
+do it, but a good compiler will optimize it out anyway. */
+#define netshort(X) (htons(X) >> 8 | htons(X) << 8)
+
+/* Macs count time since Midnight, 1st Jan 1904. Unix counts from 1970.
+   This value adjusts for the 66 years and 17 leap-days difference. */
+#define TIME_ADJUST (((1970 - 1904) * 365 + 17) * 24 * 60 * 60)
+
+/* Also note the following two bugs in Bolo 0.99, 0.99.1 and 0.99.2:
+
+1. The GameID was intended to be simply an opaque identifier to
+distinguish games. Hence I did not make Bolo put the components in
+canonical network byte order, since IDs were not supposed to be
+disassembled, but just compared for equality or inequality. However, I
+changed my mind and decided that it is useful (or at least interesting)
+to know when and where a game started. So, for now, the game timestamp is
+in the wrong byte order. This will be fixed in a future version of Bolo.
+
+2. The Mac system call "GetDateTime" returns the time in LOCAL time,
+not GMT. Bolo neglects to convert this time to GMT before sending it
+over the network, resulting in the game start time being given in local
+time for the Mac that started it. There is no way at present to convert
+this time to a real time, except if you happen to know what time zone
+the offending Mac is in. This will be fixed in a future version of Bolo. */
+
+/* Bolo 0.99.3 and 0.99.4 were not publicly released */
+/* Bolo 0.99.5 fixes the GMT problem but not the byte ordering. This
+decision was made so as not to break the existing bolo tracker code.
+When a future version of the Bolo Information interface is designed
+the byte ordering (and many other things) will be corrected. */
+
+/* Convert Bolo's pascal string to C string so we can work with it easily */
+static void PtoCStr(unsigned char *string)
+	{
+	int i, len = string[0];
+	for (i=0; i<len; i++) string[i] = string[i+1];
+	string[len] = 0;
+	}
+
+typedef struct { u_char c[36]; } u_char36;
+typedef u_char  BYTE;
+typedef u_short WORD;
+
+#define BoloVersion_Major    0x00
+#define BoloVersion_Minor    0x99
+#define BoloVersion_Revision 0x05
+
+#define BoloPacket_Request   13
+#define BoloPacket_Response  14
+
+typedef struct
+	{
+	BYTE signature[4];	/* 'Bolo' */
+	BYTE versionMajor;	/* 0x00   */
+	BYTE versionMinor;	/* 0x99   */
+	BYTE versionRevision;	/* 0x05   */
+	BYTE type;		/* 13 for request, 14 for response */
+	} BOLOHEADER;
+
+typedef struct
+	{
+	struct in_addr firstmachine;
+	u_long start_time;
+	} GAMEID;
+
+typedef struct
+	{
+	BOLOHEADER h;
+
+	u_char36 mapname;    /* Pascal string (first byte is length)         */
+	GAMEID gameid;	     /* 8 byte unique ID for game (combination       */
+			     /* of starting machine address & timestamp)     */
+	BYTE gametype;	     /* Game type (1, 2 or 3: open, tourn. & strict) */
+	BYTE allow_mines;    /* 0x80 for normal hidden mines                 */
+			     /* 0xC0 for all mines visible                   */
+	BYTE allow_AI;	     /* 0 for no AI tanks, 1 for AI tanks allowed    */
+	BYTE spare1;	     /* 0                                            */
+	long start_delay;    /* if non zero, time until game starts, (50ths) */
+	long time_limit;     /* if non zero, time until game ends, (50ths)   */
+
+	WORD num_players;    /* number of players                            */
+	WORD free_pills;     /* number of free (neutral) pillboxes           */
+	WORD free_bases;     /* number of free (neutral) refuelling bases    */
+	BYTE has_password;   /* non-zero if game has password set            */
+	BYTE spare2;	     /* 0                                            */
+	} INFO_PACKET;
+
+static void sendquery(int s, char **argv)
+	{
+	static const BOLOHEADER h =
+		{
+		{ "Bolo" },
+		BoloVersion_Major,
+		BoloVersion_Minor,
+		BoloVersion_Revision,
+		BoloPacket_Request
+		};
+	struct sockaddr_in rmtaddr;
+	rmtaddr.sin_family      = AF_INET;
+	rmtaddr.sin_port        = htons(atoi(argv[1]));
+	rmtaddr.sin_addr.s_addr = inet_addr(argv[2]);
+	if (rmtaddr.sin_addr.s_addr == -1)
+		{
+	   	struct hostent *hp = gethostbyname(argv[2]);
+	   	if (!hp) { fprintf(stderr, "%s: unknown host\n", argv[2]); exit(1); }
+	   	rmtaddr.sin_family = hp->h_addrtype;
+	   	bcopy(hp->h_addr, (char *) &rmtaddr.sin_addr, hp->h_length);
+		}
+
+       	sendto(s, &h, sizeof(h), 0, (struct sockaddr *)&rmtaddr, sizeof(rmtaddr));
+	}
+
+static void printip(struct in_addr address)
+	{
+	union { BYTE b[4]; struct in_addr address; } a;
+	a.address = address;
+	printf("%d.", a.b[0]);
+	printf("%d.", a.b[1]);
+	printf("%d.", a.b[2]);
+	printf("%d" , a.b[3]);
+	}
+
+int main(int argc, char **argv)
+	{
+	int s;
+	struct sockaddr_in lcladdr;
+	u_short localport = 0;
+
+   	if (argc != 2 && argc != 3)
+		{
+		fprintf(stderr, "Usage: %s <local port>\n", argv[0]);
+		fprintf(stderr, "Usage: %s <remote port> <remote machine>\n", argv[0]);
+		exit(1);
+		}
+
+	/* Open socket */
+	s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (s < 0) { perror("socket"); exit(1); }
+
+	/* Bind socket to local UDP port number */
+	lcladdr.sin_family      = AF_INET;
+	if (argc==2) lcladdr.sin_port = htons(atoi(argv[1]));
+	else         lcladdr.sin_port = 0;
+	lcladdr.sin_addr.s_addr = INADDR_ANY;
+	if (bind(s, (struct sockaddr *)&lcladdr, sizeof(lcladdr)) < 0) { perror("bind"); exit(1); }
+	if (argc==3) sendquery(s, argv);
+
+	/* Receive the data */
+	while(1)
+		{
+		time_t timenow, gametime;
+		char *timestring, *ptr;
+		INFO_PACKET info;
+		struct sockaddr_in from;
+		int fromlen = sizeof(from);
+		int packetlen = recvfrom(s, &info, sizeof(info), 0, (struct sockaddr *)&from, &fromlen);
+		if (packetlen != sizeof(info)) continue;
+		if (info.h.signature[0]    != 'B'  ||
+		    info.h.signature[1]    != 'o'  ||
+		    info.h.signature[2]    != 'l'  ||
+		    info.h.signature[3]    != 'o'  ||
+		    info.h.versionMajor    != BoloVersion_Major    ||
+		    info.h.versionMinor    != BoloVersion_Minor    ||
+		    info.h.type            != BoloPacket_Response   ) continue;
+
+		PtoCStr(info.mapname.c);
+		info.num_players = netshort(info.num_players);
+		info.free_pills  = netshort(info.free_pills);
+		info.free_bases  = netshort(info.free_bases);
+		time(&timenow);
+		gametime = ntohl(info.gameid.start_time) - TIME_ADJUST;
+
+		printf("%s", ctime(&timenow));
+
+       		printf("Bolo player at ");
+		printip(from.sin_addr);
+		printf(" on map \"%s\" running since\n", info.mapname.c);
+
+		ptr = timestring = asctime(gmtime(&gametime));
+		while (*ptr && *ptr != '\n') ptr++;
+		*ptr = 0;
+		printf("%s", timestring);
+		if (info.h.versionRevision < 5) printf(" (local time for Mac at ");
+		else printf(" GMT (Started by Mac at ");
+		printip(info.gameid.firstmachine);
+		printf(")\n");
+
+		printf("Options: ");
+		switch(info.gametype)
+			{
+			case 1: printf("Open Game"); break;
+			case 2: printf("Tournament"); break;
+			case 3: printf("Strict Tournament"); break;
+			}
+		if (info.allow_mines == 0x80) printf(", Hidden mines");
+		if (info.allow_AI) printf(", AI tanks allowed");
+		if (info.has_password) printf(", Password set");
+		printf("\nPlayers in game:%2d, Neutral pillboxes:%2d, Neutral Refueling Bases:%2d\n\n", info.num_players, info.free_pills, info.free_bases);
+		fflush(stdout);
+		}
+	}
