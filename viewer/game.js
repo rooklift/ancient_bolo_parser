@@ -375,9 +375,10 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 			case "shells": {
 				/* A record can carry SEVERAL shell-list subpackets (up to 12
 				 * seen in the sample log): the sender's own shells plus those
-				 * of pillboxes it is currently simulating — Bolo hands a
-				 * pill's simulation to the machine it is shooting at, which
-				 * is why pill shells ride in the TARGET's restatements.
+				 * of pillboxes it is currently simulating. Each machine
+				 * simulates the shots a pill fires at its own tank (the pill's
+				 * target: the nearest hostile tank in range, [E:pill-target]),
+				 * which is why pill shells ride in the TARGET's restatements.
 				 * Lists concatenate; each offset is chained from the previous
 				 * shell in its own list. */
 				sawShells = true;
