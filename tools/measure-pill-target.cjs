@@ -496,7 +496,7 @@ console.log(`    sender's tank out of range             ${n(totals.sender_out_of
 console.log(`        by distance: 137-160 px ${n(totals.out_of_range_by_distance[0])}, 161-200 ${n(totals.out_of_range_by_distance[1])}, 201-300 ${n(totals.out_of_range_by_distance[2])}, over 300 ${n(totals.out_of_range_by_distance[3])};`);
 console.log(`        sender's position over a second old ${n(totals.out_of_range_stale)}; a nearer hostile pill along the nibble ${n(totals.out_of_range_other_pill)}`);
 console.log(`        by the larger axis distance: <= 136 px ${n(totals.out_of_range_axis[0])}, <= 152 ${n(totals.out_of_range_axis[1])}, <= 168 ${n(totals.out_of_range_axis[2])}, over ${n(totals.out_of_range_axis[3])}`);
-console.log(`        (a pill that measures range per axis in squares puts nearly all of them in the first bucket)`);
+console.log(`        (a box would put nearly all of them in the first bucket; a circle seen through stale positions spreads them)`);
 console.log(`    sender the only hostile tank in range  ${n(totals.lone).padStart(9)}   (uninformative)`);
 console.log();
 console.log(`Orphaned pills (owner slot quit since they got that owner) fired ${n(totals.orphan_fires)} times, by the target's NAME as of the quit:`);
