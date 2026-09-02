@@ -20,6 +20,10 @@ Fires set aside:
 Orphaned pills (owner slot quit since they got that owner) fired 4,741 times, by the target's NAME as of the quit:
 at a member of the owner's alliance then 39, at anyone else present then 4,357, at a name not present then 345.
 (a pill that stays with its alliance never fires at the first group)
+Quits leaving grounded pills: 728, with an ally still in the game to hand them to 391;
+the quitter's name rejoined later for 18 pills. Orphaned-pill fires by that: heir available 2,648,
+no heir but owner returned 1,325, no heir and owner gone 768;
+of the allied-sender fires from orphans, 39 had an heir available (a hand-over at quit would have caught those).
 
 Fires where the sender is taken as the target: 1,156,489; sender's tank hidden in forest
 at the time in 4,329 (0.4%) -- ~0 if a pill cannot target a hidden tank.
