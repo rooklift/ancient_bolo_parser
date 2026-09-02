@@ -94,7 +94,12 @@ retain two candidates instead of one.
 * A pinned bradian gives an exact heading, better than the current
   continuously-refined estimate, and an exact future track for collision
   and terminal prediction once the origin phase is bounded.
-* The ±4 nibble skew means the direction gate should stay a little wider
-  than the round window, exactly as the tool's [-8..15] gate already is.
+* The ±4 nibble skew means the direction gate should be the round window
+  widened by four bradians either side, [-12..11], which is what
+  `viewer/motion.js` uses (`TANK_BRADIAN_MIN_OFFSET` / `MAX_OFFSET`). The
+  tool's own [-8..15] gate is the union of both nibble mappings, chosen
+  before the round mapping was established; it covers the +8..+11 side of
+  the spill but not the −9..−12 side, which is exactly where its ungated
+  retries recovered their 5,790 hits.
 * Chains no bradian explains are evidence of a mislink or time dilation,
   usable as a diagnostic on the matcher itself.
