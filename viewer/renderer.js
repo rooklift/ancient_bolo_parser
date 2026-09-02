@@ -1184,11 +1184,6 @@ window.addEventListener("keydown", e => {
 		window.api.exit_fullscreen();
 		return;
 	}
-	if (e.code === "KeyO" && (e.ctrlKey || e.metaKey) && e.shiftKey && window.api) {
-		e.preventDefault();
-		window.api.show_file();
-		return;
-	}
 	if (e.code === "KeyD" && (e.ctrlKey || e.metaKey)) {
 		e.preventDefault();
 		toggle_coordinate_debug();
