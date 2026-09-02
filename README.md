@@ -43,6 +43,8 @@ npx electron .
 
 The viewer reconstructs full game state (terrain, pills, bases, tanks, men, shells, alliances), including the pieces of game logic the log omits by design — pill dumps on death, boat consumption, alliance semantics; see the end of FORMAT.md for that list and its caveats. Tank, LGM and conservatively matched shell movement is interpolated between nearby restatements.
 
+The shell interpolator is a per-client, margin-gated mutual-best matcher over quantisation-bounded position hypotheses, backed by a bit-exact recovery of Bolo's integer shell simulation (8-bit sine table, 128 pillbox and 256 tank bradians), same-stream lockstep elections, a maximum-flow solver for forced residual assignments, and a constant-velocity smoothing pass, all of which exists so that a shell with no ID in a 25-year-old log can be drawn flying from the muzzle to the splash.
+
 ## Provenance and credits
 
 - **Stuart Cheshire** — Bolo itself; `GAMEINFO` layout from his published
