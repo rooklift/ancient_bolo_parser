@@ -610,8 +610,9 @@ function draw() {
 	draw_pills(false);
 	draw_pillbox_labels();
 	draw_effects();
-	draw_men();
+	draw_men(false);
 	draw_tanks();
+	draw_men(true);
 	update_coordinate_debug();
 }
 
@@ -761,11 +762,14 @@ function draw_object_label(label, cx, cy, r) {
 	ctx.fillText(label, cx, cy - r - 3);
 }
 
-function draw_men() {
+/* Men on foot draw beneath tanks; parachuting men are airborne, so they are
+ * drawn in a second pass above every other sprite. */
+function draw_men(parachuting) {
 	let z = view.zoom;
 	for (let p = 0; p < 16; p++) {
 		let m = cur.men[p];
 		if (!m || cur.quit[p]) continue;
+		if (Boolean(m.parachute) !== parachuting) continue;
 		if (clock - m.lastSeen > TPS * 3) continue;
 		let position = BoloGame.lgm_position_at(game, cur, p, clock);
 		if (!position) continue;
