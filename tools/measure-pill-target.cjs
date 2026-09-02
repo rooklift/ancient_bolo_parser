@@ -86,7 +86,8 @@ function hostile(state, pill, player) {
 }
 
 const totals = {
-	logs: 0, fires: 0, pill_unresolved: 0, pill_dead: 0,
+	logs: 0, fires: 0, resolved_to_lower: 0, pair_ambiguous: 0,
+	pill_unresolved: 0, pill_dead: 0,
 	sender_no_tank: 0, sender_not_hostile: 0, sender_out_of_range: 0,
 	lone: 0, contested: 0, sender_nearest: 0,
 	lost_by_bucket: MARGIN_BUCKETS.map(() => 0).concat([0]),
@@ -112,10 +113,36 @@ function scan(file) {
 			if (sub.type !== "pillbox_fires") continue;
 			totals.fires++;
 			let sender = rec.player;
+
+			let tanks = [];
+			for (let i = 0; i < 16; i++) {
+				let t = state.tanks[i];
+				if (!t || state.quit[i] || t.dead || t.dying) continue;
+				if (rec.time - t.lastSeen > ALIVE_TICKS) continue;
+				let c = tank_centre(t);
+				tanks.push({player: i, x: c.x, y: c.y, hidden: !!t.hidden,
+					position_time: t.position_time});
+			}
+			let me = tanks.find(t => t.player === sender);
+
+			/* Which pill fired. An odd index at direction 0 may be one too
+			 * high ([E:pill-fire-index]); the firer must be grounded, hostile
+			 * to the sender and within a shell's flight of the sender's tank,
+			 * which almost always singles out one of the pair. */
 			let pill = state.pills[sub.pillbox];
-			if (sub.direction === 0 && (sub.pillbox & 1) && (!pill || pill.inTank !== null)) {
+			if (sub.direction === 0 && (sub.pillbox & 1)) {
 				let lower = state.pills[sub.pillbox - 1];
-				if (lower && lower.inTank === null) pill = lower;
+				let fits = p => p && p.inTank === null && me && hostile(state, p, sender) &&
+					Math.hypot(p.x * 16 + 8 - me.x, p.y * 16 + 8 - me.y) <= RANGE_PX;
+				let named_fits = fits(pill), lower_fits = fits(lower);
+				if (lower_fits && !named_fits) {
+					pill = lower;
+					totals.resolved_to_lower++;
+				} else if (lower_fits && named_fits) {
+					totals.pair_ambiguous++;
+				} else if (!pill || pill.inTank !== null) {
+					if (lower && lower.inTank === null) pill = lower;
+				}
 			}
 			if (!pill || pill.inTank !== null) {
 				totals.pill_unresolved++;
@@ -127,22 +154,10 @@ function scan(file) {
 			}
 			let pill_x = pill.x * 16 + 8;
 			let pill_y = pill.y * 16 + 8;
-
-			let tanks = [];
-			for (let i = 0; i < 16; i++) {
-				let t = state.tanks[i];
-				if (!t || state.quit[i] || t.dead || t.dying) continue;
-				if (rec.time - t.lastSeen > ALIVE_TICKS) continue;
-				let c = tank_centre(t);
-				tanks.push({
-					player: i, x: c.x, y: c.y,
-					distance: Math.hypot(c.x - pill_x, c.y - pill_y),
-					hidden: !!t.hidden,
-					position_time: t.position_time,
-					hostile: hostile(state, pill, i),
-				});
+			for (let t of tanks) {
+				t.distance = Math.hypot(t.x - pill_x, t.y - pill_y);
+				t.hostile = hostile(state, pill, t.player);
 			}
-			let me = tanks.find(t => t.player === sender);
 			if (!me) {
 				totals.sender_no_tank++;
 				continue;
@@ -194,6 +209,9 @@ const pc = (a, b) => `${(100 * a / Math.max(1, b)).toFixed(1)}%`;
 const n = v => v.toLocaleString();
 console.log("======================================================================");
 console.log(`${totals.logs} logs, ${n(totals.fires)} pill fires`);
+console.log();
+console.log("Direction-0 odd-index fires resolved to pill n-1 by hostility and range:");
+console.log(`    ${n(totals.resolved_to_lower).padStart(9)}   (both pills fit in ${n(totals.pair_ambiguous)}; the named one is kept there)`);
 console.log();
 console.log("Fires set aside:");
 console.log(`    pill unresolved (missing or carried)   ${n(totals.pill_unresolved).padStart(9)}`);
