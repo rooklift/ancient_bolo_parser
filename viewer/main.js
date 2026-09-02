@@ -90,7 +90,7 @@ function build_menu() {
 			submenu: [
 				{ label: "Open log…", accelerator: "CmdOrCtrl+O", click: () => send("open") },
 				{ type: "separator" },
-				{ label: "Show file", accelerator: "CmdOrCtrl+Shift+O", click: show_file },
+				{ label: "Show file", click: show_file },
 				{ label: "Save initial map…", accelerator: "CmdOrCtrl+S", click: () => send("save-map") },
 				{ type: "separator" },
 				{ label: "Save video (whole game)…", click: () => send("save-video-all") },
