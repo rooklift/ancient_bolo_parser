@@ -100,6 +100,7 @@ const totals = {
 	not_hostile_initial_ally: 0, not_hostile_direct_ally: 0, not_hostile_clique_ally: 0,
 	touching: 0, touching_facing: 0, apart_facing: 0, aim_neither_touching_facing: 0,
 	sample: [],
+	trace: null,          /* alliance events of the replay with the most allied-sender fires */
 	/* deflection: signed nibble deviation from the bearing to the sender,
 	 * by whether the sender's tank is moving and which way across the line */
 	lead: {still: [0, 0, 0, 0], toward: [0, 0, 0, 0], against: [0, 0, 0, 0]},
@@ -132,6 +133,8 @@ function scan(file) {
 	let label = replay_label(file);
 	/* each player's previous restated position, for a velocity estimate */
 	let prev_position = new Array(16).fill(null);
+	let alliance_events = [];
+	let sampled_here = 0;
 
 	for (let rec of recs) {
 		for (let sub of rec.subpackets) {
@@ -147,6 +150,17 @@ function scan(file) {
 						direct_ally[rec.player][i] = direct_ally[i][rec.player] = true;
 					}
 				}
+			}
+			if (sub.type === "game_info") {
+				alliance_events.push(`rec ${recs.indexOf(rec)} t${rec.time} game info alliance words: ` +
+					sub.alliances.map((w, i) => `${i}:${(w & 0xffff).toString(16).padStart(4, "0")}`).join(" "));
+			}
+			if (sub.type === "alliance_request" || sub.type === "alliance_accept" || sub.type === "alliance_leave") {
+				alliance_events.push(`rec ${recs.indexOf(rec)} t${rec.time} p${rec.player} ${sub.type}` +
+					(sub.tanks !== undefined ? ` bits ${sub.tanks.toString(16).padStart(4, "0")} [${
+						[...Array(16).keys()].filter(i => sub.tanks & (1 << i)).join(",")}]` : "") +
+					` model-after: ` + [...Array(16).keys()].filter(i => state.present[i] || state.names[i] !== null)
+						.map(i => `${i}=${(state.alliances[i] & 0xffff).toString(16).padStart(4, "0")}`).join(" "));
 			}
 			if (sub.type === "alliance_leave") {
 				for (let i = 0; i < 16; i++) {
@@ -221,6 +235,7 @@ function scan(file) {
 				if (provenance === "initial") totals.not_hostile_initial_ally++;
 				else if (provenance === "direct") totals.not_hostile_direct_ally++;
 				else if (provenance === "clique") totals.not_hostile_clique_ally++;
+				sampled_here++;
 				if (totals.sample.length < SAMPLE_CASES) {
 					totals.sample.push(`${label} rec ${recs.indexOf(rec)} t${rec.time} sender ${sender} pill ${pill_index} owner ${pill.owner} ` +
 						`ally:${provenance} dir ${sub.direction} facing ${rec.tankDir} dist ${me.distance.toFixed(0)}px ` +
@@ -306,6 +321,9 @@ function scan(file) {
 				if (touching && facing) totals.aim_neither_touching_facing++;
 			}
 		}
+		if (sampled_here && (!totals.trace || totals.trace.label === label || sampled_here > totals.trace.count)) {
+			totals.trace = {label, events: alliance_events, last_record: recs.indexOf(rec), count: sampled_here};
+		}
 		let owners_before = state.pills.map(p => p.owner);
 		let position_before = state.tanks[rec.player] && state.tanks[rec.player].position_time;
 		BoloGame.apply_record(state, rec, null, null);
@@ -390,5 +408,16 @@ if (totals.sample.length) {
 	console.log();
 	console.log(`Allied-sender fires, the first ${totals.sample.length} (replay names redacted):`);
 	for (let line of totals.sample) console.log(`    ${line}`);
+}
+if (totals.trace) {
+	console.log();
+	console.log(`Alliance events in ${totals.trace.label} up to record ${totals.trace.last_record} (the replay with the most allied-sender fires, ${n(totals.trace.count)}),`);
+	console.log("with the model's alliance masks after each (bit set = NOT allied):");
+	let shown = 0;
+	for (let line of totals.trace.events) {
+		if (parseInt(line.slice(4)) > totals.trace.last_record) break;
+		console.log(`    ${line}`);
+		if (++shown >= 60) { console.log("    ..."); break; }
+	}
 }
 console.log("======================================================================");
