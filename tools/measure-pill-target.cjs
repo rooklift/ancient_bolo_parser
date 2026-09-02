@@ -105,6 +105,10 @@ const totals = {
 	quits_with_pills: 0, quits_with_heir: 0, quits_owner_returned: 0,
 	orphan_fires_heir: 0, orphan_fires_no_heir_returned: 0, orphan_fires_no_heir_gone: 0,
 	not_hostile_orphan_heir: 0,
+	/* was the quitter's tank dead (T=7) at the quit? a dead quit may not hand over */
+	quits_dead: 0, quits_alive: 0,
+	orphan_at_old_ally_dead_quit: 0, orphan_at_old_ally_alive_quit: 0,
+	orphan_fires_dead_quit: 0, orphan_fires_alive_quit: 0,
 	not_hostile_initial_ally: 0, not_hostile_direct_ally: 0, not_hostile_clique_ally: 0,
 	touching: 0, touching_facing: 0, apart_facing: 0, aim_neither_touching_facing: 0,
 	sample: [],
@@ -262,6 +266,10 @@ function scan(file) {
 					if (frozen.allies.has(name)) totals.orphan_at_old_ally++;
 					else if (frozen.others.has(name)) totals.orphan_at_old_enemy++;
 					else totals.orphan_at_newcomer++;
+					if (frozen.dead_quit) totals.orphan_fires_dead_quit++; else totals.orphan_fires_alive_quit++;
+					if (frozen.allies.has(name)) {
+						if (frozen.dead_quit) totals.orphan_at_old_ally_dead_quit++; else totals.orphan_at_old_ally_alive_quit++;
+					}
 					if (frozen.heir) totals.orphan_fires_heir++;
 					else if (frozen.returned) totals.orphan_fires_no_heir_returned++;
 					else totals.orphan_fires_no_heir_gone++;
@@ -409,12 +417,14 @@ function scan(file) {
 					 * remaining mutual ally the leave rule would pick */
 					if (j !== i && !state.quit[j] && !(state.alliances[i] & (1 << j)) && !(state.alliances[j] & (1 << i))) heir = true;
 				}
+				let dead_quit = rec.player === i && rec.tankStatus === 0x07;
 				if (state.pills.some((p, k) => owners_before[k] === i && p.inTank === null)) {
 					totals.quits_with_pills++;
 					if (heir) totals.quits_with_heir++;
+					if (dead_quit) totals.quits_dead++; else totals.quits_alive++;
 				}
 				for (let k = 0; k < state.pills.length; k++) {
-					if (owners_before[k] === i && !orphaned[k]) orphaned[k] = {allies, others, owner_name: state.names[i], heir, returned: false, since: rec};
+					if (owners_before[k] === i && !orphaned[k]) orphaned[k] = {allies, others, owner_name: state.names[i], heir, returned: false, since: rec, dead_quit};
 				}
 			}
 		}
@@ -464,6 +474,8 @@ console.log(`Orphaned pills (owner slot quit since they got that owner) fired ${
 console.log(`at a member of the owner's alliance then ${n(totals.orphan_at_old_ally)}, at anyone else present then ${n(totals.orphan_at_old_enemy)}, at a name not present then ${n(totals.orphan_at_newcomer)}.`);
 console.log("(a pill that stays with its alliance never fires at the first group)");
 console.log(`Quits leaving grounded pills: ${n(totals.quits_with_pills)}, with an ally still in the game to hand them to ${n(totals.quits_with_heir)};`);
+console.log(`of those quits the tank was dead (T=7) at ${n(totals.quits_dead)} and alive at ${n(totals.quits_alive)}. Orphaned-pill fires after a dead quit ${n(totals.orphan_fires_dead_quit)},`);
+console.log(`of which at a member of the owner's alliance ${n(totals.orphan_at_old_ally_dead_quit)}; after an alive quit ${n(totals.orphan_fires_alive_quit)}, at an ally ${n(totals.orphan_at_old_ally_alive_quit)}.`);
 console.log(`the quitter's name rejoined later for ${n(totals.quits_owner_returned)} pills. Orphaned-pill fires by that: heir available ${n(totals.orphan_fires_heir)},`);
 console.log(`no heir but owner returned ${n(totals.orphan_fires_no_heir_returned)}, no heir and owner gone ${n(totals.orphan_fires_no_heir_gone)};`);
 console.log(`of the allied-sender fires from orphans, ${n(totals.not_hostile_orphan_heir)} had an heir available (a hand-over at quit would have caught those).`);
