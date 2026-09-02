@@ -1189,6 +1189,11 @@ window.addEventListener("keydown", e => {
 		window.api.show_file();
 		return;
 	}
+	if (e.code === "KeyO" && (e.ctrlKey || e.metaKey) && !e.shiftKey && !window.api) {
+		e.preventDefault(); /* no application menu: Ctrl+O is our open, not the browser's */
+		file_pick.click();
+		return;
+	}
 	if (e.code === "KeyD" && (e.ctrlKey || e.metaKey)) {
 		e.preventDefault();
 		toggle_coordinate_debug();
@@ -1205,6 +1210,22 @@ window.addEventListener("keydown", e => {
 		return;
 	}
 	if (!game) return;
+	if (!window.api && (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
+		/* the menu's zoom accelerators, which a browser would otherwise take as page zoom */
+		if (e.code === "Equal" || e.code === "NumpadAdd") {
+			e.preventDefault();
+			zoom_step(1);
+			return;
+		} else if (e.code === "Minus" || e.code === "NumpadSubtract") {
+			e.preventDefault();
+			zoom_step(-1);
+			return;
+		} else if (e.code === "Digit0" || e.code === "Numpad0") {
+			e.preventDefault();
+			zoom_to_action();
+			return;
+		}
+	}
 	if (e.code === "KeyS" && (e.ctrlKey || e.metaKey)) {
 		e.preventDefault(); /* it's our save now, not the browser's */
 		save_initial_map();

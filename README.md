@@ -29,15 +29,13 @@ for (const rec of records(new Uint8Array(fs.readFileSync(file)))) {
 
 # Ancient Bolo Log Viewer
 
-`viewer/` is the Ancient Bolo Log Viewer — an Electron app that plays logs back. Featuring gameplay, alliances, messages, seeking, speeds up to
+`viewer/` is the Ancient Bolo Log Viewer — a web page that plays logs back. Featuring gameplay, alliances, messages, seeking, speeds up to
 64×, and a viewpoint selector choosing whose side draws as friendly.
 
 <img width="1280" height="860" alt="viewer screenshot" src="https://raw.githubusercontent.com/rooklift/ancient_bolo_parser/refs/heads/main/docs/viewer.png" />
 
-```
-cd viewer
-npx electron .
-```
+Open `viewer/index.html` in a browser, or serve the `viewer/` directory with any
+static file server. There is no build step and nothing to install.
 
 ## Status
 
