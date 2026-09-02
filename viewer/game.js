@@ -303,8 +303,9 @@ function lowest_remaining_ally(s, pl) {
 	return -1;
 }
 
-/* A departing owner's grounded pills go to his heir, or, with none left in
- * the game, into the DEPARTED state carrying the names of his alliance. */
+/* A departing owner's grounded pills and bases go to his heir, or, with
+ * none left in the game, into the DEPARTED state carrying the names of his
+ * alliance. Ownership works the same for both. */
 function hand_over_pills(s, pl, heir) {
 	let allies = [];
 	if (heir < 0) {
@@ -314,16 +315,26 @@ function hand_over_pills(s, pl, heir) {
 			if (mutual) allies.push(s.names[i]);
 		}
 	}
-	for (const p of s.pills) {
-		if (p.owner !== pl || p.inTank !== null) continue;
+	for (const item of s.pills.concat(s.bases)) {
+		if (item.owner !== pl || (item.inTank !== undefined && item.inTank !== null)) continue;
 		if (heir >= 0) {
-			p.owner = heir;
-			delete p.departed;
+			item.owner = heir;
+			delete item.departed;
+			delete item.reclaimed;
 		} else {
-			p.owner = DEPARTED;
-			p.departed = { name: s.names[pl], allies };
+			item.owner = DEPARTED;
+			item.departed = { name: s.names[pl], allies };
+			delete item.reclaimed;
 		}
 	}
+}
+
+/* Is the pill or base friendly to this player under the model? */
+function friendly_to(s, item, player) {
+	if (item.owner === NEUTRAL) return false;
+	if (item.owner === DEPARTED) return !!item.departed && item.departed.allies.includes(s.names[player]);
+	if (item.owner === player) return true;
+	return !(s.alliances[item.owner] & (1 << player)) && !(s.alliances[player] & (1 << item.owner));
 }
 
 function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
@@ -522,6 +533,26 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 			case "pillbox_fires": {
 				let p = s.pills[sub.pillbox];
 				if (p && effects) effects.push({ time: rec.time, type: "pill_fire", x: p.x, y: p.y });
+				/* The fire rides in the target's record and a pill never
+				 * fires at its own side [E:pill-target], so a fire at a
+				 * player the model calls friendly to the pill is proof the
+				 * model is wrong about it. Two corrections are safe: a pill
+				 * a returning owner reclaimed was not really restored (he
+				 * pressed Join, not Rejoin) and goes back to DEPARTED with
+				 * no friends; a DEPARTED pill loses the name it fired at.
+				 * An odd index at direction 0 may be one too high
+				 * [E:pill-fire-index] and is left alone. */
+				if (p && p.inTank === null && !(sub.direction === 0 && (sub.pillbox & 1)) &&
+					friendly_to(s, p, pl)) {
+					if (p.reclaimed) {
+						p.owner = DEPARTED;
+						p.departed = { name: s.names[pl], allies: [] };
+						delete p.reclaimed;
+					} else if (p.owner === DEPARTED) {
+						p.departed = { name: p.departed.name,
+							allies: p.departed.allies.filter(n => n !== s.names[pl]) };
+					}
+				}
 				break;
 			}
 			case "board_boat": {
@@ -590,7 +621,7 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 			}
 			case "base_capture": {
 				const b = s.bases[sub.base];
-				if (b) b.owner = pl;
+				if (b) { b.owner = pl; delete b.departed; delete b.reclaimed; }
 				break;
 			}
 			case "tank_death": {
@@ -670,11 +701,16 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 					 * both Join and Rejoin, and only Rejoin restored a
 					 * player's things; the log cannot tell which was
 					 * pressed, so this assumes Rejoin, the one players
-					 * told each other to use. */
-					for (const p of s.pills) {
-						if (p.owner === DEPARTED && p.departed && p.departed.name === sub.name) {
-							p.owner = pl;
-							delete p.departed;
+					 * told each other to use, and the pillbox_fires case
+					 * below takes it back on proof to the contrary. */
+					for (const item of s.pills.concat(s.bases)) {
+						if (item.owner === DEPARTED && item.departed && item.departed.name === sub.name) {
+							item.owner = pl;
+							delete item.departed;
+							/* provisional: a Join instead of a Rejoin
+							 * leaves him a stranger to his own things,
+							 * and only a pill firing at him can say so */
+							item.reclaimed = true;
 						}
 					}
 				}
