@@ -135,6 +135,7 @@ function initial_state(seed) {
 		present: Array.from({ length: 16 }, () => false),
 		quit: Array.from({ length: 16 }, () => false),
 		gameInfo: null,
+		lastAllianceEvent: -Infinity, /* tick of the last request, accept or leave */
 	};
 }
 
@@ -153,6 +154,7 @@ function clone_state(s) {
 		present: s.present.slice(),
 		quit: s.quit.slice(),
 		gameInfo: s.gameInfo,
+		lastAllianceEvent: s.lastAllianceEvent,
 	};
 }
 
@@ -320,11 +322,9 @@ function hand_over_pills(s, pl, heir) {
 		if (heir >= 0) {
 			item.owner = heir;
 			delete item.departed;
-			delete item.reclaimed;
 		} else {
 			item.owner = DEPARTED;
 			item.departed = { name: s.names[pl], allies };
-			delete item.reclaimed;
 		}
 	}
 }
@@ -536,22 +536,24 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 				/* The fire rides in the target's record and a pill never
 				 * fires at its own side [E:pill-target], so a fire at a
 				 * player the model calls friendly to the pill is proof the
-				 * model is wrong about it. Two corrections are safe: a pill
-				 * a returning owner reclaimed was not really restored (he
-				 * pressed Join, not Rejoin) and goes back to DEPARTED with
-				 * no friends; a DEPARTED pill loses the name it fired at.
-				 * An odd index at direction 0 may be one too high
-				 * [E:pill-fire-index] and is left alone. */
+				 * model is wrong about the pill's ownership or the
+				 * alliance, and the log does not say which. The one safe
+				 * reading is that the pill is nobody's: DEPARTED with no
+				 * friends, until it is next picked up or planted. That
+				 * covers a returning owner who pressed Join rather than
+				 * Rejoin, a departed pill wrongly credited to a name, and
+				 * the hand-over at a quit not happening in the game. Two
+				 * exemptions: an odd index at direction 0 may be one too
+				 * high [E:pill-fire-index]; and a fire within a second of
+				 * an alliance event is skipped, since the pill may have
+				 * been simulated before an accept reached its machine (two
+				 * corpus fires share a tick with the accept that made the
+				 * pair allies). */
 				if (p && p.inTank === null && !(sub.direction === 0 && (sub.pillbox & 1)) &&
+					rec.time - s.lastAllianceEvent > TICKS_PER_SECOND &&
 					friendly_to(s, p, pl)) {
-					if (p.reclaimed) {
-						p.owner = DEPARTED;
-						p.departed = { name: s.names[pl], allies: [] };
-						delete p.reclaimed;
-					} else if (p.owner === DEPARTED) {
-						p.departed = { name: p.departed.name,
-							allies: p.departed.allies.filter(n => n !== s.names[pl]) };
-					}
+					p.owner = DEPARTED;
+					p.departed = { name: s.names[pl], allies: [] };
 				}
 				break;
 			}
@@ -621,7 +623,7 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 			}
 			case "base_capture": {
 				const b = s.bases[sub.base];
-				if (b) { b.owner = pl; delete b.departed; delete b.reclaimed; }
+				if (b) { b.owner = pl; delete b.departed; }
 				break;
 			}
 			case "tank_death": {
@@ -701,16 +703,13 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 					 * both Join and Rejoin, and only Rejoin restored a
 					 * player's things; the log cannot tell which was
 					 * pressed, so this assumes Rejoin, the one players
-					 * told each other to use, and the pillbox_fires case
-					 * below takes it back on proof to the contrary. */
+					 * told each other to use; a Join instead leaves him a
+					 * stranger to his own things, which the pillbox_fires
+					 * case below learns from the first shot at him. */
 					for (const item of s.pills.concat(s.bases)) {
 						if (item.owner === DEPARTED && item.departed && item.departed.name === sub.name) {
 							item.owner = pl;
 							delete item.departed;
-							/* provisional: a Join instead of a Rejoin
-							 * leaves him a stranger to his own things,
-							 * and only a pill firing at him can say so */
-							item.reclaimed = true;
 						}
 					}
 				}
@@ -791,8 +790,10 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 				if (chat) chat.push({ time: rec.time, player: pl, quit: true, name: s.names[pl], team: team_of(s, pl) });
 				break;
 			case "alliance_request":
+				s.lastAllianceEvent = rec.time;
 				break;
 			case "alliance_accept":
+				s.lastAllianceEvent = rec.time;
 				/* SET bits name the accepted party (verified empirically —
 				 * the opposite convention from the game-info alliance words,
 				 * where zero bits mark allies). Accepting one member of an
@@ -822,6 +823,7 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 				}
 				break;
 			case "alliance_leave": {
+				s.lastAllianceEvent = rec.time;
 				/* Manual: "Any pillboxes he is carrying at the time are his,
 				 * but any active ones on the map remain with the members of
 				 * the alliance." Reassign planted pills to the lowest-index
