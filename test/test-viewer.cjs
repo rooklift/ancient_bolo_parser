@@ -2434,6 +2434,30 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	check("a reclaimed pill firing at its owner goes back to departed", lone.pills[0].owner, BoloGame.DEPARTED);
 	check("with no friends left", lone.pills[0].departed.allies, []);
 
+	/* the same rule for any pill: a fire at a player the model calls
+	 * friendly makes the pill nobody's, unless an alliance event is fresh */
+	const any = BoloGame.initial_state();
+	for (let p = 0; p < 3; p++) { any.present[p] = true; any.names[p] = "p" + p; }
+	any.alliances[1] &= ~(1 << 2);
+	any.alliances[2] &= ~(1 << 1);
+	any.pills = [
+		{ x: 10, y: 10, owner: 1, armour: 15, speed: 50, inTank: null },
+		{ x: 20, y: 20, owner: 1, armour: 15, speed: 50, inTank: null },
+		{ x: 30, y: 30, owner: 1, armour: 15, speed: 50, inTank: null },
+	];
+	const at = (time, player, subpackets) =>
+		({ time, seq: 0, status: 0, player, tankStatus: 0, tankDir: 0, subpackets });
+	BoloGame.apply_record(any, at(1000, 2, [{ type: "pillbox_fires", pillbox: 0, direction: 4 }]), null, null);
+	check("an owned pill firing at its owner's ally becomes nobody's", any.pills[0].owner, BoloGame.DEPARTED);
+	check("hostile to everyone", any.pills[0].departed.allies, []);
+	BoloGame.apply_record(any, at(2000, 2, [{ type: "alliance_accept", tanks: 1 << 1 }]), null, null);
+	BoloGame.apply_record(any, at(2000, 2, [{ type: "pillbox_fires", pillbox: 1, direction: 4 }]), null, null);
+	check("but not within a second of an alliance event", any.pills[1].owner, 1);
+	BoloGame.apply_record(any, at(2100, 2, [{ type: "pillbox_fires", pillbox: 1, direction: 0 }]), null, null);
+	check("nor for an odd index at direction 0", any.pills[1].owner, 1);
+	BoloGame.apply_record(any, at(2100, 2, [{ type: "pillbox_fires", pillbox: 2, direction: 0 }]), null, null);
+	check("an even index at direction 0 counts", any.pills[2].owner, BoloGame.DEPARTED);
+
 	/* bases work the same way */
 	const bases = BoloGame.initial_state();
 	for (let p = 0; p < 3; p++) { bases.present[p] = true; bases.names[p] = "p" + p; }
