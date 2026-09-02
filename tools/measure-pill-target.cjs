@@ -89,7 +89,8 @@ const totals = {
 	logs: 0, fires: 0, resolved_to_lower: 0, pair_ambiguous: 0,
 	pill_unresolved: 0, pill_dead: 0,
 	sender_no_tank: 0, sender_not_hostile: 0, sender_out_of_range: 0,
-	lone: 0, contested: 0, sender_nearest: 0,
+	lone: 0, contested: 0, sender_nearest: 0, sender_nearest_visible: 0,
+	not_hostile_parity_shaped: 0,
 	lost_by_bucket: MARGIN_BUCKETS.map(() => 0).concat([0]),
 	lost_to_hidden: 0, lost_to_staler: 0,
 	random_expectation: 0,
@@ -164,6 +165,7 @@ function scan(file) {
 			}
 			if (!me.hostile) {
 				totals.sender_not_hostile++;
+				if (sub.direction === 0 && (sub.pillbox & 1)) totals.not_hostile_parity_shaped++;
 				continue;
 			}
 			if (me.distance > RANGE_PX) {
@@ -179,6 +181,11 @@ function scan(file) {
 			totals.contested++;
 			totals.random_expectation += 1 / (rivals.length + 1);
 			let nearest_rival = rivals.reduce((a, b) => a.distance < b.distance ? a : b);
+			/* a tank hidden in forest may be no target at all: rank the
+			 * sender among the visible rivals too */
+			if (rivals.every(t => t.hidden || me.distance <= t.distance)) {
+				totals.sender_nearest_visible++;
+			}
 			if (me.distance <= nearest_rival.distance) {
 				totals.sender_nearest++;
 			} else {
@@ -217,13 +224,14 @@ console.log("Fires set aside:");
 console.log(`    pill unresolved (missing or carried)   ${n(totals.pill_unresolved).padStart(9)}`);
 console.log(`    pill dead                              ${n(totals.pill_dead).padStart(9)}`);
 console.log(`    sender has no live tank                ${n(totals.sender_no_tank).padStart(9)}`);
-console.log(`    sender not hostile to the pill         ${n(totals.sender_not_hostile).padStart(9)}   (must be ~0)`);
+console.log(`    sender not hostile to the pill         ${n(totals.sender_not_hostile).padStart(9)}   (must be ~0; ${n(totals.not_hostile_parity_shaped)} of them direction 0 with an odd index)`);
 console.log(`    sender's tank out of range             ${n(totals.sender_out_of_range).padStart(9)}`);
 console.log(`    sender the only hostile tank in range  ${n(totals.lone).padStart(9)}   (uninformative)`);
 console.log();
 console.log(`Contested fires (two or more hostile tanks in range): ${n(totals.contested)}`);
 console.log(`    sender is the nearest hostile tank     ${n(totals.sender_nearest).padStart(9)}   ${pc(totals.sender_nearest, totals.contested)}`);
 console.log(`    expected if the simulator were random  ${n(Math.round(totals.random_expectation)).padStart(9)}   ${pc(totals.random_expectation, totals.contested)}`);
+console.log(`    sender nearest among VISIBLE hostiles  ${n(totals.sender_nearest_visible).padStart(9)}   ${pc(totals.sender_nearest_visible, totals.contested)}   (rivals hidden in forest excluded)`);
 console.log("    sender beaten by a nearer hostile tank, by margin:");
 let lower = 0;
 for (let i = 0; i <= MARGIN_BUCKETS.length; i++) {
