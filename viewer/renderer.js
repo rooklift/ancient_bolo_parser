@@ -1189,17 +1189,17 @@ window.addEventListener("keydown", e => {
 		file_pick.click();
 		return;
 	}
-	if (e.code === "KeyD" && (e.ctrlKey || e.metaKey)) {
+	if (e.code === "KeyD") {
 		e.preventDefault();
 		toggle_coordinate_debug();
 		return;
 	}
-	if (e.code === "KeyI" && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+	if (e.code === "KeyI") {
 		e.preventDefault();
 		toggle_pillbox_ids();
 		return;
 	}
-	if (e.code === "KeyF" && (e.ctrlKey || e.metaKey)) {
+	if (e.code === "KeyF") {
 		e.preventDefault();
 		toggle_pill_fire_flashes();
 		return;
@@ -1251,22 +1251,22 @@ window.addEventListener("keydown", e => {
 		set_clock(clock - TPS * (e.shiftKey ? 60 : 10), true);
 	} else if (e.code === "ArrowRight") {
 		set_clock(clock + TPS * (e.shiftKey ? 60 : 10));
-	} else if (e.code === "KeyL" && (e.ctrlKey || e.metaKey)) {
+	} else if (e.code === "KeyL") {
 		e.preventDefault();
 		toggle_player_lock();
-	} else if (e.code === "KeyG" && (e.ctrlKey || e.metaKey)) {
+	} else if (e.code === "KeyG") {
 		e.preventDefault();
 		toggle_obj_sprites();
-	} else if (e.code === "KeyM" && (e.ctrlKey || e.metaKey)) {
+	} else if (e.code === "KeyM") {
 		e.preventDefault();
 		toggle_lgm_sprites();
-	} else if (e.code === "KeyB" && (e.ctrlKey || e.metaKey)) {
+	} else if (e.code === "KeyB") {
 		e.preventDefault();
 		toggle_big_shots();
-	} else if (e.code === "KeyR" && (e.ctrlKey || e.metaKey)) {
+	} else if (e.code === "KeyR") {
 		e.preventDefault();
 		toggle_raw_shells();
-	} else if (e.code === "KeyT" && (e.ctrlKey || e.metaKey)) {
+	} else if (e.code === "KeyT") {
 		e.preventDefault();
 		toggle_simple_terrain();
 	}
