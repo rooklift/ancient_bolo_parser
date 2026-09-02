@@ -2429,6 +2429,19 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	BoloGame.apply_record(lone, back, null, null, null, new Set([back]));
 	check("the owner rejoining in another slot gets it back", lone.pills[0].owner, 3);
 	check("and it is an ordinary pill again", lone.pills[0].departed, undefined);
+	/* ...provisionally: if it then fires at him, he pressed Join, not Rejoin */
+	BoloGame.apply_record(lone, rec(3, [{ type: "pillbox_fires", pillbox: 0, direction: 4 }]), null, null);
+	check("a reclaimed pill firing at its owner goes back to departed", lone.pills[0].owner, BoloGame.DEPARTED);
+	check("with no friends left", lone.pills[0].departed.allies, []);
+
+	/* bases work the same way */
+	const bases = BoloGame.initial_state();
+	for (let p = 0; p < 3; p++) { bases.present[p] = true; bases.names[p] = "p" + p; }
+	bases.alliances[1] &= ~(1 << 2);
+	bases.alliances[2] &= ~(1 << 1);
+	bases.bases = [{ x: 30, y: 30, owner: 1, armour: 90, shells: 90, mines: 90 }];
+	BoloGame.apply_record(bases, rec(1, [{ type: "quit", fields: [] }], 7), null, null);
+	check("quitter's base goes to the remaining ally", bases.bases[0].owner, 2);
 }
 
 // A map run whose final nibble is a repeat code (its terrain nibble
