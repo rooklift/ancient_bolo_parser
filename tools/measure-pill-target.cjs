@@ -97,6 +97,7 @@ const totals = {
 	not_hostile_parity_shaped: 0, not_hostile_own_pill: 0,
 	not_hostile_hit_by_sender: 0, not_hostile_owner_changed: 0,
 	sender_hidden: 0, sender_is_target: 0,
+	not_hostile_orphaned: 0, orphan_fires: 0, orphan_fires_at_model_ally: 0, orphan_fires_at_model_enemy: 0,
 	not_hostile_initial_ally: 0, not_hostile_direct_ally: 0, not_hostile_clique_ally: 0,
 	touching: 0, touching_facing: 0, apart_facing: 0, aim_neither_touching_facing: 0,
 	sample: [],
@@ -120,11 +121,19 @@ function scan(file) {
 	}
 	if (!recs.length) return;
 	totals.logs++;
-	let state = BoloGame.initial_state(BoloGame.extract_initial_map(recs));
+	/* the viewer's join classification: a slot re-entered by a T=7 roster
+	 * burst is a new player who inherits none of the old occupant's
+	 * alliances; without it a stale alliance survives a netsplit and the
+	 * clique merge later spreads it to everyone */
+	let node_joins = BoloGame.classify_node_joins(recs);
+	let state = BoloGame.initial_state(BoloGame.extract_initial_map(recs, node_joins));
 	/* [sender][pill] -> time of the last 9n the sender's own records carried
 	 * for that pill; [pill] -> time the model last changed its owner */
 	let last_hit = Array.from({length: 16}, () => new Array(16).fill(-Infinity));
 	let last_owner_change = new Array(16).fill(-Infinity);
+	/* a pill whose owner slot has quit since the pill got that owner: the
+	 * model keeps the stale slot as owner, the game may not */
+	let orphaned = new Array(16).fill(false);
 	/* how the model came to hold two players allied: from the game-info
 	 * words, from an accept event between the two, or only by the clique
 	 * merge an accept with a third party implies */
@@ -159,7 +168,7 @@ function scan(file) {
 				alliance_events.push(`rec ${recs.indexOf(rec)} t${rec.time} p${rec.player} ${sub.type}` +
 					(sub.tanks !== undefined ? ` bits ${sub.tanks.toString(16).padStart(4, "0")} [${
 						[...Array(16).keys()].filter(i => sub.tanks & (1 << i)).join(",")}]` : "") +
-					` model-after: ` + [...Array(16).keys()].filter(i => state.present[i] || state.names[i] !== null)
+					` model-before: ` + [...Array(16).keys()].filter(i => state.present[i] || state.names[i] !== null)
 						.map(i => `${i}=${(state.alliances[i] & 0xffff).toString(16).padStart(4, "0")}`).join(" "));
 			}
 			if (sub.type === "alliance_leave") {
@@ -229,7 +238,8 @@ function scan(file) {
 				let pill_index = state.pills.indexOf(pill);
 				if (rec.time - last_hit[sender][pill_index] <= RECENT_TICKS) totals.not_hostile_hit_by_sender++;
 				if (rec.time - last_owner_change[pill_index] <= RECENT_TICKS) totals.not_hostile_owner_changed++;
-				let provenance = pill.owner === sender ? "own"
+				if (orphaned[pill_index]) { totals.not_hostile_orphaned++; totals.orphan_fires++; totals.orphan_fires_at_model_ally++; }
+				let provenance = orphaned[pill_index] ? "orphan" : pill.owner === sender ? "own"
 					: initial_ally[sender][pill.owner] ? "initial"
 					: direct_ally[sender][pill.owner] ? "direct" : "clique";
 				if (provenance === "initial") totals.not_hostile_initial_ally++;
@@ -246,6 +256,13 @@ function scan(file) {
 			if (me.distance > RANGE_PX) {
 				totals.sender_out_of_range++;
 				continue;
+			}
+			{
+				let pill_index = state.pills.indexOf(pill);
+				if (orphaned[pill_index] && pill.owner !== NEUTRAL) {
+					totals.orphan_fires++;
+					totals.orphan_fires_at_model_enemy++;
+				}
 			}
 			let rivals = tanks.filter(t => t.hostile && t.player !== sender &&
 				t.distance <= RANGE_PX);
@@ -325,8 +342,14 @@ function scan(file) {
 			totals.trace = {label, events: alliance_events, last_record: recs.indexOf(rec), count: sampled_here};
 		}
 		let owners_before = state.pills.map(p => p.owner);
+		let quit_before = state.quit.slice();
 		let position_before = state.tanks[rec.player] && state.tanks[rec.player].position_time;
-		BoloGame.apply_record(state, rec, null, null);
+		BoloGame.apply_record(state, rec, null, null, null, node_joins);
+		for (let i = 0; i < 16; i++) {
+			if (state.quit[i] && !quit_before[i]) {
+				for (let k = 0; k < state.pills.length; k++) if (state.pills[k].owner === i) orphaned[k] = true;
+			}
+		}
 		let after = state.tanks[rec.player];
 		if (after && after.position_time !== position_before) {
 			let c = tank_centre(after);
@@ -338,7 +361,7 @@ function scan(file) {
 			}
 		}
 		for (let i = 0; i < state.pills.length; i++) {
-			if (state.pills[i].owner !== owners_before[i]) last_owner_change[i] = rec.time;
+			if (state.pills[i].owner !== owners_before[i]) { last_owner_change[i] = rec.time; orphaned[i] = false; }
 		}
 	}
 }
@@ -360,10 +383,14 @@ console.log(`    sender has no live tank                ${n(totals.sender_no_tan
 console.log(`    sender not hostile to the pill         ${n(totals.sender_not_hostile).padStart(9)}   (must be ~0; ${n(totals.not_hostile_parity_shaped)} of them direction 0 with an odd index)`);
 console.log(`        of those: the sender's own pill ${n(totals.not_hostile_own_pill)}; the sender's own records carried a 9n for`);
 console.log(`        that pill within ${RECENT_TICKS} ticks ${n(totals.not_hostile_hit_by_sender)}; the pill changed owner within ${RECENT_TICKS} ticks ${n(totals.not_hostile_owner_changed)}`);
+console.log(`        the pill's owner slot had quit since the pill got that owner ("orphaned") in ${n(totals.not_hostile_orphaned)}`);
 console.log(`        how the model holds them allied: from game info ${n(totals.not_hostile_initial_ally)}, an accept between the two ${n(totals.not_hostile_direct_ally)},`);
 console.log(`        only the clique merge of a third party's accept ${n(totals.not_hostile_clique_ally)}`);
 console.log(`    sender's tank out of range             ${n(totals.sender_out_of_range).padStart(9)}`);
 console.log(`    sender the only hostile tank in range  ${n(totals.lone).padStart(9)}   (uninformative)`);
+console.log();
+console.log(`Orphaned pills (owner slot quit since they got that owner) fired ${n(totals.orphan_fires)} times: at a tank the model holds`);
+console.log(`allied to the stale owner ${n(totals.orphan_fires_at_model_ally)}, hostile to it ${n(totals.orphan_fires_at_model_enemy)}. A neutralised pill fires at both.`);
 console.log();
 console.log(`Fires where the sender is taken as the target: ${n(totals.sender_is_target)}; sender's tank hidden in forest`);
 console.log(`at the time in ${n(totals.sender_hidden)} (${pc(totals.sender_hidden, totals.sender_is_target)}) -- ~0 if a pill cannot target a hidden tank.`);
@@ -412,7 +439,7 @@ if (totals.sample.length) {
 if (totals.trace) {
 	console.log();
 	console.log(`Alliance events in ${totals.trace.label} up to record ${totals.trace.last_record} (the replay with the most allied-sender fires, ${n(totals.trace.count)}),`);
-	console.log("with the model's alliance masks after each (bit set = NOT allied):");
+	console.log("with the model's alliance masks as the event arrived (bit set = NOT allied):");
 	let shown = 0;
 	for (let line of totals.trace.events) {
 		if (parseInt(line.slice(4)) > totals.trace.last_record) break;

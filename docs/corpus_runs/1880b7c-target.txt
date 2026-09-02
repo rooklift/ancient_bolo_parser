@@ -76,4 +76,26 @@ Allied-sender fires, the first 24 (replay names redacted):
     101502.1~ac361f rec 13799 t186261 sender 3 pill 9 owner 2 ally:clique dir 7 facing 11 dist 52px hit-by-sender no
     101502.1~ac361f rec 13799 t186261 sender 3 pill 9 owner 2 ally:clique dir 7 facing 11 dist 52px hit-by-sender no
     101502.1~ac361f rec 13801 t186261 sender 5 pill 5 owner 1 ally:clique dir 3 facing 4 dist 120px hit-by-sender no
+
+Alliance events in 101502.1~ac361f up to record 39722 (the replay with the most allied-sender fires, 4,083),
+with the model's alliance masks after each (bit set = NOT allied):
+    rec 6 t117032 game info alliance words: 0:fffe 1:fffd 2:fffb 3:fff7 4:ffef 5:ffdf 6:ffbf 7:ff7f 8:feff 9:fdff 10:fbff 11:f7ff 12:efff 13:dfff 14:bfff 15:7fff
+    rec 127 t117862 p2 alliance_request bits 0022 [1,5] model-after: 0=fffe 1=fffd 2=fffb 3=fff7 4=ffef 5=ffdf
+    rec 131 t117969 p3 alliance_request bits 0011 [0,4] model-after: 0=fffe 1=fffd 2=fffb 3=fff7 4=ffef 5=ffdf
+    rec 134 t118081 p1 alliance_accept bits 0004 [2] model-after: 0=fffe 1=fffd 2=fffb 3=fff7 4=ffef 5=ffdf
+    rec 141 t118322 p4 alliance_request bits 0001 [0] model-after: 0=fffe 1=fff9 2=fff9 3=fff7 4=ffef 5=ffdf
+    rec 143 t118373 p5 alliance_request bits 0006 [1,2] model-after: 0=fffe 1=fff9 2=fff9 3=fff7 4=ffef 5=ffdf
+    rec 148 t118554 p2 alliance_accept bits 0020 [5] model-after: 0=fffe 1=fff9 2=fff9 3=fff7 4=ffef 5=ffdf
+    rec 150 t118569 p4 alliance_accept bits 0008 [3] model-after: 0=fffe 1=ffd9 2=ffd9 3=fff7 4=ffef 5=ffd9
+    rec 159 t118808 p0 alliance_request bits 0018 [3,4] model-after: 0=fffe 1=ffd9 2=ffd9 3=ffe7 4=ffe7 5=ffd9
+    rec 162 t118835 p3 alliance_accept bits 0001 [0] model-after: 0=fffe 1=ffd9 2=ffd9 3=ffe7 4=ffe7 5=ffd9
+    rec 12348 t175245 p2 alliance_request bits 0002 [1] model-after: 0=ffee 1=fffd 2=fffb 3=fff7 4=ffee 5=ffdf
+    rec 12358 t175352 p3 alliance_request bits 0001 [0] model-after: 0=ffee 1=fffd 2=fffb 3=fff7 4=ffee 5=ffdf
+    rec 12371 t175447 p1 alliance_accept bits 0004 [2] model-after: 0=ffee 1=fffd 2=fffb 3=fff7 4=ffee 5=ffdf
+    rec 12399 t175642 p0 alliance_request bits 0010 [4] model-after: 0=ffee 1=fff9 2=fff9 3=fff7 4=ffee 5=ffdf
+    rec 12671 t178441 p0 alliance_accept bits 0008 [3] model-after: 0=ffee 1=fff9 2=fff9 3=fff7 4=ffee 5=ffdf
+    rec 12710 t179004 p4 alliance_request bits 0006 [1,2] model-after: 0=ffe6 1=fff9 2=fff9 3=ffe6 4=ffe6 5=ffdf
+    rec 12864 t180198 p2 alliance_accept bits 0010 [4] model-after: 0=ffe6 1=fff9 2=fff9 3=ffe6 4=ffe6 5=ffdf
+    rec 13062 t182446 p5 alliance_request bits 0001 [0] model-after: 0=ffe0 1=ffe0 2=ffe0 3=ffe0 4=ffe0 5=ffdf
+    rec 13079 t182563 p0 alliance_accept bits 0020 [5] model-after: 0=ffe0 1=ffe0 2=ffe0 3=ffe0 4=ffe0 5=ffdf
 ======================================================================
