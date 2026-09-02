@@ -17,8 +17,8 @@
  * lives.
  *
  * MEASUREMENT 1b: the same quiet-moment events, split by the parity of
- * the named index and the side of due north the shot came from.  The
- * decompile gives the fault a mechanism -- BRAD_TO_PACK(x) = ((x)+8)>>4
+ * the named index and the side of due north the shot came from.  There
+ * is a known mechanism for the fault -- BRAD_TO_PACK(x) = ((x)+8)>>4
  * overflows to 0x10 for bradians 248-255 and is ORed into the index
  * nibble, reporting true_n|1 -- which the aggregate ~25% cannot verify
  * but the split can, three ways: an EVEN named index in direction 0 can
@@ -188,7 +188,7 @@ for (let d = 0; d < 16; d++) {
 		`${`${s.neither} (${pc(s.neither, s.n)})`.padStart(12)}`);
 }
 console.log();
-console.log("Direction-0 mechanism check (decompile: reported = true_n | 1 for");
+console.log("Direction-0 mechanism check (the claim: reported = true_n | 1 for");
 console.log("west-of-north bradians 249-255, so: even-index errors, west-side");
 console.log("even-index shots, and east-side on-lower cases must all be ZERO):");
 console.log();
