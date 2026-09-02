@@ -666,7 +666,11 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 						if (i !== pl) s.alliances[i] |= (1 << pl);
 					}
 					/* a departed owner rejoining, in any slot, gets his
-					 * pills back; anyone else gets nothing */
+					 * pills back; anyone else gets nothing. Bolo offered
+					 * both Join and Rejoin, and only Rejoin restored a
+					 * player's things; the log cannot tell which was
+					 * pressed, so this assumes Rejoin, the one players
+					 * told each other to use. */
 					for (const p of s.pills) {
 						if (p.owner === DEPARTED && p.departed && p.departed.name === sub.name) {
 							p.owner = pl;
