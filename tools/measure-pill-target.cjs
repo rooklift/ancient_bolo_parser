@@ -107,6 +107,10 @@ const totals = {
 	not_hostile_orphan_heir: 0,
 	/* was the quitter's tank dead (T=7) at the quit? a dead quit may not hand over */
 	quits_dead: 0, quits_alive: 0,
+	/* the viewer's own correction: pills the model made nobody's because
+	 * they fired at a player it held friendly (counted from the state
+	 * change, so it is the rule's real trigger count, not the tool's) */
+	rule_triggers: 0, rule_trigger_sample: [],
 	/* the sender's tank beyond a shell's flight of the pill: how far, how
 	 * stale its position, and whether a nearer hostile pill fits the nibble */
 	out_of_range_by_distance: [0, 0, 0, 0],   /* 137-160, 161-200, 201-300, over 300 px */
@@ -419,6 +423,7 @@ function scan(file) {
 			totals.trace = {label, events: alliance_events, last_record: recs.indexOf(rec), count: sampled_here};
 		}
 		let owners_before = state.pills.map(p => p.owner);
+		let has_fire = rec.subpackets.some(s => s.type === "pillbox_fires");
 		let quit_before = state.quit.slice();
 		let position_before = state.tanks[rec.player] && state.tanks[rec.player].position_time;
 		BoloGame.apply_record(state, rec, null, null, null, node_joins);
@@ -463,6 +468,17 @@ function scan(file) {
 					: {x: c.x, y: c.y, time: after.position_time, next_x: c.x, next_y: c.y};
 			}
 		}
+		if (has_fire) {
+			for (let i = 0; i < state.pills.length; i++) {
+				if (state.pills[i].owner === BoloGame.DEPARTED && owners_before[i] !== BoloGame.DEPARTED &&
+					!rec.subpackets.some(s => s.type === "quit")) {
+					totals.rule_triggers++;
+					if (totals.rule_trigger_sample.length < 12) {
+						totals.rule_trigger_sample.push(`${label} rec ${recs.indexOf(rec)} t${rec.time} sender ${rec.player} pill ${i} was owner ${owners_before[i]}`);
+					}
+				}
+			}
+		}
 		for (let i = 0; i < state.pills.length; i++) {
 			if (state.pills[i].owner !== owners_before[i]) {
 				last_owner_change[i] = rec.time;
@@ -498,6 +514,9 @@ console.log(`        sender's position over a second old ${n(totals.out_of_range
 console.log(`        by the larger axis distance: <= 136 px ${n(totals.out_of_range_axis[0])}, <= 152 ${n(totals.out_of_range_axis[1])}, <= 168 ${n(totals.out_of_range_axis[2])}, over ${n(totals.out_of_range_axis[3])}`);
 console.log(`        (a box would put nearly all of them in the first bucket; a circle seen through stale positions spreads them)`);
 console.log(`    sender the only hostile tank in range  ${n(totals.lone).padStart(9)}   (uninformative)`);
+console.log();
+console.log(`The viewer's fire rule (a pill firing at a player the model holds friendly becomes nobody's) triggered ${n(totals.rule_triggers)} times.`);
+for (let line of totals.rule_trigger_sample) console.log(`    ${line}`);
 console.log();
 console.log(`Orphaned pills (owner slot quit since they got that owner) fired ${n(totals.orphan_fires)} times, by the target's NAME as of the quit:`);
 console.log(`at a member of the owner's alliance then ${n(totals.orphan_at_old_ally)}, at anyone else present then ${n(totals.orphan_at_old_enemy)}, at a name not present then ${n(totals.orphan_at_newcomer)}.`);
