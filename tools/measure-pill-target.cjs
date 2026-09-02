@@ -154,6 +154,7 @@ function scan(file) {
 	let prev_position = new Array(16).fill(null);
 	let alliance_events = [];
 	let sampled_here = 0;
+	let last_alliance_event = -Infinity;   /* tick of the last request, accept or leave */
 
 	for (let rec of recs) {
 		for (let sub of rec.subpackets) {
@@ -175,6 +176,7 @@ function scan(file) {
 					sub.alliances.map((w, i) => `${i}:${(w & 0xffff).toString(16).padStart(4, "0")}`).join(" "));
 			}
 			if (sub.type === "alliance_request" || sub.type === "alliance_accept" || sub.type === "alliance_leave") {
+				last_alliance_event = rec.time;
 				alliance_events.push(`rec ${recs.indexOf(rec)} t${rec.time} p${rec.player} ${sub.type}` +
 					(sub.tanks !== undefined ? ` bits ${sub.tanks.toString(16).padStart(4, "0")} [${
 						[...Array(16).keys()].filter(i => sub.tanks & (1 << i)).join(",")}]` : "") +
@@ -272,9 +274,22 @@ function scan(file) {
 				else if (provenance === "clique") totals.not_hostile_clique_ally++;
 				sampled_here++;
 				if (totals.sample.length < SAMPLE_CASES) {
+					/* two readings for a case that is not the index fault
+					 * and not an orphan: an alliance event just before it
+					 * (model timing), or a hostile grounded pill in range
+					 * lying along the direction nibble (a misnamed index) */
+					let along = [];
+					state.pills.forEach((q, k) => {
+						if (k === pill_index || q.inTank !== null || q.armour === 0 || !hostile(state, q, sender)) return;
+						let qx = q.x * 16 + 8, qy = q.y * 16 + 8;
+						if (Math.hypot(qx - me.x, qy - me.y) > RANGE_PX) return;
+						if (sector_gap(sub.direction, coarse_bearing(qx, qy, me.x, me.y)) <= 1) along.push(k);
+					});
 					totals.sample.push(`${label} rec ${recs.indexOf(rec)} t${rec.time} sender ${sender} pill ${pill_index} owner ${pill.owner} ` +
 						`ally:${provenance} dir ${sub.direction} facing ${rec.tankDir} dist ${me.distance.toFixed(0)}px ` +
-						`hit-by-sender ${rec.time - last_hit[sender][pill_index] <= RECENT_TICKS ? "yes" : "no"}`);
+						`hit-by-sender ${rec.time - last_hit[sender][pill_index] <= RECENT_TICKS ? "yes" : "no"}` +
+						` last-alliance-event ${Number.isFinite(last_alliance_event) ? `${rec.time - last_alliance_event} ticks ago` : "never"}` +
+						` hostile-pills-along-nibble [${along.join(",")}]`);
 				}
 				continue;
 			}
