@@ -4,7 +4,7 @@ Preamble: although this is entirely AI-coded, you (dear reader) have no idea the
 
 A parser for log files written by the classic Macintosh tank game **Bolo** (Stuart Cheshire, version 0.99.7bv).
 
-The log format was cracked around 2001–2003 by Carl Osterwald ("wharf rat") for his BoloViewer application. This project builds on a surviving copy of his (or someone's) format notes, adds empirical findings of its own, and documents everything in [FORMAT.md](FORMAT.md).
+The log format was cracked around 2001–2003 by Carl Osterwald ("wharf rat") for his BoloViewer application. This project builds on a surviving copy of his (or someone's) format notes, adds empirical findings of its own, and documents everything in [FORMAT.md](docs/FORMAT.md).
 
 The parser is dependency-free ES-module JavaScript (Node ≥ 18).
 
@@ -40,6 +40,8 @@ static file server. There is no build step and nothing to install.
 ## Status
 
 The viewer reconstructs full game state (terrain, pills, bases, tanks, men, shells, alliances), including the pieces of game logic the log omits by design — pill dumps on death, boat consumption, alliance semantics; see the end of FORMAT.md for that list and its caveats. Tank, LGM and conservatively matched shell movement is interpolated between nearby restatements.
+
+The shell interpolator is a forensic reconstruction engine for anonymous projectiles: a quantisation-aware state estimator driven by a bit-exact simulator of Bolo's integer shell physics, reverse-engineered from empirical data; a 256-bradian discrete-trajectory hypothesis tracker that collapses to exact orbits wherever the origin is pinned; a byte-exact stale-restatement linker; a margin-gated mutual-best identity matcher; a same-origin lockstep roster arbiter; a conservative chain stitcher; a min-cost maximum-flow resolver for forced residual origins, continuations, and fates; and a constant-velocity smoother with late-stamp head correction, arrival-retimed splashes, and seamless birth-and-fall segments, all so that a shell with no ID in a 25-year-old log can be drawn flying from the muzzle to the target.
 
 ## Provenance and credits
 
