@@ -1037,10 +1037,10 @@ all on the fixture, all from the sections above:
 * **The truth axes agree with the coverage axes**, which they were
   built to be able to refuse to do. Pill-link contradictions 6 -> 0
   since the metric was introduced; drawn-motion pop-outs 1,465 at the
-  pre-branch state -> 273; steady links 0.787 -> 0.9789; seam jumps 0
+  pre-branch state -> 273; steady links 0.787 -> 0.9787; seam jumps 0
   at every state ever audited. Nothing on the fixture's books is a
   match rate bought with a rendering lie. The corpus is a shade less
-  clean (89 contradictions, per the corpus file), and that is where
+  clean (94 contradictions at `30d5351`, per the corpus file), and that is where
   the next dial is.
 * **Two eras are measured only on the corpus.** The unseen-shot,
   provenance-birth and pill-lockstep arcs (from `775fe4b` through
