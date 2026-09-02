@@ -15,6 +15,11 @@ const TICKS_PER_SECOND = BoloMotion.TICKS_PER_SECOND;
 const KEYFRAME_EVERY = 2000; /* records between state snapshots, for seeking */
 const NEUTRAL = 16;
 const GONE = -2; /* inTank value: pill left the game with a quitting carrier */
+/* owner value: the owner quit with no ally left to inherit. The pill stays
+ * with his alliance [E:pill-target], which the log can only follow by name,
+ * so the pill carries the names it is friendly to and goes back to the
+ * owner if his name rejoins; a stranger taking his slot never gets it. */
+const DEPARTED = 17;
 const NODE_JOIN_RESTATEMENT_TICKS = TICKS_PER_SECOND * 5;
 
 /* Subpacket types of map-transfer / node records, which appear alone and
@@ -287,6 +292,40 @@ function lowest_carried(s, player) {
 
 /* Apply one parsed record to the state. `effects` and `chat`, when given,
  * collect transient events (for rendering) and messages. */
+/* The lowest-index mutual ally still in the game, or -1: the player who
+ * inherits pills their owner leaves behind (manual: "any active ones on
+ * the map remain with the members of the alliance"). */
+function lowest_remaining_ally(s, pl) {
+	for (let i = 0; i < 16; i++) {
+		const mutual = i !== pl && !(s.alliances[pl] & (1 << i)) && !(s.alliances[i] & (1 << pl));
+		if (mutual && !s.quit[i] && (s.present[i] || s.names[i] !== null)) return i;
+	}
+	return -1;
+}
+
+/* A departing owner's grounded pills go to his heir, or, with none left in
+ * the game, into the DEPARTED state carrying the names of his alliance. */
+function hand_over_pills(s, pl, heir) {
+	let allies = [];
+	if (heir < 0) {
+		for (let i = 0; i < 16; i++) {
+			if (s.names[i] === null) continue;
+			const mutual = i === pl || (!(s.alliances[pl] & (1 << i)) && !(s.alliances[i] & (1 << pl)));
+			if (mutual) allies.push(s.names[i]);
+		}
+	}
+	for (const p of s.pills) {
+		if (p.owner !== pl || p.inTank !== null) continue;
+		if (heir >= 0) {
+			p.owner = heir;
+			delete p.departed;
+		} else {
+			p.owner = DEPARTED;
+			p.departed = { name: s.names[pl], allies };
+		}
+	}
+}
+
 function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 	const pl = rec.player;
 	let sawShells = false;
@@ -506,7 +545,7 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 				 * in place by the captor's ally, and then fired on its
 				 * former owner's team. */
 				const p = s.pills[sub.pillbox];
-				if (p) { p.inTank = pl; p.owner = pl; }
+				if (p) { p.inTank = pl; p.owner = pl; delete p.departed; }
 				break;
 			}
 			case "pill_plant": {
@@ -516,6 +555,7 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 					p.x = sub.x;
 					p.y = sub.y;
 					p.owner = pl;
+					delete p.departed;
 					p.armour = 15;
 				}
 				break;
@@ -625,6 +665,14 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 					for (let i = 0; i < 16; i++) {
 						if (i !== pl) s.alliances[i] |= (1 << pl);
 					}
+					/* a departed owner rejoining, in any slot, gets his
+					 * pills back; anyone else gets nothing */
+					for (const p of s.pills) {
+						if (p.owner === DEPARTED && p.departed && p.departed.name === sub.name) {
+							p.owner = pl;
+							delete p.departed;
+						}
+					}
 				}
 				s.names[pl] = sub.name;
 				s.present[pl] = true;
@@ -679,9 +727,12 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 				 * pills were picked up later within a tile of the
 				 * quitter's last tank centre — in one case both at once,
 				 * lying together). With no known tank position they leave
-				 * the game (GONE). Planted pills and alliance links stay:
-				 * his pills keep their allegiance until the slot is
-				 * reused. */
+				 * the game (GONE). Planted pills stay with his alliance
+				 * [E:pill-target]: they go to the lowest-index remaining
+				 * ally as on alliance-leave, or, with no ally left (a
+				 * netsplit takes a whole team at once), into the DEPARTED
+				 * state, from which only the owner's own name rejoining
+				 * recovers them. Alliance links stay. */
 				{
 					/* dump at the pre-record position: a ghost-split quit
 					 * record was seen restating a position 50 tiles from
@@ -692,6 +743,7 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 						dump_carried_pills(s, pl, sq.x, sq.y);
 					}
 				}
+				hand_over_pills(s, pl, lowest_remaining_ally(s, pl));
 				for (const p of s.pills) {
 					if (p.inTank === pl) p.inTank = GONE;
 				}
@@ -735,16 +787,8 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 				 * the alliance." Reassign planted pills to the lowest-index
 				 * remaining ally before severing the links. (Bases are not
 				 * mentioned and keep their owner.) */
-				let heir = -1;
-				for (let i = 0; i < 16; i++) {
-					const mutual = i !== pl && !(s.alliances[pl] & (1 << i)) && !(s.alliances[i] & (1 << pl));
-					if (mutual && !s.quit[i] && (s.present[i] || s.names[i] !== null)) { heir = i; break; }
-				}
-				if (heir >= 0) {
-					for (const p of s.pills) {
-						if (p.owner === pl && p.inTank === null) p.owner = heir;
-					}
-				}
+				const heir = lowest_remaining_ally(s, pl);
+				if (heir >= 0) hand_over_pills(s, pl, heir);
 				s.alliances[pl] = 0xffff & ~(1 << pl);
 				for (let i = 0; i < 16; i++) {
 					if (i !== pl) s.alliances[i] |= (1 << pl);
@@ -1075,7 +1119,7 @@ function team_of(s, player) {
 }
 
 const BoloGame = {
-	MAP_SIZE, DEEP_SEA, TICKS_PER_SECOND, NEUTRAL, KEYFRAME_EVERY,
+	MAP_SIZE, DEEP_SEA, TICKS_PER_SECOND, NEUTRAL, DEPARTED, KEYFRAME_EVERY,
 	MAX_POSITION_INTERPOLATION_TICKS: BoloMotion.MAX_POSITION_INTERPOLATION_TICKS,
 	MAX_SHELL_INTERPOLATION_TICKS: BoloMotion.MAX_SHELL_INTERPOLATION_TICKS,
 	MAX_DIRECTION_INTERPOLATION_TICKS: BoloMotion.MAX_DIRECTION_INTERPOLATION_TICKS,

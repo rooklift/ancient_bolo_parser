@@ -85,6 +85,9 @@ function sector_gap(a, b) {
 
 function hostile(state, pill, player) {
 	if (pill.owner === NEUTRAL) return true;
+	if (pill.owner === BoloGame.DEPARTED) {
+		return !(pill.departed && pill.departed.allies.includes(state.names[player]));
+	}
 	if (pill.owner === player) return false;
 	return (state.alliances[pill.owner] & (1 << player)) !== 0;
 }
@@ -261,6 +264,7 @@ function scan(file) {
 				if (rec.time - last_owner_change[pill_index] <= RECENT_TICKS) totals.not_hostile_owner_changed++;
 				if (orphaned[pill_index]) { totals.not_hostile_orphaned++; if (orphaned[pill_index].heir) totals.not_hostile_orphan_heir++; }
 				let provenance = orphaned[pill_index] ? "orphan" : pill.owner === sender ? "own"
+					: pill.owner > 15 ? "departed"
 					: initial_ally[sender][pill.owner] ? "initial"
 					: direct_ally[sender][pill.owner] ? "direct" : "clique";
 				if (provenance === "initial") totals.not_hostile_initial_ally++;
@@ -380,12 +384,12 @@ function scan(file) {
 					 * remaining mutual ally the leave rule would pick */
 					if (j !== i && !state.quit[j] && !(state.alliances[i] & (1 << j)) && !(state.alliances[j] & (1 << i))) heir = true;
 				}
-				if (state.pills.some(p => p.owner === i && p.inTank === null)) {
+				if (state.pills.some((p, k) => owners_before[k] === i && p.inTank === null)) {
 					totals.quits_with_pills++;
 					if (heir) totals.quits_with_heir++;
 				}
 				for (let k = 0; k < state.pills.length; k++) {
-					if (state.pills[k].owner === i && !orphaned[k]) orphaned[k] = {allies, others, owner_name: state.names[i], heir, returned: false};
+					if (owners_before[k] === i && !orphaned[k]) orphaned[k] = {allies, others, owner_name: state.names[i], heir, returned: false, since: rec};
 				}
 			}
 		}
@@ -400,7 +404,10 @@ function scan(file) {
 			}
 		}
 		for (let i = 0; i < state.pills.length; i++) {
-			if (state.pills[i].owner !== owners_before[i]) { last_owner_change[i] = rec.time; orphaned[i] = null; }
+			if (state.pills[i].owner !== owners_before[i]) {
+				last_owner_change[i] = rec.time;
+				if (!orphaned[i] || orphaned[i].since !== rec) orphaned[i] = null;
+			}
 		}
 	}
 }

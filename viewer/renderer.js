@@ -640,6 +640,22 @@ function draw_bases() {
 	}
 }
 
+/* Which side a pill draws on for the viewpoint's team: neutral pills are
+ * hostile; a DEPARTED pill (its owner quit with no ally left) is friendly
+ * to the names of his alliance, which is all the log lets us follow. */
+function pill_side(p, good) {
+	if (p.owner === BoloGame.NEUTRAL) return "evil";
+	if (p.owner === BoloGame.DEPARTED) {
+		if (!p.departed) return "evil";
+		for (let i = 0; i < 16; i++) {
+			if (cur.names[i] !== null && BoloGame.team_of(cur, i) === good &&
+				p.departed.allies.includes(cur.names[i])) return "good";
+		}
+		return "evil";
+	}
+	return BoloGame.team_of(cur, p.owner) === good ? "good" : "evil";
+}
+
 function draw_pills(dead) {
 	let z = view.zoom;
 	let r = Math.max(2, z * 0.36);
@@ -649,14 +665,14 @@ function draw_pills(dead) {
 		let cx = tile_to_screen_x(p.x) + z / 2;
 		let cy = tile_to_screen_y(p.y) + z / 2;
 		/* the art shows neutral pills as hostile; armour state 0 is the dead look */
-		let side = p.owner !== BoloGame.NEUTRAL && BoloGame.team_of(cur, p.owner) === good ? "good" : "evil";
+		let side = pill_side(p, good);
 		let img = obj_sprite(`pillbox_${side}_${String(Math.min(15, p.armour)).padStart(2, "0")}`);
 		if (img) {
 			draw_obj(img, tile_to_screen_x(p.x), tile_to_screen_y(p.y));
 			continue;
 		}
 		ctx.fillStyle = dead ? "#555c6a"
-			: p.owner === BoloGame.NEUTRAL ? HOSTILE_COLOR : side_color(p.owner);
+			: side === "good" ? FRIENDLY_COLOR : HOSTILE_COLOR;
 		ctx.strokeStyle = "rgba(0,0,0,0.65)";
 		ctx.lineWidth = 1.5;
 		ctx.beginPath();

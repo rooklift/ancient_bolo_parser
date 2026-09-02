@@ -2398,6 +2398,39 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	check("ally's own pill untouched", st.pills[2].owner, 2);
 }
 
+// Quitting: planted pills stay with the alliance too [E:pill-target]. With
+// an ally still in the game they go to him; with none left they become
+// DEPARTED, go back to the owner if his name rejoins in any slot, and never
+// to a stranger who takes his old slot.
+{
+	const st = BoloGame.initial_state();
+	for (let p = 0; p < 3; p++) { st.present[p] = true; st.names[p] = "p" + p; }
+	st.alliances[1] &= ~(1 << 2);
+	st.alliances[2] &= ~(1 << 1);
+	st.pills = [
+		{ x: 10, y: 10, owner: 1, armour: 15, speed: 50, inTank: null },
+		{ x: 20, y: 20, owner: 2, armour: 15, speed: 50, inTank: null },
+	];
+	const rec = (player, subpackets, tankStatus = 0) =>
+		({ time: 0, seq: 0, status: 0, player, tankStatus, tankDir: 0, subpackets });
+	BoloGame.apply_record(st, rec(1, [{ type: "quit", fields: [] }], 7), null, null);
+	check("quitter's planted pill goes to the remaining ally", st.pills[0].owner, 2);
+	check("the ally's own pill is untouched by the quit", st.pills[1].owner, 2);
+
+	const lone = BoloGame.initial_state();
+	for (let p = 0; p < 2; p++) { lone.present[p] = true; lone.names[p] = "p" + p; }
+	lone.pills = [{ x: 10, y: 10, owner: 1, armour: 15, speed: 50, inTank: null }];
+	BoloGame.apply_record(lone, rec(1, [{ type: "quit", fields: [] }], 7), null, null);
+	check("with no ally left the pill is departed", lone.pills[0].owner, BoloGame.DEPARTED);
+	check("the departed pill remembers its alliance's names", lone.pills[0].departed.allies, ["p1"]);
+	BoloGame.apply_record(lone, rec(1, [{ type: "node_id", name: "stranger" }], 7), null, null);
+	check("a stranger taking the slot does not inherit it", lone.pills[0].owner, BoloGame.DEPARTED);
+	const back = rec(3, [{ type: "node_id", name: "p1" }], 7);
+	BoloGame.apply_record(lone, back, null, null, null, new Set([back]));
+	check("the owner rejoining in another slot gets it back", lone.pills[0].owner, 3);
+	check("and it is an ordinary pill again", lone.pills[0].departed, undefined);
+}
+
 // A map run whose final nibble is a repeat code (its terrain nibble
 // truncated off) must stop without writing pad/undefined squares (which a
 // Uint8Array would store as 0 = building), and flag the run.
