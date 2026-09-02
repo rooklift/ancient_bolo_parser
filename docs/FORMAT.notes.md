@@ -224,7 +224,7 @@ The consequences are confined to which pill a viewer credits with a shot: no ter
 
 **[E:alliance-transitive]** — verified on a 3v3 whose only accepts were A↔B and B↔C on each side.
 
-**[E:leave-pills]** — from the Bolo manual, on leaving an alliance: "Any pillboxes he is carrying at the time are his, but any active ones on the map remain with the members of the alliance." Which member inherits is not stated; the viewer assigns them to the lowest-index remaining mutual ally, which draws them as friendly to the right side in every case seen. Bases are not mentioned and keep their owner.
+**[E:leave-pills]** — from the Bolo manual, on leaving an alliance: "Any pillboxes he is carrying at the time are his, but any active ones on the map remain with the members of the alliance." Which member inherits is not stated; the viewer assigns them to the lowest-index remaining mutual ally. Bases are not mentioned and keep their owner.
 
 **[E:quit-pills]** — in two mid-game quits-while-carrying, the pills were later picked up within a tile of the quitter's last tank centre; in one case both at once, lying together.
 
