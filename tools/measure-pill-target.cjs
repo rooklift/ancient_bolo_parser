@@ -30,12 +30,15 @@ const BoloLog = require(path.join(__dirname, "..", "viewer", "logparse.js"));
 const BoloGame = require(path.join(__dirname, "..", "viewer", "game.js"));
 
 const args = process.argv.slice(2).filter(a => !a.startsWith("--"));
-const ROOT = args[0] || require("./corpus.cjs").corpus_root();
+const {corpus_root, replay_label} = require("./corpus.cjs");
+const ROOT = args[0] || corpus_root();
 const NEUTRAL = 16;
 const RANGE_PX = 136;       /* 8.5 tiles: a pill shell's full flight */
 const ALIVE_TICKS = 250;    /* a tank unheard of for 5 s is not a target */
 const MARGIN_BUCKETS = [8, 16, 32, 64];
 const RECENT_TICKS = 100;   /* a hit or an ownership change this recent may explain a fire at an ally */
+const TOUCH_PX = 24;        /* tank centre to pill centre when the tank is against the pill */
+const SAMPLE_CASES = 24;    /* allied-sender fires listed for reading */
 
 function* walk(target) {
 	let stat;
@@ -94,6 +97,9 @@ const totals = {
 	not_hostile_parity_shaped: 0, not_hostile_own_pill: 0,
 	not_hostile_hit_by_sender: 0, not_hostile_owner_changed: 0,
 	sender_hidden: 0, sender_is_target: 0,
+	not_hostile_initial_ally: 0, not_hostile_direct_ally: 0, not_hostile_clique_ally: 0,
+	touching: 0, touching_facing: 0, apart_facing: 0, aim_neither_touching_facing: 0,
+	sample: [],
 	lost_by_bucket: MARGIN_BUCKETS.map(() => 0).concat([0]),
 	lost_to_hidden: 0, lost_to_staler: 0,
 	random_expectation: 0,
@@ -115,10 +121,34 @@ function scan(file) {
 	 * for that pill; [pill] -> time the model last changed its owner */
 	let last_hit = Array.from({length: 16}, () => new Array(16).fill(-Infinity));
 	let last_owner_change = new Array(16).fill(-Infinity);
+	/* how the model came to hold two players allied: from the game-info
+	 * words, from an accept event between the two, or only by the clique
+	 * merge an accept with a third party implies */
+	let initial_ally = Array.from({length: 16}, () => new Array(16).fill(false));
+	let direct_ally = Array.from({length: 16}, () => new Array(16).fill(false));
+	let label = replay_label(file);
 
 	for (let rec of recs) {
 		for (let sub of rec.subpackets) {
 			if (sub.type === "pillbox_damage") last_hit[rec.player][sub.pillbox] = rec.time;
+			if (sub.type === "game_info") {
+				for (let a = 0; a < 16; a++) for (let b = 0; b < 16; b++) {
+					initial_ally[a][b] = a !== b && !(sub.alliances[a] & (1 << b));
+				}
+			}
+			if (sub.type === "alliance_accept") {
+				for (let i = 0; i < 16; i++) {
+					if (i !== rec.player && (sub.tanks & (1 << i))) {
+						direct_ally[rec.player][i] = direct_ally[i][rec.player] = true;
+					}
+				}
+			}
+			if (sub.type === "alliance_leave") {
+				for (let i = 0; i < 16; i++) {
+					direct_ally[rec.player][i] = direct_ally[i][rec.player] = false;
+					initial_ally[rec.player][i] = initial_ally[i][rec.player] = false;
+				}
+			}
 		}
 		for (let sub of rec.subpackets) {
 			if (sub.type !== "pillbox_fires") continue;
@@ -180,6 +210,17 @@ function scan(file) {
 				let pill_index = state.pills.indexOf(pill);
 				if (rec.time - last_hit[sender][pill_index] <= RECENT_TICKS) totals.not_hostile_hit_by_sender++;
 				if (rec.time - last_owner_change[pill_index] <= RECENT_TICKS) totals.not_hostile_owner_changed++;
+				let provenance = pill.owner === sender ? "own"
+					: initial_ally[sender][pill.owner] ? "initial"
+					: direct_ally[sender][pill.owner] ? "direct" : "clique";
+				if (provenance === "initial") totals.not_hostile_initial_ally++;
+				else if (provenance === "direct") totals.not_hostile_direct_ally++;
+				else if (provenance === "clique") totals.not_hostile_clique_ally++;
+				if (totals.sample.length < SAMPLE_CASES) {
+					totals.sample.push(`${label} rec ${recs.indexOf(rec)} t${rec.time} sender ${sender} pill ${pill_index} owner ${pill.owner} ` +
+						`ally:${provenance} dir ${sub.direction} facing ${rec.tankDir} dist ${me.distance.toFixed(0)}px ` +
+						`hit-by-sender ${rec.time - last_hit[sender][pill_index] <= RECENT_TICKS ? "yes" : "no"}`);
+				}
 				continue;
 			}
 			if (me.distance > RANGE_PX) {
@@ -192,6 +233,13 @@ function scan(file) {
 			 * cannot target a tank hidden in forest, it is never hidden here */
 			totals.sender_is_target++;
 			if (me.hidden) totals.sender_hidden++;
+			/* "massaging": a tank against a hostile pill, creeping along its
+			 * edge, makes the pill fire in the tank's own facing direction */
+			let touching = me.distance <= TOUCH_PX;
+			let facing = sub.direction === rec.tankDir;
+			if (touching) totals.touching++;
+			if (touching && facing) totals.touching_facing++;
+			else if (!touching && facing) totals.apart_facing++;
 			if (!rivals.length) {
 				totals.lone++;
 				continue;
@@ -222,7 +270,10 @@ function scan(file) {
 			if (at_me === 0) totals.aim_at_sender++;
 			else if (at_me === 1 && at_rival > 1) totals.aim_at_sender_pm1++;
 			else if (at_rival <= 1 && at_me > 1) totals.aim_at_rival++;
-			else totals.aim_neither++;
+			else {
+				totals.aim_neither++;
+				if (touching && facing) totals.aim_neither_touching_facing++;
+			}
 		}
 		let owners_before = state.pills.map(p => p.owner);
 		BoloGame.apply_record(state, rec, null, null);
@@ -249,11 +300,17 @@ console.log(`    sender has no live tank                ${n(totals.sender_no_tan
 console.log(`    sender not hostile to the pill         ${n(totals.sender_not_hostile).padStart(9)}   (must be ~0; ${n(totals.not_hostile_parity_shaped)} of them direction 0 with an odd index)`);
 console.log(`        of those: the sender's own pill ${n(totals.not_hostile_own_pill)}; the sender's own records carried a 9n for`);
 console.log(`        that pill within ${RECENT_TICKS} ticks ${n(totals.not_hostile_hit_by_sender)}; the pill changed owner within ${RECENT_TICKS} ticks ${n(totals.not_hostile_owner_changed)}`);
+console.log(`        how the model holds them allied: from game info ${n(totals.not_hostile_initial_ally)}, an accept between the two ${n(totals.not_hostile_direct_ally)},`);
+console.log(`        only the clique merge of a third party's accept ${n(totals.not_hostile_clique_ally)}`);
 console.log(`    sender's tank out of range             ${n(totals.sender_out_of_range).padStart(9)}`);
 console.log(`    sender the only hostile tank in range  ${n(totals.lone).padStart(9)}   (uninformative)`);
 console.log();
 console.log(`Fires where the sender is taken as the target: ${n(totals.sender_is_target)}; sender's tank hidden in forest`);
 console.log(`at the time in ${n(totals.sender_hidden)} (${pc(totals.sender_hidden, totals.sender_is_target)}) -- ~0 if a pill cannot target a hidden tank.`);
+console.log();
+console.log(`Massaging: of those ${n(totals.sender_is_target)} fires the sender's tank is against the pill (within ${TOUCH_PX} px) in ${n(totals.touching)},`);
+console.log(`and the fire direction equals the tank's facing in ${n(totals.touching_facing)} of them (${pc(totals.touching_facing, totals.touching)});`);
+console.log(`apart from the pill the two coincide in ${n(totals.apart_facing)} of ${n(totals.sender_is_target - totals.touching)} (${pc(totals.apart_facing, totals.sender_is_target - totals.touching)}; 1 in 16 by chance).`);
 console.log();
 console.log(`Contested fires (two or more hostile tanks in range): ${n(totals.contested)}`);
 console.log(`    sender is the nearest hostile tank     ${n(totals.sender_nearest).padStart(9)}   ${pc(totals.sender_nearest, totals.contested)}`);
@@ -275,5 +332,10 @@ console.log("the bearing from the pill to each tank, in 16 coarse sectors:");
 console.log(`    exactly at the sender's tank           ${n(totals.aim_at_sender).padStart(9)}   ${pc(totals.aim_at_sender, totals.aim_cases)}`);
 console.log(`    one sector off the sender, not rival   ${n(totals.aim_at_sender_pm1).padStart(9)}   ${pc(totals.aim_at_sender_pm1, totals.aim_cases)}`);
 console.log(`    at the nearest rival, not the sender   ${n(totals.aim_at_rival).padStart(9)}   ${pc(totals.aim_at_rival, totals.aim_cases)}`);
-console.log(`    ambiguous or neither                   ${n(totals.aim_neither).padStart(9)}   ${pc(totals.aim_neither, totals.aim_cases)}`);
+console.log(`    ambiguous or neither                   ${n(totals.aim_neither).padStart(9)}   ${pc(totals.aim_neither, totals.aim_cases)}   (${n(totals.aim_neither_touching_facing)} of them massage-shaped: touching, fired along the facing)`);
+if (totals.sample.length) {
+	console.log();
+	console.log(`Allied-sender fires, the first ${totals.sample.length} (replay names redacted):`);
+	for (let line of totals.sample) console.log(`    ${line}`);
+}
 console.log("======================================================================");
