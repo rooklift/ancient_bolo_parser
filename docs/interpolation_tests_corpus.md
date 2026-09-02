@@ -92,7 +92,13 @@ ones; the `3b9d80d` run adds the vouched-link columns with every
 matching metric byte-identical, `a4822ec` -- doubtful voters abstain,
 see its section -- then moves both shell-side records on, and
 `0bfd71d` -- the symmetric election and orphan tie-break, see its
-section -- moves them on again by the largest step since `917077a`. (Earlier
+section -- moves them on again by the largest step since `917077a`;
+`a0ade53` reproduces it byte for byte; `ccc8ec3` -- the sender's stale
+tank box, see its section -- takes every record in the table at once,
+at the price of 12,862 rushed terminal links; and `30d5351`, the same
+mechanism with the track keeping first refusal over the whole walk, is
+the **current head**, a shade under `ccc8ec3` on every column with the
+rushed links back within 124 of baseline. (Earlier
 revisions of this paragraph pinned the file at `926f391`/`4572cff`, then at
 `a74033a`/`380e333`; later sections were measured from live checkouts of the
 named commits, per their sections.)
@@ -131,7 +137,7 @@ Constant at all ten commits, and worth having once:
 | `ad2168d` | leading impacts | 0.993965 | 0.002019 | 0.829538 | 233,481 |
 | `90925b0` | absorption guards | 0.993725 | 0.002190 | 0.829357 | 233,450 |
 | `97fa412` | main, death dumps in | 0.994274 | 0.002143 | 0.832129 | 234,701 |
-| `029acac` | subsumed joins | 0.994671 | 0.001949 | **0.833354** | **236,059** |
+| `029acac` | subsumed joins | 0.994671 | 0.001949 | 0.833354 | 236,059 |
 | `537cb6d` | pill-stream lockstep | 0.994823 | 0.001914 | 0.833265 | 235,967 |
 | `3956580` | late-head slide | 0.994823 | 0.001914 | 0.833265 | 235,967 |
 | `e2bbbfb` | dilated continuations | 0.995341 | 0.001601 | 0.833183 | 235,739 |
@@ -143,7 +149,10 @@ Constant at all ten commits, and worth having once:
 | `e101787` | pairwise roster lockstep | 0.995494 | 0.001520 | 0.833249 | 235,846 |
 | `917077a` | fast-ring re-sends | 0.996647 | 0.001446 | 0.833054 | 235,759 |
 | `a4822ec` | doubtful voters abstain | 0.996657 | 0.001443 | 0.833123 | 235,835 |
-| `0bfd71d` | symmetric election, orphan tie-break | **0.996726** | **0.001419** | 0.833131 | 235,847 |
+| `0bfd71d` | symmetric election, orphan tie-break | 0.996726 | 0.001419 | 0.833131 | 235,847 |
+| `a0ade53` | two quadratic scans removed | 0.996726 | 0.001419 | 0.833131 | 235,847 |
+| `ccc8ec3` | stale tank box, either box at every step | **0.996914** | **0.001379** | **0.834069** | **237,709** |
+| `30d5351` | stale tank box, track first refusal | 0.996882 | 0.001384 | 0.833914 | 237,399 |
 
 The rows below the guard run were measured later, from the corpus
 holder's live checkouts: `97fa412` closes the unmeasured-`main` gap the
@@ -2400,15 +2409,12 @@ fixture build shows no difference beyond noise.
   bracketed to `9bc584d` or `ad6a3b6`, both named "Stuff". The corpus makes the
   regression far better characterised but does not locate it, since `9bc584d`
   was not among the ten commits measured.
-* **The measured line ends at the `90925b0` guard run**, unchanged on every
-  matching metric through the claims-only `775fe4b` and `a78253b`. `main` has
-  moved past it: the death-dump terrain commits (`72adf37`, `b805f2c`) touch
-  `viewer/game.js`, which the report loads, so `main`'s own HEAD is unmeasured
-  until the next run. (When this file first closed the current pair was
-  `4572cff`/`926f391`, later `380e333`/`a74033a`. Since resolved: `main`'s
-  HEAD was measured at `97fa412` and the line extended by the subsumed-joins
-  branch at `029acac`, then the pill-stream lockstep branch at `537cb6d`,
-  then the drawing-only late-head slide branch at `3956580` -- see the
-  headline table and their sections.)
+* **The measured line ends at the stale-box walk, `30d5351`**, the current
+  head, with `ccc8ec3` one section earlier holding every record in the
+  headline table. (When this file first closed the current pair was
+  `4572cff`/`926f391`, later `380e333`/`a74033a`, then the `90925b0` guard
+  run with `main` unmeasured past it. Since resolved: `main`'s HEAD was
+  measured at `97fa412` and the line extended commit by commit -- see the
+  headline table and the sections.)
 
 <!-- Remember to update the "headline table" at top! -->

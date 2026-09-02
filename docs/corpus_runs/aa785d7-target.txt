@@ -1,0 +1,33 @@
+======================================================================
+443 logs, 1,162,752 pill fires
+
+Direction-0 odd-index fires resolved to pill n-1 by hostility and range:
+       15,334   (both pills fit in 5,268; the named one is kept there)
+
+Fires set aside:
+    pill unresolved (missing or carried)           0
+    pill dead                                  5,598
+    sender has no live tank                      391
+    sender not hostile to the pill             4,125   (must be ~0)
+    sender's tank out of range                   187
+    sender the only hostile tank in range  1,050,183   (uninformative)
+
+Contested fires (two or more hostile tanks in range): 102,268
+    sender is the nearest hostile tank        95,485   93.4%
+    expected if the simulator were random     50,731   49.6%
+    sender beaten by a nearer hostile tank, by margin:
+        1-8 px           4,401   4.3%
+        9-16 px          1,014   1.0%
+        17-32 px           764   0.7%
+        33-64 px           580   0.6%
+        over 64 px          24   0.0%
+        of the 6,783 losses, the nearer tank was hidden in forest in 2,257, and
+        restated less recently than the sender's in 834
+
+Aim, on the same contested fires (102,268): the direction nibble against
+the bearing from the pill to each tank, in 16 coarse sectors:
+    exactly at the sender's tank              66,381   64.9%
+    one sector off the sender, not rival      26,755   26.2%
+    at the nearest rival, not the sender         515   0.5%
+    ambiguous or neither                       8,617   8.4%
+======================================================================
