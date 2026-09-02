@@ -152,9 +152,10 @@ New shells are matched backwards to firing events:
   interpolated tank track at the inferred firing time, which matters when a
   moving tank fires between position packets.
 - **Pillbox shots** (`F4`): see below — these get the full orbit treatment.
-  The F4's pill index is unreliable when the direction nibble reads 0
-  (~25% name the pill one above the true firer), so direction-0 shots also
-  try pill `n−1` as a fallback origin.
+  The F4's pill index can be one too high when the direction nibble reads
+  0 and the index is odd (a packing carry, FORMAT.md [E:pill-fire-index];
+  ~25% of direction-0 fires), so odd-index direction-0 shots also try
+  pill `n−1` as a fallback origin. An even index is always right.
 
 A shell with a known birth gets drawn from the muzzle onward
 (`build_shell_births`), not just from its first restatement. Pill shots that

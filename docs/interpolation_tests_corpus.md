@@ -26,8 +26,9 @@ where the two disagree.
 
 ## Method
 
-The corpus is the private 443-log set described in `FORMAT.md` (2001-2005, all
-Bolo 0.99.7), read recursively. It does not live in this repository and its
+The corpus is the private set described in `FORMAT.md`'s Sources -- 446 logs
+(2001-2005, all Bolo 0.99.7) less the three known to be corrupt, 443 -- read
+recursively. It does not live in this repository and its
 location is deliberately not recorded anywhere in the tree. The measurement
 tools find it through `corpus.json` at the repo root, which is gitignored --
 create it as `{"root": "/path/to/logs"}`, or set `BOLO_CORPUS` in the
