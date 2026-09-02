@@ -35,6 +35,7 @@ const NEUTRAL = 16;
 const RANGE_PX = 136;       /* 8.5 tiles: a pill shell's full flight */
 const ALIVE_TICKS = 250;    /* a tank unheard of for 5 s is not a target */
 const MARGIN_BUCKETS = [8, 16, 32, 64];
+const RECENT_TICKS = 100;   /* a hit or an ownership change this recent may explain a fire at an ally */
 
 function* walk(target) {
 	let stat;
@@ -90,7 +91,9 @@ const totals = {
 	pill_unresolved: 0, pill_dead: 0,
 	sender_no_tank: 0, sender_not_hostile: 0, sender_out_of_range: 0,
 	lone: 0, contested: 0, sender_nearest: 0, sender_nearest_visible: 0,
-	not_hostile_parity_shaped: 0,
+	not_hostile_parity_shaped: 0, not_hostile_own_pill: 0,
+	not_hostile_hit_by_sender: 0, not_hostile_owner_changed: 0,
+	sender_hidden: 0, sender_is_target: 0,
 	lost_by_bucket: MARGIN_BUCKETS.map(() => 0).concat([0]),
 	lost_to_hidden: 0, lost_to_staler: 0,
 	random_expectation: 0,
@@ -108,8 +111,15 @@ function scan(file) {
 	if (!recs.length) return;
 	totals.logs++;
 	let state = BoloGame.initial_state(BoloGame.extract_initial_map(recs));
+	/* [sender][pill] -> time of the last 9n the sender's own records carried
+	 * for that pill; [pill] -> time the model last changed its owner */
+	let last_hit = Array.from({length: 16}, () => new Array(16).fill(-Infinity));
+	let last_owner_change = new Array(16).fill(-Infinity);
 
 	for (let rec of recs) {
+		for (let sub of rec.subpackets) {
+			if (sub.type === "pillbox_damage") last_hit[rec.player][sub.pillbox] = rec.time;
+		}
 		for (let sub of rec.subpackets) {
 			if (sub.type !== "pillbox_fires") continue;
 			totals.fires++;
@@ -166,6 +176,10 @@ function scan(file) {
 			if (!me.hostile) {
 				totals.sender_not_hostile++;
 				if (sub.direction === 0 && (sub.pillbox & 1)) totals.not_hostile_parity_shaped++;
+				if (pill.owner === sender) totals.not_hostile_own_pill++;
+				let pill_index = state.pills.indexOf(pill);
+				if (rec.time - last_hit[sender][pill_index] <= RECENT_TICKS) totals.not_hostile_hit_by_sender++;
+				if (rec.time - last_owner_change[pill_index] <= RECENT_TICKS) totals.not_hostile_owner_changed++;
 				continue;
 			}
 			if (me.distance > RANGE_PX) {
@@ -174,6 +188,10 @@ function scan(file) {
 			}
 			let rivals = tanks.filter(t => t.hostile && t.player !== sender &&
 				t.distance <= RANGE_PX);
+			/* from here the sender is taken to be the target; if a pill
+			 * cannot target a tank hidden in forest, it is never hidden here */
+			totals.sender_is_target++;
+			if (me.hidden) totals.sender_hidden++;
 			if (!rivals.length) {
 				totals.lone++;
 				continue;
@@ -206,7 +224,11 @@ function scan(file) {
 			else if (at_rival <= 1 && at_me > 1) totals.aim_at_rival++;
 			else totals.aim_neither++;
 		}
+		let owners_before = state.pills.map(p => p.owner);
 		BoloGame.apply_record(state, rec, null, null);
+		for (let i = 0; i < state.pills.length; i++) {
+			if (state.pills[i].owner !== owners_before[i]) last_owner_change[i] = rec.time;
+		}
 	}
 }
 
@@ -225,8 +247,13 @@ console.log(`    pill unresolved (missing or carried)   ${n(totals.pill_unresolv
 console.log(`    pill dead                              ${n(totals.pill_dead).padStart(9)}`);
 console.log(`    sender has no live tank                ${n(totals.sender_no_tank).padStart(9)}`);
 console.log(`    sender not hostile to the pill         ${n(totals.sender_not_hostile).padStart(9)}   (must be ~0; ${n(totals.not_hostile_parity_shaped)} of them direction 0 with an odd index)`);
+console.log(`        of those: the sender's own pill ${n(totals.not_hostile_own_pill)}; the sender's own records carried a 9n for`);
+console.log(`        that pill within ${RECENT_TICKS} ticks ${n(totals.not_hostile_hit_by_sender)}; the pill changed owner within ${RECENT_TICKS} ticks ${n(totals.not_hostile_owner_changed)}`);
 console.log(`    sender's tank out of range             ${n(totals.sender_out_of_range).padStart(9)}`);
 console.log(`    sender the only hostile tank in range  ${n(totals.lone).padStart(9)}   (uninformative)`);
+console.log();
+console.log(`Fires where the sender is taken as the target: ${n(totals.sender_is_target)}; sender's tank hidden in forest`);
+console.log(`at the time in ${n(totals.sender_hidden)} (${pc(totals.sender_hidden, totals.sender_is_target)}) -- ~0 if a pill cannot target a hidden tank.`);
 console.log();
 console.log(`Contested fires (two or more hostile tanks in range): ${n(totals.contested)}`);
 console.log(`    sender is the nearest hostile tank     ${n(totals.sender_nearest).padStart(9)}   ${pc(totals.sender_nearest, totals.contested)}`);
