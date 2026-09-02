@@ -22,6 +22,59 @@ Everything below feeds *drawing only*. State reconstruction stays
 packet-exact; interpolation is a rendering layer that looks ahead to the next
 trustworthy restatement.
 
+## Two clocks
+
+Every timing rule below serves one fact: a log carries two clocks that
+disagree by a few ticks, differently at every record.
+
+The sender's simulation clock is exact but invisible. It advances every
+shell one velocity-table step every two ticks, all of a machine's shells
+together, and the positions in a shell list are a snapshot of it. The
+record's timestamp is a different clock: the tick at which the recording
+machine took the packet in (the engine calls it the receive stamp), not the
+tick at which the sender computed the positions inside. Between the two sit
+the sender's packet build, the token ring and the recorder's own loop, so a
+stamp can run early or late against its contents by a few updates.
+
+Two shapes of disagreement matter. When the error wanders from record to
+record the docs call it *jitter*: a per-hop speed read off two stamps can
+come out anywhere from 0.7 to 3.6 px/tick around the true 2 (replay
+`122903.4`). When a sender lags, its stamps keep counting while its
+simulation falls behind, and its shells read as consistently slow; the
+docs call that *dilation*. Stamps also collide: on a fast ring two
+snapshots can land in one recorder tick, which is why the roster vote
+table is keyed by snapshot index in the scorer and remains time-keyed in
+the engine (ROADMAP item 12).
+
+The rule the engine follows is that distance is the trustworthy quantity
+and time the approximate one. Shells fly at exactly 2 px/tick and their
+positions are exact or bounded, so a link's length says how many updates
+elapsed better than its stamps do. In *matching*, time is therefore a
+tolerance, never a truth: a link must fit within two updates of what its
+stamps imply, each link re-anchoring at its own start so a lagging sender
+never accumulates error; a verbatim re-send is recognised within 4 ticks
+because in 4 ticks a real shell has moved; an impact record is an upper
+bound on the arrival, up to 30 ticks late; and an absorbed restatement must
+sit within 24 px of where uniform time puts it, so a trailing shell on the
+same path is not claimed. In *drawing*, the stamps give way to the
+distances: chains are re-timed to constant velocity, a late head or tail
+slides along its ray, and an effect is placed at the physics arrival rather
+than at its record. The sections below name each of these where its
+mechanism lives.
+
+What is measured and what is inferred. The jitter and dilation magnitudes,
+the 4-tick re-send bound, the fire-time direction nibble and the 1.5% of
+fires logged one record before their shell (FORMAT.notes
+[E:shot-fire-time]), and the largest along-track stamp lie seen on the
+corpus's laggiest replays (35.5 px) are corpus measurements. That the
+stamp is the recorder's receive tick is the reading every pass is built on
+and it has never contradicted a measurement, but it is not verified from
+Bolo's code, and how the recorder stamps its *own* records has not been
+examined separately. The three named sources of the offset are the obvious
+candidates, not measured contributions. Dilation as "simulation stalls
+while stamps count" is the explanation that fits the consistently-slow
+chains; nothing rules out a different mechanism producing the same shape.
+
 ## Tanks and LGMs
 
 `build_tank_positions`, `build_tank_directions` and `build_lgm_positions`
