@@ -107,6 +107,10 @@ const totals = {
 	not_hostile_orphan_heir: 0,
 	/* was the quitter's tank dead (T=7) at the quit? a dead quit may not hand over */
 	quits_dead: 0, quits_alive: 0,
+	/* the sender's tank beyond a shell's flight of the pill: how far, how
+	 * stale its position, and whether a nearer hostile pill fits the nibble */
+	out_of_range_by_distance: [0, 0, 0, 0],   /* 137-160, 161-200, 201-300, over 300 px */
+	out_of_range_stale: 0, out_of_range_other_pill: 0, out_of_range_sample: [],
 	orphan_at_old_ally_dead_quit: 0, orphan_at_old_ally_alive_quit: 0,
 	orphan_fires_dead_quit: 0, orphan_fires_alive_quit: 0,
 	not_hostile_initial_ally: 0, not_hostile_direct_ally: 0, not_hostile_clique_ally: 0,
@@ -313,6 +317,22 @@ function scan(file) {
 			}
 			if (me.distance > RANGE_PX) {
 				totals.sender_out_of_range++;
+				let d = me.distance;
+				totals.out_of_range_by_distance[d <= 160 ? 0 : d <= 200 ? 1 : d <= 300 ? 2 : 3]++;
+				let stale = rec.time - me.position_time;
+				if (stale > 50) totals.out_of_range_stale++;
+				let others = [];
+				state.pills.forEach((q, k) => {
+					if (q === pill || q.inTank !== null || q.armour === 0 || !hostile(state, q, sender)) return;
+					let qx = q.x * 16 + 8, qy = q.y * 16 + 8;
+					if (Math.hypot(qx - me.x, qy - me.y) > RANGE_PX) return;
+					if (sector_gap(sub.direction, coarse_bearing(qx, qy, me.x, me.y)) <= 1) others.push(k);
+				});
+				if (others.length) totals.out_of_range_other_pill++;
+				if (totals.out_of_range_sample.length < 12) {
+					totals.out_of_range_sample.push(`${label} rec ${recs.indexOf(rec)} t${rec.time} sender ${sender} pill ${state.pills.indexOf(pill)} ` +
+						`dir ${sub.direction} dist ${d.toFixed(0)}px position ${stale} ticks old hostile-pills-in-range-along-nibble [${others.join(",")}]`);
+				}
 				continue;
 			}
 
@@ -468,6 +488,8 @@ console.log(`        the pill's owner slot had quit since the pill got that owne
 console.log(`        how the model holds them allied: from game info ${n(totals.not_hostile_initial_ally)}, an accept between the two ${n(totals.not_hostile_direct_ally)},`);
 console.log(`        only the clique merge of a third party's accept ${n(totals.not_hostile_clique_ally)}`);
 console.log(`    sender's tank out of range             ${n(totals.sender_out_of_range).padStart(9)}`);
+console.log(`        by distance: 137-160 px ${n(totals.out_of_range_by_distance[0])}, 161-200 ${n(totals.out_of_range_by_distance[1])}, 201-300 ${n(totals.out_of_range_by_distance[2])}, over 300 ${n(totals.out_of_range_by_distance[3])};`);
+console.log(`        sender's position over a second old ${n(totals.out_of_range_stale)}; a nearer hostile pill along the nibble ${n(totals.out_of_range_other_pill)}`);
 console.log(`    sender the only hostile tank in range  ${n(totals.lone).padStart(9)}   (uninformative)`);
 console.log();
 console.log(`Orphaned pills (owner slot quit since they got that owner) fired ${n(totals.orphan_fires)} times, by the target's NAME as of the quit:`);
@@ -523,6 +545,11 @@ if (totals.sample.length) {
 	console.log();
 	console.log(`Allied-sender fires, the first ${totals.sample.length} (replay names redacted):`);
 	for (let line of totals.sample) console.log(`    ${line}`);
+}
+if (totals.out_of_range_sample.length) {
+	console.log();
+	console.log(`Out-of-range fires, the first ${totals.out_of_range_sample.length}:`);
+	for (let line of totals.out_of_range_sample) console.log(`    ${line}`);
 }
 if (totals.trace) {
 	console.log();
