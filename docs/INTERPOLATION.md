@@ -100,22 +100,28 @@ are:
 2. **Terminals** — authoritative shot-ending events converted to geometry:
    `shell_falls` (FB) is an exact terminal point; tank hits (FC), pillbox
    damage (9n), base damage (An) and shot-attributable explosions (7T) are
-   16 px boxes the shell centre must enter. Tank-hit boxes are tested
-   both as the packet states them and against the *interpolated* tank
-   track at the shell's arrival time, and either box is accepted: the
-   tank may have moved since the packet's stated position, but the
-   collision happened in the sender's simulation, whose picture of a
-   remote tank is the last restatement it received -- at best the one
+   16 px boxes the shell centre must enter. The ordinary ray test uses
+   a tank-hit box as the packet states it. A pill shell on a pinned
+   orbit gets two walks (`pillbox_shell_terminal_match`): first against
+   the *interpolated* tank track at the shell's arrival time, and only
+   if that whole walk finds nothing, again against the packet box,
+   starting one step on. The track box is right for a tank driving into
+   the shell; the packet box is right for a tank driving away, because
+   the collision happened in the sender's simulation, whose picture of
+   a remote tank is the last restatement it received -- at best the one
    the recorder logged a ring-round earlier, which is the packet box.
    A tank crossing the shell's path at full speed moves 7 px per round,
    enough for the interpolated box to slide out from under a corner
-   graze the sender registered against its stale box. Identical
+   graze the sender registered against its stale box. The track keeps
+   first refusal over the whole walk, and the fallback never starts at
+   step zero, so a shell last seen where the tank is about to be cannot
+   match as a zero-length link. Identical
    terminals are interchangeable and carry multiplicity (capacity), since
    two shells can die in one tile in one interval.
 
 Before any of that competition, verbatim re-sends are taken off the
 table (`link_stale_restatements`). On a fast token ring (a two-player
-low-latency game circulates the token every 2–4 ticks, against the
+low-latency game circulates the token every 1–3 ticks, against the
 corpus-normal ~12) the sender's packet rate outpaces its shell
 resampling, and over half of all closely-spaced statements restate the
 previous record's samples byte-for-byte under a fresh receive stamp.
@@ -197,8 +203,9 @@ The big recent win. Pillboxes fire in exactly **128 discrete directions**
 per 4-bit coarse sector). The original integer simulation was recovered
 *bit-exactly* from empirical data (`docs/pillbox_shell_algorithm.md`): an
 8-bit truncated sine table, one round-half-up arithmetic-shift scaling
-helper, a muzzle offset of half a tile, velocity of a quarter tile per tick,
-and a 32-tick lifetime (8.5 tiles range). `viewer/pillbox_shell_orbits.js`
+helper, a muzzle offset of half a tile, a velocity of a quarter tile per
+update with one update every two ticks (2 px/tick), and a lifetime of 32
+updates, 64 ticks, for 8.5 tiles of range. `viewer/pillbox_shell_orbits.js`
 regenerates every orbit: for each bradian, the complete list of whole-pixel
 positions the shell can ever occupy, plus its terminal (expiry) point.
 `docs/pillbox-shell-orbits-compact.json` is the same data as a file.
@@ -221,7 +228,11 @@ filtering over a finite state space:
   a constraint: for two shells from the same pill stream, an orbit
   hypothesis pair must reproduce the recorded bytes exactly
   (`refine_pillbox_orbits_from_shell_lists`), pruning states pairwise along
-  the chain.
+  the chain. The test is only applied when at least one member of the
+  pair is already pinned to a single state, so certainty propagates
+  outward from pinned shells rather than two open sets pruning each
+  other; and a pair with no consistent combination is left alone, since
+  that usually means one provisional source attribution is wrong.
 - Two live shells from one pill on one fine direction advance in lockstep
   — the sender moves every shell one step in the same update pass — so
   their step gap never changes while both are restated, the earlier shot
@@ -232,10 +243,13 @@ filtering over a finite state space:
   two identities swap — drawn as the later shot overtaking the earlier
   one mid-air and falling first. The matcher therefore requires one
   common step advance to explain a candidate of every same-stream shell
-  narrowed to the same single bradian
+  whose current step is well-defined -- one bradian, or several bradians
+  agreeing on one step, as near-muzzle states do
   (`enforce_pillbox_lockstep_candidates`), pruning candidates no jointly
   consistent story supports; when no common advance exists (a fall
   mid-interval, a dropped restatement) it stands down rather than guess.
+  Terminal candidates are neither counted nor pruned: dying is exactly
+  how a shell leaves the lockstep.
   The pill's own statements also vote on the advance
   (`enforce_roster_lockstep_candidates`): the step-pinned roster in one
   snapshot is scored against the pinned roster in the next for every
@@ -303,12 +317,18 @@ would be a fly-through. Where the engine genuinely lost a live shell the
 result is vanish then pop-in instead of freeze then jump — still wrong,
 but no longer a hovering shell.
 
-Between matching and drawing there is a smoothing pass: jittered on-path
-restatements are *absorbed* into their chain (with a temporal gate so a
-trailing shell on the same segment is never claimed), and each chain is
-drawn at constant velocity between its best-known anchors
-(`smooth_shell_chains`) — sender timestamp jitter otherwise visibly
-wobbles a large fraction of drawn links. A chain *head* is one of those
+Two things tame sender timestamp jitter. The first is part of matching:
+when a stitch or a residual join bridges a gap, the jittered on-path
+restatements inside it are *absorbed* into the chain as identity links
+(`absorb_intermediate_observations`, run from `stitch_shell_chains` and
+`resolve_residual_shell_fates`), with a temporal gate so a trailing
+shell on the same segment is never claimed, at most one candidate per
+snapshot, and orbit evidence allowed to override the clock both ways.
+The second is drawing-only, after every identity has been decided: each
+chain of three or more restatements is re-timed to constant velocity
+between its best-known anchors (`smooth_shell_chains`), since the jitter
+otherwise visibly wobbles a large fraction of drawn links. A chain *head*
+is one of those
 anchors, so a head whose record was received late escapes the smoothing
 and draws its first link as a sprint: the punctual next restatement sits
 far further along the flight than the stamp window carries at 2 px/tick.
@@ -355,13 +375,14 @@ birth, or fate propagates across the link.
 ## Measurement
 
 `tools/report-interpolation-rates.cjs` scores an engine build against a
-fixture (and `tools/corpus.cjs` against a corpus): fraction of shells
-matched forward, fraction unlinked (appeared and vanished unexplained —
-the clearest failure signal), fraction of terminals explained, and
+fixture (`-f`) or, with `-r` or a configured corpus root from
+`tools/corpus.cjs`, against a whole corpus: fraction of shells matched
+forward, fraction unlinked (appeared and vanished unexplained — the
+clearest failure signal), fraction of terminals explained, and
 attribution counts. `docs/interpolation_tests.md` tracks these across
-commits; the current state matches ~99.4% of shells forward, leaves
-~0.25% unlinked, and explains ~85.6% of terminals on the reference
-fixture (~92% of corpus impacts counting unseen-source attributions).
+commits; at `30d5351` the engine matches 99.6% of shells forward, leaves
+0.17% unlinked, and explains 86.0% of terminals on the reference fixture
+(83.4% of corpus impacts, 96% counting unseen-source attributions).
 Every change to matching should be judged against those numbers,
 watching for trades between shell continuity and terminal matching.
 
