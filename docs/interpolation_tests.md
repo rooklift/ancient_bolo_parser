@@ -948,7 +948,13 @@ The scene is pinned in `test/test-viewer.cjs` ("tank-hit box the sender
 knew recovers a graze the track has left"), with the tank restated
 *after* the hit record as in the log, and fails on the previous engine.
 
-## Findings
+## Findings at the close of the ten-run table -- `926f391`
+
+Written when `926f391` was the branch's head and the table above ended
+there. The sections between it and this one carry the line onward and
+supersede any "now" or "current" below; this block is kept as the
+reading at that point, not the state of the engine. For the state of
+the engine see the section after it.
 
 * **The branch line now leads the branch point on every headline metric.** At
   `926f391` the forward match rate is 0.980136 against `main`'s 0.961100,
@@ -1010,3 +1016,41 @@ knew recovers a graze the track has left"), with the tank restated
   two pillbox shells `5f9d86f` held over v1.0.8 are still there, and the four
   shells that left are index 1+ tank shots that no longer claim a confident
   origin.
+
+## Where the line stands -- `30d5351`
+
+The same three headline rates at the points a reader is likely to want,
+all on the fixture, all from the sections above:
+
+| state | matched forward | unlinked | terminals matched |
+| --- | --- | --- | --- |
+| v1.0.7 `323c673` | 0.929101 | 0.029667 | 0.771713 |
+| branch point `76d8b8a` / v1.0.8 | 0.961100 | 0.016596 | 0.817321 |
+| `926f391`, close of the ten-run table | 0.980136 | 0.008081 | 0.849553 |
+| v1.0.9 `8f6fe27` (engine `a74033a`) | 0.994427 | 0.002535 | 0.856366 |
+| `30d5351`, the stale-box walk | 0.996298 | 0.001736 | 0.860478 |
+
+* **Every headline record is held by the current head.** Unlinked
+  shells are down to 128, roughly a tenth of the branch point's rate; forward
+  matching has closed nine tenths of the gap the branch point left;
+  terminals matched is 4.3 points above it, `tank_hit` 2,826 -> 3,212.
+* **The truth axes agree with the coverage axes**, which they were
+  built to be able to refuse to do. Pill-link contradictions 6 -> 0
+  since the metric was introduced; drawn-motion pop-outs 1,465 at the
+  pre-branch state -> 273; steady links 0.787 -> 0.9789; seam jumps 0
+  at every state ever audited. Nothing on the fixture's books is a
+  match rate bought with a rendering lie. The corpus is a shade less
+  clean (89 contradictions, per the corpus file), and that is where
+  the next dial is.
+* **Two eras are measured only on the corpus.** The unseen-shot,
+  provenance-birth and pill-lockstep arcs (from `775fe4b` through
+  `917077a`) have no fixture sections; `pop_outs` moves 384 -> 299
+  between the orbit-absorption entry and the vouched-link entry above,
+  and the corpus file holds every commit in between.
+* **Tank and LGM position tracks have never moved.** Byte-identical
+  at every state in this file. Facing gained its own window once
+  (`5455724`) and has not changed since; nothing in shell matching
+  reads it.
+* **The one regression's origin stays unpinned**, bracketed to
+  `9bc584d` or `ad6a3b6` and repaired since `4f5dbe9`. Archaeology,
+  not a debt.
