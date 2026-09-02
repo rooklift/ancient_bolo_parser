@@ -175,6 +175,16 @@ function scan(file) {
 				alliance_events.push(`rec ${recs.indexOf(rec)} t${rec.time} game info alliance words: ` +
 					sub.alliances.map((w, i) => `${i}:${(w & 0xffff).toString(16).padStart(4, "0")}`).join(" "));
 			}
+			if (sub.type === "quit" || (sub.type === "node_id" && (node_joins.has(rec) || state.quit[rec.player]))) {
+				alliance_events.push(`rec ${recs.indexOf(rec)} t${rec.time} p${rec.player} ${sub.type === "quit" ? "quit" : "join"}` +
+					` (T=${rec.tankStatus.toString(16)}) model-before: ` +
+					[...Array(16).keys()].filter(i => state.present[i] || state.names[i] !== null)
+						.map(i => `${i}=${(state.alliances[i] & 0xffff).toString(16).padStart(4, "0")}`).join(" ") +
+					`; pill owners ${state.pills.map(p => p.owner).join(",")}`);
+			}
+			if (sub.type === "node_id" && rec.tankStatus === 0x07 && !node_joins.has(rec) && !state.quit[rec.player]) {
+				alliance_events.push(`rec ${recs.indexOf(rec)} t${rec.time} p${rec.player} T=7 node_id NOT classified as a join`);
+			}
 			if (sub.type === "alliance_request" || sub.type === "alliance_accept" || sub.type === "alliance_leave") {
 				last_alliance_event = rec.time;
 				alliance_events.push(`rec ${recs.indexOf(rec)} t${rec.time} p${rec.player} ${sub.type}` +
@@ -504,7 +514,7 @@ if (totals.sample.length) {
 }
 if (totals.trace) {
 	console.log();
-	console.log(`Alliance events in ${totals.trace.label} up to record ${totals.trace.last_record} (the replay with the most allied-sender fires, ${n(totals.trace.count)}),`);
+	console.log(`Alliance events, quits and joins in ${totals.trace.label} up to record ${totals.trace.last_record} (the replay with the most allied-sender fires, ${n(totals.trace.count)}),`);
 	console.log("with the model's alliance masks as the event arrived (bit set = NOT allied):");
 	let shown = 0;
 	for (let line of totals.trace.events) {
