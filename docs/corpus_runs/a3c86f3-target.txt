@@ -17,6 +17,8 @@ Fires set aside:
     sender's tank out of range                   192
         by distance: 137-160 px 167, 161-200 19, 201-300 1, over 300 5;
         sender's position over a second old 52; a nearer hostile pill along the nibble 34
+        by the larger axis distance: <= 136 px 116, <= 152 58, <= 168 5, over 13
+        (a pill that measures range per axis in squares puts nearly all of them in the first bucket)
     sender the only hostile tank in range  1,053,467   (uninformative)
 
 Orphaned pills (owner slot quit since they got that owner) fired 3,626 times, by the target's NAME as of the quit:
@@ -91,18 +93,18 @@ Allied-sender fires, the first 24 (replay names redacted):
     110802.5~17b598 rec 9602 t5441647 sender 3 pill 9 owner 3 ally:orphan dir 4 facing 12 dist 97px hit-by-sender yes last-alliance-event 26210 ticks ago hostile-pills-along-nibble []
 
 Out-of-range fires, the first 12:
-    032301~932b88 rec 16710 t1866424 sender 1 pill 8 dir 5 dist 137px position 12 ticks old hostile-pills-in-range-along-nibble []
-    032301~932b88 rec 16710 t1866424 sender 1 pill 8 dir 7 dist 137px position 12 ticks old hostile-pills-in-range-along-nibble []
-    040601.1~864166 rec 23719 t1848573 sender 4 pill 1 dir 7 dist 143px position 48 ticks old hostile-pills-in-range-along-nibble [0]
-    040601.1~864166 rec 23719 t1848573 sender 4 pill 2 dir 8 dist 147px position 48 ticks old hostile-pills-in-range-along-nibble [0]
-    041101.1~7d981f rec 14700 t3481675 sender 4 pill 5 dir 13 dist 137px position 113 ticks old hostile-pills-in-range-along-nibble []
-    042401~909fa4 rec 13847 t3415960 sender 3 pill 12 dir 3 dist 144px position 6 ticks old hostile-pills-in-range-along-nibble [10]
-    042401.2~3bb981 rec 25818 t3509386 sender 0 pill 10 dir 1 dist 162px position 11 ticks old hostile-pills-in-range-along-nibble []
-    042401.2~3bb981 rec 25818 t3509386 sender 0 pill 10 dir 1 dist 162px position 11 ticks old hostile-pills-in-range-along-nibble []
-    042401.2~3bb981 rec 25818 t3509386 sender 0 pill 10 dir 1 dist 162px position 11 ticks old hostile-pills-in-range-along-nibble []
-    042501.3~1de2c6 rec 14527 t4901626 sender 4 pill 3 dir 2 dist 137px position 36 ticks old hostile-pills-in-range-along-nibble [13]
-    042501.3~1de2c6 rec 14527 t4901626 sender 4 pill 3 dir 2 dist 137px position 36 ticks old hostile-pills-in-range-along-nibble [13]
-    042501.3~1de2c6 rec 14527 t4901626 sender 4 pill 3 dir 3 dist 137px position 36 ticks old hostile-pills-in-range-along-nibble []
+    032301~932b88 rec 16710 t1866424 sender 1 pill 8 dir 5 dist 137px axis 126px position 12 ticks old hostile-pills-in-range-along-nibble []
+    032301~932b88 rec 16710 t1866424 sender 1 pill 8 dir 7 dist 137px axis 126px position 12 ticks old hostile-pills-in-range-along-nibble []
+    040601.1~864166 rec 23719 t1848573 sender 4 pill 1 dir 7 dist 143px axis 127px position 48 ticks old hostile-pills-in-range-along-nibble [0]
+    040601.1~864166 rec 23719 t1848573 sender 4 pill 2 dir 8 dist 147px axis 143px position 48 ticks old hostile-pills-in-range-along-nibble [0]
+    041101.1~7d981f rec 14700 t3481675 sender 4 pill 5 dir 13 dist 137px axis 128px position 113 ticks old hostile-pills-in-range-along-nibble []
+    042401~909fa4 rec 13847 t3415960 sender 3 pill 12 dir 3 dist 144px axis 106px position 6 ticks old hostile-pills-in-range-along-nibble [10]
+    042401.2~3bb981 rec 25818 t3509386 sender 0 pill 10 dir 1 dist 162px axis 148px position 11 ticks old hostile-pills-in-range-along-nibble []
+    042401.2~3bb981 rec 25818 t3509386 sender 0 pill 10 dir 1 dist 162px axis 148px position 11 ticks old hostile-pills-in-range-along-nibble []
+    042401.2~3bb981 rec 25818 t3509386 sender 0 pill 10 dir 1 dist 162px axis 148px position 11 ticks old hostile-pills-in-range-along-nibble []
+    042501.3~1de2c6 rec 14527 t4901626 sender 4 pill 3 dir 2 dist 137px axis 116px position 36 ticks old hostile-pills-in-range-along-nibble [13]
+    042501.3~1de2c6 rec 14527 t4901626 sender 4 pill 3 dir 2 dist 137px axis 116px position 36 ticks old hostile-pills-in-range-along-nibble [13]
+    042501.3~1de2c6 rec 14527 t4901626 sender 4 pill 3 dir 3 dist 137px axis 116px position 36 ticks old hostile-pills-in-range-along-nibble []
 
 Alliance events, quits and joins in 110802.5~17b598 up to record 24979 (the replay with the most allied-sender fires, 29),
 with the model's alliance masks as the event arrived (bit set = NOT allied):
