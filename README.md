@@ -4,7 +4,7 @@ Preamble: although this is entirely AI-coded, you (dear reader) have no idea the
 
 A parser for log files written by the classic Macintosh tank game **Bolo** (Stuart Cheshire, version 0.99.7bv).
 
-The log format was cracked around 2001–2003 by Carl Osterwald ("wharf rat") for his BoloViewer application. This project builds on a surviving copy of his (or someone's) format notes, adds empirical findings of its own, and documents everything in [FORMAT.md](FORMAT.md).
+The log format was cracked around 2001–2003 by Carl Osterwald ("wharf rat") for his BoloViewer application. This project builds on a surviving copy of his (or someone's) format notes, adds empirical findings of its own, and documents everything in [FORMAT.md](docs/FORMAT.md).
 
 The parser is dependency-free ES-module JavaScript (Node ≥ 18).
 
