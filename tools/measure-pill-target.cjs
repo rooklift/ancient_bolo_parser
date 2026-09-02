@@ -100,6 +100,9 @@ const totals = {
 	not_hostile_initial_ally: 0, not_hostile_direct_ally: 0, not_hostile_clique_ally: 0,
 	touching: 0, touching_facing: 0, apart_facing: 0, aim_neither_touching_facing: 0,
 	sample: [],
+	/* deflection: signed nibble deviation from the bearing to the sender,
+	 * by whether the sender's tank is moving and which way across the line */
+	lead: {still: [0, 0, 0, 0], toward: [0, 0, 0, 0], against: [0, 0, 0, 0]},
 	lost_by_bucket: MARGIN_BUCKETS.map(() => 0).concat([0]),
 	lost_to_hidden: 0, lost_to_staler: 0,
 	random_expectation: 0,
@@ -127,6 +130,8 @@ function scan(file) {
 	let initial_ally = Array.from({length: 16}, () => new Array(16).fill(false));
 	let direct_ally = Array.from({length: 16}, () => new Array(16).fill(false));
 	let label = replay_label(file);
+	/* each player's previous restated position, for a velocity estimate */
+	let prev_position = new Array(16).fill(null);
 
 	for (let rec of recs) {
 		for (let sub of rec.subpackets) {
@@ -233,6 +238,32 @@ function scan(file) {
 			 * cannot target a tank hidden in forest, it is never hidden here */
 			totals.sender_is_target++;
 			if (me.hidden) totals.sender_hidden++;
+			/* deflection shooting: does the nibble lead a moving target? The
+			 * bearing is from the pill to the tank; the deviation's sign is
+			 * compared with the sign of the tank's velocity across that line */
+			{
+				let tank = state.tanks[sender];
+				let prev = prev_position[sender];
+				let bearing_bradian = Math.atan2(me.x - pill_x, -(me.y - pill_y)) * 128 / Math.PI;
+				let deviation = ((sub.direction * 16 - Math.round(bearing_bradian)) + 128 & 0xff) - 128;
+				/* sectors, signed: positive = clockwise of the bearing */
+				let sectors = Math.max(-8, Math.min(7, Math.round(deviation / 16)));
+				let magnitude = Math.min(3, Math.abs(sectors));
+				let moving = prev && tank.position_time > prev.time &&
+					(prev.x !== me.x || prev.y !== me.y);
+				if (!moving) totals.lead.still[magnitude]++;
+				else if (sectors === 0) { totals.lead.toward[0]++; }
+				else {
+					/* cross product of the bearing and the velocity: positive
+					 * when the tank moves clockwise around the pill */
+					let bx = me.x - pill_x, by = me.y - pill_y;
+					let vx = me.x - prev.x, vy = me.y - prev.y;
+					let cross = bx * vy - by * vx;
+					if (cross === 0) totals.lead.still[magnitude]++;
+					else if ((cross > 0) === (sectors > 0)) totals.lead.toward[magnitude]++;
+					else totals.lead.against[magnitude]++;
+				}
+			}
 			/* "massaging": a tank against a hostile pill, creeping along its
 			 * edge, makes the pill fire in the tank's own facing direction */
 			let touching = me.distance <= TOUCH_PX;
@@ -276,7 +307,18 @@ function scan(file) {
 			}
 		}
 		let owners_before = state.pills.map(p => p.owner);
+		let position_before = state.tanks[rec.player] && state.tanks[rec.player].position_time;
 		BoloGame.apply_record(state, rec, null, null);
+		let after = state.tanks[rec.player];
+		if (after && after.position_time !== position_before) {
+			let c = tank_centre(after);
+			if (!prev_position[rec.player] || prev_position[rec.player].time !== position_before) {
+				prev_position[rec.player] = prev_position[rec.player] && position_before !== undefined
+					? {x: prev_position[rec.player].next_x, y: prev_position[rec.player].next_y, time: position_before,
+						next_x: c.x, next_y: c.y}
+					: {x: c.x, y: c.y, time: after.position_time, next_x: c.x, next_y: c.y};
+			}
+		}
 		for (let i = 0; i < state.pills.length; i++) {
 			if (state.pills[i].owner !== owners_before[i]) last_owner_change[i] = rec.time;
 		}
@@ -312,6 +354,17 @@ console.log(`Massaging: of those ${n(totals.sender_is_target)} fires the sender'
 console.log(`and the fire direction equals the tank's facing in ${n(totals.touching_facing)} of them (${pc(totals.touching_facing, totals.touching)});`);
 console.log(`apart from the pill the two coincide in ${n(totals.apart_facing)} of ${n(totals.sender_is_target - totals.touching)} (${pc(totals.apart_facing, totals.sender_is_target - totals.touching)}; 1 in 16 by chance).`);
 console.log();
+{
+	let row = (name, a) => `    ${name.padEnd(28)} ${a.map(v => n(v).padStart(9)).join("")}`;
+	console.log("Deflection: the direction nibble against the bearing to the sender's tank, in sectors,");
+	console.log("split by the tank's motion across the pill's line of sight (from its last two positions):");
+	console.log(`    ${"".padEnd(28)} ${["exact", "1 off", "2 off", "3+ off"].map(h => h.padStart(9)).join("")}`);
+	console.log(row("tank still or unknown", totals.lead.still));
+	console.log(row("moving, nibble leads it", totals.lead.toward));
+	console.log(row("moving, nibble trails it", totals.lead.against));
+	console.log("    (a leading pill puts the moving rows' misses in the first of the two, not the second)");
+	console.log();
+}
 console.log(`Contested fires (two or more hostile tanks in range): ${n(totals.contested)}`);
 console.log(`    sender is the nearest hostile tank     ${n(totals.sender_nearest).padStart(9)}   ${pc(totals.sender_nearest, totals.contested)}`);
 console.log(`    expected if the simulator were random  ${n(Math.round(totals.random_expectation)).padStart(9)}   ${pc(totals.random_expectation, totals.contested)}`);
