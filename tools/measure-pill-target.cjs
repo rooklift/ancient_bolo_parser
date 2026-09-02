@@ -111,6 +111,9 @@ const totals = {
 	 * stale its position, and whether a nearer hostile pill fits the nibble */
 	out_of_range_by_distance: [0, 0, 0, 0],   /* 137-160, 161-200, 201-300, over 300 px */
 	out_of_range_stale: 0, out_of_range_other_pill: 0, out_of_range_sample: [],
+	/* a pill that measures range per axis (in squares) fires into the corners
+	 * of a box the circle rejects: the larger axis distance of each such fire */
+	out_of_range_axis: [0, 0, 0, 0],   /* max(|dx|,|dy|) <= 136, <= 152, <= 168, over */
 	orphan_at_old_ally_dead_quit: 0, orphan_at_old_ally_alive_quit: 0,
 	orphan_fires_dead_quit: 0, orphan_fires_alive_quit: 0,
 	not_hostile_initial_ally: 0, not_hostile_direct_ally: 0, not_hostile_clique_ally: 0,
@@ -321,6 +324,8 @@ function scan(file) {
 				totals.out_of_range_by_distance[d <= 160 ? 0 : d <= 200 ? 1 : d <= 300 ? 2 : 3]++;
 				let stale = rec.time - me.position_time;
 				if (stale > 50) totals.out_of_range_stale++;
+				let axis = Math.max(Math.abs(me.x - pill_x), Math.abs(me.y - pill_y));
+				totals.out_of_range_axis[axis <= 136 ? 0 : axis <= 152 ? 1 : axis <= 168 ? 2 : 3]++;
 				let others = [];
 				state.pills.forEach((q, k) => {
 					if (q === pill || q.inTank !== null || q.armour === 0 || !hostile(state, q, sender)) return;
@@ -331,7 +336,7 @@ function scan(file) {
 				if (others.length) totals.out_of_range_other_pill++;
 				if (totals.out_of_range_sample.length < 12) {
 					totals.out_of_range_sample.push(`${label} rec ${recs.indexOf(rec)} t${rec.time} sender ${sender} pill ${state.pills.indexOf(pill)} ` +
-						`dir ${sub.direction} dist ${d.toFixed(0)}px position ${stale} ticks old hostile-pills-in-range-along-nibble [${others.join(",")}]`);
+						`dir ${sub.direction} dist ${d.toFixed(0)}px axis ${axis.toFixed(0)}px position ${stale} ticks old hostile-pills-in-range-along-nibble [${others.join(",")}]`);
 				}
 				continue;
 			}
@@ -490,6 +495,8 @@ console.log(`        only the clique merge of a third party's accept ${n(totals.
 console.log(`    sender's tank out of range             ${n(totals.sender_out_of_range).padStart(9)}`);
 console.log(`        by distance: 137-160 px ${n(totals.out_of_range_by_distance[0])}, 161-200 ${n(totals.out_of_range_by_distance[1])}, 201-300 ${n(totals.out_of_range_by_distance[2])}, over 300 ${n(totals.out_of_range_by_distance[3])};`);
 console.log(`        sender's position over a second old ${n(totals.out_of_range_stale)}; a nearer hostile pill along the nibble ${n(totals.out_of_range_other_pill)}`);
+console.log(`        by the larger axis distance: <= 136 px ${n(totals.out_of_range_axis[0])}, <= 152 ${n(totals.out_of_range_axis[1])}, <= 168 ${n(totals.out_of_range_axis[2])}, over ${n(totals.out_of_range_axis[3])}`);
+console.log(`        (a pill that measures range per axis in squares puts nearly all of them in the first bucket)`);
 console.log(`    sender the only hostile tank in range  ${n(totals.lone).padStart(9)}   (uninformative)`);
 console.log();
 console.log(`Orphaned pills (owner slot quit since they got that owner) fired ${n(totals.orphan_fires)} times, by the target's NAME as of the quit:`);
