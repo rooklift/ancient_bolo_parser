@@ -145,6 +145,8 @@ The corpus run settles the rest. Over 443 logs: control 29,573 exact against 15 
 
 **[E:man-carrying]** — a man out of the tank carrying a pill (status `C`) has it in his hands, and the tank's death dump does not include it; it is the lowest-index carried pill, the one a plant would use. The evidence is the plants that would otherwise be impossible: on the fixture, every `FF 50` the dump model had to treat as a no-op (planting a pill it already had on the ground) followed a tank death with the man out carrying, and the man went on to plant exactly that pill. Modelled in `viewer/game.js` `dump_carried_pills`, which withholds the lowest-index carried pill when the sender's man is out with one.
 
+**[E:dump-mine]** — emulator-observed: a dead pill dumped onto a mined square arrives with the mine's explosion sound and the mine gone, but no crater; the terrain under the mine is unchanged. Modelled in `viewer/game.js` `dump_carried_pills`, which demines every square a dumped pill lands on.
+
 **[E:ammo-clamp]** — reconstructing tank ammo across 12,583 lives that begin at an observed respawn (see [E:death-tiers]), every out-of-range excursion is an overflow past Brain.h's cap of 40 and not one is a negative. Charging drains into a full tank drops the violation rate from 5.7% to 1.2%; the residual is slightly-too-many shots seen, the method's noise floor. `node tools/measure-death-ammo.cjs`.
 
 **[E:gameinfo]** — the struct layout and the constants are from `Brain.h`: `enum { GameType_open=1, GameType_tournament, GameType_strict_tment };` and `#define GAMEINFO_HIDDENMINES 0x80` / `#define GAMEINFO_ALLMINES_VISIBLE 0xC0`, with the field declared `BYTE hidden_mines;` and commented as holding one of those two values. The corpus shows only those two values across all 446 logs (`0xc0` in 435, `0x80` in 11, all of the latter in 2001–2002). 442 of 446 logs are strict. Brain.h declares the two `long` fields on a big-endian Mac, but the log stores them little-endian: only 3 corpus logs have a nonzero time limit, and they read as 230–239 minutes little-endian against 0.7–2.5 *years* big-endian. The start delay is zero in all 446 logs, so its endianness is inferred from its neighbour rather than measured.
@@ -221,6 +223,8 @@ The consequences are confined to which pill a viewer credits with a shot: no ter
 **[E:quit-fields]** — the three fields were decoded against known player addresses; game ports observed at 50000 and elsewhere. Field length 4 occurs in 5 of 955 quits in the corpus.
 
 **[E:alliance-transitive]** — verified on a 3v3 whose only accepts were A↔B and B↔C on each side.
+
+**[E:leave-pills]** — from the Bolo manual, on leaving an alliance: "Any pillboxes he is carrying at the time are his, but any active ones on the map remain with the members of the alliance." Which member inherits is not stated; the viewer assigns them to the lowest-index remaining mutual ally, which draws them as friendly to the right side in every case seen. Bases are not mentioned and keep their owner.
 
 **[E:quit-pills]** — in two mid-game quits-while-carrying, the pills were later picked up within a tile of the quitter's last tank centre; in one case both at once, lying together.
 
