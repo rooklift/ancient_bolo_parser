@@ -22,7 +22,7 @@ by elimination:
      14    6596         6478 (98.2%)       104 (1.6%)    14 (0.2%)
      15    6353         6273 (98.7%)        70 (1.1%)    10 (0.2%)
 
-Direction-0 mechanism check (decompile: reported = true_n | 1 for
+Direction-0 mechanism check (the claim: reported = true_n | 1 for
 west-of-north bradians 249-255, so: even-index errors, west-side
 even-index shots, and east-side on-lower cases must all be ZERO):
 
