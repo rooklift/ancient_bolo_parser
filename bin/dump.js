@@ -138,7 +138,7 @@ for (const rec of records(buf, stats)) {
 	}
 }
 
-console.log(`Bolo log, version ${header.version}`);
+console.log(`Bolo log, version ${header.versionString} (${header.version})`);
 console.log(`records: ${count} (${warned} with parse warnings)`);
 if (stats.truncatedBytes) {
 	console.log(`NOTE: file is truncated — ${stats.truncatedBytes} trailing bytes dropped`);

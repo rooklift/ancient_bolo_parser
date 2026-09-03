@@ -30,7 +30,7 @@ export function build() {
 
 ${src.trimEnd()}
 
-const BoloLog = { TICKS_PER_SECOND, macRoman, parseHeader, rawRecords, parseRecord, records, parseLog };
+const BoloLog = { TICKS_PER_SECOND, macRoman, parseHeader, formatVersion, rawRecords, parseRecord, records, parseLog };
 
 if (typeof module !== "undefined" && module.exports) {
 	module.exports = BoloLog;

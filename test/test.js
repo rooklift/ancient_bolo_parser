@@ -25,6 +25,7 @@ function check(what, got, want) {
 
 const header = parseHeader(buf);
 check("version", header.version, "00990700");
+check("versionString", header.versionString, "0.99.7");
 
 let count = 0;
 let warned = 0;
