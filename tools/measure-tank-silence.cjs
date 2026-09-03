@@ -26,7 +26,14 @@
  *   and a burst of records at one tick, the usual end of a stall, does
  *   not count against the players in the burst, which is how the viewer
  *   sees it too (it applies every record at a tick before drawing).
- *   This is the reading the viewer keys its fade to.
+ *   The viewer keys its fade to this reading.
+ *
+ *   CYCLES: the most records heard from any one other player across
+ *   the silence -- how many times the ring went round without him. A
+ *   CRAWL, the ring freezing for everyone, reads long by time but one
+ *   or two by cycles (the corpus has 29 s stretches with every player
+ *   heard exactly once); a split reads sixty and more, one voice heard
+ *   over and over. The viewer fades only past both bounds.
  *
  * A gap is a LIVE SILENCE when its wall reading is under 30 s (the
  * absence bound network.js uses for a machine that is gone) and the
@@ -39,7 +46,8 @@
  * doubt; a long silence from a tank that moved meanwhile may be a
  * split the log really did see, so the longest are listed with WHO WAS
  * HEARD during them -- one voice alone, over and over, is the logging
- * machine talking to itself across a split.
+ * machine talking to itself across a split, one record from everyone
+ * is a crawl.
  *
  * Usage: node tools/measure-tank-silence.cjs [file | directory ...]
  * With no argument the corpus root from corpus.json / BOLO_CORPUS is read.
@@ -54,15 +62,16 @@ const BoloLog = require(path.join(__dirname, "..", "viewer", "logparse.js"));
 const TPS = BoloLog.TICKS_PER_SECOND;
 const ABSENCE_TICKS = 30 * TPS;
 const THRESHOLDS = [3, 5, 8, 10, 12, 15, 20, 25];
+const CYCLES = 5; /* the viewer's GHOST_CYCLES */
 const BIN_SECONDS = 1;
 const SHOW_LONGEST = 16;
 
 let logs_scanned = 0;
 let records_scanned = 0;
-let silences = []; /* {wall, ring, idle} in ticks */
+let silences = []; /* {wall, ring, cycles, idle}, times in ticks */
 let absences = 0;
-let longest = []; /* {file, player, wall, ring, idle, at, heard} by ring */
-let per_log_max = { wall: new Map(), ring: new Map() };
+let longest = []; /* {file, player, wall, ring, cycles, idle, at, heard} by ring */
+let per_log_max = { wall: new Map(), ring: new Map(), both: new Map() };
 
 function scan(file, recs) {
 	logs_scanned++;
@@ -73,7 +82,7 @@ function scan(file, recs) {
 	let heard = Array.from({ length: 16 }, () => new Array(16).fill(0));
 	let tick_now = -Infinity;    /* the latest record time */
 	let tick_before = -Infinity; /* the latest record time strictly before it */
-	let max_wall = 0, max_ring = 0;
+	let max_wall = 0, max_ring = 0, max_both = 0;
 	for (let rec of recs) {
 		if (rec.time > tick_now) {
 			tick_before = tick_now;
@@ -94,12 +103,14 @@ function scan(file, recs) {
 					last_pos[p].x === pos.x && last_pos[p].y === pos.y &&
 					last_pos[p].pixelX === pos.pixelX && last_pos[p].pixelY === pos.pixelY &&
 					last_pos[p].direction === pos.direction;
-				silences.push({ wall, ring, idle });
+				let cycles = Math.max(...heard[p]);
+				silences.push({ wall, ring, cycles, idle });
 				if (wall > max_wall) max_wall = wall;
 				if (ring > max_ring) max_ring = ring;
+				if (cycles >= CYCLES && ring > max_both) max_both = ring;
 				if (longest.length < SHOW_LONGEST || ring > longest[longest.length - 1].ring) {
 					let voices = heard[p].map((n, q) => n ? `p${q}:${n}` : null).filter(Boolean).join(" ");
-					longest.push({ file: label, player: p, wall, ring, idle, at: rec.time - recs[0].time, heard: voices || "nobody" });
+					longest.push({ file: label, player: p, wall, ring, cycles, idle, at: rec.time - recs[0].time, heard: voices || "nobody" });
 					longest.sort((a, b) => b.ring - a.ring);
 					if (longest.length > SHOW_LONGEST) longest.pop();
 				}
@@ -113,6 +124,7 @@ function scan(file, recs) {
 	}
 	per_log_max.wall.set(label, max_wall);
 	per_log_max.ring.set(label, max_ring);
+	per_log_max.both.set(label, max_both);
 }
 
 function* walk(target) {
@@ -201,12 +213,13 @@ histogram("histogram, wall clock", "wall");
 histogram("histogram, ring", "ring");
 
 console.log(`\n[thresholds] live silences a fade-after-N-seconds rule would fade, idle / moving, and the logs any occur in (of ${logs_scanned})`);
-console.log(`         wall clock                          ring`);
+console.log(`         wall clock                          ring                                ring, and ${CYCLES}+ cycles heard`);
 for (let t of THRESHOLDS) {
 	let row = [];
-	for (let key of ["wall", "ring"]) {
-		let idle = silences.filter(s => s.idle && s[key] > t * TPS).length;
-		let moving = silences.filter(s => !s.idle && s[key] > t * TPS).length;
+	for (let key of ["wall", "ring", "both"]) {
+		let hit = s => (key === "both" ? s.ring > t * TPS && s.cycles >= CYCLES : s[key] > t * TPS);
+		let idle = silences.filter(s => s.idle && hit(s)).length;
+		let moving = silences.filter(s => !s.idle && hit(s)).length;
 		let logs = [...per_log_max[key].values()].filter(m => m > t * TPS).length;
 		row.push(`${String(idle).padStart(6)} / ${String(moving).padStart(6)} in ${String(logs).padStart(4)} logs`);
 	}
@@ -215,5 +228,5 @@ for (let t of THRESHOLDS) {
 
 console.log(`\n[longest] live silences by the ring reading, with the records heard from others meanwhile`);
 for (let l of longest) {
-	console.log(`  ring ${seconds(l.ring).padStart(5)} s  wall ${seconds(l.wall).padStart(5)} s  ${l.file}  player ${l.player}  ${l.idle ? "idle  " : "moving"}  at ${seconds(l.at)} s  heard: ${l.heard}`);
+	console.log(`  ring ${seconds(l.ring).padStart(5)} s  wall ${seconds(l.wall).padStart(5)} s  ${String(l.cycles).padStart(4)} cycles  ${l.file}  player ${l.player}  ${l.idle ? "idle  " : "moving"}  at ${seconds(l.at)} s  heard: ${l.heard}`);
 }
