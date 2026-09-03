@@ -640,19 +640,10 @@ function draw_bases() {
 	}
 }
 
-/* Which side a pill or base draws on for the viewpoint's team: neutral is
- * hostile; a DEPARTED one (its owner quit with no ally left) is friendly
- * to the names of his alliance, which is all the log lets us follow. */
+/* Which side a pill or base draws on for the viewpoint's team: neutral
+ * and DEPARTED (nobody's) are hostile to everyone. */
 function pill_side(p, good) {
-	if (p.owner === BoloGame.NEUTRAL) return "evil";
-	if (p.owner === BoloGame.DEPARTED) {
-		if (!p.departed) return "evil";
-		for (let i = 0; i < 16; i++) {
-			if (cur.names[i] !== null && BoloGame.team_of(cur, i) === good &&
-				p.departed.allies.includes(cur.names[i])) return "good";
-		}
-		return "evil";
-	}
+	if (p.owner === BoloGame.NEUTRAL || p.owner === BoloGame.DEPARTED) return "evil";
 	return BoloGame.team_of(cur, p.owner) === good ? "good" : "evil";
 }
 

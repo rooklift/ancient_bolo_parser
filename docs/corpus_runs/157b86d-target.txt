@@ -36,6 +36,8 @@ at a member of the owner's alliance then 7, at anyone else present then 3,475, a
 Quits leaving grounded pills: 755, with an ally still in the game to hand them to 394;
 of those quits the tank was dead (T=7) at 69 and alive at 686. Orphaned-pill fires after a dead quit 402,
 of which at a member of the owner's alliance 5; after an alive quit 3,150, at an ally 2.
+Of the quits with an heir, the heir had a live tank at 344 and was dead or tankless at 50. Orphaned-pill fires
+after a hand-over to a live heir 2,281, at an ally 0; to a dead heir 243, at an ally 7.
 the quitter's name rejoined later for 26 pills. Orphaned-pill fires by that: heir available 2,524,
 no heir but owner returned 0, no heir and owner gone 1,028;
 of the allied-sender fires from orphans, 7 had an heir available (a hand-over at quit would have caught those).
