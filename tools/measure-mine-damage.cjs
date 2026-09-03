@@ -64,7 +64,10 @@ let implied_loss = new Map();
  * previous 2 s. The theory says every one of these is at armour <= 2. */
 let clean_loss_armour = [];
 let clean_loss_examples = [];
+let clean_loss_multi = 0;            /* clean by the prior window but with another mined-square explosion between the hit and the loss */
 let recent_mine_explosions = [];   /* {time, x, y} for the nearby-mine check */
+let pending_clean = [];            /* candidate clean losses, judged at the end of the log against every explosion */
+let log_mine_explosions = [];      /* every mined-square explosion in the current log */
 let examples = [];
 let logs_scanned = 0, records_scanned = 0;
 
@@ -132,8 +135,8 @@ function scan(file, recs) {
 				}
 			}
 			if (m.fatal && !hit_near && !m.nearby_other) {
-				clean_loss_armour.push(before);
-				if (before >= 3 && clean_loss_examples.length < 10) clean_loss_examples.push(`${label} t=${((time - t0) / 50).toFixed(1)}s player ${pl}: armour ${before}, ${l.events.filter(e => e.kind === "hit").length} hits and ${l.events.filter(e => e.kind === "drain").length} drains in the life, lost ${((time - m.time) / 50).toFixed(2)}s after the hit`);
+				pending_clean.push({ before, hit_time: m.time, loss_time: time, x: m.x, y: m.y,
+					text: `${label} t=${((time - t0) / 50).toFixed(1)}s player ${pl}: armour ${before}, ${l.events.filter(e => e.kind === "hit").length} hits and ${l.events.filter(e => e.kind === "drain").length} drains in the life, lost ${((time - m.time) / 50).toFixed(2)}s after the hit` });
 			}
 		}
 		for (let s of sweep) {
@@ -184,6 +187,7 @@ function scan(file, recs) {
 					detonation_codes.set(sub.code, (detonation_codes.get(sub.code) || 0) + 1);
 					let nearby_other = recent_mine_explosions.some(e => rec.time - e.time <= 2 * TICKS_PER_SECOND && e.time <= rec.time && Math.abs(e.x - sub.x) <= 2 && Math.abs(e.y - sub.y) <= 2 && (e.x !== sub.x || e.y !== sub.y));
 					recent_mine_explosions.push({ time: rec.time, x: sub.x, y: sub.y });
+					log_mine_explosions.push({ time: rec.time, x: sub.x, y: sub.y });
 					if (recent_mine_explosions.length > 64) recent_mine_explosions.shift();
 					for (let i = 0; i < 16; i++) {
 						let t = last_tank[i];
@@ -191,7 +195,7 @@ function scan(file, recs) {
 						if (t.sx !== sub.x || t.sy !== sub.y) continue;
 						under_tank++;
 						if (life[i]) {
-							let e = { kind: "mine", time: rec.time, fatal: false, sender: pl, tank: i, nearby_other };
+							let e = { kind: "mine", time: rec.time, fatal: false, sender: pl, tank: i, nearby_other, x: sub.x, y: sub.y };
 							life[i].events.push(e);
 						}
 					}
@@ -227,6 +231,16 @@ function scan(file, recs) {
 		}
 		BoloGame.apply_record(state, rec, null, null, null, node_joins);
 	}
+	/* clean losses: no other mined-square explosion within 2 squares from 2 s before the hit to the loss */
+	for (let c of pending_clean) {
+		let other = log_mine_explosions.some(e => e.time >= c.hit_time - 2 * TICKS_PER_SECOND && e.time <= c.loss_time &&
+			Math.abs(e.x - c.x) <= 2 && Math.abs(e.y - c.y) <= 2 && !(e.x === c.x && e.y === c.y && e.time === c.hit_time));
+		if (other) { clean_loss_multi++; continue; }
+		clean_loss_armour.push(c.before);
+		if (c.before >= 3 && clean_loss_examples.length < 10) clean_loss_examples.push(c.text);
+	}
+	pending_clean = [];
+	log_mine_explosions = [];
 	/* lives still open at the end: their detonations were all survived */
 	for (let i = 0; i < 16; i++) {
 		let l = life[i];
@@ -306,8 +320,9 @@ console.log(`  theory: 3 wherever armour before >= 5; armour before - 1 at 3 and
 for (let [a, v] of [...implied_loss.entries()].sort((x, y) => x[0] - y[0])) {
 	console.log(`  armour ${a}: n ${String(v.length).padStart(4)}  loss ${histogram_line(v, -9, 9)}`);
 }
-console.log(`\n[clean losses] one mine, no shell hit within 2 s, no other mined-square explosion within 2 squares in the prior 2 s: armour before ${histogram_line(clean_loss_armour, 0, 9)}`);
-console.log(`  theory: all at 2 or below`);
+console.log(`\n[clean losses] one mine, no shell hit within 2 s, no other mined-square explosion within 2 squares from 2 s before the hit to the loss: armour before ${histogram_line(clean_loss_armour, 0, 9)}`);
+console.log(`  theory: all at 2 or below; ${clean_loss_multi} more losses were set aside for another mined-square explosion nearby between the hit and the loss (a run of mines)`);
+console.log(`  reading the implied-loss table: 6 is two mines, 5 is two mines ending on the floor (6 -> 3 -> 1), 8 is three ending on the floor (9 -> 6 -> 3 -> 1)`);
 for (let e of clean_loss_examples) console.log(`  above 2: ${e}`);
 if (examples.length) {
 	console.log("\n[examples] tanks lost to a mine hit");
