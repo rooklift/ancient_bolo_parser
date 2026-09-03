@@ -292,8 +292,10 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
 
 What the corpus run left unsettled.
 
-1. Mine damage to a tank (WinBolo 2): needs deaths with a mine explosion at
-   the tank's square and the armour integration of [E:gameplay].
+1. Mine damage to a tank (WinBolo 2). `tools/measure-mine-damage.cjs`
+   brackets it from detonations under a tank: on the fixtures, fatal at
+   integrated armour 1–2 and survived at 6–9, so between 2 and 5; the corpus
+   should pin it.
 2. The tank reload: typically 12–13 ticks, but a quarter of gaps are 7–11
    and 2.4% of firing records carry two shots. Jitter in the stamps, or a
    variable reload?
