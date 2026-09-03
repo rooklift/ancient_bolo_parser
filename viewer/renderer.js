@@ -735,8 +735,12 @@ function draw_tanks() {
 	for (let p = 0; p < 16; p++) {
 		let t = cur.tanks[p];
 		if (!t || t.dead || cur.quit[p]) continue;
-		/* a tank not restated for a long while is a ghost (split) or dead */
-		let stale = clock - t.lastSeen > TPS * 5;
+		/* a tank not restated for a long while is a ghost (split) or dead.
+		 * A stationary tank restates only every few seconds, and nothing
+		 * else from an idle player fills the gap before the game settles,
+		 * so 5 s faded every idle tank of the gathering phase; idle
+		 * silences past 15 s are a handful per million [E:idle-silence] */
+		let stale = clock - t.lastSeen > TPS * 15;
 		let position = BoloGame.tank_position_at(game, cur, p, clock);
 		if (!position) continue; /* can't happen for tank tracks today, but
 		    the helper's contract allows null (see the LGM tank-entry case) */
