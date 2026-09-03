@@ -8,7 +8,7 @@ const TPS = BoloLog.TICKS_PER_SECOND;
 
 const TERRAIN_COLORS = {
 	0:  "#785e41",  /* building */
-	1:  "#008391",  /* river */
+	1:  "#008c9c",  /* river */
 	2:  "#003933",  /* swamp */
 	3:  "#292911",  /* crater */
 	4:  "#000000",  /* road */
