@@ -85,20 +85,27 @@ function load_engines(baseline_ref) {
 	delete require.cache[game_path];
 	let current_game = require(game_path);
 
-	let baseline_source = child_process.execFileSync("git", [
-		"show", `${baseline_ref}:viewer/motion.js`,
+	/* The baseline is the whole engine at that revision -- game.js as
+	 * well as motion.js, since game.js calls into motion.js and the two
+	 * move together -- compiled from git with the baseline motion.js
+	 * standing in for the current one while the baseline game.js loads. */
+	let show = file => child_process.execFileSync("git", [
+		"show", `${baseline_ref}:viewer/${file}`,
 	], { cwd: ROOT, encoding: "utf8" });
-	let baseline_motion = compile_module(motion_path, baseline_source);
+	let baseline_motion = compile_module(motion_path, show("motion.js"));
 	let saved_motion = require.cache[motion_path];
 	let injected = new Module(motion_path, module);
 	injected.filename = motion_path;
 	injected.exports = baseline_motion;
+	injected.loaded = true;
 	require.cache[motion_path] = injected;
-	delete require.cache[game_path];
-	let baseline_game = require(game_path);
-	if (saved_motion) require.cache[motion_path] = saved_motion;
-	else delete require.cache[motion_path];
-	delete require.cache[game_path];
+	let baseline_game;
+	try {
+		baseline_game = compile_module(game_path, show("game.js"));
+	} finally {
+		if (saved_motion) require.cache[motion_path] = saved_motion;
+		else delete require.cache[motion_path];
+	}
 
 	return { log, current_game, baseline_game };
 }

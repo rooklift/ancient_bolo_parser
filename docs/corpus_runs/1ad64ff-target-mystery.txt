@@ -1,0 +1,193 @@
+======================================================================
+587 logs, 1,096,282 pill fires
+
+Direction-0 odd-index fires resolved to pill n-1 by hostility and range:
+       15,657   (both pills fit in 5,320; the named one is kept there)
+
+Fires set aside:
+    pill unresolved (missing or carried)           0
+    pill dead                                  6,437
+    sender has no live tank                      921
+    sender not hostile to the pill                11   (must be ~0; 1 of them direction 0 with an odd index)
+        of those: the sender's own pill 7; the sender's own records carried a 9n for
+        that pill within 100 ticks 0; the pill changed owner within 100 ticks 0
+        the pill's owner slot had quit since the pill got that owner ("orphaned") in 7
+        how the model holds them allied: from game info 0, an accept between the two 3,
+        only the clique merge of a third party's accept 0
+    sender's tank out of range                   441
+        by distance: 137-160 px 389, 161-200 36, 201-300 9, over 300 7;
+        sender's position over a second old 148; a nearer hostile pill along the nibble 60
+        by the larger axis distance: <= 136 px 257, <= 152 128, <= 168 37, over 19
+        (a box would put nearly all of them in the first bucket; a circle seen through stale positions spreads them)
+    sender the only hostile tank in range    981,802   (uninformative)
+
+The viewer's fire rule (a pill firing at a player the model holds friendly becomes nobody's) triggered 8 times.
+    17~5c8e90 rec 30120 t8038358 sender 2 pill 11 was owner 2
+    27~3404e0 rec 4232 t49365 sender 0 pill 0 was owner 3
+    11~9705b2 rec 8400 t460961 sender 3 pill 8 was owner 3
+    11~9705b2 rec 8404 t460971 sender 3 pill 12 was owner 3
+    11~9705b2 rec 8404 t460971 sender 3 pill 13 was owner 3
+    11~9705b2 rec 8458 t461070 sender 3 pill 5 was owner 3
+    11~9705b2 rec 8476 t461103 sender 3 pill 0 was owner 3
+    11~9705b2 rec 8540 t461220 sender 3 pill 14 was owner 3
+
+Orphaned pills (owner slot quit since they got that owner) fired 2,203 times, by the target's NAME as of the quit:
+at a member of the owner's alliance then 11, at anyone else present then 2,192, at a name not present then 0.
+(a pill that stays with its alliance never fires at the first group)
+Quits leaving grounded pills: 810, with an ally still in the game to hand them to 499;
+of those quits the tank was dead (T=7) at 50 and alive at 760. Orphaned-pill fires after a dead quit 251,
+of which at a member of the owner's alliance 0; after an alive quit 1,952, at an ally 11.
+Of the quits with an heir, the heir had a live tank at 434 and was dead or tankless at 65. Orphaned-pill fires
+after a hand-over to a live heir 1,262, at an ally 11; to a dead heir 309, at an ally 0.
+the quitter's name rejoined later for 6 pills. Orphaned-pill fires by that: heir available 1,571,
+no heir but owner returned 0, no heir and owner gone 632;
+of the allied-sender fires from orphans, 7 had an heir available (a hand-over at quit would have caught those).
+
+Who inherits a quitter's grounded pills? Their later fires (until the pills changed hands
+again) by target, per quit, against candidate heirs. Columns: quits where the candidate
+exists / of those, quits whose pills fired at anyone / fires in those quits / fires at the
+candidate / quits in which the candidate was fired at. A true heir scores 0 in the last two.
+  lowest ally live: 434 quits; fires at an old ally 11, at an old enemy 1,251, at a newcomer 0
+    next mutual ally with a live tank          434     68  1,262      6      1
+    lowest-index live tank, other side         371     68  1,262    713     44
+    lowest-index live tank, any side           434     68  1,262    505     27
+    lowest-index player present                434     68  1,262    503     26
+    next name to take the quitter's slot         1      0      0      0      0
+    of the 68 quits with fires and an enemy present, the pills shot every enemy present at the quit in 14, two or more in 12
+  another ally live: 4 quits; fires at an old ally 0, at an old enemy 61, at a newcomer 0
+    next mutual ally with a live tank            4      1     61      0      0
+    lowest-index live tank, other side           4      1     61     25      1
+    lowest-index live tank, any side             4      1     61     25      1
+    lowest-index player present                  4      1     61      0      0
+    next name to take the quitter's slot         0      0      0      0      0
+    of the 1 quits with fires and an enemy present, the pills shot every enemy present at the quit in 1, two or more in 1
+  no ally live: 372 quits; fires at an old ally 0, at an old enemy 880, at a newcomer 0
+    next mutual ally with a live tank            0      0      0      0      0
+    lowest-index live tank, other side         247     38    880    636     27
+    lowest-index live tank, any side           247     38    880    636     27
+    lowest-index player present                291     38    880    543     21
+    next name to take the quitter's slot         0      0      0      0      0
+    of the 38 quits with fires and an enemy present, the pills shot every enemy present at the quit in 16, two or more in 8
+
+Live-heir quits split by the lowest slot the quitter's alliance named -- in the model's
+alliance word, or in the quitter's last standing request -- and whether that slot's
+player had already quit.
+Columns: quits or leaves (of them, slot named by the word / only by a request) /
+fires / fires at the heir / hand-overs in which the heir was fired at / fires at any old ally /
+hand-overs in which the heir's live tank came within a shell's flight of a live handed pill /
+ticks it spent there (a pill that is nobody's fires at it there; the heir's own never does).
+    that slot had quit          18 (17 / 1)     152       6       1       6       4   1,206
+    that slot present          416 (414 / 2)   1,110       0       0       5      85  62,446
+    no slot named                0 (0 / 0)       0       0       0       0       0       0
+    the departed-slot hand-overs, one per line (fires at the heir / exposure ticks / pills exposed):
+      16~a43233 slot 0 -> heir slot 4, lowest named slot 2 (word): 112 fires, 0 at the heir, exposed 369 ticks to 2 pills
+      17~e7fcb2 slot 5 -> heir slot 6, lowest named slot 1 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      17~74c43e slot 3 -> heir slot 5, lowest named slot 4 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      17~74c43e slot 2 -> heir slot 1, lowest named slot 0 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      17~5c8e90 slot 6 -> heir slot 4, lowest named slot 0 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      27~6d2e21 slot 2 -> heir slot 5, lowest named slot 1 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      05~041eb8 slot 5 -> heir slot 4, lowest named slot 3 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      16~565fe4 slot 3 -> heir slot 4, lowest named slot 0 (word): 0 fires, 0 at the heir, exposed 122 ticks to 1 pills
+      20~29f8d4 slot 4 -> heir slot 1, lowest named slot 0 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      24~656bd1 slot 4 -> heir slot 2, lowest named slot 0 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      06~df648b slot 2 -> heir slot 1, lowest named slot 0 (word): 1 fires, 0 at the heir, exposed 295 ticks to 2 pills
+      11~97cd54 slot 0 -> heir slot 2, lowest named slot 1 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      02~4becbe slot 1 -> heir slot 3, lowest named slot 0 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      07~b2ed99 slot 3 -> heir slot 4, lowest named slot 2 (word): 33 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      09~25c650 slot 4 -> heir slot 2, lowest named slot 0 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      11~9705b2 slot 0 -> heir slot 3, lowest named slot 2 (request): 6 fires, 6 at the heir, exposed 420 ticks to 8 pills
+      22~756f4f slot 2 -> heir slot 4, lowest named slot 0 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      20~00ad6a slot 2 -> heir slot 4, lowest named slot 0 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+
+Alliance leaves that handed grounded pills to the lowest mutual ally, the same split
+(the fires counted until the pills next changed hands):
+Columns: quits or leaves (of them, slot named by the word / only by a request) /
+fires / fires at the heir / hand-overs in which the heir was fired at / fires at any old ally /
+hand-overs in which the heir's live tank came within a shell's flight of a live handed pill /
+ticks it spent there (a pill that is nobody's fires at it there; the heir's own never does).
+    that slot had quit           1 (1 / 0)      75       1       1       1       1   2,719
+    that slot present           24 (24 / 0)   1,711       0       0     151      18  96,051
+    no slot named                0 (0 / 0)       0       0       0       0       0       0
+    the departed-slot hand-overs, one per line (fires at the heir / exposure ticks / pills exposed):
+      17~5c8e90 slot 3 -> heir slot 2, lowest named slot 1 (word): 75 fires, 1 at the heir, exposed 2,719 ticks to 2 pills
+
+Fires where the sender is taken as the target: 1,088,472; sender's tank hidden in forest
+at the time in 4,440 (0.4%) -- ~0 if a pill cannot target a hidden tank.
+
+Massaging: of those 1,088,472 fires the sender's tank is against the pill (within 24 px) in 15,340,
+and the fire direction equals the tank's facing in 6,004 of them (39.1%);
+apart from the pill the two coincide in 63,820 of 1,073,132 (5.9%; 1 in 16 by chance).
+
+Deflection: the direction nibble against the bearing to the sender's tank, in sectors,
+split by the tank's motion across the pill's line of sight (from its last two positions):
+                                     exact    1 off    2 off   3+ off
+    tank still or unknown          267,164   14,561       47    3,012
+    moving, nibble leads it        436,777  332,320   10,452    3,611
+    moving, nibble trails it             0   19,861      331      336
+    (a leading pill puts the moving rows' misses in the first of the two, not the second)
+
+Contested fires (two or more hostile tanks in range): 106,670
+    sender is the nearest hostile tank        99,244   93.0%
+    expected if the simulator were random     52,851   49.5%
+    sender nearest among VISIBLE hostiles    101,517   95.2%   (rivals hidden in forest excluded)
+    sender beaten by a nearer hostile tank, by margin:
+        1-8 px           4,803   4.5%
+        9-16 px          1,190   1.1%
+        17-32 px           797   0.7%
+        33-64 px           591   0.6%
+        over 64 px          45   0.0%
+        of the 7,426 losses, the nearer tank was hidden in forest in 2,280, and
+        restated less recently than the sender's in 769
+
+Aim, on the same contested fires (106,670): the direction nibble against
+the bearing from the pill to each tank, in 16 coarse sectors:
+    exactly at the sender's tank              69,148   64.8%
+    one sector off the sender, not rival      27,213   25.5%
+    at the nearest rival, not the sender         547   0.5%
+    ambiguous or neither                       9,762   9.2%   (1,696 of them massage-shaped: touching, fired along the facing)
+
+Allied-sender fires, the first 11 (replay names redacted):
+    17~5c8e90 rec 23963 t8020898 sender 3 pill 14 owner 2 ally:orphan dir 6 facing 6 dist 121px hit-by-sender no last-alliance-event 14 ticks ago hostile-pills-along-nibble []
+    17~5c8e90 rec 30120 t8038358 sender 2 pill 11 owner 2 ally:own dir 7 facing 4 dist 109px hit-by-sender no last-alliance-event 17474 ticks ago hostile-pills-along-nibble []
+    04~10ab1e rec 2448 t581528 sender 3 pill 13 owner 2 ally:direct dir 0 facing 5 dist 131px hit-by-sender no last-alliance-event 10873 ticks ago hostile-pills-along-nibble []
+    27~3404e0 rec 4232 t49365 sender 0 pill 0 owner 3 ally:direct dir 7 facing 5 dist 87px hit-by-sender no last-alliance-event 746 ticks ago hostile-pills-along-nibble []
+    11~9705b2 rec 8400 t460961 sender 3 pill 8 owner 3 ally:orphan dir 1 facing 4 dist 58px hit-by-sender no last-alliance-event 1192 ticks ago hostile-pills-along-nibble []
+    11~9705b2 rec 8404 t460971 sender 3 pill 12 owner 3 ally:orphan dir 7 facing 4 dist 87px hit-by-sender no last-alliance-event 1202 ticks ago hostile-pills-along-nibble []
+    11~9705b2 rec 8404 t460971 sender 3 pill 13 owner 3 ally:orphan dir 9 facing 4 dist 30px hit-by-sender no last-alliance-event 1202 ticks ago hostile-pills-along-nibble []
+    11~9705b2 rec 8458 t461070 sender 3 pill 5 owner 3 ally:orphan dir 9 facing 2 dist 54px hit-by-sender no last-alliance-event 1301 ticks ago hostile-pills-along-nibble []
+    11~9705b2 rec 8476 t461103 sender 3 pill 0 owner 3 ally:orphan dir 14 facing 2 dist 84px hit-by-sender no last-alliance-event 1334 ticks ago hostile-pills-along-nibble []
+    11~9705b2 rec 8540 t461220 sender 3 pill 14 owner 3 ally:orphan dir 15 facing 1 dist 125px hit-by-sender no last-alliance-event 1451 ticks ago hostile-pills-along-nibble [0]
+    19~ac962f rec 5216 t614885 sender 0 pill 13 owner 2 ally:direct dir 2 facing 6 dist 131px hit-by-sender no last-alliance-event 10 ticks ago hostile-pills-along-nibble []
+
+Out-of-range fires, the first 12:
+    16~a43233 rec 8399 t16852724 sender 1 pill 7 dir 3 dist 136px axis 124px position 15 ticks old hostile-pills-in-range-along-nibble []
+    17~e7c54f rec 12532 t7426443 sender 3 pill 1 dir 13 dist 152px axis 150px position 13 ticks old hostile-pills-in-range-along-nibble [9]
+    17~feaefb rec 26172 t7525533 sender 4 pill 5 dir 12 dist 137px axis 137px position 15 ticks old hostile-pills-in-range-along-nibble []
+    17~74c43e rec 7594 t7751138 sender 1 pill 7 dir 7 dist 143px axis 139px position 14 ticks old hostile-pills-in-range-along-nibble [13]
+    17~74c43e rec 7594 t7751138 sender 1 pill 7 dir 9 dist 143px axis 139px position 14 ticks old hostile-pills-in-range-along-nibble []
+    17~74c43e rec 7733 t7752110 sender 2 pill 3 dir 2 dist 137px axis 136px position 17 ticks old hostile-pills-in-range-along-nibble []
+    17~5c8e90 rec 4378 t7966475 sender 1 pill 8 dir 10 dist 137px axis 118px position 18 ticks old hostile-pills-in-range-along-nibble []
+    17~5c8e90 rec 4378 t7966475 sender 1 pill 8 dir 10 dist 137px axis 118px position 18 ticks old hostile-pills-in-range-along-nibble []
+    17~5c8e90 rec 10071 t7982338 sender 1 pill 10 dir 14 dist 144px axis 109px position 43 ticks old hostile-pills-in-range-along-nibble [2]
+    17~3010e2 rec 29403 t8789246 sender 4 pill 1 dir 13 dist 136px axis 130px position 11 ticks old hostile-pills-in-range-along-nibble []
+    31~a32e57 rec 9030 t503686 sender 3 pill 12 dir 1 dist 157px axis 151px position 11 ticks old hostile-pills-in-range-along-nibble []
+    31~a32e57 rec 9030 t503686 sender 3 pill 12 dir 2 dist 157px axis 151px position 11 ticks old hostile-pills-in-range-along-nibble []
+
+Alliance events, quits and joins in 11~9705b2 up to record 8592 (the replay with the most allied-sender fires, 6),
+with the model's alliance masks as the event arrived (bit set = NOT allied):
+    rec 0 t407773 p0 T=7 node_id NOT classified as a join
+    rec 1 t407773 p1 T=7 node_id NOT classified as a join
+    rec 2 t407773 game info alliance words: 0:fffe 1:fffd 2:fffb 3:fff7 4:ffef 5:ffdf 6:ffbf 7:ff7f 8:feff 9:fdff 10:fbff 11:f7ff 12:efff 13:dfff 14:bfff 15:7fff
+    rec 143 t413311 p2 join (T=7) model-before: 0=fffe 1=fffd; pill owners 16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16
+    rec 395 t426815 p3 join (T=7) model-before: 0=fffe 1=fffd 2=fffb; pill owners 16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16
+    rec 578 t434568 p0 alliance_request bits 0004 [2] model-before: 0=fffe 1=fffd 2=fffb 3=fff7
+    rec 603 t435343 p1 alliance_request bits 0008 [3] model-before: 0=fffe 1=fffd 2=fffb 3=fff7
+    rec 620 t435950 p3 alliance_accept bits 0002 [1] model-before: 0=fffe 1=fffd 2=fffb 3=fff7
+    rec 627 t436230 p2 quit (T=1) model-before: 0=fffe 1=fff5 2=fffb 3=fff5; pill owners 16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16
+    rec 654 t437692 p1 alliance_leave model-before: 0=fffe 1=fff5 2=fffb 3=fff5
+    rec 8009 t459462 p0 alliance_request bits 000c [2,3] model-before: 0=fffe 1=fffd 2=fffb 3=fff7
+    rec 8102 t459769 p3 alliance_accept bits 0001 [0] model-before: 0=fffe 1=fffd 2=fffb 3=fff7
+    rec 8232 t460254 p0 quit (T=0) model-before: 0=fff6 1=fffd 2=fffb 3=fff6; pill owners 0,3,0,1,0,0,0,0,0,0,0,1,0,0,0,0
+    rec 8568 t461272 p3 quit (T=8) model-before: 0=fff6 1=fffd 2=fffb 3=fff6; pill owners 17,3,3,1,3,17,3,3,17,3,3,1,17,17,17,3
+    rec 8592 t461494 p1 quit (T=8) model-before: 0=fff6 1=fffd 2=fffb 3=fff6; pill owners 17,17,17,1,17,17,17,17,17,17,17,1,17,17,17,17
+======================================================================
