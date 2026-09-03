@@ -49,6 +49,14 @@
  * machine talking to itself across a split, one record from everyone
  * is a crawl.
  *
+ * ABSENCES are not dropped on the floor: each is classed by what ended
+ * it (a quit; a `T=7` joining record, the slot being re-admitted; an
+ * ordinary record) and by where the tank came back (the same square and
+ * pixel it left, elsewhere, or with no position at all). The class to
+ * watch is SAME SPOT / ORDINARY: a player who sat still through more
+ * than 30 s of silence and then simply carried on, which is the one
+ * thing that would mean an idle connected machine can stop sending.
+ *
  * Usage: node tools/measure-tank-silence.cjs [file | directory ...]
  * With no argument the corpus root from corpus.json / BOLO_CORPUS is read.
  */
@@ -69,7 +77,7 @@ const SHOW_LONGEST = 16;
 let logs_scanned = 0;
 let records_scanned = 0;
 let silences = []; /* {wall, ring, cycles, idle}, times in ticks */
-let absences = 0;
+let absences = []; /* {file, player, wall, cycles, end, where, at} */
 let longest = []; /* {file, player, wall, ring, cycles, idle, at, heard} by ring */
 let per_log_max = { wall: new Map(), ring: new Map(), both: new Map() };
 
@@ -96,7 +104,11 @@ function scan(file, recs) {
 			let wall = rec.time - last[p];
 			let ring = Math.max(0, tick_before - last[p]);
 			if (wall >= ABSENCE_TICKS || quit) {
-				absences++;
+				let end = quit ? "quit" : rec.tankStatus === 0x07 ? "join" : "ordinary";
+				let where = !pos ? "no position" : last_pos[p] === undefined ? "no position before" :
+					(last_pos[p].x === pos.x && last_pos[p].y === pos.y &&
+					last_pos[p].pixelX === pos.pixelX && last_pos[p].pixelY === pos.pixelY) ? "same spot" : "moved";
+				absences.push({ file: label, player: p, wall, cycles: Math.max(...heard[p]), end, where, at: rec.time - recs[0].time });
 				last_pos[p] = undefined;
 			} else if (wall > 0) {
 				let idle = last_pos[p] !== undefined && pos !== undefined &&
@@ -201,7 +213,7 @@ if (!logs_scanned) {
 }
 
 console.log(`${logs_scanned} log${logs_scanned === 1 ? "" : "s"}, ${records_scanned} records`);
-console.log(`\n[gaps] between consecutive records of one player: ${silences.length} live silences, ${absences} absences (>= 30 s, or ended by a quit)`);
+console.log(`\n[gaps] between consecutive records of one player: ${silences.length} live silences, ${absences.length} absences (>= 30 s, or ended by a quit)`);
 for (let [title, key] of [["wall clock", "wall"], ["ring heard turning", "ring"]]) {
 	console.log(`  ${title}:`);
 	console.log(summary("all live", silences.map(s => s[key])));
@@ -224,6 +236,23 @@ for (let t of THRESHOLDS) {
 		row.push(`${String(idle).padStart(6)} / ${String(moving).padStart(6)} in ${String(logs).padStart(4)} logs`);
 	}
 	console.log(`  ${String(t).padStart(3)} s  ${row.join("     ")}`);
+}
+
+console.log(`\n[absences] silences of 30 s and more, by what ended them and where the tank came back`);
+{
+	let table = new Map();
+	for (let a of absences) {
+		let key = `${a.end.padEnd(9)} / ${a.where}`;
+		table.set(key, (table.get(key) || 0) + 1);
+	}
+	for (let [key, n] of [...table.entries()].sort((x, y) => y[1] - x[1])) console.log(`  ${key.padEnd(32)} ${String(n).padStart(6)}`);
+	let watch = absences.filter(a => a.end === "ordinary" && a.where === "same spot").sort((x, y) => x.wall - y.wall);
+	console.log(`  same spot / ordinary, by length: ${[[30, 45], [45, 60], [60, 120], [120, 300], [300, Infinity]].map(([lo, hi]) =>
+		`${lo}-${hi === Infinity ? "" : hi} s: ${watch.filter(a => a.wall >= lo * TPS && a.wall < hi * TPS).length}`).join("  ")}`);
+	console.log(`  the shortest of them, with the ring cycles heard meanwhile:`);
+	for (let a of watch.slice(0, SHOW_LONGEST)) {
+		console.log(`    ${seconds(a.wall).padStart(6)} s  ${String(a.cycles).padStart(5)} cycles  ${a.file}  player ${a.player}  at ${seconds(a.at)} s`);
+	}
 }
 
 console.log(`\n[longest] live silences by the ring reading, with the records heard from others meanwhile`);
