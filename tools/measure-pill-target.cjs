@@ -608,6 +608,11 @@ console.log();
 			}
 			console.log(`    ${title.padEnd(38)} ${[have.length, fired.length, fires, at, at_windows].map(v => n(v).padStart(7)).join("")}`);
 		}
+		/* a pill owned by one enemy never shoots every enemy */
+		let fired = ws.filter(w => Object.keys(w.fires).length && w.others.size);
+		let all_enemies = fired.filter(w => [...w.others].every(name => w.fires[name]));
+		let two_enemies = fired.filter(w => [...w.others].filter(name => w.fires[name]).length >= 2);
+		console.log(`    of the ${n(fired.length)} quits with fires and an enemy present, the pills shot every enemy present at the quit in ${n(all_enemies.length)}, two or more in ${n(two_enemies.length)}`);
 	}
 	console.log();
 }
