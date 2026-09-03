@@ -38,14 +38,20 @@ const HOSTILE_COLOR = "#ff5d5d";
 const NEUTRAL_BASE = "#f0b429";
 
 const EFFECT_TICKS = 30; /* how long a transient effect stays on screen */
-/* Silence after which a tank draws as a ghost. It must clear the silences
- * a player who is merely sitting still produces: a stationary tank
- * restates its position only every few seconds (the period varies by log,
- * 4 to 8 s), and before the game has settled -- nobody shooting, no base
- * draining -- nothing else from him fills the gap, so live silences of
- * up to 9 s are ordinary and 5 s faded every idle tank of the gathering
- * phase. Nothing over 10 s is seen from a live player [E:idle-silence];
- * a real ghost is silent for good, so the extra ten seconds cost nothing. */
+/* Silence after which a tank draws as a ghost. The silence is measured
+ * against the RING, not the playback clock: how long the log has been
+ * hearing from other players without hearing from this one (see
+ * draw_tanks). A stall -- nothing from anyone reaching the logging
+ * machine, seen lasting up to 30 s in the corpus -- therefore fades
+ * nobody, where a clock-keyed fade would ghost every tank at once.
+ * The threshold must then clear the silences a player who is merely
+ * sitting still produces: a stationary tank restates its position only
+ * every few seconds (the period varies by log, 4 to 8 s), and before the
+ * game has settled -- nobody shooting, no base draining -- nothing else
+ * from him fills the gap, so silences of up to 9 s are ordinary and 5 s
+ * faded every idle tank of the gathering phase. Idle silences past 15 s
+ * are a handful per ten million across the corpus [E:idle-silence]; a
+ * real ghost is silent for good, so the extra ten seconds cost nothing. */
 const GHOST_SILENCE_TICKS = TPS * 15;
 const OBJ_NATIVE_TILE = 16;
 const LGM_ANIMATION_FPS = 20;
@@ -741,11 +747,14 @@ const PILL_POCKS = [
 function draw_tanks() {
 	let z = view.zoom;
 	let r = Math.max(3, z * 0.45);
+	/* the latest record applied: the ring has been heard turning up to
+	 * here, and a player is a ghost only for the stretch of it he missed */
+	let heard = cursor > 0 ? game.records[cursor - 1].time : clock;
 	for (let p = 0; p < 16; p++) {
 		let t = cur.tanks[p];
 		if (!t || t.dead || cur.quit[p]) continue;
 		/* a sender unheard from for a long while is a ghost (split) or dead */
-		let stale = clock - t.lastSeen > GHOST_SILENCE_TICKS;
+		let stale = heard - t.lastSeen > GHOST_SILENCE_TICKS;
 		let position = BoloGame.tank_position_at(game, cur, p, clock);
 		if (!position) continue; /* can't happen for tank tracks today, but
 		    the helper's contract allows null (see the LGM tank-entry case) */
