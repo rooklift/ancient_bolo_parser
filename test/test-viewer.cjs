@@ -2407,6 +2407,7 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	for (let p = 0; p < 3; p++) { st.present[p] = true; st.names[p] = "p" + p; }
 	st.alliances[1] &= ~(1 << 2);
 	st.alliances[2] &= ~(1 << 1);
+	st.tanks[2] = { x: 5, y: 5, px: 0, py: 0, dead: false, dying: false, lastSeen: 0 };
 	st.pills = [
 		{ x: 10, y: 10, owner: 1, armour: 15, speed: 50, inTank: null },
 		{ x: 20, y: 20, owner: 2, armour: 15, speed: 50, inTank: null },
@@ -2422,7 +2423,7 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	lone.pills = [{ x: 10, y: 10, owner: 1, armour: 15, speed: 50, inTank: null }];
 	BoloGame.apply_record(lone, rec(1, [{ type: "quit", fields: [] }], 7), null, null);
 	check("with no ally left the pill is departed", lone.pills[0].owner, BoloGame.DEPARTED);
-	check("the departed pill remembers its alliance's names", lone.pills[0].departed.allies, ["p1"]);
+	check("the departed pill remembers only its owner's name", lone.pills[0].departed, { name: "p1" });
 	BoloGame.apply_record(lone, rec(1, [{ type: "node_id", name: "stranger" }], 7), null, null);
 	check("a stranger taking the slot does not inherit it", lone.pills[0].owner, BoloGame.DEPARTED);
 	const back = rec(3, [{ type: "node_id", name: "p1" }], 7);
@@ -2432,7 +2433,21 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	/* ...provisionally: if it then fires at him, he pressed Join, not Rejoin */
 	BoloGame.apply_record(lone, rec(3, [{ type: "pillbox_fires", pillbox: 0, direction: 4 }]), null, null);
 	check("a reclaimed pill firing at its owner goes back to departed", lone.pills[0].owner, BoloGame.DEPARTED);
-	check("with no friends left", lone.pills[0].departed.allies, []);
+
+	/* the heir must hold a tank: a dead ally does not receive, a live
+	 * higher-index ally does, and with none the pills are nobody's */
+	const heirs = BoloGame.initial_state();
+	for (let p = 0; p < 4; p++) { heirs.present[p] = true; heirs.names[p] = "p" + p; }
+	for (const [a, b] of [[1, 2], [1, 3], [2, 3]]) { heirs.alliances[a] &= ~(1 << b); heirs.alliances[b] &= ~(1 << a); }
+	heirs.tanks[2] = { x: 5, y: 5, px: 0, py: 0, dead: true, dying: false, lastSeen: 0 };
+	heirs.tanks[3] = { x: 6, y: 6, px: 0, py: 0, dead: false, dying: false, lastSeen: 0 };
+	heirs.pills = [{ x: 10, y: 10, owner: 1, armour: 15, speed: 50, inTank: null }];
+	BoloGame.apply_record(heirs, rec(1, [{ type: "quit", fields: [] }], 7), null, null);
+	check("a dead ally is passed over for a live one", heirs.pills[0].owner, 3);
+	heirs.tanks[3].dead = true;
+	heirs.pills.push({ x: 11, y: 11, owner: 3, armour: 15, speed: 50, inTank: null });
+	BoloGame.apply_record(heirs, rec(3, [{ type: "quit", fields: [] }], 7), null, null);
+	check("with only a dead ally left the pills are nobody's", heirs.pills[1].owner, BoloGame.DEPARTED);
 
 	/* the same rule for any pill: a fire at a player the model calls
 	 * friendly makes the pill nobody's, unless an alliance event is fresh */
@@ -2449,7 +2464,7 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 		({ time, seq: 0, status: 0, player, tankStatus: 0, tankDir: 0, subpackets });
 	BoloGame.apply_record(any, at(1000, 2, [{ type: "pillbox_fires", pillbox: 0, direction: 4 }]), null, null);
 	check("an owned pill firing at its owner's ally becomes nobody's", any.pills[0].owner, BoloGame.DEPARTED);
-	check("hostile to everyone", any.pills[0].departed.allies, []);
+	check("hostile to everyone", any.pills[0].departed, { name: "p2" });
 	BoloGame.apply_record(any, at(2000, 2, [{ type: "alliance_accept", tanks: 1 << 1 }]), null, null);
 	BoloGame.apply_record(any, at(2000, 2, [{ type: "pillbox_fires", pillbox: 1, direction: 4 }]), null, null);
 	check("but not within a second of an alliance event", any.pills[1].owner, 1);
@@ -2463,6 +2478,7 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	for (let p = 0; p < 3; p++) { bases.present[p] = true; bases.names[p] = "p" + p; }
 	bases.alliances[1] &= ~(1 << 2);
 	bases.alliances[2] &= ~(1 << 1);
+	bases.tanks[2] = { x: 5, y: 5, px: 0, py: 0, dead: false, dying: false, lastSeen: 0 };
 	bases.bases = [{ x: 30, y: 30, owner: 1, armour: 90, shells: 90, mines: 90 }];
 	BoloGame.apply_record(bases, rec(1, [{ type: "quit", fields: [] }], 7), null, null);
 	check("quitter's base goes to the remaining ally", bases.bases[0].owner, 2);

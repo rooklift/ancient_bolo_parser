@@ -85,9 +85,7 @@ function sector_gap(a, b) {
 
 function hostile(state, pill, player) {
 	if (pill.owner === NEUTRAL) return true;
-	if (pill.owner === BoloGame.DEPARTED) {
-		return !(pill.departed && pill.departed.allies.includes(state.names[player]));
-	}
+	if (pill.owner === BoloGame.DEPARTED) return true;
 	if (pill.owner === player) return false;
 	return (state.alliances[pill.owner] & (1 << player)) !== 0;
 }

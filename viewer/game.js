@@ -15,10 +15,11 @@ const TICKS_PER_SECOND = BoloMotion.TICKS_PER_SECOND;
 const KEYFRAME_EVERY = 2000; /* records between state snapshots, for seeking */
 const NEUTRAL = 16;
 const GONE = -2; /* inTank value: pill left the game with a quitting carrier */
-/* owner value: the owner quit with no ally left to inherit. The pill stays
- * with his alliance [E:pill-target], which the log can only follow by name,
- * so the pill carries the names it is friendly to and goes back to the
- * owner if his name rejoins; a stranger taking his slot never gets it. */
+/* owner value: nobody's. The owner quit with no ally holding a tank to
+ * inherit, or the pill fired at a player the model held friendly to it
+ * [E:pill-target]. Hostile to all; it remembers the owner's name and goes
+ * back to him if that name rejoins, and a stranger taking his slot never
+ * gets it. */
 const DEPARTED = 17;
 const NODE_JOIN_RESTATEMENT_TICKS = TICKS_PER_SECOND * 5;
 
@@ -294,29 +295,33 @@ function lowest_carried(s, player) {
 
 /* Apply one parsed record to the state. `effects` and `chat`, when given,
  * collect transient events (for rendering) and messages. */
+function has_live_tank(s, i) {
+	const t = s.tanks[i];
+	return !!(t && !t.dead && !t.dying);
+}
+
 /* The lowest-index mutual ally still in the game, or -1: the player who
  * inherits pills their owner leaves behind (manual: "any active ones on
- * the map remain with the members of the alliance"). */
-function lowest_remaining_ally(s, pl) {
+ * the map remain with the members of the alliance"). On a quit the heir
+ * must have a tank: over the corpus, pills handed to a live ally never
+ * fired at him (0 of 2,281), pills handed to an ally who was dead or
+ * tankless at that moment did (7 of 243), and those seven are the only
+ * such fires anywhere [E:pill-target]. With no ally holding a tank the
+ * pills belong to nobody. */
+function lowest_remaining_ally(s, pl, live_only) {
 	for (let i = 0; i < 16; i++) {
 		const mutual = i !== pl && !(s.alliances[pl] & (1 << i)) && !(s.alliances[i] & (1 << pl));
-		if (mutual && !s.quit[i] && (s.present[i] || s.names[i] !== null)) return i;
+		if (mutual && !s.quit[i] && (s.present[i] || s.names[i] !== null) &&
+			(!live_only || has_live_tank(s, i))) return i;
 	}
 	return -1;
 }
 
 /* A departing owner's grounded pills and bases go to his heir, or, with
- * none left in the game, into the DEPARTED state carrying the names of his
- * alliance. Ownership works the same for both. */
+ * none to receive them, into the DEPARTED state: nobody's, hostile to all,
+ * remembering only the owner's name for a Rejoin. Ownership works the same
+ * for both. */
 function hand_over_pills(s, pl, heir) {
-	let allies = [];
-	if (heir < 0) {
-		for (let i = 0; i < 16; i++) {
-			if (s.names[i] === null) continue;
-			const mutual = i === pl || (!(s.alliances[pl] & (1 << i)) && !(s.alliances[i] & (1 << pl)));
-			if (mutual) allies.push(s.names[i]);
-		}
-	}
 	for (const item of s.pills.concat(s.bases)) {
 		if (item.owner !== pl || (item.inTank !== undefined && item.inTank !== null)) continue;
 		if (heir >= 0) {
@@ -324,15 +329,14 @@ function hand_over_pills(s, pl, heir) {
 			delete item.departed;
 		} else {
 			item.owner = DEPARTED;
-			item.departed = { name: s.names[pl], allies };
+			item.departed = { name: s.names[pl] };
 		}
 	}
 }
 
 /* Is the pill or base friendly to this player under the model? */
 function friendly_to(s, item, player) {
-	if (item.owner === NEUTRAL) return false;
-	if (item.owner === DEPARTED) return !!item.departed && item.departed.allies.includes(s.names[player]);
+	if (item.owner === NEUTRAL || item.owner === DEPARTED) return false;
 	if (item.owner === player) return true;
 	return !(s.alliances[item.owner] & (1 << player)) && !(s.alliances[player] & (1 << item.owner));
 }
@@ -538,11 +542,10 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 				 * player the model calls friendly to the pill is proof the
 				 * model is wrong about the pill's ownership or the
 				 * alliance, and the log does not say which. The one safe
-				 * reading is that the pill is nobody's: DEPARTED with no
-				 * friends, until it is next picked up or planted. That
-				 * covers a returning owner who pressed Join rather than
-				 * Rejoin, a departed pill wrongly credited to a name, and
-				 * the hand-over at a quit not happening in the game. Two
+				 * reading is that the pill is nobody's: DEPARTED, until it
+				 * is next picked up or planted. That covers a returning
+				 * owner who pressed Join rather than Rejoin and any
+				 * hand-over the game did not make. Two
 				 * exemptions: an odd index at direction 0 may be one too
 				 * high [E:pill-fire-index]; and a fire within a second of
 				 * an alliance event is skipped, since the pill may have
@@ -553,7 +556,7 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 					rec.time - s.lastAllianceEvent > TICKS_PER_SECOND &&
 					friendly_to(s, p, pl)) {
 					p.owner = DEPARTED;
-					p.departed = { name: s.names[pl], allies: [] };
+					p.departed = { name: s.names[pl] };
 				}
 				break;
 			}
@@ -768,10 +771,11 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 				 * lying together). With no known tank position they leave
 				 * the game (GONE). Planted pills stay with his alliance
 				 * [E:pill-target]: they go to the lowest-index remaining
-				 * ally as on alliance-leave, or, with no ally left (a
-				 * netsplit takes a whole team at once), into the DEPARTED
-				 * state, from which only the owner's own name rejoining
-				 * recovers them. Alliance links stay. */
+				 * ally who has a tank, as on alliance-leave, or, with none
+				 * (a netsplit takes a whole team at once; a lone ally may
+				 * be dead), into the DEPARTED state, from which only the
+				 * owner's own name rejoining recovers them. Alliance links
+				 * stay. */
 				{
 					/* dump at the pre-record position: a ghost-split quit
 					 * record was seen restating a position 50 tiles from
@@ -782,7 +786,7 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 						dump_carried_pills(s, pl, sq.x, sq.y);
 					}
 				}
-				hand_over_pills(s, pl, lowest_remaining_ally(s, pl));
+				hand_over_pills(s, pl, lowest_remaining_ally(s, pl, true));
 				for (const p of s.pills) {
 					if (p.inTank === pl) p.inTank = GONE;
 				}
@@ -829,7 +833,7 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 				 * the alliance." Reassign planted pills to the lowest-index
 				 * remaining ally before severing the links. (Bases are not
 				 * mentioned and keep their owner.) */
-				const heir = lowest_remaining_ally(s, pl);
+				const heir = lowest_remaining_ally(s, pl, false);
 				if (heir >= 0) hand_over_pills(s, pl, heir);
 				s.alliances[pl] = 0xffff & ~(1 << pl);
 				for (let i = 0; i < 16; i++) {
