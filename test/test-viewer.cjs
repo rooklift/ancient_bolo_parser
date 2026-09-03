@@ -283,11 +283,13 @@ if (!fs.existsSync(log1)) {
 
 	// Final base stocks under the validated replenishment model (every player's
 	// 1000-tick bit feeds every base; the owner-only alternative is refuted by
-	// 6,112 drains that would come from empty bases).
+	// 6,112 drains that would come from empty bases), with a capture from an
+	// owner zeroing the base's stocks and an armour refuel costing the base 5
+	// (GAMEPLAY.md [E:base-capture]).
 	check("final base shells", game.final.bases.map(b => b.shells),
-		[90, 90, 68, 80, 86, 90, 90, 90, 75, 90, 90, 81, 90, 90, 90, 90]);
+		[18, 90, 68, 70, 40, 90, 90, 60, 75, 90, 89, 23, 10, 90, 90, 67]);
 	check("final base armour", game.final.bases.map(b => b.armour),
-		[54, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 15, 90, 90, 90]);
+		[19, 90, 90, 88, 26, 90, 90, 90, 90, 90, 90, 36, 10, 90, 90, 56]);
 
 	// Initial-map extraction: the pristine pre-battle map, recoverable and
 	// roundtrippable through the BMAPBOLO serializer.
