@@ -43,6 +43,7 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { replay_label } = require("./corpus.cjs");
 const { Worker, isMainThread, parentPort } = require("node:worker_threads");
 
 const ROOT = path.join(__dirname, "..");
@@ -257,7 +258,7 @@ function main() {
 					`${path.relative(corpus, result.file)}: ${result.failed}`);
 			}
 			if (result.row) {
-				result.row.file = path.relative(corpus, result.file);
+				result.row.file = replay_label(result.file);
 				rows.push(result.row);
 			}
 			if (done % 10 === 0) console.error(`progress: ${done}/${files.length}`);
@@ -275,14 +276,14 @@ function main() {
 
 function report(rows, corpus) {
 	if (rows.length === 0) {
-		console.log(`no scoreable logs under ${corpus}`);
+		console.log("no scoreable logs");
 		process.exit(1);
 	}
 	/* worker completion order is nondeterministic; the stats are not
 	 * order-sensitive but the printed examples should be */
 	rows.sort((a, b) => a.file < b.file ? -1 : a.file > b.file ? 1 : 0);
 
-	console.log(`${rows.length} logs scored under ${corpus}\n`);
+	console.log(`${rows.length} logs scored\n`);
 
 	const FAILURES = [
 		["shell unmatched %", row => row.shell_unmatched],

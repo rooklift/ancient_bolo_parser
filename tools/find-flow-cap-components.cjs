@@ -18,6 +18,7 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { replay_label } = require("./corpus.cjs");
 const { Worker, isMainThread, parentPort } = require("node:worker_threads");
 
 const ROOT = path.join(__dirname, "..");
@@ -119,8 +120,7 @@ function print_report(capped, files, files_failed, target) {
 		let c = capped[i];
 		lines.push("");
 		lines.push(`#${i + 1}\t${c.edges} edges\t` +
-			`${path.relative(target, c.file).replace(/\\/g, "/") ||
-				path.basename(c.file)}`);
+			`${replay_label(c.file)}`);
 		lines.push(`\tticks ${c.min_time ?? "?"}-${c.max_time ?? "?"}, ` +
 			`records #${c.first_record ?? "?"}-#${c.last_record ?? "?"} ` +
 			`of ${c.records_total}`);

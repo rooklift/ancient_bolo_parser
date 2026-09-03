@@ -32,6 +32,7 @@
  */
 const fs = require("fs");
 const path = require("path");
+const { replay_label } = require("./corpus.cjs");
 const BoloLog = require(path.join(__dirname, "..", "viewer", "logparse.js"));
 const BoloGame = require(path.join(__dirname, "..", "viewer", "game.js"));
 
@@ -153,7 +154,7 @@ function scan(file) {
 						const delta = other < 0 ? "none" : String(other - sub.pillbox);
 						deltas.set(delta, (deltas.get(delta) || 0) + 1);
 						if (outliers.length < 12)
-						outliers.push(`${path.relative(ROOT, file).split(path.sep).join("/")} ${clock(rec.time)}: ` +
+						outliers.push(`${replay_label(file)} ${clock(rec.time)}: ` +
 							`pill #${sub.pillbox}, we place it at ${pill.x},${pill.y}, its shot is at ${sx},${sy} ` +
 							`(${d.toFixed(0)} px away)${other >= 0 ? ` — beside the pill we call #${other}` : " — no pill near it"}`);
 					}

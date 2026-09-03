@@ -86,6 +86,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const { replay_label } = require("./corpus.cjs");
 const BoloLog = require(path.join(__dirname, "..", "viewer", "logparse.js"));
 const BoloGame = require(path.join(__dirname, "..", "viewer", "game.js"));
 
@@ -319,7 +320,7 @@ function scan_file(file, totals) {
 	time_base = records.length ? records[0].time : 0;
 	let seed = BoloGame.extract_initial_map(records);
 	let models = Object.fromEntries(Object.keys(RULES).map(name => [name, new_model(seed)]));
-	let relative_file = path.relative(ROOT, file) || path.basename(file);
+	let relative_file = replay_label(file);
 
 	/* One engine state shared by every model, purely to decode the chained
 	 * shell lists and locate grounded pills; terrain truth lives in the
@@ -434,7 +435,6 @@ for (let file of walk(ROOT)) {
 console.log(`
 ================ forest clearance around a dying tank ================
 logs: ${files}
-root: ${ROOT}
 dying sequences: ${totals.centre.dying_sequences}
 
 Over-clearing is measured by contradictions (a tree provably still
