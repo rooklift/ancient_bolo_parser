@@ -38,33 +38,6 @@ const HOSTILE_COLOR = "#ff5d5d";
 const NEUTRAL_BASE = "#f0b429";
 
 const EFFECT_TICKS = 30; /* how long a transient effect stays on screen */
-/* When a tank draws as a ghost: the ring has been heard going round
- * without its sender for GHOST_SILENCE_TICKS AND at least GHOST_CYCLES
- * times over. A ghost is a player the ring left behind -- a split, or a
- * machine gone without a quit record -- and two other silences must not
- * read as one [E:idle-silence]:
- *
- *   An IDLE tank restates its position only every few seconds (the
- *   period varies by log, 4 to 8 s), and before the game has settled --
- *   nobody shooting, no base draining -- nothing else from him fills
- *   the gap, so silences of up to 9 s are ordinary; 5 s faded every
- *   idle tank of the gathering phase. Idle silences past 15 s are a
- *   handful per ten million across the corpus. Hence the time bound;
- *   a cycle bound alone cannot do it, an idle tank sitting out thirty
- *   cycles in six seconds on a fast ring.
- *
- *   A CRAWL is the ring freezing for everyone: the corpus has stretches
- *   of up to 29 s in which every player was heard exactly once. Nobody
- *   is a ghost there, but by time alone all of them are. Hence the
- *   cycle bound: a real split has one voice heard sixty times and more
- *   while the ghost is silent, a crawl one or two from each.
- *
- * Time runs on the latest record applied, not the playback clock (see
- * draw_tanks), so a stall in which nobody is heard fades nobody either.
- * A real ghost is silent for good, so waiting fifteen seconds and five
- * cycles costs nothing. */
-const GHOST_SILENCE_TICKS = TPS * 15;
-const GHOST_CYCLES = 5;
 const OBJ_NATIVE_TILE = 16;
 const LGM_ANIMATION_FPS = 20;
 const LGM_ANIMATION = ["lgm_frame0", "lgm_frame1", "lgm_frame0", "lgm_frame2"];
@@ -759,16 +732,15 @@ const PILL_POCKS = [
 function draw_tanks() {
 	let z = view.zoom;
 	let r = Math.max(3, z * 0.45);
-	/* the latest record applied: the ring has been heard turning up to
-	 * here, and a player is a ghost only for the stretch of it he missed */
-	let heard = cursor > 0 ? game.records[cursor - 1].time : clock;
 	for (let p = 0; p < 16; p++) {
 		let t = cur.tanks[p];
 		if (!t || t.dead || cur.quit[p]) continue;
-		/* a sender the ring has gone round without, for long and for many
-		 * turns, is a ghost (split) or dead */
-		let stale = heard - t.lastSeen > GHOST_SILENCE_TICKS &&
-			Math.max(...cur.heard[p]) >= GHOST_CYCLES;
+		/* a tank not restated for a long while is a ghost (split) or dead.
+		 * A stationary tank restates only every few seconds, and nothing
+		 * else from an idle player fills the gap before the game settles,
+		 * so 5 s faded every idle tank of the gathering phase; idle
+		 * silences past 15 s are a handful per million [E:idle-silence] */
+		let stale = clock - t.lastSeen > TPS * 15;
 		let position = BoloGame.tank_position_at(game, cur, p, clock);
 		if (!position) continue; /* can't happen for tank tracks today, but
 		    the helper's contract allows null (see the LGM tank-entry case) */
