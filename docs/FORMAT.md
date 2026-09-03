@@ -1,6 +1,6 @@
 # The Bolo game log file format
 
-Bolo (Stuart Cheshire, Mac, 0.90–0.99.7) gained a game-logging feature in version 0.99.5 (April 1995): "Log Events to File…" writes a record of everything that happens in a game. Cheshire never shipped a player for these files. The format was reverse engineered around 2001–2003 by Carl Osterwald ("wharf rat"), author of the commercial BoloViewer application; this document is a synthesis of that work and our own analysis. See the separate FORMAT.notes for additional information. Citations such as [E:foo] are found there.
+Bolo (Stuart Cheshire, Mac, 0.90–0.99.7) gained a game-logging feature in version 0.99.5 (April 1995): "Log Events to File…" writes a record of everything that happens in a game. Cheshire never shipped a player for these files. The format was reverse engineered around 2001–2003 by Carl Osterwald ("wharf rat"), author of the commercial BoloViewer application; this document is a synthesis of that work and our own analysis. See the separate FORMAT.notes for additional information. Citations such as [E:foo] are found there. The rules of the game itself, as opposed to the log, are in [GAMEPLAY.md](GAMEPLAY.md).
 
 All multi-byte values are big-endian unless noted. Coordinates are map squares 0–255, with a packed pixel byte `yx` giving the position within the square (high nibble y, low nibble x).
 
@@ -16,7 +16,7 @@ Shells pass over: river, swamp, crater, road, rubble, grass (and their mined equ
 
 Shells are blocked by (and do damage to): building, forest (including mined forest), shot building, boat. Also by tanks, pillboxes (if not dead), and enemy bases that have armour above a certain threshold.
 
-Tank movement is blocked by building and shot building.
+Tank movement is blocked by building and shot building, and by a hostile base that still has armour (see [GAMEPLAY.md](GAMEPLAY.md)).
 
 One hit from a shot converts forest to grass. One hit from a shot converts building to shot building. Four more hits convert shot building to rubble.
 
@@ -157,7 +157,7 @@ Playback must re-implement fragments of game logic:
 - **Ring splits are invisible**: a player who disconnects without a quit record simply stops sending and remains a ghost. A later slot admission remains inferable from its `T=7` F8 and the following burst of unchanged F8 restatements, at which point the admitted slot's old alliances must be cleared.
 - **A mine under a starting pillbox does not exist**: the transferred map data keeps the mined terrain code, but the game ignores the mine, so a player must clear it from squares occupied by initial pillboxes.
 - **A base's square behaves as road**, whatever the map data says beneath it. The transferred map carries real terrain under every base — across the corpus 33% crater, 33% road, 19% mined crater, 10% grass and 5% forest — and the game consults none of it: shells fly over, there is no tree to fell and no mine to strike. Playback may preserve the underlying value or rewrite it as road (and eventless terrain logic may mutate it): none of those choices affects gameplay while the base occupies the square. What matters is that nothing at a base square is ever *treated* as forest, mined, or an obstacle [E:base-road].
-- **Shells appear to pass through live pillboxes — probably an artifact.** Current belief is that live pills do stop shells and that appearances to the contrary were the result of mistaken identity with regard to shells. Dead pills are a separate matter and are not claimed to stop anything [E:shell-passthrough].
+- **Shells appear to pass through live pillboxes — an artifact.** Live pills do stop shells and dead pills do not (owner's knowledge, GAMEPLAY.md); the appearances to the contrary were mistaken identity with regard to shells [E:shell-passthrough].
 - Shell flight, explosions and sounds are largely presentational: each sender re-states its in-flight shells every record, so drift does not accumulate.
 
 ## Bolo bugs discovered
