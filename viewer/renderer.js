@@ -180,6 +180,7 @@ let coordinate_debug_el = document.getElementById("coordinateDebug");
 let coordinate_tile_el = document.getElementById("coordinateTile");
 let coordinate_pixel_el = document.getElementById("coordinatePixel");
 let drop_hint = document.getElementById("dropHint");
+let drop_hint_text = document.getElementById("dropHintText");
 let map_name_el = document.getElementById("mapName");
 let game_meta_el = document.getElementById("gameMeta");
 let network_meta_el = document.getElementById("networkMeta");
@@ -187,6 +188,24 @@ let recorder_meta_el = document.getElementById("recorderMeta");
 let players_el = document.getElementById("players");
 let chat_el = document.getElementById("chat");
 let file_pick = document.getElementById("filePick");
+
+/* One code base for the Electron app and the web page: the preload script
+ * gives Electron a window.api, and a browser has none. Without an
+ * application menu the web page has no File → Open and no video export
+ * (export_video refuses without window.api), and its toggle shortcuts are
+ * bare keys because the browser owns Ctrl+D, Ctrl+F, Ctrl+T and friends. */
+const WEB = !window.api;
+const TOGGLE_CTRL = !WEB; /* whether a toggle shortcut wants Cmd/Ctrl held */
+
+drop_hint_text.textContent = WEB
+	? "Open a Bolo game log (drop it here, click to choose one, or press Ctrl+O)."
+	: "Open a Bolo game log (File → Open, drop it here, or click to choose one).";
+
+/* Toggle shortcuts: Cmd/Ctrl+key in Electron (mirroring the menu's
+ * accelerators), the bare key on the web. */
+function toggle_key(e, code) {
+	return e.code === code && (e.ctrlKey || e.metaKey) === TOGGLE_CTRL && !e.altKey;
+}
 
 /* Terrain as drawn: like the real game (and unlike the map editor), a
  * base square counts as road for tile-selection, so roads connect into
@@ -1195,22 +1214,43 @@ window.addEventListener("keydown", e => {
 		window.api.exit_fullscreen();
 		return;
 	}
-	if (e.code === "KeyD" && (e.ctrlKey || e.metaKey)) {
+	if (WEB && e.code === "KeyO" && (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
+		e.preventDefault(); /* no application menu: Ctrl+O is our open, not the browser's */
+		open_log();
+		return;
+	}
+	if (toggle_key(e, "KeyD")) {
 		e.preventDefault();
 		toggle_coordinate_debug();
 		return;
 	}
-	if (e.code === "KeyI" && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+	if (toggle_key(e, "KeyI") && !e.shiftKey) {
 		e.preventDefault();
 		toggle_pillbox_ids();
 		return;
 	}
-	if (e.code === "KeyF" && (e.ctrlKey || e.metaKey)) {
+	if (toggle_key(e, "KeyF")) {
 		e.preventDefault();
 		toggle_pill_fire_flashes();
 		return;
 	}
 	if (!game) return;
+	if (WEB && (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
+		/* the menu's zoom accelerators, which a browser would otherwise take as page zoom */
+		if (e.code === "Equal" || e.code === "NumpadAdd") {
+			e.preventDefault();
+			zoom_step(1);
+			return;
+		} else if (e.code === "Minus" || e.code === "NumpadSubtract") {
+			e.preventDefault();
+			zoom_step(-1);
+			return;
+		} else if (e.code === "Digit0" || e.code === "Numpad0") {
+			e.preventDefault();
+			zoom_to_action();
+			return;
+		}
+	}
 	if (e.code === "KeyS" && (e.ctrlKey || e.metaKey)) {
 		e.preventDefault(); /* it's our save now, not the browser's */
 		save_initial_map();
@@ -1241,22 +1281,22 @@ window.addEventListener("keydown", e => {
 		set_clock(clock - TPS * (e.shiftKey ? 60 : 10), true);
 	} else if (e.code === "ArrowRight") {
 		set_clock(clock + TPS * (e.shiftKey ? 60 : 10));
-	} else if (e.code === "KeyL" && (e.ctrlKey || e.metaKey)) {
+	} else if (toggle_key(e, "KeyL")) {
 		e.preventDefault();
 		toggle_player_lock();
-	} else if (e.code === "KeyG" && (e.ctrlKey || e.metaKey)) {
+	} else if (toggle_key(e, "KeyG")) {
 		e.preventDefault();
 		toggle_obj_sprites();
-	} else if (e.code === "KeyM" && (e.ctrlKey || e.metaKey)) {
+	} else if (toggle_key(e, "KeyM")) {
 		e.preventDefault();
 		toggle_lgm_sprites();
-	} else if (e.code === "KeyB" && (e.ctrlKey || e.metaKey)) {
+	} else if (toggle_key(e, "KeyB")) {
 		e.preventDefault();
 		toggle_big_shots();
-	} else if (e.code === "KeyR" && (e.ctrlKey || e.metaKey)) {
+	} else if (toggle_key(e, "KeyR")) {
 		e.preventDefault();
 		toggle_raw_shells();
-	} else if (e.code === "KeyT" && (e.ctrlKey || e.metaKey)) {
+	} else if (toggle_key(e, "KeyT")) {
 		e.preventDefault();
 		toggle_simple_terrain();
 	}
@@ -1321,7 +1361,7 @@ window.addEventListener("drop", e => {
 	e.preventDefault();
 	take_file(e.dataTransfer.files[0]);
 });
-drop_hint.addEventListener("click", () => file_pick.click());
+drop_hint.addEventListener("click", open_log);
 file_pick.addEventListener("change", () => {
 	take_file(file_pick.files[0]);
 });
@@ -1339,15 +1379,26 @@ function take_file(f) {
 		err => show_error("Could not read file", String(err)));
 }
 
+/* Ask for a log: the native dialog in Electron (which remembers the last
+ * directory), the browser's file picker on the web. */
+function open_log() {
+	if (exporting) return;
+	if (WEB) {
+		file_pick.click();
+		return;
+	}
+	window.api.open_log().then(res => {
+		if (!res.canceled && res.data) load_log(res.data, res.path);
+		else if (res.error) show_error("Could not open log", res.error);
+	});
+}
+
 if (window.api) {
 	window.api.on_load_log(payload => load_log(payload.data, payload.path));
 	window.api.on_menu(cmd => {
 		if (exporting) return;
 		switch (cmd) {
-			case "open": window.api.open_log().then(res => {
-				if (!res.canceled && res.data) load_log(res.data, res.path);
-				else if (res.error) show_error("Could not open log", res.error);
-			}); break;
+			case "open": open_log(); break;
 			case "play-pause": set_playing(!playing); break;
 			case "previous-change": step_change(-1); break;
 			case "next-change": step_change(1); break;
