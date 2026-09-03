@@ -39,6 +39,11 @@ cd viewer
 npx electron .
 ```
 
+The same files also run as a plain web page: open `viewer/index.html` in a
+browser, or serve the `viewer/` directory with any static file server. The web
+version has no application menu, so it cannot export video, and its toggle
+shortcuts are bare keys (D, I, F, L, G, M, B, R, T) rather than Ctrl+key.
+
 ## Status
 
 The viewer reconstructs full game state (terrain, pills, bases, tanks, men, shells, alliances), including the pieces of game logic the log omits by design — pill dumps on death, boat consumption, alliance semantics; see the end of FORMAT.md for that list and its caveats. Tank, LGM and conservatively matched shell movement is interpolated between nearby restatements.

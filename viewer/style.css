@@ -60,7 +60,7 @@ body {
 	justify-content: center;
 	text-align: center;
 	color: #8b96ad;
-	pointer-events: none;
+	cursor: pointer; /* the whole hint is the open button */
 }
 #dropHint h1 { font-size: 20px; margin-bottom: 8px; color: #cfd6e4; }
 #dropHint.hidden { display: none; }
