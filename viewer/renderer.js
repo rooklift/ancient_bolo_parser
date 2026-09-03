@@ -443,6 +443,7 @@ function update_transport() {
 	let bits = [
 		`${cursor.toLocaleString()} / ${game.records.length.toLocaleString()} records`,
 		game_type_label(),
+		loaded_version,
 	];
 	game_meta_el.textContent = bits.filter(Boolean).join(" · ");
 	let span = Math.max(1, game.t1 - game.t0);
@@ -1003,7 +1004,7 @@ async function load_log(bytes, name) {
 	 * any currently loaded replay running. */
 	let was_playing = playing;
 	let had_drop_hint = !drop_hint.classList.contains("hidden");
-	let recs, new_game;
+	let header, recs, new_game;
 	set_playing(false);
 	drop_hint.classList.add("hidden");
 	try {
@@ -1011,7 +1012,7 @@ async function load_log(bytes, name) {
 		if (bytes.length > MAX_LOG_BYTES) {
 			throw new Error(`${bytes.length} bytes; not a Bolo log`);
 		}
-		BoloLog.parseHeader(bytes);
+		header = BoloLog.parseHeader(bytes);
 		recs = [];
 		for (const rec of BoloLog.records(bytes)) {
 			if (recs.length >= MAX_RECORDS) {
@@ -1051,6 +1052,9 @@ async function load_log(bytes, name) {
 	/* keep the source path/filename: shown in the window title and
 	 * available as ABV.filename in the dev console */
 	loaded_name = name || null;
+	/* the version Bolo wrote in the header: what the log claims, not
+	 * anything the viewer has verified */
+	loaded_version = header.versionString;
 	document.title = (name ? name.split(/[\\/]/).pop() + " — " : "") + "Ancient Bolo Log Viewer";
 	let gi = game.final.gameInfo;
 	map_name_el.textContent = gi ? gi.mapName : (name || "Bolo log");
@@ -1434,6 +1438,7 @@ new ResizeObserver(resize).observe(canvas);
 window.addEventListener("resize", resize);
 
 let loaded_name = null;
+let loaded_version = null;
 
 /* tiny hooks for headless tests: centre the view on a tank or a square */
 window.ABV = {

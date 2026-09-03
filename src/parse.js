@@ -43,8 +43,19 @@ export function parseHeader(buf) {
 		.join("");
 	return {
 		version,                               // "00990700" for Bolo 0.99.7
+		versionString: formatVersion(buf.subarray(4, 8)),  // "0.99.7"
 		flags: Array.from(buf.subarray(8, HEADER_SIZE)),
 	};
+}
+
+// The version bytes are major, minor, revision, each in BCD (0x99 is
+// "99"), like the BoloInfoPacket header; a fourth byte, always 00 in
+// known logs, is shown only when set so an unknown release is not hidden.
+export function formatVersion(bytes) {
+	const bcd = b => b.toString(16).replace(/^0(?=.)/, "");
+	let out = Array.from(bytes.subarray(0, 3)).map(bcd).join(".");
+	if (bytes[3]) out += "." + bcd(bytes[3]);
+	return out;
 }
 
 // Yields { offset, time, data } with data already decrypted.
