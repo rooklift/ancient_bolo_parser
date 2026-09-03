@@ -136,6 +136,23 @@ function lowest_remaining_ally(state, pl, live_only) {
 	return -1;
 }
 
+/* The lowest slot the quitter's alliance names, counting the model's
+ * alliance word and the quitter's last standing request alike, and
+ * whether that slot's player had already quit. Two replays in which a
+ * quitter's property behaved as nobody's despite a live heir both had
+ * such a slot (see the same split in measure-pill-target.cjs). */
+function lowest_named_slot(state, quitter, request_mask) {
+	for (let j = 0; j < 16; j++) {
+		if (j === quitter) continue;
+		let in_word = state.names[j] !== null && !(state.alliances[quitter] & (1 << j));
+		let in_request = (request_mask & (1 << j)) !== 0;
+		if (!in_word && !in_request) continue;
+		return {slot: j, source: in_word ? "word" : "request",
+			departed: state.quit[j] || state.names[j] === null};
+	}
+	return null;
+}
+
 function mutual_ally(state, a, b) {
 	return !(state.alliances[a] & (1 << b)) && !(state.alliances[b] & (1 << a));
 }
@@ -197,6 +214,9 @@ const totals = {
 	cdep: { total: 0, owner_slot: 0, owner_name_elsewhere: 0, stranger: 0, while_slot_quit: 0 },
 	/* drains and captures wrong under EVERY reading */
 	floor: { drains: 0, captures: 0, pairs: new Set(), samples: [] },
+	/* one entry per quit that left bases to a live heir under C: what
+	 * happened at those bases afterwards, until each was next captured */
+	quit_windows: [],
 };
 for (let m of MODELS) {
 	totals.violations[m] = {
@@ -222,6 +242,10 @@ function scan(file) {
 	let last_alliance_event = -Infinity;
 	let sampled_here = 0;
 	let floor_sampled_here = 0;
+	/* each slot's last alliance request still standing: cleared by its
+	 * leave, its quit, or a join installing a new person in the slot */
+	let last_request = new Array(16).fill(0);
+	let quit_windows = [];
 
 	/* slot-keyed shadows: owner index (or NEUTRAL/DEPARTED) and, for a
 	 * DEPARTED base, the departed owner's name and old slot; name-keyed
@@ -304,6 +328,7 @@ function scan(file) {
 				break;
 			case "alliance_request":
 				last_alliance_event = rec.time;
+				last_request[pl] = sub.tanks;
 				break;
 			case "alliance_accept": {
 				last_alliance_event = rec.time;
@@ -330,6 +355,15 @@ function scan(file) {
 				let heir = lowest_remaining_ally(state, pl, false);
 				if (owners.C.some(o => o === pl)) totals.leaves_by_base_owner++;
 				totals.leaves++;
+				if (heir >= 0 && owners.C.some(o => o === pl)) {
+					let window = {kind: "leave", heir, named: lowest_named_slot(state, pl, last_request[pl]),
+						bases: new Set(owners.C.map((o, b) => o === pl ? b : -1).filter(b => b >= 0)),
+						base_count: 0, heir_drains: 0, heir_drained_bases: new Set(),
+						heir_captures: 0, other_captures: 0};
+					window.base_count = window.bases.size;
+					quit_windows.push(window);
+					totals.quit_windows.push(window);
+				}
 				if (heir >= 0) {
 					for (let m of SLOT_MODELS) {
 						if (!SLOT_RULES[m].leave_hand) continue;
@@ -344,6 +378,7 @@ function scan(file) {
 				}
 				hand_over_h(state.names[pl], heir_name(state.names[pl], false));
 				na.sever(state.names[pl]);
+				last_request[pl] = 0;
 				break;
 			}
 			case "quit": {
@@ -351,6 +386,16 @@ function scan(file) {
 				if (owners.A.some(o => o === pl)) totals.quits_by_base_owner++;
 				quit_time[pl] = rec.time;
 				ghost_active[pl] = false;
+				if (live_heir >= 0 && owners.C.some(o => o === pl)) {
+					let window = {kind: "quit", heir: live_heir, named: lowest_named_slot(state, pl, last_request[pl]),
+						bases: new Set(owners.C.map((o, b) => o === pl ? b : -1).filter(b => b >= 0)),
+						base_count: 0, heir_drains: 0, heir_drained_bases: new Set(),
+						heir_captures: 0, other_captures: 0};
+					window.base_count = window.bases.size;
+					quit_windows.push(window);
+					totals.quit_windows.push(window);
+				}
+				last_request[pl] = 0;
 				for (let m of SLOT_MODELS) {
 					let rule = SLOT_RULES[m].quit;
 					if (rule === "keep") continue;
@@ -373,6 +418,7 @@ function scan(file) {
 			case "node_id": {
 				ghost_active[pl] = false;   /* the slot formally re-identifies */
 				let joining = state.quit[pl] || (node_joins && node_joins.has(rec));
+				if (joining) last_request[pl] = 0;
 				if (!joining) {
 					/* a RENAME: the same person under a new string (F8 is
 					 * join, rename, and re-identification alike), so
@@ -411,6 +457,15 @@ function scan(file) {
 				if (b >= owners.A.length) break;
 				let is_drain = sub.type === "base_drain";
 				if (is_drain) totals.drains++; else totals.captures++;
+				for (let w of quit_windows) {
+					if (!w.bases.has(b)) continue;
+					if (is_drain) {
+						if (pl === w.heir) { w.heir_drains++; w.heir_drained_bases.add(b); }
+					} else {
+						if (pl === w.heir) w.heir_captures++; else w.other_captures++;
+						w.bases.delete(b);
+					}
+				}
 				let graced = rec.time - last_alliance_event <= TPS;
 				let h_slot = h_owner[b] === NEUTRAL ? NEUTRAL : name_slot(h_owner[b]);
 				let contested = SLOT_MODELS.some(m => owners[m][b] !== owners.A[b]) ||
@@ -557,5 +612,43 @@ if (totals.samples.length) {
 	console.log();
 	console.log("Cases separating the readings (capped):");
 	for (let line of totals.samples) console.log(`    ${line}`);
+}
+{
+	/* The lowest slot the quitter's alliance named: two replays in which
+	 * a quitter's property behaved as nobody's despite a live heir both
+	 * had a departed player there. An heir who refuels at the bases
+	 * received them; one who has to capture one did not. */
+	console.log();
+	console.log("Hand-overs of bases under reading C -- a quit to a live heir, a leave to the lowest mutual");
+	console.log("ally -- split by the lowest slot the departing player's alliance named, in the model's");
+	console.log("alliance word or in the player's last standing request, and whether that slot's player");
+	console.log("had already quit. Columns: hand-overs (of them named by the word / only by a request) /");
+	console.log("bases handed / heir refuelled at one (drains, bases, hand-overs) / heir captured one");
+	console.log("(captures, hand-overs) / someone else captured one (captures).");
+	for (let [kind, title, pick] of [
+		["quit", "that slot had quit", w => w.named !== null && w.named.departed],
+		["quit", "that slot present", w => w.named !== null && !w.named.departed],
+		["quit", "no slot named", w => w.named === null],
+		["leave", "that slot had quit", w => w.named !== null && w.named.departed],
+		["leave", "that slot present", w => w.named !== null && !w.named.departed],
+		["leave", "no slot named", w => w.named === null],
+	]) {
+		let ws = totals.quit_windows.filter(w => w.kind === kind && pick(w));
+		let by_word = ws.filter(w => w.named && w.named.source === "word").length;
+		let by_request = ws.filter(w => w.named && w.named.source === "request").length;
+		let bases = 0, drains = 0, drained_bases = 0, drained_quits = 0, captures = 0, captured_quits = 0, other = 0;
+		for (let w of ws) {
+			bases += w.base_count;
+			drains += w.heir_drains;
+			drained_bases += w.heir_drained_bases.size;
+			if (w.heir_drains) drained_quits++;
+			captures += w.heir_captures;
+			if (w.heir_captures) captured_quits++;
+			other += w.other_captures;
+		}
+		let cell = v => String(v).padStart(7);
+		console.log(`    ${kind.padEnd(6)} ${title.padEnd(20)} ${cell(ws.length)} (${by_word} / ${by_request})${cell(bases)}` +
+			`${cell(drains)}${cell(drained_bases)}${cell(drained_quits)}${cell(captures)}${cell(captured_quits)}${cell(other)}`);
+	}
 }
 console.log("======================================================================");
