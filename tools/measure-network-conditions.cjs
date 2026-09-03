@@ -51,6 +51,7 @@
  */
 const fs = require("fs");
 const path = require("path");
+const { replay_label } = require("./corpus.cjs");
 const BoloLog = require(path.join(__dirname, "..", "viewer", "logparse.js"));
 const BoloNetwork = require(path.join(__dirname, "..", "viewer", "network.js"));
 
@@ -171,7 +172,7 @@ for (let file of walk(ROOT)) {
 	let captured = recs.some(rec => rec.subpackets.some(s => s.type === "base_capture"));
 	let year = (path.relative(ROOT, file).match(/(?:19|20)\d\d/) || ["?"])[0];
 	rows.push({
-		file: path.relative(ROOT, file), year, whole, a, b,
+		file: replay_label(file), year, whole, a, b,
 		untrimmed: raw_readings(recs),
 		/* what fraction of the log the verdict was NOT read from */
 		trimmedShare: 100 * (1 - (whole.to - whole.from) /
@@ -184,11 +185,11 @@ for (let file of walk(ROOT)) {
 }
 
 if (rows.length === 0) {
-	console.log(`no scoreable logs under ${ROOT}`);
+	console.log("no scoreable logs");
 	process.exit(1);
 }
 
-console.log(`${rows.length} logs scored under ${ROOT}\n`);
+console.log(`${rows.length} logs scored\n`);
 
 console.log(spread("loss %", rows.map(r => r.whole.loss)));
 console.log(spread("stall %", rows.map(r => r.whole.stall)));
