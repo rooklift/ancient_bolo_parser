@@ -539,7 +539,11 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 				if (b) {
 					if (sub.resource === "shells") b.shells = Math.max(0, b.shells - 1);
 					else if (sub.resource === "mines") b.mines = Math.max(0, b.mines - 1);
-					else if (sub.resource === "armor") b.armour = Math.max(0, b.armour - 1);
+					/* one armour refuel gives the tank 1 point and costs the base
+					 * 5, as WinBolo's BASE_ARMOUR_GIVE; with 1 the corrected
+					 * capture model still left 41 hostile captures above the
+					 * threshold, with 5 none. See GAMEPLAY.md [E:base-capture]. */
+					else if (sub.resource === "armor") b.armour = Math.max(0, b.armour - 5);
 				}
 				break;
 			}
@@ -642,7 +646,16 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 			}
 			case "base_capture": {
 				const b = s.bases[sub.base];
-				if (b) { b.owner = pl; delete b.departed; }
+				if (b) {
+					/* Taking a base from an owner zeroes its stocks (WinBolo's
+					 * basesSetOwner): without this the ticks count up from the
+					 * old armour and every recapture looks impossible, since a
+					 * hostile base is capturable only at armour <= 9. A neutral
+					 * base keeps its stocks. See GAMEPLAY.md [E:base-capture]. */
+					if (b.owner !== NEUTRAL) { b.armour = 0; b.shells = 0; b.mines = 0; }
+					b.owner = pl;
+					delete b.departed;
+				}
 				break;
 			}
 			case "tank_death": {

@@ -137,8 +137,13 @@ function scan(file) {
 	let fires_per_record = new Map();
 	let record_gaps = [];
 	let turn = new Map();
-	let turn_runs = new Map();   /* sustained turns: total ticks / total sixteenths, by terrain at the start */
-	let turning = new Array(16).fill(null); /* {sense, sixteenths, start_time, last_time, terrain} */
+	/* turn rate proper: the interval between successive changes of the direction
+	 * nibble while every restatement in between has the turn bit set, the same
+	 * terrain under the tank centre (base squares count as road) and the same
+	 * speed class; ticks per sixteenth = interval / |change|. Needs a fine
+	 * record cadence to resolve; on a 13-tick cadence it reads 13. */
+	let turn_intervals = new Map();
+	let turn_track = new Array(16).fill([]);
 	let speed_by_byte = new Map();
 	let speed_byte_by_terrain = new Map();
 	let pill_gaps_by_hits = new Map();
@@ -200,21 +205,23 @@ function scan(file) {
 					let delta = ((tank_sub.direction - prev.sub.direction) + 16) % 16;
 					if (delta > 8) delta = 16 - delta;
 					if (delta >= 2) group_push(turn, prev.terrain, dt / delta);
-					let signed = ((tank_sub.direction - prev.sub.direction) + 24) % 16 - 8; /* -8..7 */
-					let run = turning[pl];
-					if (signed !== 0 && Math.abs(signed) <= 4) {
-						let sense = Math.sign(signed);
-						if (run && run.sense === sense && rec.time - run.last_time <= 50) {
-							run.sixteenths += Math.abs(signed);
-							run.last_time = rec.time;
-						} else {
-							if (run && run.sixteenths >= 6) group_push(turn_runs, run.terrain, (run.last_time - run.start_time) / run.sixteenths);
-							turning[pl] = { sense, sixteenths: Math.abs(signed), start_time: prev.time, last_time: rec.time, terrain: prev.terrain };
-						}
-					} else if (run) {
-						if (run.sixteenths >= 6) group_push(turn_runs, run.terrain, (run.last_time - run.start_time) / run.sixteenths);
-						turning[pl] = null;
+					let speed_class = tank_sub.speed === 0 ? "still" : tank_sub.speed <= 24 ? "slow" : tank_sub.speed <= 48 ? "mid" : "fast";
+					let track = turn_track[pl];
+					let entry = { time: rec.time, direction: tank_sub.direction, terrain, speed_class, turn_bit: tank_sub.motion & 0x0c };
+					if (dt > 30) track = [];
+					if (track.length && entry.direction !== track[track.length - 1].direction) {
+						let signed = ((entry.direction - track[track.length - 1].direction) + 24) % 16 - 8;
+						/* the previous change is the first entry of the track; everything since must be uniform */
+						let first = track[0];
+						let uniform = track.length >= 2 && Math.abs(signed) <= 2 && entry.turn_bit &&
+							track.every(e => e.terrain === first.terrain && e.speed_class === first.speed_class && e.turn_bit === entry.turn_bit);
+						if (uniform && first.changed) group_push(turn_intervals, `${first.terrain} ${first.speed_class}`, (rec.time - first.time) / Math.abs(signed));
+						entry.changed = true;
+						track = [entry];
+					} else {
+						track.push(entry);
 					}
+					turn_track[pl] = track;
 					if (delta === 0 && dt <= 25 && prev.sub.speed === tank_sub.speed) {
 						let a = centre(prev.sub), b = centre(tank_sub);
 						let dist = Math.hypot(b.cx - a.cx, b.cy - a.cy);
@@ -475,7 +482,7 @@ function scan(file) {
 
 	console.log("\n[turn] ticks per sixteenth of a circle, consecutive restatements <= 50 ticks apart, |delta| >= 2, by terrain at the start");
 	print_stats_table("(pairwise: biased by record cadence when the cadence is coarse)", [...turn.entries()].sort(), "ticks/sixteenth");
-	print_stats_table("sustained turns of 6+ sixteenths, ticks / sixteenths (full circle = 16 x median)", [...turn_runs.entries()].sort(), "ticks/sixteenth");
+	print_stats_table("interval between direction changes while turning, by terrain and speed class (full circle = 16 x median; resolves only on a fine cadence)", [...turn_intervals.entries()].filter(([, v]) => v.length >= 3).sort(), "ticks/sixteenth");
 
 	console.log("\n[speed] pixels per tick between restatements <= 25 ticks apart at constant heading and speed byte, by speed byte");
 	print_stats_table("", [...speed_by_byte.entries()].sort((a, b) => a[0] - b[0]).map(([k, v]) => [`byte ${k}`, v]), "px/tick");
@@ -536,6 +543,14 @@ function scan(file) {
 		console.log(`  parachute start to the tank's position at the death: px median ${fmt(sd.median, 0)} (p25 ${fmt(sd.p25, 0)}, p75 ${fmt(sd.p75, 0)}); end to that position: median ${fmt(ed.median, 0)} (p25 ${fmt(ed.p25, 0)}, p75 ${fmt(ed.p75, 0)})`);
 		console.log(`  parachute start's distance from the nearest map edge: px median ${fmt(edge.median, 0)}, min ${fmt(edge.min, 0)}, max ${fmt(edge.max, 0)}`);
 		console.log(`  first five runs, start square -> end square: ${parachute_runs.slice(0, 5).map(r => `(${r.start}) -> (${r.end})`).join(", ")}`);
+		let on_start = parachute_runs.filter(r => state.starts.some(s => Math.abs(s.x - r.start[0]) <= 1 && Math.abs(s.y - r.start[1]) <= 1)).length;
+		let nearest = parachute_runs.filter(r => {
+			if (!Number.isFinite(r.start_to_death_tank) || !state.starts.length) return false;
+			let d = state.starts.map(s => Math.hypot(s.x * 16 + 8 - (r.end[0] * 16 + 8), s.y * 16 + 8 - (r.end[1] * 16 + 8)));
+			let here = state.starts.findIndex(s => Math.abs(s.x - r.start[0]) <= 1 && Math.abs(s.y - r.start[1]) <= 1);
+			return here >= 0 && d[here] === Math.min(...d);
+		}).length;
+		console.log(`  parachute starts on a start square (F1 04 list): ${on_start}/${parachute_runs.length}; on the start nearest the landing: ${nearest}`);
 		let speeds = parachute_runs.filter(r => r.straight > 32).map(r => r.straight / r.ticks);
 		if (speeds.length) console.log(`  parachute speed over runs moving >32 px: median ${fmt(stats(speeds).median, 3)} px/tick, n ${speeds.length}`);
 	}
