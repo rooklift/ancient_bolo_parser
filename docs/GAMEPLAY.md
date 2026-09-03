@@ -17,9 +17,15 @@ should be weighed as such. Each statement carries one of three tags:
   Bolo. Treat as probable.
 - **(corpus)** — measured in the replay corpus; FORMAT.md or FORMAT.notes.md
   carries the evidence, cited as `[E:foo]`.
+- **(measured)** — measured on the two fixture logs and one further replay
+  by `tools/measure-gameplay.cjs`; the evidence is in FORMAT.notes.md under
+  [E:gameplay] and [E:base-capture], and the run is archived as
+  `docs/corpus_runs/d8d7483-gameplay.txt`. Three logs are not a corpus, so these are firm but
+  not final.
 
-Statements with no numbers where numbers should be are open measurements;
-they are collected at the end.
+Where a WinBolo constant agrees with a measurement it is named, since the
+two reimplementations agreeing on a number is worth more than either alone.
+What remains unmeasured is collected at the end.
 
 ## The pieces
 
@@ -36,13 +42,15 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
 
 ## Tanks
 
-- **Armour.** A tank dies after 9 shell hits. The game displays 8 armour and
-  the tank dies when hit at 0, which is the same thing as holding 9 and dying
-  at 0 **(owner)**. One shell hit removes 1 **(owner)**. Driving over a mine
-  removes 2 in WinBolo, probably the same in Bolo **(owner, unsure)**. One
-  armour drain from a base (`Dn`) restores 1 **(owner, unsure: "strongly
-  believe")**. The log carries no armour field, so a tank's health must be
-  integrated from `FC` hits, `Dn` drains and deaths, as ammo already is
+- **Armour.** A tank holds 9 armour and dies on the ninth net hit
+  **(owner; measured)**: replaying every life at 9, minus 1 per `FC` hit,
+  plus 1 per `Dn` drain capped at 9, ends 190 of 241 shell deaths at exactly
+  0, where 8 ends them at −1. The game displays 8 bars and the tank dies when
+  hit at 0, which is the same count **(owner)**. Driving over a mine removes
+  2 in WinBolo, probably the same in Bolo **(owner, unsure)**. One armour
+  drain restores 1 to the tank and costs the base 5 **(measured, WinBolo
+  `BASE_ARMOUR_GIVE`)**. The log carries no armour field, so a tank's health
+  is integrated from hits, drains and deaths, as ammo already is
   [E:death-tiers].
 - **Ammunition.** A tank holds at most 40 shells and 40 mines **(corpus,
   [E:ammo-clamp])**. What it respawns with depends on the game type: **open**
@@ -51,36 +59,49 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   **(owner)**. That is the only difference between the game types **(owner)**.
   Start delay and time limit change nothing visible in play **(owner,
   unsure)**.
-- **Speed.** Relative maximum speeds by terrain, in units whose scale is not
-  known: road 16, grass 12, forest 6, swamp 3, crater 3, rubble 3, river 3. A
-  tank in a boat moves at 16 **(owner)**. Boats are travelled *in*, not
-  *over*. The meaning and range of the speed byte in the tank position
-  subpacket is not known **(owner)**.
-- **Turning.** WinBolo turns a full circle in 2.61 s on road, grass, base or
-  boat, 5.17 s in forest, and 10.29 s on river, swamp, crater or rubble; Bolo
-  is probably similar **(owner, unsure)**.
+- **Speed.** The speed byte in the tank position subpacket is pixels per
+  tick × 64 **(measured)**: byte 64 moves 1.00 px/tick, 48 moves 0.75, 24
+  moves 0.375. Top speed by terrain: road and boat 64 (1 px/tick, about 3
+  squares a second), grass 48, forest 24, river, swamp, crater and rubble
+  12 **(owner as the ratio 16:12:6:3; measured)**. Boats are travelled *in*,
+  not *over*.
+- **Turning.** One sixteenth of a circle takes 7–9 ticks on road, grass and
+  boat (about 2.5 s for the full circle) and 13–16 ticks in forest (about
+  5 s) **(measured)**; WinBolo's 2.61 s and 5.17 s agree. WinBolo slows the
+  turn further to 10.29 s on river, swamp, crater and rubble, and the owner
+  has seen slow terrain slow the turn in an emulator **(owner)**, but the
+  logs hold too few clean turns on rough ground to give the number: what
+  first looked like fast turning on craters was tanks sitting on bases whose
+  map terrain is crater.
 - **Firing.** A tank can fire while moving and while turning **(owner)**. The
-  minimum interval between shots is about a quarter of a second; WinBolo uses
-  260 ms **(owner, unsure)**. Tank shells run the same integer physics as
-  pill shells at all 256 bradians, at 2 px per tick, with a flight of about
-  8.5 tiles **(corpus, `docs/tank_shell_bradians.md`)**.
-- **Hiding.** A tank is hidden in trees only when at least its whole box is
-  inside forest, possibly under a stricter rule **(owner, unsure)**. A hidden
-  tank is invisible on enemy screens and is not targeted by pillboxes
-  **(owner; the pill half also corpus, [E:pill-target])**.
+  interval between shots is about 13 ticks, a quarter of a second
+  **(owner; measured: mode 12–14 ticks, 7% of gaps at 7–10, none below 7;
+  WinBolo 260 ms)**. Tank shells run the same integer physics as pill shells
+  at all 256 bradians, at 2 px per tick, with a flight of about 8.5 tiles
+  **(corpus, `docs/tank_shell_bradians.md`)**.
+- **Hiding.** A tank is hidden in trees when no non-forest square comes
+  within 9 px (Chebyshev) of the tank centre: the whole 16 px box plus a
+  one-pixel margin must be forest **(owner: "the entire box, maybe
+  stricter"; measured: hidden at clearance ≥ 9 in all but 8 of 2,626
+  restatements, shown at 1–8 in every case)**. A hidden tank is invisible on
+  enemy screens and is not targeted by pillboxes **(owner; the pill half
+  also corpus, [E:pill-target])**.
 - **Water.** A tank can cross river slowly, and doing so slowly drains its
   shells and mines **(owner)**. This means `5d` and `F7` are not the only
   ammo sinks, which any ammo-integration model should allow for. Deep sea is
   instant death for a tank not in a boat and harmless in a boat **(owner)**;
   the log reports it as `F9` code 3.
-- **Bases as obstacles.** A hostile base with armour is impassable to an
-  enemy tank until it has been reduced far enough to capture **(owner)**.
-  FORMAT.md's "tank movement is blocked by building and shot building" is
-  about terrain; live hostile bases block too.
+- **Bases as obstacles.** A hostile base is impassable to an enemy tank
+  until its armour is down to 9 or less, at which point driving on captures
+  it **(owner; measured, see Bases)**. FORMAT.md's "tank movement is blocked
+  by building and shot building" is about terrain; live hostile bases block
+  too.
 - **Death and respawn.** The wreck's explosion tiers, forest clearance and
   pill dump are corpus-established (FORMAT.md). The respawn follows 5.0–6.8 s
-  later **(corpus, [E:respawn-gap])**, at a start square that is not always
-  the player's original one; the choice rule is not known **(owner)**.
+  later **(corpus, [E:respawn-gap])**, at a square of the start list that is
+  not always the player's original one; the choice rule is not known
+  **(owner)**, and neither the nearest start nor the farthest from enemies
+  explains the choices seen **(measured)**.
 
 ## Shells
 
@@ -92,8 +113,10 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   This settles FORMAT.md's [E:shell-passthrough], which had reached the same
   conclusion tentatively: the apparent pass-throughs were shell identity
   errors.
-- Friendly and neutral bases do not block shells. A hostile base blocks them
-  when its armour is above a threshold whose value is not known **(owner)**.
+- Friendly and neutral bases do not block shells **(owner)**. A hostile base
+  blocks them while its armour is 5 or more and lets them over below that
+  **(measured: hits logged at every armour from 5 to 90, never at 1–4;
+  WinBolo `BASE_MIN_CAN_HIT 4`)**.
 - A shell detonates a mine it lands on **(owner)**. The explosion is evented
   (`7T`).
 - A shell destroys a boat, whether or not a tank is in it **(owner)**. The
@@ -107,14 +130,16 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
 - **Armour** is 15 at full **(viewer, from the map format)**; each shell hit
   removes 1, logged as `9n`; a superboom removes 4 without an event
   **(corpus, [E:superboom-pill])**.
-- **Anger.** A pill's fire rate rises when it is hit, roughly doubling per
-  hit, and decays slowly back to normal **(owner, unsure)**. In WinBolo the
-  delay between shots is 100 at rest and 6 when fully angry, in units that
-  make 100 about two seconds, so the unit is very probably the 50 Hz tick
-  and the angriest pill fires about 8 times a second **(owner, unsure)**.
-  The "speed" byte in the `F1 02` pill list is this delay, normally 6–100
-  **(owner)**. The shell matcher's working bound of "an angry pill fires at
-  most every 5 or 6 ticks" in `viewer/motion.js` agrees.
+- **Anger.** A pill's fire rate rises when it is hit and decays back to rest
+  **(owner)**. The delay between shots runs from 100 ticks at rest to 6 ticks
+  fully angry **(owner from WinBolo; measured)**: fires within 5 s of a hit
+  come every 6 ticks, and by time since the last hit the gap is about 20
+  ticks at 5–15 s, 35 at 15–30 s, 60 at 30–60 s and 100 beyond a minute, so
+  the delay grows roughly 1.5 ticks per quiet second. Whether it doubles per
+  hit is untested. The "speed" byte in the `F1 02` pill list is this delay
+  and reads 100 for every pill at rest **(owner; measured)**. The shell
+  matcher's working bound of "an angry pill fires at most every 5 or 6
+  ticks" in `viewer/motion.js` agrees.
 - **Targeting.** A pill fires at the nearest hostile tank within about 8.5
   tiles that is not hidden in forest, leading a moving target by a sector or
   two, and simulated by the target's own machine **(corpus,
@@ -137,17 +162,29 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
 
 - **Stocks.** A base holds up to 90 each of shells, mines and armour, and
   every player's 1000-tick timer adds 1 to every base's three stocks
-  **(corpus, [E:base-tick])**. A shell hit removes 5 armour (`An`).
-- **Capture.** A neutral base is captured by driving over it **(owner)**. A
-  hostile base must first be shot down to near zero armour; whether it must
-  be exactly zero is not known **(owner)**. Only a neutral or hostile base
-  can be captured **(corpus, [E:owner-signals])**.
+  **(corpus, [E:base-tick])**. A shell hit removes 5 armour (`An`); a shell
+  or mine refuel removes 1 of that stock and an armour refuel removes 5
+  **(measured, [E:base-capture])**.
+- **Capture.** A neutral base is captured by driving over it, at any armour
+  **(owner; measured: all 48 neutral captures at 90)**. A hostile base must
+  first be shot down to armour 9 or less **(owner: "near zero"; measured:
+  all 253 hostile captures at 0–9, 68 of them at 5–9; WinBolo
+  `MIN_ARMOUR_CAPTURE 9`)**. Only a neutral or hostile base can be captured
+  **(corpus, [E:owner-signals])**. **Capturing a base from an owner zeroes
+  its armour, shells and mines** **(measured for armour, WinBolo for all
+  three; the logs permit the stock half and do not prove it)**. The log
+  does not say so, and a viewer that keeps the old stocks shows recaptures
+  at armour its own rule forbids [E:base-capture].
 - **Refuelling.** A base refuels its owner's tank and any ally's **(owner;
   corpus)**. The tank need not be stopped, only stay on the square; slow
-  motion is fine **(owner)**. In WinBolo a tank goes from empty to 40/40/full
-  in about 20 seconds, probably close to Bolo **(owner, unsure)**. Each unit
-  transferred is logged as a `Bn`, `Cn` or `Dn` drain, even into a full tank
-  **(corpus, [E:ammo-clamp])**.
+  motion is fine **(owner)**. Transfer runs one shell per 8 ticks, one mine
+  per 7 and one armour per 50, one resource at a time and never interleaved
+  **(measured; WinBolo 7.5, 7.5 and 46)**, so empty to full takes about
+  1,050 ticks, 21 s **(measured; owner's WinBolo figure about 20 s)**. On a
+  slow ring the shell and mine transfer is capped at one unit per packet the
+  tank sends **(measured)**. WinBolo refuels only while the base has more
+  than 10 armour; untested here. Each unit transferred is logged as a `Bn`,
+  `Cn` or `Dn` drain, even into a full tank **(corpus, [E:ammo-clamp])**.
 - A base does nothing hostile to an enemy tank beyond blocking its path while
   it has armour **(owner)**.
 - A base's square behaves as road whatever the map says beneath it
@@ -158,13 +195,15 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
 - **What he does.** Harvest a tree (forest becomes grass, yielding wood),
   build a road, build a building (wall), build a boat (river only), build or
   repair a pillbox, plant a mine **(owner)**. Costs in wood: pillbox 1, road
-  about 0.5, boat about 5, building not known **(owner, unsure)**. Once he
-  is at the square the action itself is very fast **(owner)**; exact
-  durations are an open measurement.
+  about 0.5, boat about 5, building not known **(owner, unsure)**. The
+  action itself is fast **(owner)**: from the man reaching the square to the
+  event, plant pill 8 ticks, repairs 8–11, building 8, harvest 14, road 30
+  **(measured medians on the fine-cadence log)**.
 - **Movement.** He is blocked by everything that blocks a tank, is slowed by
   swamp and crater, and cannot cross river; he cannot swim **(owner)**. He
-  may be able to enter a boat but cannot use it **(owner, unsure)**. His
-  walking speed and terrain factors are an open measurement.
+  may be able to enter a boat but cannot use it **(owner, unsure)**. He
+  walks 1.0 px/tick on road and grass, the same as a tank on road, 0.5 in
+  forest and 0.33–0.5 on crater and rubble **(measured; no swamp data)**.
 - **Pathing.** He walks a straight line toward the target. On meeting an
   obstacle on one axis he drops that axis and keeps the other; if both axes
   are blocked he gives up **(owner)**. For example, heading south-east at
@@ -177,8 +216,13 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   His death is logged as `F5`, or as `FF 51` if he was carrying a pill, which
   then lies dead on the ground, still the same player's **(owner; corpus)**.
 - **Replacement.** A new man parachutes to where the tank was at the moment
-  of the death **(owner)**; the parachute rides the `b=4` position
-  subpacket. How long it takes is an open measurement.
+  of the death **(owner; measured: landing 3–11 px from it)**. The parachute
+  sets out from one of the map's start squares (`F1 04`), the same list the
+  tanks respawn from **(owner; measured: 85 of 85 runs)**; which one is not
+  the nearest, not the player's own, and looks random, as in WinBolo. It
+  drifts at 0.10–0.13 px/tick, so the tank is without a man for 30–200 s
+  depending on the draw **(measured)**. The parachute rides the `b=4`
+  position subpacket for the whole flight.
 - **Sending him from a boat.** A mine cannot be laid by a tank in a boat,
   but the man can be sent ashore from a boat adjacent to land to plant one
   **(owner)**.
@@ -189,10 +233,14 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   **(corpus, FORMAT.md Terrain)**. Almost all games disallowed hidden mines;
   who sees a mine when they are allowed, allies included, is not known
   **(owner)**.
-- **Forest regrowth** is not limited to grass: trees grow back on most land
-  squares except impassable ones **(owner)**. Each client probably simulates
-  its own growth, so the rate would scale with player count as base stocks
-  do **(owner, unsure)**; the rate is an open measurement. Regrowth is
+- **Forest regrowth** prefers grass but is not limited to it: trees grow
+  back on most land squares except impassable ones **(owner)**; measured,
+  1,022 of 1,027 regrowths were on grass, 2 on crater and 3 on road, the
+  road ones on a map with little grass left, and every one had at least 3
+  forest neighbours of 8. Each client simulates its own growth **(owner,
+  unsure; measured: the events split evenly across senders)**, so the rate
+  scales with player count as base stocks do: about 0.4–1.0 regrowths per
+  forest-touching grass square per player-hour on these maps. Regrowth is
   evented as `6 5`, and a mine beneath survives it **(corpus,
   [E:mine-persists])**.
 - **Craters** can be filled by building a road on them, and flood to river
@@ -227,28 +275,20 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
 
 ## Open measurements
 
-Things the owner says a replay could settle, in the order they would help
-the viewer most. Each is a candidate corpus tool in the style of
-`tools/measure-*.cjs`.
+What the three logs could not settle, in the order it would help most. Each
+is a candidate for `tools/measure-gameplay.cjs` over a larger corpus.
 
-1. Minimum interval between a tank's `5d` events (expected about 12–13
-   ticks).
-2. Tank turning rate by terrain, from consecutive direction nibbles.
-3. The tank speed byte: its unit, its maximum, and its relation to the
-   terrain ratios above.
-4. Pill fire cadence versus recent damage, to confirm the 100-to-6 delay
-   and its decay (the `speed` byte in `F1 02` gives the starting value).
-5. Tank armour integration: count `FC` hits and `Dn` drains per life against
-   `F9` deaths, allowing 2 per mine and a slow river drain of ammo.
-6. Man walking speed by terrain, and the duration of each build action, from
-   LGM position restatements against the terrain events they produce.
-7. Parachute duration, from the `b=4` records to the man's first ordinary
-   position.
-8. Forest regrowth rate per player-tick, from `6 5` events.
-9. Base refuel rate, from the spacing of drains while a tank sits on a base.
-10. The armour threshold at which a hostile base blocks shells, from `An`
-    hits versus shells passing over base squares.
-11. The exact hidden-in-trees rule, from the hidden bit against the tank's
-    pixel position within forest.
-12. Whether a hostile base must be exactly 0 to capture, from base armour at
-    each `FF 6n`.
+1. Turn rate on river, swamp, crater and rubble (WinBolo: 10.29 s per
+   circle). The tool separates base squares from their map terrain now, but
+   the logs hold almost no sustained turns on rough ground.
+2. Mine damage to a tank (WinBolo 2): needs deaths with a mine explosion at
+   the tank's square and the armour integration of [E:gameplay].
+3. Whether pillbox anger doubles per hit, from the first fire gap after a hit
+   on a rested pill.
+4. The man's swamp speed, and his speed on the boat question.
+5. Whether shells and mines reset on capture (the logs permit it), and
+   whether refuelling needs the base above 10 armour.
+6. The respawn and parachute start choice: neither nearest nor farthest from
+   enemies; WinBolo draws at random.
+7. The residual 2% of base hits logged at a model armour of 0–4.
+8. The pill and base history string in `F1 Cn` [E:history].
