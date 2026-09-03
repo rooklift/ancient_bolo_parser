@@ -1,0 +1,690 @@
+032201~1f37a2: 46922 records, 45.4 min, game type 3, 5 names
+032301~0c02c7: 32267 records, 25.0 min, game type 3, 4 names
+032301~932b88: 26646 records, 28.0 min, game type 3, 4 names
+032401~ddc5a3: 11245 records, 14.5 min, game type 3, 4 names
+032601~b9e33d: 53882 records, 25.5 min, game type 3, 4 names
+033101.1~a3293e: 33677 records, 25.7 min, game type 3, 5 names
+040201~9631f5: 19177 records, 15.3 min, game type 3, 4 names
+040301~b0a93e: 27410 records, 28.2 min, game type 3, 4 names
+040301~d7ef0d: 31317 records, 26.2 min, game type 3, 4 names
+040501~c5c79d: 43949 records, 29.0 min, game type 3, 2 names
+040501.1~ffe1f6: 87350 records, 50.9 min, game type 3, 2 names
+040601~238f45: 33274 records, 33.9 min, game type 3, 4 names
+040601.1~864166: 95383 records, 72.9 min, game type 3, 6 names
+040601.2~c78dbc: 15180 records, 8.3 min, game type 3, 2 names
+040601.3~369626: 88757 records, 56.1 min, game type 3, 2 names
+040601.4~e9a1e1: 10603 records, 7.1 min, game type 3, 2 names
+040601.5~643233: 10644 records, 10.8 min, game type 3, 5 names
+040601.6~1e7e96: 70106 records, 40.9 min, game type 3, 2 names
+040601.7~5d91c8: 76287 records, 40.7 min, game type 3, 2 names
+040701~c1a519: 18684 records, 17.4 min, game type 3, 4 names
+041001~3e991c: 7170 records, 7.6 min, game type 3, 5 names
+041001.1~197b9a: 5951 records, 7.5 min, game type 3, 4 names
+041101.1~7d981f: 15259 records, 8.1 min, game type 3, 6 names
+041101~c1942e: 18145 records, 12.1 min, game type 3, 6 names
+041201~e16d9d: 16361 records, 18.8 min, game type 3, 4 names
+041201.1~6586dd: 96469 records, 25.5 min, game type 3, 6 names
+041301~aa7632: 45072 records, 30.6 min, game type 3, 4 names
+041601~13e64b: 69987 records, 36.4 min, game type 3, 4 names
+041601.1~ba52db: 52607 records, 24.7 min, game type 3, 5 names
+041601.2~87e7ac: 16408 records, 9.2 min, game type 3, 4 names
+041601.3~ee782a: 61081 records, 32.9 min, game type 3, 4 names
+041701~fe7c6d: 14637 records, 13.2 min, game type 3, 4 names
+041801~650934: 87463 records, 42.5 min, game type 3, 5 names
+041801.1~f004a2: 25233 records, 21.8 min, game type 3, 4 names
+041801.2~5f232d: 5742 records, 4.5 min, game type 3, 2 names
+042001~92aa6b: 29393 records, 26.7 min, game type 3, 6 names
+042101~386602: 4832 records, 14.5 min, game type 3, 2 names
+042401~909fa4: 31716 records, 15.1 min, game type 3, 4 names
+042401.1~b6ee7c: 10601 records, 6.7 min, game type 3, 6 names
+042401.2~3bb981: 36948 records, 19.2 min, game type 3, 5 names
+042501~d0ac30: 19223 records, 12.9 min, game type 3, 4 names
+042501.1~d8c420: 25658 records, 16.9 min, game type 3, 4 names
+042501.2~e79495: 13237 records, 15.8 min, game type 3, 4 names
+042501.3~1de2c6: 28456 records, 24.8 min, game type 3, 6 names
+042501.4~04568e: 27768 records, 26.4 min, game type 2, 4 names
+042601~96619d: 24788 records, 13.9 min, game type 3, 2 names
+042901~26709d: 97144 records, 102.9 min, game type 3, 2 names
+050301.2~7cb9c2: 57569 records, 34.5 min, game type 3, 2 names
+050401~ab48b8: 24572 records, 21.5 min, game type 3, 4 names
+050401.1~97fc7a: 5588 records, 6.9 min, game type 3, 4 names
+050401.10~54d190: 11741 records, 9.0 min, game type 3, 4 names
+050401.11~364fd1: 21411 records, 13.2 min, game type 3, 4 names
+050401.12~3e3f32: 27609 records, 17.2 min, game type 3, 4 names
+050401.2~07edd4: 5362 records, 5.1 min, game type 3, 4 names
+050401.3~a30ab2: 9479 records, 14.4 min, game type 3, 6 names
+050401.4~84ea04: 22917 records, 16.6 min, game type 3, 4 names
+050401.5~bb2303: 16707 records, 10.2 min, game type 3, 4 names
+050401.6~9053ee: 14670 records, 8.8 min, game type 3, 4 names
+050401.7~9eb61d: 33881 records, 20.8 min, game type 3, 4 names
+050401.8~d966a2: 20542 records, 10.1 min, game type 3, 4 names
+050401.9~af8b86: 37787 records, 31.5 min, game type 3, 5 names
+050701~698a69: 34494 records, 18.1 min, game type 3, 4 names
+050701.1~433b2c: 53896 records, 30.2 min, game type 3, 2 names
+050701.2~fe81ca: 74843 records, 64.8 min, game type 3, 4 names
+050901~7f85f5: 18375 records, 11.6 min, game type 3, 5 names
+051601~027d1c: 29052 records, 11.8 min, game type 3, 4 names
+052101~bd1e36: 69590 records, 49.8 min, game type 3, 6 names
+052101.1~fd0314: 20375 records, 11.9 min, game type 3, 4 names
+052101.2~be7246: 17223 records, 12.7 min, game type 3, 6 names
+052101.3~8e5bb1: 13564 records, 7.4 min, game type 3, 4 names
+052201.1~d12ba6: 41835 records, 27.8 min, game type 3, 4 names
+052401~a52b34: 32504 records, 21.1 min, game type 3, 4 names
+052401.1~9b45b6: 43757 records, 25.3 min, game type 3, 4 names
+052401.2~c895c8: 66221 records, 45.4 min, game type 3, 4 names
+052401.3~34f1e8: 51230 records, 23.8 min, game type 3, 4 names
+052601~4ccd1b: 7885 records, 17.7 min, game type 3, 3 names
+052901.1~3c81e4: 7032 records, 13.9 min, game type 3, 2 names
+053001~d5b10b: 9170 records, 21.5 min, game type 3, 4 names
+053001.1~9a75c7: 20781 records, 28.7 min, game type 3, 4 names
+053101~5d8454: 20597 records, 23.8 min, game type 3, 3 names
+060101~8c1b17: 9978 records, 8.0 min, game type 3, 2 names
+060101.1~55c0c2: 9155 records, 7.1 min, game type 3, 2 names
+060101.2~6feefb: 27396 records, 20.7 min, game type 3, 2 names
+060401~0781ca: 12787 records, 14.0 min, game type 3, 2 names
+060401.1~5583a1: 34127 records, 38.3 min, game type 3, 2 names
+060401.2~df7148: 51989 records, 28.4 min, game type 3, 2 names
+060401.3~9e47e4: 2900 records, 2.2 min, game type 3, 2 names
+060401.4~7ba159: 15013 records, 8.4 min, game type 3, 2 names
+060401.5~2304e1: 60509 records, 34.1 min, game type 3, 2 names
+060401.6~927955: 9905 records, 5.6 min, game type 3, 2 names
+060401.7~f7cf70: 10555 records, 5.8 min, game type 3, 2 names
+060401.8~ebec2f: 48625 records, 26.3 min, game type 3, 2 names
+060501~03e520: 39994 records, 17.9 min, game type 3, 4 names
+060501.1~96de1e: 23223 records, 17.1 min, game type 3, 2 names
+060701~db4c40: 14387 records, 16.6 min, game type 3, 4 names
+060701.1~1db4b2: 43125 records, 34.7 min, game type 3, 4 names
+060701.2~c65eda: 17220 records, 14.9 min, game type 3, 4 names
+061101: 64639 records, 36.5 min, game type 3, 2 names
+061201~711fe8: 43097 records, 30.8 min, game type 3, 4 names
+061301: 4022 records, 2.4 min, game type 3, 2 names
+062201~c86960: 10538 records, 9.4 min, game type 3, 4 names
+062501~435409: 9613 records, 10.2 min, game type 3, 5 names
+062501.1~6f1941: 12948 records, 15.6 min, game type 3, 4 names
+062501.2~9559b5: 27542 records, 17.5 min, game type 3, 4 names
+062601~a22323: 15510 records, 13.6 min, game type 3, 4 names
+062601.1~f9020c: 34286 records, 24.8 min, game type 3, 4 names
+062701~7386a6: 19050 records, 17.0 min, game type 3, 5 names
+062701.1~330f7f: 16302 records, 18.6 min, game type 3, 6 names
+062901~e99a76: 38118 records, 28.5 min, game type 3, 4 names
+081701~2767c2: 17117 records, 14.4 min, game type 3, 4 names
+081701.2~60f327: 8078 records, 11.2 min, game type 3, 6 names
+082201~8e759b: 53788 records, 60.2 min, game type 3, 2 names
+082701: 15338 records, 5.9 min, game type 3, 4 names
+082701.1: 41085 records, 12.9 min, game type 3, 4 names
+082701.2: 36228 records, 26.3 min, game type 3, 4 names
+092601: 19937 records, 22.4 min, game type 3, 3 names
+101901: 28761 records, 22.1 min, game type 3, 4 names
+101901.1: 33148 records, 28.0 min, game type 3, 6 names
+011702~cd8815: 48312 records, 35.4 min, game type 3, 5 names
+110601: 9941 records, 10.9 min, game type 3, 4 names
+012302: 76617 records, 93.1 min, game type 3, 6 names
+012801.2: 24025 records, 13.9 min, game type 3, 4 names
+012802: 14327 records, 19.1 min, game type 3, 6 names
+012802.1: 29784 records, 20.9 min, game type 3, 6 names
+06~2e1a2d: 14717 records, 19.4 min, game type 3, 4 names
+06~5e44d6: 25387 records, 33.5 min, game type 3, 4 names
+06~93265f: 74339 records, 84.3 min, game type 3, 4 names
+121001.1: 23458 records, 34.0 min, game type 3, 4 names
+121001.2: 2045 records, 5.9 min, game type 3, 2 names
+121801: 1278 records, 18.9 min, game type 3, 4 names
+2001.12.3.~b7abf8: 69551 records, 65.5 min, game type 3, 5 names
+~805b07: 86922 records, 73.0 min, game type 3, 6 names
+~b418d3: 7179 records, 8.0 min, game type 3, 4 names
+060402: 19960 records, 37.6 min, game type 3, 4 names
+060702.1~221780: 33722 records, 35.4 min, game type 3, 2 names
+071502~6be3d4: 20539 records, 26.6 min, game type 3, 5 names
+072402.1: 51326 records, 79.8 min, game type 3, 4 names
+082502: 13752 records, 17.6 min, game type 3, 2 names
+091102~fd9a62: 21897 records, 20.1 min, game type 3, 2 names
+091302: 3483 records, 3.9 min, game type 3, 4 names
+091402: 16350 records, 25.0 min, game type 3, 5 names
+091402.1: 3805 records, 5.2 min, game type 3, 4 names
+091402.3: 19788 records, 25.6 min, game type 3, 6 names
+100902~d9be0b: 33662 records, 38.3 min, game type 3, 4 names
+101102.1~b71a12: 9010 records, 14.5 min, game type 3, 4 names
+101102.2~e99f99: 16687 records, 22.9 min, game type 3, 4 names
+101102.3~290de5: 24262 records, 26.1 min, game type 3, 4 names
+101102.4~5fe61f: 5019 records, 4.4 min, game type 3, 6 names
+101202.1~6364d2: 25951 records, 21.4 min, game type 3, 4 names
+101202.10~60d341: 53538 records, 45.7 min, game type 3, 4 names
+101202.3~6823c4: 39170 records, 23.4 min, game type 3, 4 names
+101202.4~8c6ba3: 166224 records, 56.5 min, game type 3, 3 names
+101202.5~b61f3e: 13204 records, 14.9 min, game type 3, 4 names
+101202.6~836934: 17244 records, 16.4 min, game type 3, 4 names
+101202.7~7e3765: 9144 records, 8.9 min, game type 3, 4 names
+101202.9~38995d: 52396 records, 40.7 min, game type 3, 4 names
+101402.1~f8c08c: 28068 records, 13.0 min, game type 3, 4 names
+101402.2~c5272d: 14878 records, 9.4 min, game type 3, 4 names
+101402.4~6e4e23: 46780 records, 28.5 min, game type 3, 4 names
+101402.5~389716: 21959 records, 30.3 min, game type 3, 6 names
+101502.1~ac361f: 39723 records, 49.1 min, game type 3, 6 names
+101502.2~611f73: 105135 records, 74.1 min, game type 3, 4 names
+101602.1~e9e84b: 29293 records, 26.0 min, game type 3, 4 names
+101602.2~934629: 12144 records, 16.7 min, game type 3, 4 names
+101802.1~b2155b: 5013 records, 7.1 min, game type 2, 4 names
+101902.1~a46d0e: 15070 records, 20.9 min, game type 3, 2 names
+101902.2~bdf4bc: 12649 records, 18.1 min, game type 3, 2 names
+101902.3~00e450: 24794 records, 34.8 min, game type 3, 4 names
+101902.5~2fbd5a: 22680 records, 34.8 min, game type 3, 5 names
+102102.1~9d4853: 38772 records, 39.3 min, game type 3, 6 names
+102102.10~859e91: 58583 records, 33.9 min, game type 3, 4 names
+102102.11~da713f: 13588 records, 8.6 min, game type 3, 4 names
+102102.2~86c810: 18287 records, 10.3 min, game type 3, 4 names
+102102.3~8e5680: 7485 records, 7.7 min, game type 3, 4 names
+102102.4~b04242: 28869 records, 23.2 min, game type 3, 4 names
+102102.5~401d41: 5139 records, 7.4 min, game type 3, 4 names
+102102.6~e5a40f: 13669 records, 12.1 min, game type 3, 4 names
+102102.7~aa6e3d: 13551 records, 11.8 min, game type 3, 4 names
+102102.8~f455c5: 9869 records, 8.5 min, game type 3, 4 names
+102102.9~619485: 25083 records, 22.2 min, game type 3, 4 names
+102202.1: 28572 records, 21.0 min, game type 3, 4 names
+102202.2~0ccf92: 144198 records, 99.1 min, game type 3, 4 names
+102302.1: 32661 records, 39.5 min, game type 3, 4 names
+102302.2: 10880 records, 26.6 min, game type 3, 4 names
+102402.1: 8036 records, 7.2 min, game type 3, 4 names
+102402.2: 29547 records, 21.8 min, game type 3, 4 names
+102402.3: 17981 records, 20.4 min, game type 3, 8 names
+102602.1: 25121 records, 34.7 min, game type 3, 5 names
+102902.1: 9246 records, 11.1 min, game type 3, 4 names
+102902.2: 27099 records, 28.7 min, game type 3, 4 names
+103002.1~307155: 11391 records, 17.5 min, game type 3, 4 names
+103002.2~afd8d2: 15764 records, 27.0 min, game type 3, 4 names
+103002.3~b1f7c6: 21191 records, 31.2 min, game type 3, 4 names
+103002.4~f6a76d: 7204 records, 11.5 min, game type 3, 4 names
+103002.5~591baa: 11071 records, 19.1 min, game type 3, 4 names
+103002.6~fb1834: 35388 records, 53.1 min, game type 3, 4 names
+110102.1~76fb58: 6959 records, 8.0 min, game type 3, 4 names
+110102.2~f1e706: 30620 records, 21.8 min, game type 3, 4 names
+110102.3~303dbd: 24321 records, 25.4 min, game type 3, 4 names
+110202.1~df07a5: 8851 records, 11.3 min, game type 3, 4 names
+110202.3~c08252: 17762 records, 23.8 min, game type 3, 4 names
+110202.4~7731a4: 22630 records, 23.3 min, game type 3, 4 names
+110502.1~5332fe: 24454 records, 35.0 min, game type 3, 4 names
+110602.1~c77802: 2281 records, 3.7 min, game type 3, 4 names
+110702.1~031855: 80144 records, 80.8 min, game type 3, 3 names
+110802.1~75417c: 56537 records, 47.2 min, game type 3, 4 names
+110802.2~efe6f8: 7654 records, 5.1 min, game type 3, 4 names
+110802.3: 39424 records, 29.8 min, game type 3, 6 names
+110802.4~06bd38: 11019 records, 10.4 min, game type 3, 4 names
+110802.5~17b598: 24980 records, 27.8 min, game type 3, 4 names
+110902.1: 68902 records, 74.3 min, game type 3, 2 names
+111302.1: 38178 records, 31.4 min, game type 3, 2 names
+111402.1~ccbfeb: 11515 records, 8.5 min, game type 3, 4 names
+111502.1~a686d0: 10035 records, 16.0 min, game type 3, 4 names
+111502.2~1889c2: 2823 records, 8.4 min, game type 3, 4 names
+112002.1: 15220 records, 19.5 min, game type 3, 2 names
+112202.1~b63b2e: 22677 records, 21.5 min, game type 3, 8 names
+112202.2~705a60: 91276 records, 62.4 min, game type 3, 4 names
+112202.3: 41105 records, 20.9 min, game type 3, 2 names
+112202.4: 40818 records, 22.3 min, game type 3, 2 names
+112202.5: 79028 records, 43.9 min, game type 3, 2 names
+112402.1: 28015 records, 35.2 min, game type 3, 2 names
+112402.2: 14619 records, 24.3 min, game type 3, 2 names
+121002.1: 42688 records, 64.5 min, game type 3, 6 names
+021503.1~ee58bf: 26610 records, 33.8 min, game type 3, 4 names
+021503.2~ea7ae3: 41437 records, 40.3 min, game type 3, 4 names
+022203.1~9b1005: 14643 records, 19.1 min, game type 3, 2 names
+022203.2~4036f4: 11564 records, 15.6 min, game type 3, 2 names
+022203.3~575cb6: 22890 records, 34.5 min, game type 3, 2 names
+022603.1~8d0c9e: 9123 records, 12.3 min, game type 3, 4 names
+022603.2~bafab3: 10647 records, 11.1 min, game type 3, 4 names
+022603.3~6c7b23: 4696 records, 8.9 min, game type 3, 4 names
+022603.4~a8414a: 11636 records, 14.5 min, game type 3, 4 names
+022603.5~4fedfd: 18105 records, 20.9 min, game type 3, 4 names
+031403.1: 54025 records, 48.4 min, game type 3, 4 names
+032903.1~4efff4: 20892 records, 11.7 min, game type 3, 4 names
+032903.2~1ec501: 17501 records, 17.5 min, game type 3, 4 names
+043003.1~94875b: 38151 records, 18.0 min, game type 3, 4 names
+043003.2~a9b7ba: 27240 records, 20.8 min, game type 3, 4 names
+050103.1~a08a9f: 11835 records, 10.6 min, game type 3, 4 names
+050103.2~78e3cd: 44991 records, 37.5 min, game type 3, 5 names
+061903.1~2d9503: 109396 records, 82.8 min, game type 3, 2 names
+061903.2~53ebd8: 148959 records, 110.8 min, game type 3, 2 names
+061903.3~fe868c: 20066 records, 14.2 min, game type 3, 2 names
+061903.4~ca2c7e: 24358 records, 19.1 min, game type 3, 2 names
+061903.5~14852f: 9162 records, 7.9 min, game type 3, 2 names
+061903.6~28e9a2: 15474 records, 14.0 min, game type 3, 2 names
+061903.7~02d676: 18727 records, 13.9 min, game type 3, 4 names
+062003.1~aafe87: 15085 records, 15.8 min, game type 3, 4 names
+062003.2~ec128a: 5867 records, 6.4 min, game type 3, 4 names
+062003.3~4fb79c: 6186 records, 9.5 min, game type 3, 4 names
+062003.4~e471e8: 14376 records, 15.8 min, game type 3, 4 names
+062003.5~c2d819: 13039 records, 14.6 min, game type 3, 4 names
+062003.6~47985b: 12915 records, 12.0 min, game type 3, 4 names
+062503.2~55e6e1: 16275 records, 15.3 min, game type 3, 4 names
+062603.1~25e061: 42816 records, 30.8 min, game type 3, 4 names
+062603.2~250d9a: 163938 records, 131.8 min, game type 3, 4 names
+062903.2~74c2b9: 42702 records, 45.6 min, game type 3, 2 names
+062903.3~2ddeca: 32617 records, 34.6 min, game type 3, 2 names
+071503.1~10f816: 18374 records, 23.6 min, game type 3, 4 names
+071503.2~d9a8d9: 8199 records, 16.2 min, game type 3, 4 names
+072203.1~ae6baa: 8951 records, 9.0 min, game type 3, 2 names
+072203.2: 8126 records, 8.3 min, game type 3, 2 names
+072203.3~641e64: 17580 records, 28.4 min, game type 3, 4 names
+072303.1~ef9a69: 15373 records, 15.3 min, game type 3, 2 names
+073003.1~4ff8dc: 106352 records, 91.6 min, game type 3, 4 names
+121303.1~4ad85e: 17101 records, 16.9 min, game type 2, 2 names
+121803.1~e28e09: 29900 records, 40.3 min, game type 3, 3 names
+121803.2~87df58: 28518 records, 37.1 min, game type 3, 2 names
+121803.3~694558: 21643 records, 30.2 min, game type 3, 3 names
+121803.4~851ed5: 11776 records, 15.8 min, game type 3, 4 names
+122903.1~4ec676: 13818 records, 16.3 min, game type 3, 2 names
+122903.2~514b8d: 5254 records, 6.6 min, game type 3, 2 names
+122903.3~524d14: 11824 records, 13.7 min, game type 3, 2 names
+122903.4~877193: 5038 records, 5.0 min, game type 3, 4 names
+122903.5~91bc6b: 33144 records, 35.3 min, game type 3, 4 names
+010604.1~97ef03: 42242 records, 20.1 min, game type 3, 4 names
+010904.1~fd1aa7: 22563 records, 25.8 min, game type 3, 2 names
+011504.1~d90b6f: 20872 records, 35.2 min, game type 3, 4 names
+030204.3~8d49e3: 54855 records, 74.9 min, game type 3, 4 names
+030404.6~c4401c: 20130 records, 20.7 min, game type 3, 4 names
+031504.1~c155a1: 12277 records, 6.2 min, game type 3, 4 names
+031704.1~562e57: 17596 records, 21.7 min, game type 3, 4 names
+031904.3~2c847d: 2999 records, 5.4 min, game type 3, 4 names
+032204.2~c10759: 175603 records, 84.6 min, game type 3, 4 names
+032304.1~d712a8: 27214 records, 15.1 min, game type 3, 4 names
+032404.4~c17588: 89160 records, 47.4 min, game type 3, 4 names
+032504.1~7668dc: 7865 records, 9.6 min, game type 3, 4 names
+032504.2~066b3b: 45734 records, 22.9 min, game type 3, 4 names
+033104.1~a0cb03: 21556 records, 21.7 min, game type 3, 4 names
+033104.3~0d5645: 25989 records, 15.2 min, game type 3, 4 names
+033104.4~31ff55: 22759 records, 19.2 min, game type 3, 4 names
+040104.1~d40bb3: 27521 records, 24.8 min, game type 3, 4 names
+042104.3~2c4ce8: 54557 records, 29.9 min, game type 3, 4 names
+042304.2~ccc16a: 25295 records, 22.1 min, game type 3, 4 names
+042304.4~cb1d5d: 58339 records, 42.7 min, game type 3, 4 names
+050304.1~8c3ee4: 15636 records, 19.4 min, game type 3, 4 names
+050304.2~039aa2: 30597 records, 33.7 min, game type 3, 4 names
+050604.1~4d1054: 37708 records, 49.4 min, game type 3, 4 names
+051704.1~04bff9: 98175 records, 55.3 min, game type 3, 4 names
+052004.1~64ffde: 43627 records, 24.5 min, game type 3, 4 names
+052004.2~bb527c: 15514 records, 18.5 min, game type 3, 4 names
+052004.3~11d91a: 9144 records, 10.5 min, game type 3, 4 names
+052504.1~113354: 12478 records, 11.6 min, game type 3, 4 names
+060104.1~929634: 81867 records, 82.5 min, game type 3, 4 names
+060704.1~474a65: 24675 records, 22.6 min, game type 3, 4 names
+070104.1~2652b0: 40635 records, 37.7 min, game type 3, 4 names
+070804.1~9ed592: 39891 records, 22.5 min, game type 3, 4 names
+071204.1~db21ea: 39265 records, 27.4 min, game type 3, 4 names
+072104.1~2bb59a: 10132 records, 10.9 min, game type 3, 2 names
+072104.2~0cfe0a: 42729 records, 44.1 min, game type 3, 2 names
+072604.1~6844e9: 48931 records, 46.3 min, game type 3, 4 names
+072604.1~6b6af2: 48146 records, 50.6 min, game type 3, 4 names
+072704.1~53e5c2: 60827 records, 51.6 min, game type 3, 4 names
+072704.2~7b05fa: 9296 records, 11.2 min, game type 3, 4 names
+072704.3~08cd4d: 14964 records, 22.2 min, game type 3, 4 names
+072704.4~cc3546: 20662 records, 23.3 min, game type 3, 4 names
+072904.1~7037d4: 29225 records, 20.0 min, game type 3, 4 names
+072904.2~8e8496: 37485 records, 26.1 min, game type 3, 4 names
+072904.3~90f441: 57695 records, 39.6 min, game type 3, 4 names
+080304.1~cf0994: 30187 records, 31.9 min, game type 3, 4 names
+080304.2~41c85e: 5292 records, 7.3 min, game type 3, 4 names
+080304.3~e69ea8: 23515 records, 25.3 min, game type 3, 2 names
+080304.4~a6f681: 33855 records, 35.9 min, game type 3, 2 names
+080404.1~aa5f29: 9813 records, 10.6 min, game type 3, 4 names
+080404.6~dd6f8b: 56176 records, 44.9 min, game type 3, 4 names
+080504.1~8effcc: 98422 records, 106.3 min, game type 3, 2 names
+080904.1~c7c9c1: 16265 records, 18.4 min, game type 3, 2 names
+080904.2~68d5a2: 17429 records, 19.9 min, game type 3, 2 names
+080904.3~47cbe4: 32908 records, 33.8 min, game type 3, 2 names
+081104.1~bfd21e: 17191 records, 16.4 min, game type 3, 4 names
+081104.2~cfd06b: 37751 records, 43.1 min, game type 3, 4 names
+081204.1~b0e402: 25725 records, 26.4 min, game type 3, 4 names
+081204.2~ed52d8: 12739 records, 9.1 min, game type 3, 4 names
+081204.3~799a28: 79567 records, 49.5 min, game type 3, 4 names
+081204.4~cdbaa4: 15392 records, 11.5 min, game type 3, 4 names
+081204.5~edc835: 34836 records, 24.0 min, game type 3, 4 names
+081204.6~cc1f5d: 27762 records, 18.5 min, game type 3, 4 names
+081204.7~2dd058: 7546 records, 6.5 min, game type 3, 4 names
+081204.8~56f99c: 17018 records, 12.2 min, game type 3, 4 names
+081804.1~215ac4: 8369 records, 10.4 min, game type 3, 2 names
+081804.2~b43725: 21440 records, 27.0 min, game type 3, 2 names
+082004.1~18de86: 18242 records, 17.7 min, game type 3, 4 names
+082304.1~830005: 12610 records, 18.8 min, game type 3, 2 names
+082304.2~37977b: 24669 records, 26.6 min, game type 3, 2 names
+082304.3~810c35: 21746 records, 22.8 min, game type 3, 2 names
+082404.1~a6ac35: 33515 records, 35.0 min, game type 3, 2 names
+082404.2~661a6b: 11396 records, 12.1 min, game type 3, 2 names
+082504.1~11db5b: 33451 records, 36.6 min, game type 3, 2 names
+082504.2~930542: 24674 records, 27.3 min, game type 3, 2 names
+082504.3~8c4e77: 25261 records, 27.6 min, game type 3, 2 names
+082504.4~37bc77: 31018 records, 35.0 min, game type 3, 2 names
+082504.5~d7918a: 51074 records, 53.6 min, game type 3, 2 names
+082704.1~3b6263: 47101 records, 56.9 min, game type 3, 2 names
+082704.10~a59fd2: 27408 records, 30.1 min, game type 3, 2 names
+082704.11~912305: 17792 records, 18.9 min, game type 3, 2 names
+082704.12~018269: 35850 records, 39.6 min, game type 3, 2 names
+082704.2~085189: 15250 records, 17.1 min, game type 3, 2 names
+082704.3~fa4a39: 20702 records, 24.4 min, game type 3, 2 names
+082704.4~ff9253: 11718 records, 13.0 min, game type 3, 2 names
+082704.5~92ec93: 7866 records, 8.8 min, game type 3, 2 names
+082704.6~75cac8: 21676 records, 22.8 min, game type 3, 2 names
+082704.7~153c75: 15940 records, 19.7 min, game type 3, 2 names
+082704.8~ac242f: 7532 records, 8.4 min, game type 3, 2 names
+082704.9~a9dc7d: 10736 records, 11.7 min, game type 3, 2 names
+083004.1~18b16c: 41941 records, 30.1 min, game type 3, 4 names
+083104.1~ab9185: 8275 records, 9.6 min, game type 3, 4 names
+090704.2~9cee14: 34056 records, 26.5 min, game type 3, 4 names
+090704.3~3f9101: 30394 records, 23.2 min, game type 3, 4 names
+091004.1~284f1d: 154727 records, 84.9 min, game type 3, 4 names
+091304.1~a3509b: 12797 records, 6.8 min, game type 3, 4 names
+091304.2~b0e98b: 20250 records, 12.6 min, game type 3, 4 names
+091304.3~cf8054: 16806 records, 11.9 min, game type 3, 4 names
+091304.4~ac7c78: 36082 records, 30.7 min, game type 3, 4 names
+101404~8109d4: 75863 records, 56.9 min, game type 3, 6 names
+101404.5~cef83e: 6509 records, 5.9 min, game type 3, 4 names
+101404.6~63cb48: 43019 records, 30.6 min, game type 3, 6 names
+120304.1~0bb561: 56606 records, 42.3 min, game type 3, 4 names
+120604.1~f6c76c: 7554 records, 5.8 min, game type 3, 4 names
+120604.2~0d6241: 28884 records, 18.7 min, game type 3, 4 names
+121404.2~052168: 19819 records, 22.7 min, game type 3, 2 names
+121404.4~c15845: 21549 records, 25.6 min, game type 3, 2 names
+121504.5~44c7fb: 13715 records, 16.9 min, game type 3, 4 names
+121504.6~cc15fe: 10783 records, 15.6 min, game type 3, 4 names
+121604.1~05ed20: 11102 records, 10.0 min, game type 3, 4 names
+121604.1~479925: 121695 records, 74.3 min, game type 3, 4 names
+122204.1~33c9bd: 27422 records, 30.0 min, game type 3, 2 names
+122204.2~7e8b47: 22480 records, 33.0 min, game type 3, 2 names
+122204.3~be2352: 30218 records, 32.3 min, game type 3, 4 names
+122204.4~32ba77: 10608 records, 10.7 min, game type 3, 4 names
+122204.5~9d9848: 27600 records, 25.3 min, game type 3, 4 names
+122204.6~ef40b5: 28979 records, 24.6 min, game type 3, 4 names
+122704.1~b2a597: 5818 records, 6.4 min, game type 3, 2 names
+122704.2~6e5a3c: 7646 records, 8.3 min, game type 3, 2 names
+122704.3~d46a6d: 37597 records, 41.2 min, game type 3, 2 names
+122704.4~7c6322: 14671 records, 17.2 min, game type 3, 2 names
+122704.5~1949e6: 13164 records, 13.7 min, game type 3, 2 names
+122704.6~9cb8e5: 37382 records, 39.9 min, game type 3, 2 names
+010705.1~3bda8a: 32625 records, 35.1 min, game type 3, 4 names
+010705.2~68a91d: 24929 records, 25.6 min, game type 3, 4 names
+010705.3~16bcd2: 22883 records, 25.7 min, game type 3, 4 names
+011205.1~4ef0f1: 12472 records, 14.7 min, game type 3, 2 names
+011205.2~c18736: 15245 records, 19.0 min, game type 3, 2 names
+011205.3~fa35dc: 22680 records, 27.5 min, game type 3, 2 names
+011505.8~02699e: 13959 records, 14.9 min, game type 3, 2 names
+020205.1~fb0fc4: 18438 records, 22.0 min, game type 3, 2 names
+020205.2~537de0: 11210 records, 13.2 min, game type 3, 2 names
+020205.3~f771f5: 12440 records, 14.7 min, game type 3, 2 names
+030105.1~dad3ce: 70690 records, 84.8 min, game type 3, 2 names
+030705.1~b9526a: 10993 records, 13.0 min, game type 3, 2 names
+030705.2~23cec5: 14292 records, 20.3 min, game type 3, 2 names
+030705.3~15c850: 31129 records, 38.5 min, game type 3, 2 names
+030705.4~e7ff42: 21474 records, 16.5 min, game type 3, 2 names
+030705.5~64753e: 22786 records, 22.9 min, game type 3, 2 names
+030805.1~518f24: 21697 records, 26.2 min, game type 3, 2 names
+030805.2~efad6e: 17065 records, 20.0 min, game type 3, 2 names
+030805.3~c93842: 19982 records, 23.7 min, game type 3, 2 names
+030805.4~1fcff1: 8723 records, 7.7 min, game type 3, 2 names
+030805.5~4febfa: 27687 records, 24.0 min, game type 3, 2 names
+031005.1~61e453: 18003 records, 20.6 min, game type 3, 4 names
+031105.1~9e1a59: 61214 records, 83.0 min, game type 3, 2 names
+031105.2~021934: 9402 records, 11.9 min, game type 3, 2 names
+031105.3~75c3ba: 11347 records, 14.0 min, game type 3, 2 names
+031105.4~ffbdcd: 29089 records, 34.5 min, game type 3, 2 names
+031405.1~a2112b: 12587 records, 16.5 min, game type 3, 2 names
+031405.2~c925e5: 10942 records, 13.6 min, game type 3, 3 names
+031605.1~5ca20f: 30769 records, 36.3 min, game type 3, 2 names
+031605.3~93567d: 21735 records, 26.7 min, game type 3, 2 names
+031705.1~87d643: 20337 records, 22.5 min, game type 3, 4 names
+052805.1~24093e: 29951 records, 18.4 min, game type 3, 4 names
+052805.2~42a3e0: 43908 records, 33.2 min, game type 3, 4 names
+052805.3~f9a24f: 16302 records, 12.6 min, game type 3, 4 names
+20010330~b7f48c: 38428 records, 22.2 min, game type 3, 5 names
+20010409~94207f: 20483 records, 38.4 min, game type 3, 4 names
+20020730.1: 91579 records, 93.7 min, game type 3, 6 names
+31~703aa3: 49363 records, 29.9 min, game type 3, 6 names
+~0ba212: 15490 records, 18.6 min, game type 3, 4 names
+n20020306.1: 10713 records, 9.9 min, game type 3, 4 names
+~01b17d: 30051 records, 44.9 min, game type 3, 4 names
+n20020919.1: 74232 records, 48.9 min, game type 3, 4 names
+n20021007.2: 57800 records, 43.3 min, game type 3, 4 names
+~230357: 32966 records, 37.0 min, game type 3, 4 names
+n20021018.2: 120840 records, 136.8 min, game type 3, 4 names
+
+443 logs, 13338093 records, 11682 minutes of game time
+
+[reload] ticks between a tank's consecutive fires (histogram 1..40)
+  1:1 2:6 3:33 4:87 5:633 6:4112 7:12447 8:17836 9:28722 10:44265 11:60094 12:88458 13:79608 14:72093 15:56841 16:34387 17:30015 18:27433 19:20122 20:14445 21:9529 22:7249 23:5792 24:4514 25:4273 26:2042 27:1451 28:1255 29:1132 30:1439 31:1037 32:888 33:810 34:764 35:697 36:506 37:513 38:458 39:333 40:380
+  gaps <= 100 ticks: n 668199, min 0, p5 7, median 13
+  fires per record: 1:727019 2:17857 3:300 4:144
+  sender record cadence for comparison: min 0, p5 2, median 7, p75 10 ticks
+
+[turn] ticks per sixteenth of a circle, consecutive restatements <= 50 ticks apart, |delta| >= 2, by terrain at the start
+  (pairwise: biased by record cadence when the cadence is coarse)
+    group               n     min      p5     p25  median     p75     max  ticks/sixteenth
+    boat             8904    1.33    4.50    5.50    7.00    8.00   25.00
+    building            1    6.00    6.00    6.00    6.00    6.00    6.00
+    crater            303    1.20    5.50    7.00    8.00    9.00   25.00
+    forest           6095    0.86    5.00    7.00    9.25   14.33   25.00
+    grass          111697    0.75    4.50    5.50    6.50    8.00   25.00
+    river              20    5.50    5.50    7.50    8.50   12.00   22.00
+    road           294598    0.43    4.50    5.50    7.00    8.50   25.00
+    rubble            399    2.00    5.00    7.00    8.00    9.00   24.00
+    swamp              17    6.00    6.00    7.33    9.00   10.00   14.33
+  interval between direction changes while turning, by terrain and speed class (full circle = 16 x median; resolves only on a fine cadence)
+    group               n     min      p5     p25  median     p75     max  ticks/sixteenth
+    boat fast        1499    4.00    7.00    9.00   11.00   13.00   44.00
+    boat mid          759    5.00    7.00    9.50   12.00   13.00   20.00
+    boat slow         562    3.00    7.00   10.00   12.00   13.00   20.00
+    boat still          3    8.00    8.00    8.00    9.50   13.00   13.00
+    crater fast        24   13.00   13.00   18.00   20.00   23.00   26.00
+    crater mid         44   10.00   13.00   16.00   21.00   24.00   36.00
+    crater slow       133   12.00   16.00   23.00   26.00   31.00   41.00
+    forest fast       548    7.00   11.00   12.00   14.00   17.00   33.00
+    forest mid       4205    4.00   11.00   13.00   16.00   18.00   37.00
+    forest slow     20746    5.00   12.00   14.00   17.00   19.00   52.00
+    forest still       80   11.00   12.00   16.00   18.00   20.00   32.00
+    grass fast       5993    3.00    6.00    8.00   11.00   12.00   34.00
+    grass mid       51231    2.00    7.00    9.00   11.00   12.00   38.00
+    grass slow      11979    3.00    7.00    9.00   11.00   12.00   33.00
+    grass still        76    6.00    7.00    9.00   11.00   13.00   57.50
+    river mid           7   15.00   15.00   16.00   23.00   25.00   30.00
+    river slow         19   22.00   22.00   24.00   28.00   32.00   40.00
+    road fast      113225    3.00    7.00    8.00   11.00   12.00  314.00
+    road mid        35448    3.00    7.00    8.00   11.00   12.00  135.50
+    road slow       36200    2.00    7.00    8.00   11.00   12.00  256.50
+    road still        244    3.00    6.00    9.00   10.50   12.00  321.00
+    rubble fast        30   11.00   11.00   12.00   16.00   19.00   25.00
+    rubble mid         39   10.00   11.00   15.00   21.00   25.00   36.00
+    rubble slow        93   12.00   16.50   21.00   25.00   31.00   42.00
+    swamp slow         11   19.00   19.00   24.00   25.00   31.00   42.00
+
+[speed] pixels per tick between restatements <= 25 ticks apart at constant heading and speed byte, by speed byte
+
+    group               n     min      p5     p25  median     p75     max  px/tick
+    byte 0         111656    0.00    0.00    0.00    0.00    0.00    4.12
+    byte 1          12377    0.00    0.00    0.00    0.00    0.00    1.52
+    byte 2          10126    0.00    0.00    0.00    0.00    0.06    1.80
+    byte 3           6693    0.00    0.00    0.00    0.00    0.09    1.52
+    byte 4           4268    0.00    0.00    0.00    0.08    0.14    1.65
+    byte 5           3455    0.00    0.00    0.00    0.10    0.14    1.71
+    byte 6           3472    0.00    0.00    0.00    0.11    0.17    1.58
+    byte 7           3660    0.00    0.00    0.00    0.11    0.17    1.22
+    byte 8           4204    0.00    0.00    0.10    0.14    0.19    1.89
+    byte 9           3775    0.00    0.00    0.11    0.14    0.18    2.00
+    byte 10          3932    0.00    0.00    0.14    0.17    0.20    1.46
+    byte 11          3730    0.00    0.00    0.14    0.17    0.20    1.54
+    byte 12         28522    0.00    0.08    0.16    0.20    0.25    3.20
+    byte 13          3594    0.00    0.10    0.17    0.20    0.25    1.12
+    byte 14          3612    0.00    0.11    0.17    0.22    0.27    1.41
+    byte 15          3301    0.00    0.11    0.17    0.24    0.29    1.18
+    byte 16          3414    0.00    0.14    0.20    0.25    0.32    1.41
+    byte 17          3692    0.00    0.14    0.22    0.26    0.32    1.41
+    byte 18          3568    0.00    0.14    0.24    0.28    0.33    1.67
+    byte 19          3340    0.00    0.17    0.25    0.30    0.35    2.00
+    byte 20          3237    0.00    0.17    0.27    0.32    0.37    1.94
+    byte 21          3357    0.00    0.18    0.28    0.33    0.37    2.00
+    byte 22          3366    0.00    0.20    0.29    0.33    0.40    1.97
+    byte 23          3343    0.00    0.21    0.31    0.35    0.40    1.41
+    byte 24        278483    0.00    0.24    0.32    0.37    0.43    6.00
+    byte 25          3347    0.00    0.25    0.33    0.38    0.45    4.14
+    byte 26          3310    0.00    0.25    0.34    0.40    0.47    2.60
+    byte 27          3142    0.00    0.25    0.34    0.40    0.46    3.73
+    byte 28          3407    0.00    0.25    0.37    0.45    0.50    2.43
+    byte 29          3073    0.00    0.29    0.37    0.45    0.50    2.00
+    byte 30          3211    0.00    0.29    0.40    0.47    0.53    1.86
+    byte 31          3011    0.00    0.32    0.41    0.48    0.53    2.12
+    byte 32          2922    0.00    0.33    0.45    0.50    0.56    1.68
+    byte 33          3254    0.00    0.33    0.45    0.50    0.57    2.55
+    byte 34          2804    0.00    0.33    0.47    0.53    0.60    1.67
+    byte 35          2882    0.00    0.38    0.47    0.53    0.60    1.42
+    byte 36          2771    0.00    0.37    0.50    0.56    0.64    2.24
+    byte 37          2812    0.00    0.37    0.50    0.57    0.64    4.24
+    byte 38          3012    0.00    0.38    0.51    0.60    0.67    2.36
+    byte 39          2354    0.00    0.38    0.52    0.60    0.69    2.24
+    byte 40          2507    0.00    0.37    0.53    0.61    0.69    2.00
+    byte 41          2555    0.00    0.43    0.56    0.63    0.71    2.24
+    byte 42          2614    0.00    0.40    0.57    0.65    0.71    3.61
+    byte 43          2502    0.00    0.43    0.59    0.67    0.73    8.60
+    byte 44          2762    0.00    0.45    0.60    0.67    0.75    2.69
+    byte 45          2314    0.00    0.47    0.61    0.69    0.77    3.61
+    byte 46          2669    0.00    0.47    0.63    0.71    0.79    3.54
+    byte 47          2067    0.00    0.49    0.66    0.73    0.83    3.61
+    byte 48        789593    0.00    0.47    0.66    0.75    0.84    7.14
+    byte 49          2200    0.00    0.50    0.67    0.75    0.83    2.75
+    byte 50          2087    0.00    0.53    0.67    0.76    0.86    2.94
+    byte 51          1826    0.00    0.53    0.71    0.79    0.89    4.47
+    byte 52          2157    0.00    0.56    0.71    0.80    0.90    2.83
+    byte 53          1896    0.00    0.55    0.71    0.82    0.90    2.24
+    byte 54          1816    0.00    0.56    0.75    0.83    0.91    4.20
+    byte 55          1592    0.00    0.50    0.74    0.83    0.94    3.61
+    byte 56          1720    0.00    0.56    0.77    0.86    0.97    2.34
+    byte 57          1778    0.00    0.42    0.77    0.88    1.00    2.83
+    byte 58          1921    0.00    0.57    0.79    0.90    1.00    2.83
+    byte 59          1777    0.00    0.53    0.81    0.90    1.00    2.55
+    byte 60          1787    0.00    0.63    0.83    0.94    1.03    3.44
+    byte 61          1760    0.00    0.60    0.83    0.94    1.05    3.16
+    byte 62          1989    0.00    0.67    0.87    0.98    1.08    2.83
+    byte 63          4718    0.00    0.44    0.59    0.83    1.00    4.47
+    byte 64        1904137    0.00    0.67    0.89    1.00    1.12   16.03
+  speed byte by terrain under the tank centre (max, p75, median):
+    boat           n 448939  max  64  p75  64  median  62
+    building       n     35  max  64  p75  64  median  54
+    crater         n  59796  max  64  p75  47  median  28
+    deep sea       n     59  max  64  p75  64  median  64
+    forest         n 608730  max  64  p75  24  median  24
+    grass          n 2517320  max  64  p75  48  median  48
+    river          n   6203  max  64  p75  31  median  12
+    road           n 6121288  max  64  p75  64  median  57
+    rubble         n  58312  max  64  p75  50  median  32
+    shot building  n      8  max  45  p75  43  median  26
+    swamp          n   5427  max  64  p75  33  median  13
+
+[pill] ticks between one pillbox's consecutive fires (<= 400), by hits it took in the previous 5 s
+
+    group               n     min      p5     p25  median     p75     max  ticks
+    0 hits/5s      265791    0.00    7.00   18.00   38.00   99.00  400.00
+    1 hits/5s       55255    0.00    0.00   12.00   20.00   47.00  400.00
+    2 hits/5s       64019    0.00    0.00    7.00   12.00   23.00  400.00
+    3 hits/5s       81576    0.00    0.00    6.00   10.00   16.00  400.00
+    4 hits/5s      102332    0.00    0.00    4.00    8.00   12.00  395.00
+    5 hits/5s       97430    0.00    0.00    0.00    6.00   10.00  397.00
+    6+ hits/5s     368945    0.00    0.00    0.00    6.00    9.00  400.00
+  all gaps histogram 1..40: 1:68 2:834 3:4515 4:12415 5:35225 6:86235 7:71387 8:46028 9:44339 10:44352 11:35105 12:40375 13:31148 14:21126 15:22225 16:17214 17:14832 18:13807 19:10425 20:9755 21:7539 22:6891 23:7120 24:6963 25:7520 26:5034 27:4858 28:5119 29:4905 30:5812 31:4424 32:3932 33:3915 34:3762 35:4193 36:3477 37:3678 38:3229 39:2321 40:2901
+  by time since the pill was last hit
+    group               n     min      p5     p25  median     p75     max  ticks
+    a <5 s         769105    0.00    0.00    0.00    7.00   12.00  400.00
+    b 5-15 s       104254    0.00    8.00   14.00   20.00   28.00  400.00
+    c 15-30 s       50370    0.00   10.00   31.00   38.00   49.00  400.00
+    d 30-60 s       32416    0.00    7.00   52.00   66.00   87.00  400.00
+    e 60-120 s      21855    0.00    5.00   49.00  100.00  104.00  400.00
+    f >120 s        57348    0.00    5.00   91.00  100.00  104.00  400.00
+  fires by one pill within one record (the record cadence is ~13 ticks):
+    hit <5 s ago   1:442777 2:129579 3:26369 4:3636 5:417 6:123 7:51 8:34 9:25 10:19
+    quiet >=5 s    1:348486 2:5533 3:884 4:115 5:22 6:15 7:7 8:4 9:4 10:1
+  F1 02 speed byte of firing pills (model): 18:51 34:140 51:94 61:253 62:3111 65:3799 66:1496 67:5208 68:1948 69:1008 70:2815 71:2497 72:3838 73:252 74:1307 75:132 76:142 77:1122 78:739 79:609 80:567 81:442 83:1641 84:4461 86:684 88:178 91:78 92:1320 93:5719 94:2041 95:1996 96:1135 97:3090 98:181 100:1107542 255:1116
+
+[armour] shell hits per life, at death; first life of each player excluded (unknown start)
+  lives 16275, usable 16267; tank_hit sender is the hit tank itself 214541, another player 54950; same tank hit again within 2 ticks by a different sender 2125
+  death code 1: n 15443
+    hits histogram:            0:22 1:29 2:11 3:59 4:41 5:56 6:146 7:108 8:94 9:5756 10:1272 11:692 12:525 13:545 14:511 15:488 16:444 17:441 18:318 19:273 20:275 21:270 22:229 23:230 24:202 25:167 26:154 27:140 28:138 29:134 30:107 31:117 32:113 33:104 34:72 35:72 36:82 37:95 38:70 39:62 40:69 41:42 42:36 43:38 44:32 45:28 46:27 47:36 48:30 49:21 50:27 51:28 52:29 53:20 54:33 55:18 56:17 57:16 58:11 59:10 60:15
+    hits, lives with 0 drains: 0:21 1:26 2:9 3:48 4:34 5:35 6:134 7:81 8:49 9:5701 10:737 11:124 12:24 13:10 14:3 15:1 16:1 17:1
+    max 8, drains capped: armour at death -1:12375 -2:1554 -3:281 -4:63 -5:18 -6:7 -7:3 -8:4 -9:2 0:152 >0:984  (exactly 0 in 152/15443)
+    max 9, drains capped: armour at death -1:1554 -2:281 -3:63 -4:18 -5:7 -6:3 -7:4 -8:2 0:12375 >0:1136  (exactly 0 in 12375/15443)
+    max 10, drains capped: armour at death -1:281 -2:63 -3:18 -4:7 -5:3 -6:4 -7:2 0:1554 >0:13511  (exactly 0 in 1554/15443)
+  death code 2: n 49
+    hits histogram:            9:24 10:4 11:4 12:3 13:1 14:1 15:3 16:3 20:1 23:1 27:1 31:1 50:1 51:1
+    hits, lives with 0 drains: 9:23 10:3
+    max 8, drains capped: armour at death -1:40 -2:8 -6:1  (exactly 0 in 0/49)
+    max 9, drains capped: armour at death -1:8 -5:1 0:40  (exactly 0 in 40/49)
+    max 10, drains capped: armour at death -4:1 0:8 >0:40  (exactly 0 in 8/49)
+  death code 3: n 775
+    hits histogram:            0:200 1:170 2:25 3:18 4:17 5:40 6:36 7:53 8:73 9:13 10:13 11:4 12:10 13:9 14:6 15:15 16:5 17:4 18:8 19:6 20:3 21:2 22:2 23:2 24:4 25:2 26:1 27:6 28:1 29:1 30:2 31:2 32:2 33:3 34:1 38:2 39:2 40:2 41:2 46:1 49:1 51:1 59:1 60:1
+    hits, lives with 0 drains: 0:200 1:170 2:21 3:16 4:14 5:32 6:29 7:48 8:60 9:1
+    max 8, drains capped: armour at death -1:2 0:97 >0:676  (exactly 0 in 97/775)
+    max 9, drains capped: armour at death 0:2 >0:773  (exactly 0 in 2/775)
+    max 10, drains capped: armour at death >0:775  (exactly 0 in 0/775)
+
+[man] walking speed by terrain under the man, restatements <= 25 ticks apart
+
+    group               n     min      p5     p25  median     p75     max  px/tick
+    boat              243    0.05    0.13    0.33    0.73    0.98    6.08
+    building        23865    0.05    0.28    0.62    0.87    1.02   15.58
+    crater          65447    0.04    0.14    0.20    0.25    0.33    5.63
+    deep sea          950    0.05    0.33    0.64    0.83    1.00    2.01
+    forest         297018    0.04    0.14    0.34    0.46    0.54   12.76
+    grass          1051919    0.04    0.49    0.83    0.97    1.08   15.65
+    river            1103    0.05    0.17    0.36    0.64    0.85    2.33
+    road           1801708    0.04    0.58    0.87    1.00    1.10   99.38
+    rubble          88628    0.04    0.14    0.20    0.25    0.33    7.43
+    shot building     485    0.06    0.14    0.31    0.52    0.80    2.24
+    swamp            4898    0.05    0.13    0.20    0.25    0.32    2.39
+  terrain under the man, centre convention: boat:2589 building:52318 crater:78438 deep sea:10259 forest:427993 grass:1263564 river:7065 road:2022312 rubble:110804 shot building:2250 swamp:6080
+  terrain under the man, top-left convention: boat:2542 building:49387 crater:47055 deep sea:12051 forest:332404 grass:1313807 river:12686 road:2126391 rubble:59826 shot building:24071 swamp:3452
+  dwell on the square before each build event (ticks since the man entered it)
+
+    group               n     min      p5     p25  median     p75     max  ticks
+    build boat         93    0.00    0.00    6.00    8.00   12.00   28.00
+    build building  14570    0.00    0.00    7.00   10.00   13.00 1506.00
+    build grass (harvest) 101858    0.00    5.00   12.00   14.00   18.00  523.00
+    build grass         7    0.00    0.00    0.00   12.00   18.00   20.00
+    build river         3    7.00    7.00    7.00   48.00   59.00   59.00
+    build road      13242    0.00    7.00   20.00   25.00   30.00  736.00
+    man plants mine    196    0.00    0.00    7.00   11.00   15.00   37.00
+    pill repair_12   6425    0.00    0.00    6.00    9.00   12.00  134.00
+    pill repair_4    2914    0.00    0.00    6.00    9.00   12.00   34.00
+    pill repair_8    8184    0.00    0.00    6.00    9.00   12.00  402.00
+    pill repair_full   8645    0.00    0.00    6.00    9.00   12.00  190.00
+    plant pill      28132    0.00    0.00    7.00    9.00   12.00  403.00
+  parachute runs (consecutive status-4 records): n 6507, min 13, p25 3319, median 4302, p75 5382, max 19693 ticks
+  parachute histogram in seconds: 0:1 1:1 4:1 5:1 6:4 7:3 8:4 9:3 10:1 11:3 12:4 13:4 14:5 15:5 16:8 17:8 18:3 19:7 20:11 21:6 22:4 23:3 24:5 25:7 26:12 27:8 28:9 29:11 30:12 31:11 32:11 33:13 34:20 35:20 36:16 37:24 38:26 39:16 40:26 41:30 42:41 43:35 44:31 45:26 46:30 47:28 48:46 49:40 50:41 51:43 52:44 53:44 54:44 55:55 56:58 57:72 58:71 59:53 60:58 61:62 62:69 63:63 64:77 65:64 66:72 67:71 68:80 69:91 70:85 71:92 72:71 73:72 74:83 75:76 76:75 77:79 78:103 79:96 80:72 81:91 82:84 83:74 84:88 85:95 86:83 87:75 88:84 89:85 90:76 91:74 92:74 93:81 94:74 95:74 96:93 97:77 98:64 99:81 100:75 101:84 102:88 103:55 104:77 105:58 106:72 107:56 108:52 109:79 110:56 111:56 112:76 113:65 114:31 115:49 116:56 117:52 118:35 119:46 120:48 121:37 122:28 123:35 124:44 125:27 126:38 127:39 128:31 129:36 130:30 131:22 132:21 133:28 134:16 135:21 136:29 137:16 138:29 139:23 140:18 141:15 142:21 143:19 144:18 145:15 146:9 147:14 148:19 149:14 150:15 151:14 152:16 153:11 154:15 155:9 156:10 157:11 158:6 159:4 160:5 161:10 162:3 163:3 164:5 165:8 166:5 167:7 168:1 169:1 170:3 171:4 172:1 173:2 174:4 175:2 176:2 177:2 178:3 179:5 180:1 181:3 182:1 183:1 186:1 187:2 189:1 190:1 191:1 193:1 194:1 195:2 197:1 198:2 199:3 200:1 204:2 207:2 211:1 212:1 214:3 229:1 239:1 394:1
+  parachute path: total movement px median 543 (max 1696), start-to-end px median 501 (max 1435), end-to-tank px median 210; run ends with the man walking in 6435/6507
+  parachute start to the tank's position at the death: px median 502 (p25 391, p75 611); end to that position: median 6 (p25 3, p75 10)
+  parachute start's distance from the nearest map edge: px median 1703, min 664, max 2040
+  first five runs, start square -> end square: (110,145) -> (134,136), (110,111) -> (137,138), (145,146) -> (109,116), (145,110) -> (129,115), (110,111) -> (145,139)
+  parachute starts on a start square (F1 04 list): 6505/6507; on the start nearest the landing: 397
+  parachute speed over runs moving >32 px: median 0.120 px/tick, n 6500
+
+[regrowth] forest appearing where it was not
+  events 60905; prior terrain: grass:60009 crater:41 road:840 swamp:10 rubble:4 deep sea:1
+  senders: player 0:18607 player 1:16410 player 2:11244 player 3:11240 player 4:2092 player 5:1241 player 6:28 player 7:43
+  rate: 1.479 per player-minute (41170 player-minutes present)
+  grass squares on the map: mean 624, of which touching forest 117 (18.7%)
+  regrowth squares with N forest neighbours (of 8): 0:141 1:218 2:291 3:2880 4:19665 5:18185 6:9657 7:6575 8:3293; with >= 1: 60764/60905
+  rate per grass square: 0.1422 per player-hour; per forest-touching grass square: 0.7596 per player-hour
+
+[refuel] ticks between consecutive drains of one resource from one base by one tank (<= 200)
+
+    group               n     min      p5     p25  median     p75     max  ticks
+    armor           91244    4.00   50.00   51.00   54.00   56.00  200.00
+    mines          178520    1.00    5.00    6.00    8.00   10.00  200.00
+    shells         905090    1.00    5.00    7.00    9.00   12.00  200.00
+  armor histogram 0..40: 4:1 10:1 11:3 14:1 15:5 16:2 18:3 19:1 20:1 23:2 24:1 25:1 26:2 28:1 31:1 32:1 33:1 34:4 35:4 36:2 37:8 38:4 39:7 40:10
+  mines histogram 0..40: 1:1 2:29 3:101 4:1111 5:14532 6:32423 7:28872 8:21432 9:17839 10:17556 11:10970 12:9433 13:6116 14:3672 15:4292 16:2829 17:2017 18:1151 19:582 20:456 21:291 22:185 23:159 24:112 25:94 26:101 27:90 28:105 29:96 30:105 31:56 32:42 33:34 34:42 35:38 36:33 37:44 38:41 39:35 40:51
+  shells histogram 0..40: 1:8 2:124 3:493 4:4872 5:59571 6:139827 7:123716 8:101154 9:90386 10:89796 11:62643 12:59138 13:39629 14:25116 15:31552 16:24143 17:18355 18:10839 19:5354 20:4998 21:3261 22:1545 23:1031 24:726 25:507 26:388 27:355 28:308 29:260 30:273 31:177 32:145 33:99 34:85 35:81 36:75 37:69 38:75 39:59 40:63
+  drains within 20 ticks of a drain of a different resource by the same tank: 15529, others 1260639
+
+[base] base armour (model) just before each shell hit, and at each capture
+  at hit:     0:45 1:15 2:6 3:5 4:3 5:2114 6:1941 7:1529 8:1382 9:1195 10:2217 11:1873 12:1589 13:1176 14:1165 15:2178 16:1803 17:1196 18:1076 19:1023 20:2125 21:1566 22:1111 23:878 24:907 25:2017 26:1465 27:988 28:808 29:752 30:2087 31:1373 32:953 33:662 34:722 35:2101 36:1289 37:805 38:625 39:638 40:2190 41:1224 42:758 43:537 44:579 45:2195 46:1117 47:688 48:526 49:517 50:2330 51:1029 52:597 53:477 54:500 55:2343 56:993 57:546 58:394 59:447 60:2455 61:854 62:484 63:361 64:392 65:2538 66:756 67:424 68:321 69:319 70:2702 71:607 72:308 73:263 74:260 75:2817 76:491 77:259 78:202 79:197 80:2926 81:339 82:167 83:145 84:140 85:3219 86:211 87:90 88:87 89:75 90:4160
+  at capture: 0:2397 1:1992 2:1833 3:1529 4:1778 5:710 6:604 7:369 8:490 9:241 14:1 16:1 18:1 19:1 22:1 24:1 25:1 26:1 28:1 30:1 34:1 37:1 38:2 39:1 42:2 43:1 45:1 46:2 48:1 54:1 55:2 57:2 65:1 66:1 69:2 70:3 71:1 73:1 75:1 76:2 77:1 78:2 80:1 81:1 82:1 86:1 87:2 90:7019
+    captured from departed  n   90: 0:3 2:1 3:3 4:2 5:2 8:5 9:1 14:1 16:1 18:1 19:1 24:1 25:1 28:1 30:1 34:1 37:1 38:1 42:1 45:1 46:2 48:1 54:1 55:2 57:2 65:1 66:1 69:1 70:2 71:1 75:1 76:1 77:1 78:1 80:1 81:1 82:1 86:1 87:2 90:36
+    captured from hostile   n 11945: 0:2394 1:1992 2:1832 3:1526 4:1776 5:708 6:604 7:369 8:485 9:240 22:1 26:1 38:1 39:1 42:1 43:1 70:1 76:1 78:1 90:10
+    captured from neutral   n 6975: 69:1 73:1 90:6973
+
+[hidden] the hidden bit against forest under the tank's box
+  hidden set: n 320198; centre square forest 319955; whole 16px box in forest 319528; 14px box 319586; all 3x3 squares 168511
+  hidden clear, centre square forest: n 288775; whole 16px box in forest 15038; 14px box 47295; all 3x3 squares 10
+  Chebyshev px from tank centre to the nearest non-forest square (centre in forest, within 2 squares):
+    hidden: 1:43 2:50 3:70 4:61 5:57 6:63 7:58 8:45 9:20043 10:19951 11:18675 12:18111 13:18769 14:18548 15:18328 16:18572 17:13413 18:12540 19:12665 20:11608 21:12572 22:11315 23:10886 24:10465 25:6151 26:6215 27:5494 28:5560 29:5257 30:5160 31:4891 32:4576
+    shown:  1:43104 2:39206 3:37818 4:35546 5:35483 6:34221 7:32376 8:30965 9:8 10:8 11:5 12:10 13:4 14:6 15:3 16:2 17:2 20:2 22:2 23:4
