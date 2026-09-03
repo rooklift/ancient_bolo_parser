@@ -1,0 +1,96 @@
+443 logs, 13338093 records
+
+[gaps] between consecutive records of one player: 13303354 live silences, 1006 absences (>= 30 s, or ended by a quit)
+  wall clock:
+  all live     n= 13303354  p50 0.1 s  p90 0.3 s  p99 0.8 s  p99.9 5.2 s  max 28.9 s
+  idle tank    n=   673328  p50 0.1 s  p90 0.4 s  p99 5.6 s  p99.9 9.2 s  max 19.7 s
+  moving tank  n= 12630026  p50 0.1 s  p90 0.3 s  p99 0.5 s  p99.9 3.9 s  max 28.9 s
+  ring heard turning:
+  all live     n= 13303354  p50 0.0 s  p90 0.0 s  p99 0.5 s  p99.9 4.7 s  max 28.9 s
+  idle tank    n=   673328  p50 0.0 s  p90 0.2 s  p99 4.9 s  p99.9 8.4 s  max 19.4 s
+  moving tank  n= 12630026  p50 0.0 s  p90 0.0 s  p99 0.3 s  p99.9 3.2 s  max 28.9 s
+
+[histogram, wall clock] live silences over 2 s, 1 s bins (idle / moving)
+    2-3   s     5764 /   12666
+    3-4   s    11004 /    6753
+    4-5   s     7696 /    5846
+    5-6   s     4638 /    4230
+    6-7   s     2203 /     842
+    7-8   s     1499 /     540
+    8-9   s      630 /     394
+    9-10  s      366 /     158
+   10-11  s      243 /      93
+   11-12  s       70 /      33
+   12-13  s       47 /      36
+   13-14  s       27 /      16
+   14-15  s       13 /      21
+   15-16  s        3 /      23
+   16-17  s        3 /      17
+   17-18  s        0 /       4
+   18-19  s        0 /       3
+   19-20  s        1 /       3
+   20-21  s        0 /       7
+   21-22  s        0 /       7
+   22-23  s        0 /       4
+   23-24  s        0 /       4
+   24-25  s        0 /       6
+   26-27  s        0 /       1
+   27-28  s        0 /       2
+   28-29  s        0 /       8
+
+[histogram, ring] live silences over 2 s, 1 s bins (idle / moving)
+    2-3   s     7667 /    7636
+    3-4   s     9196 /    4776
+    4-5   s     5025 /    6268
+    5-6   s     2935 /    1710
+    6-7   s     1462 /     494
+    7-8   s      973 /     294
+    8-9   s      411 /     163
+    9-10  s      233 /      67
+   10-11  s      120 /      40
+   11-12  s       41 /      18
+   12-13  s       26 /      12
+   13-14  s        9 /      14
+   14-15  s        6 /      10
+   15-16  s        3 /       7
+   16-17  s        1 /       4
+   17-18  s        0 /       4
+   18-19  s        0 /       4
+   19-20  s        1 /       4
+   20-21  s        0 /       4
+   21-22  s        0 /       4
+   22-23  s        0 /       1
+   23-24  s        0 /       2
+   24-25  s        0 /       5
+   25-26  s        0 /       1
+   27-28  s        0 /       1
+   28-29  s        0 /       6
+
+[thresholds] live silences a fade-after-N-seconds rule would fade, idle / moving, and the logs any occur in (of 443)
+         wall clock                          ring
+    3 s   28313 /  18844 in  443 logs      20187 /  13780 in  442 logs
+    5 s    9660 /   6158 in  413 logs       6099 /   2682 in  359 logs
+    8 s    1382 /    831 in  149 logs        845 /    366 in  124 logs
+   10 s     401 /    285 in   97 logs        204 /    141 in   77 logs
+   12 s      93 /    162 in   68 logs         46 /     82 in   52 logs
+   15 s       7 /     89 in   47 logs          5 /     47 in   29 logs
+   20 s       0 /     39 in   21 logs          0 /     24 in   14 logs
+   25 s       0 /     11 in    7 logs          0 /      8 in    5 logs
+
+[longest] live silences by the ring reading, with the records heard from others meanwhile
+  ring  28.9 s  wall  28.9 s  012802.1  player 1  moving  at 1151.3 s  heard: p0:1 p2:1 p3:1 p4:1 p5:1
+  ring  28.9 s  wall  28.9 s  012802.1  player 5  moving  at 1151.3 s  heard: p0:1 p1:1 p2:1 p3:1 p4:1
+  ring  28.9 s  wall  28.9 s  012802.1  player 4  moving  at 1151.3 s  heard: p0:1 p1:1 p2:1 p3:1 p5:1
+  ring  28.4 s  wall  28.8 s  111502.1~a686d0  player 0  moving  at 150.0 s  heard: p1:7 p2:6 p3:6
+  ring  28.3 s  wall  28.7 s  101502.1~ac361f  player 4  moving  at 1237.9 s  heard: p0:7 p1:6 p2:92 p3:6
+  ring  28.0 s  wall  28.3 s  101502.1~ac361f  player 3  moving  at 1159.0 s  heard: p0:62
+  ring  27.1 s  wall  27.3 s  101502.2~611f73  player 1  moving  at 3024.8 s  heard: p0:68 p2:42 p3:188
+  ring  25.9 s  wall  26.1 s  060402  player 1  moving  at 738.3 s  heard: p0:93 p2:7 p3:8
+  ring  24.6 s  wall  24.8 s  110702.1~031855  player 2  moving  at 1066.2 s  heard: p0:137 p1:3
+  ring  24.1 s  wall  24.1 s  ~01b17d  player 3  moving  at 1011.3 s  heard: p0:1 p1:1 p2:1
+  ring  24.1 s  wall  24.1 s  ~01b17d  player 0  moving  at 1011.3 s  heard: p1:1 p2:1 p3:1
+  ring  24.1 s  wall  24.1 s  ~01b17d  player 1  moving  at 1011.3 s  heard: p0:1 p2:1 p3:1
+  ring  24.0 s  wall  24.8 s  012302  player 5  moving  at 24.8 s  heard: p0:84 p1:5 p2:6 p3:4 p4:9
+  ring  23.3 s  wall  27.4 s  053001~d5b10b  player 0  moving  at 456.3 s  heard: p1:2 p2:2
+  ring  23.1 s  wall  28.9 s  012802.1  player 0  moving  at 1151.3 s  heard: p1:1 p2:1 p3:1 p4:1 p5:1
+  ring  22.6 s  wall  22.8 s  110802.3  player 2  moving  at 1429.9 s  heard: p0:16 p1:81 p3:22 p4:95 p5:67
