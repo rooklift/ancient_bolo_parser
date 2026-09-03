@@ -26,14 +26,18 @@
  *   and a burst of records at one tick, the usual end of a stall, does
  *   not count against the players in the burst, which is how the viewer
  *   sees it too (it applies every record at a tick before drawing).
- *   The viewer keys its fade to this reading.
  *
  *   CYCLES: the most records heard from any one other player across
  *   the silence -- how many times the ring went round without him. A
  *   CRAWL, the ring freezing for everyone, reads long by time but one
  *   or two by cycles (the corpus has 29 s stretches with every player
  *   heard exactly once); a split reads sixty and more, one voice heard
- *   over and over. The viewer fades only past both bounds.
+ *   over and over.
+ *
+ * The viewer's fade reads the playback clock, the WALL column, at 15 s.
+ * The other two are the readings a subtler rule would use, measured so
+ * the difference is on record: they buy a few dozen events corpus-wide,
+ * not enough for the state they would need.
  *
  * A gap is a LIVE SILENCE when its wall reading is under 30 s (the
  * absence bound network.js uses for a machine that is gone) and the
@@ -70,7 +74,7 @@ const BoloLog = require(path.join(__dirname, "..", "viewer", "logparse.js"));
 const TPS = BoloLog.TICKS_PER_SECOND;
 const ABSENCE_TICKS = 30 * TPS;
 const THRESHOLDS = [3, 5, 8, 10, 12, 15, 20, 25];
-const CYCLES = 5; /* the viewer's GHOST_CYCLES */
+const CYCLES = 5; /* ring cycles heard, for the combined column */
 const BIN_SECONDS = 1;
 const SHOW_LONGEST = 16;
 

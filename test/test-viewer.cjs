@@ -2377,28 +2377,6 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	check("map-run record still proves liveness", st.tanks[0].lastSeen, 500);
 }
 
-// The ring heard going round without a player: every record from anyone
-// else counts against him, and his own record clears the count -- an
-// attached-log pseudo-record (T=F) is nobody's voice and counts for none.
-{
-	const st = BoloGame.initial_state();
-	const from = (player, time, tankStatus = 0) => BoloGame.apply_record(st, {
-		time, seq: 0, status: 0, player, tankStatus, tankDir: 0, subpackets: [],
-	}, null, null);
-	from(1, 100);
-	from(2, 101);
-	from(1, 102);
-	from(0, 103, 0x0f);
-	check("records from others are heard against a silent player", st.heard[0].slice(0, 3), [0, 2, 1]);
-	check("a player's own record clears his count", st.heard[1].slice(0, 3), [0, 0, 0]);
-	check("while the others go on counting him", st.heard[2].slice(0, 3), [0, 1, 0]);
-	from(0, 104);
-	check("and starts the others counting him", [st.heard[0][1], st.heard[1][0], st.heard[2][0]], [0, 1, 1]);
-	const copy = BoloGame.clone_state(st);
-	from(1, 105);
-	check("a cloned state keeps its own counts", [copy.heard[0][1], st.heard[0][1]], [0, 1]);
-}
-
 // Leaving an alliance: planted pills remain with the alliance (manual:
 // "any active ones on the map remain with the members"), carried pills
 // leave with the player, and bases go over with the pills (ownership works

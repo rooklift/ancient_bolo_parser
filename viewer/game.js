@@ -136,9 +136,6 @@ function initial_state(seed) {
 		present: Array.from({ length: 16 }, () => false),
 		quit: Array.from({ length: 16 }, () => false),
 		quitTime: Array.from({ length: 16 }, () => -Infinity),
-		heard: Array.from({ length: 16 }, () => new Array(16).fill(0)),
-			/* heard[p][q]: records from q since p's own last record -- how
-			 * many times the ring has been heard going round without p */
 		gameInfo: null,
 		lastAllianceEvent: -Infinity, /* tick of the last request, accept or leave */
 	};
@@ -159,7 +156,6 @@ function clone_state(s) {
 		present: s.present.slice(),
 		quit: s.quit.slice(),
 		quitTime: s.quitTime.slice(),
-		heard: s.heard.map(row => row.slice()),
 		gameInfo: s.gameInfo,
 		lastAllianceEvent: s.lastAllianceEvent,
 	};
@@ -380,10 +376,6 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 	 * ride on position freshness alone. */
 	if (rec.tankStatus !== 0x0f && s.tanks[pl]) {
 		s.tanks[pl].lastSeen = rec.time;
-	}
-	if (rec.tankStatus !== 0x0f) {
-		for (let q = 0; q < 16; q++) if (q !== pl) s.heard[q][pl]++;
-		s.heard[pl].fill(0);
 	}
 
 	/* Every record restates the sender's LGM state in the status nibble:
