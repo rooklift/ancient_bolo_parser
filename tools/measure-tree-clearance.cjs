@@ -56,7 +56,13 @@
  *        and since the rule never cleared it and no event ever cleared it,
  *        nothing innocent is left.  This is the sharpest evidence in the
  *        table: it convicts a rule using the game's own events, with no
- *        appeal to shells or geometry.
+ *        appeal to shells or geometry.  It is counted only from the first
+ *        base capture on, the settled-play marker [E:seq-loss]: before it
+ *        the peers' map copies are still being reconciled, and a machine
+ *        whose copy lacks a tree the recorder's copy has will grow one
+ *        (two such growths in a second corpus, both under 90 s into the
+ *        log, one from a player who had joined 50 s earlier). Those go in
+ *        the "gathering" column instead, and are listed under --samples.
  *
  * A rule that is too small accumulates plants; one that is too large
  * accumulates contradictions and hidden-tank hits.  The right size is the
@@ -230,6 +236,7 @@ function new_stats() {
 		other_mutations: 0,
 		plants_on_forest: 0,
 		regrowth_anomalies: 0,
+		regrowth_anomalies_gathering: 0,
 		contradiction_samples: [],
 		hidden_tank_samples: [],
 		plant_samples: [],
@@ -259,10 +266,12 @@ function set_terrain(model, x, y, terrain, evidence) {
 		return;
 	let key = square_key(x, y);
 	if (evidence && is_forest(terrain) && is_forest(model.grid[key])) {
-		model.stats.regrowth_anomalies++;
+		if (evidence.settled) model.stats.regrowth_anomalies++;
+		else model.stats.regrowth_anomalies_gathering++;
 		let prev = model.last_event.get(key);
 		add_sample(model.stats.regrowth_samples,
-			`${evidence.file} ${format_time(evidence.time)} ${evidence.source} regrowth on model-forest (${x},${y}); ` +
+			`${evidence.file} ${format_time(evidence.time)} ${evidence.source} regrowth on model-forest (${x},${y})` +
+			`${evidence.settled ? "" : " (gathering phase, before the first base capture)"}; ` +
 			(prev ? `the square's last event was ${prev.source} at ${format_time(prev.time)}` : "no event ever touched the square: the tree is the map's"));
 	}
 	if (evidence)
@@ -330,6 +339,12 @@ function scan_file(file, totals) {
 		return false;
 	let records = [...BoloLog.records(bytes, {})];
 	time_base = records.length ? records[0].time : 0;
+	/* settled play begins at the first base capture [E:seq-loss]; a log
+	 * with none is taken as settled throughout rather than discarded */
+	let first_capture = -Infinity;
+	for (let record of records) {
+		if (record.subpackets.some(sub => sub.type === "base_capture")) { first_capture = record.time; break; }
+	}
 	let seed = BoloGame.extract_initial_map(records);
 	let models = Object.fromEntries(Object.keys(RULES).map(name => [name, new_model(seed)]));
 	let relative_file = replay_label(file);
@@ -388,6 +403,7 @@ function scan_file(file, totals) {
 				let evidence = {
 					file: relative_file,
 					time: record.time,
+					settled: record.time >= first_capture,
 					source: sub.type === "terrain_change" ?
 						`6${sub.terrain.toString(16).toUpperCase()}` :
 						`7${sub.code.toString(16).toUpperCase()}`,
@@ -465,6 +481,7 @@ const COLUMNS = [
 	["hidden", 7],
 	["plants", 7],
 	["regrown", 8],
+	["gathering", 10],
 ];
 console.log("  " + COLUMNS.map(([h, w]) => h.padStart(w)).join(""));
 for (let [name, s] of Object.entries(totals)) {
@@ -476,6 +493,7 @@ for (let [name, s] of Object.entries(totals)) {
 		s.hidden_tank_evidence,
 		s.plants_on_forest,
 		s.regrowth_anomalies,
+		s.regrowth_anomalies_gathering,
 	];
 	console.log("  " + row.map((v, i) => String(v).padStart(COLUMNS[i][1])).join(""));
 }
