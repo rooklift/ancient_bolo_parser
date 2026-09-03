@@ -1,0 +1,412 @@
+
+n20021018.2: 120840 records, 136.8 min, game type 3, 4 names
+
+[reload] ticks between a tank's consecutive fires (histogram 1..40)
+  9:7 10:4 11:275 12:3602 13:3725 14:379 15:40 16:15 17:10 18:12 19:15 20:7 21:4 22:1 23:3 24:134 25:700 26:132 27:18 28:19 29:7 30:1 31:4 33:2 34:1 36:1 37:12 38:14 39:3 40:2
+  gaps <= 100 ticks: n 9323, min 0, p5 12, median 13
+  fires per record: 1:10519 2:43
+  sender record cadence for comparison: min 0, p5 11, median 13, p75 13 ticks
+
+[turn] ticks per sixteenth of a circle, consecutive restatements <= 50 ticks apart, |delta| >= 2, by terrain at the start
+  (pairwise: biased by record cadence when the cadence is coarse)
+    group               n     min      p5     p25  median     p75     max  ticks/sixteenth
+    boat              229    5.00    6.00    6.00    6.50    6.50    8.33
+    crater              5    6.00    6.00    6.50    6.50    6.50    6.50
+    forest            110    5.50    6.00    6.00    6.50    7.50   25.00
+    grass            2931    4.00    6.00    6.00    6.50    6.50   18.50
+    road             8137    4.00    6.00    6.00    6.50    6.50   25.00
+    rubble             15    6.00    6.00    6.00    6.50    7.00   19.00
+  interval between direction changes while turning, by terrain and speed class (full circle = 16 x median; resolves only on a fine cadence)
+    group               n     min      p5     p25  median     p75     max  ticks/sixteenth
+    crater slow         4   24.00   24.00   25.00   26.00   39.00   39.00
+    forest mid          6   12.50   12.50   13.00   24.00   24.00   25.00
+    forest slow        53   12.50   12.50   24.00   25.00   25.00   31.00
+    grass mid          17   12.00   12.00   12.50   12.50   13.00   25.00
+    grass slow          3   12.50   12.50   12.50   12.50   12.50   12.50
+    road fast          28   12.00   12.00   12.50   15.00   25.00   26.00
+    road mid           13   12.00   12.00   12.50   12.50   14.00   25.00
+    rubble slow         3   14.50   14.50   14.50   25.00   36.00   36.00
+
+[speed] pixels per tick between restatements <= 25 ticks apart at constant heading and speed byte, by speed byte
+  
+    group               n     min      p5     p25  median     p75     max  px/tick
+  speed byte by terrain under the tank centre (max, p75, median):
+    boat           n   4797  max  64  p75  64  median  64
+    crater         n    863  max  64  p75  46  median  26
+    forest         n   4102  max  64  p75  25  median  24
+    grass          n  21891  max  64  p75  48  median  48
+    river          n     73  max  64  p75  27  median  12
+    road           n  59230  max  64  p75  64  median  58
+    rubble         n   1357  max  64  p75  44  median  27
+    swamp          n      6  max  31  p75  18  median  12
+
+[pill] ticks between one pillbox's consecutive fires (<= 400), by hits it took in the previous 5 s
+  
+    group               n     min      p5     p25  median     p75     max  ticks
+    0 hits/5s        2832    0.00    0.00   13.00   25.00   77.00  399.00
+    1 hits/5s         548    0.00    0.00   12.00   13.00   26.00  382.00
+    2 hits/5s         693    0.00    0.00    0.00   12.00   14.00  355.00
+    3 hits/5s         861    0.00    0.00    0.00   12.00   13.00  377.00
+    4 hits/5s        1148    0.00    0.00    0.00   12.00   13.00  302.00
+    5 hits/5s        1054    0.00    0.00    0.00    0.00   13.00  327.00
+    6+ hits/5s       4679    0.00    0.00    0.00    0.00   13.00  392.00
+  all gaps histogram 1..40: 9:8 10:6 11:139 12:2175 13:2311 14:233 15:25 16:8 17:6 18:3 19:7 20:7 21:3 24:60 25:517 26:129 27:17 28:18 29:8 30:2 31:3 32:2 33:1 34:1 35:2 36:27 37:124 38:137 39:32 40:12
+  by time since the pill was last hit
+    group               n     min      p5     p25  median     p75     max  ticks
+    a <5 s           8971    0.00    0.00    0.00   12.00   13.00  392.00
+    b 5-15 s          943    0.00   12.00   12.00   13.00   25.00  399.00
+    c 15-30 s         433    0.00   12.00   25.00   37.00   50.00  389.00
+    d 30-60 s         358    0.00    0.00   37.00   62.00   77.00  395.00
+    e 60-120 s        366    0.00    0.00   13.00   51.00  100.00  395.00
+    f >120 s          744    0.00    0.00   12.00   38.00  100.00  399.00
+  fires by one pill within one record (the record cadence is ~13 ticks):
+    hit <5 s ago   1:1997 2:2345 3:873 4:1 5:1
+    quiet >=5 s    1:3310 2:160 3:42 4:1
+  F1 02 speed byte of firing pills (model): 100:13075
+
+[armour] shell hits per life, at death; first life of each player excluded (unknown start)
+  lives 239, usable 235; tank_hit sender is the hit tank itself 2894, another player 985; same tank hit again within 2 ticks by a different sender 33
+  death code 1: n 227
+    hits histogram:            3:1 6:2 8:1 9:68 10:19 11:12 12:10 13:10 14:7 15:7 16:8 17:8 18:5 19:2 20:3 21:8 22:3 23:7 24:6 25:7 26:6 27:5 28:1 29:1 30:3 32:2 33:2 34:1 36:2 37:1 38:1 39:1 40:1 41:1 42:1 44:2 46:1
+    hits, lives with 0 drains: 3:1 6:2 8:1 9:68 10:12 11:5 12:1
+    max 8, drains capped: armour at death -1:177 -2:32 -3:6 -4:2 0:3 >0:7  (exactly 0 in 3/227)
+    max 9, drains capped: armour at death -1:32 -2:6 -3:2 0:177 >0:10  (exactly 0 in 177/227)
+    max 10, drains capped: armour at death -1:6 -2:2 0:32 >0:187  (exactly 0 in 32/227)
+  death code 3: n 8
+    hits histogram:            0:8
+    hits, lives with 0 drains: 0:8
+    max 8, drains capped: armour at death >0:8  (exactly 0 in 0/8)
+    max 9, drains capped: armour at death >0:8  (exactly 0 in 0/8)
+    max 10, drains capped: armour at death >0:8  (exactly 0 in 0/8)
+
+[man] walking speed by terrain under the man, restatements <= 25 ticks apart
+  
+    group               n     min      p5     p25  median     p75     max  px/tick
+    building          263    0.26    0.39    0.65    0.87    0.98    1.42
+    crater           1001    0.07    0.15    0.22    0.25    0.30    1.14
+    forest           2979    0.06    0.08    0.24    0.45    0.51    1.41
+    grass            6922    0.08    0.45    0.84    0.94    1.02    1.82
+    river               7    0.17    0.17    0.61    0.73    0.85    0.95
+    road            11816    0.06    0.47    0.90    0.96    1.03    1.82
+    rubble           1437    0.07    0.15    0.22    0.25    0.30    1.11
+    shot building       2    0.15    0.15    0.15    0.19    0.19    0.19
+  terrain under the man, centre convention: building:320 crater:1224 deep sea:103 forest:4230 grass:7856 river:176 road:13341 rubble:1685 shot building:5
+  terrain under the man, top-left convention: boat:70 building:230 crater:742 forest:3529 grass:8957 river:371 road:14063 rubble:840 shot building:138
+  dwell on the square before each build event (ticks since the man entered it)
+  
+    group               n     min      p5     p25  median     p75     max  ticks
+    build building    214    0.00    0.00   12.00   12.00   13.00   37.00
+    build grass (harvest)   1271    0.00    0.00   12.00   13.00   13.00   51.00
+    build road        247    0.00   11.00   24.00   25.00   26.00   50.00
+    man plants mine      7    0.00    0.00   12.00   12.00   24.00   37.00
+    pill repair_12     77    0.00    0.00   12.00   12.00   13.00   15.00
+    pill repair_4      64    0.00    0.00    0.00   12.00   13.00   14.00
+    pill repair_8      97    0.00    0.00   11.00   12.00   13.00   19.00
+    pill repair_full     93    0.00    0.00    0.00   12.00   13.00   18.00
+    plant pill        276    0.00    0.00   11.00   12.00   13.00   46.00
+  parachute runs (consecutive status-4 records): n 63, min 2053, p25 4691, median 5653, p75 6454, max 10344 ticks
+  parachute histogram in seconds: 41:1 46:1 53:2 61:1 68:1 69:1 71:1 78:1 80:1 81:1 86:2 93:1 94:2 95:1 98:1 99:1 101:1 102:2 104:1 106:1 108:1 109:2 110:1 112:1 113:3 114:1 116:1 118:1 119:1 120:2 121:2 122:2 124:2 125:2 127:1 129:1 130:1 134:3 135:1 142:1 143:1 148:2 153:1 156:1 158:1 165:1 179:1 207:1
+  parachute path: total movement px median 629 (max 1047), start-to-end px median 608 (max 1001), end-to-tank px median 289; run ends with the man walking in 62/63
+  parachute start to the tank's position at the death: px median 617 (p25 507, p75 728); end to that position: median 11 (p25 8, p75 16)
+  parachute start's distance from the nearest map edge: px median 1657, min 1655, max 1673
+  first five runs, start square -> end square: (104,105) -> (138,139), (105,152) -> (123,125), (104,151) -> (120,108), (151,104) -> (120,142), (151,152) -> (147,123)
+  parachute starts on a start square (F1 04 list): 63/63; on the start nearest the landing: 4
+  parachute speed over runs moving >32 px: median 0.104 px/tick, n 63
+
+[regrowth] forest appearing where it was not
+  events 860; prior terrain: grass:858 crater:2
+  senders: player 0:243 player 1:148 player 2:230 player 3:239
+  rate: 1.579 per player-minute (545 player-minutes present)
+  grass squares on the map: mean 882, of which touching forest 225 (25.6%)
+  regrowth squares with N forest neighbours (of 8): 3:24 4:117 5:234 6:199 7:172 8:114; with >= 1: 860/860
+  rate per grass square: 0.1074 per player-hour; per forest-touching grass square: 0.4204 per player-hour
+
+[refuel] ticks between consecutive drains of one resource from one base by one tank (<= 200)
+  
+    group               n     min      p5     p25  median     p75     max  ticks
+    armor            1268   44.00   49.00   50.00   52.00   62.00  188.00
+    mines            1644   11.00   12.00   12.00   13.00   13.00  137.00
+    shells          12498    9.00   11.00   12.00   12.00   13.00  194.00
+  armor histogram 0..40: 
+  mines histogram 0..40: 11:77 12:745 13:700 14:60 15:20 16:17 17:5 18:3 19:2 20:1 21:1 22:1 23:1
+  shells histogram 0..40: 9:1 10:17 11:608 12:5707 13:5342 14:522 15:128 16:81 17:18 18:13 19:7 20:16 21:4 22:1 23:5 24:1 26:1 36:1 37:3 38:2 40:1
+  drains within 20 ticks of a drain of a different resource by the same tank: 0, others 16801
+
+[base] base armour (model) just before each shell hit, and at each capture
+  at hit:     1:1 2:1 5:37 6:43 7:38 8:33 9:35 10:40 11:37 12:44 13:22 14:32 15:31 16:32 17:25 18:20 19:26 20:31 21:28 22:31 23:18 24:20 25:31 26:25 27:23 28:16 29:9 30:34 31:14 32:30 33:11 34:14 35:34 36:17 37:18 38:7 39:11 40:31 41:17 42:17 43:8 44:9 45:38 46:15 47:13 48:8 49:11 50:27 51:11 52:7 53:5 54:15 55:30 56:14 57:7 58:6 59:8 60:31 61:13 62:5 63:6 64:6 65:30 66:6 67:3 68:3 69:5 70:28 71:7 72:6 73:5 74:1 75:34 76:8 77:2 78:3 79:3 80:42 81:3 82:2 83:1 84:1 85:36 86:2 87:1 89:1 90:55
+  at capture: 0:36 1:20 2:49 3:18 4:34 5:14 6:29 7:6 8:15 9:4 90:16
+    captured from hostile   n  225: 0:36 1:20 2:49 3:18 4:34 5:14 6:29 7:6 8:15 9:4
+    captured from neutral   n   16: 90:16
+
+[hidden] the hidden bit against forest under the tank's box
+  hidden set: n 1883; centre square forest 1883; whole 16px box in forest 1878; 14px box 1879; all 3x3 squares 747
+  hidden clear, centre square forest: n 2219; whole 16px box in forest 118; 14px box 383; all 3x3 squares 0
+  Chebyshev px from tank centre to the nearest non-forest square (centre in forest, within 2 squares):
+    hidden: 5:2 6:1 7:1 8:1 9:142 10:166 11:132 12:152 13:107 14:119 15:208 16:105 17:68 18:77 19:93 20:66 21:50 22:48 23:43 24:65 25:19 26:20 27:10 28:26 29:24 30:27 31:19 32:25
+    shown:  1:320 2:282 3:270 4:256 5:282 6:296 7:265 8:248
+
+040601.6: 70106 records, 40.9 min, game type 3, 2 names
+
+[reload] ticks between a tank's consecutive fires (histogram 1..40)
+  7:10 8:25 9:15 10:74 11:160 12:389 13:288 14:511 15:146 16:32 17:20 18:13 19:5 20:2 22:1 23:2 24:3 25:1 26:2 27:1 29:2 30:1 31:1 32:1 34:1 36:3
+  gaps <= 100 ticks: n 1745, min 7, p5 10, median 13
+  fires per record: 1:2007
+  sender record cadence for comparison: min 0, p5 1, median 2, p75 5 ticks
+
+[turn] ticks per sixteenth of a circle, consecutive restatements <= 50 ticks apart, |delta| >= 2, by terrain at the start
+  (pairwise: biased by record cadence when the cadence is coarse)
+    group               n     min      p5     p25  median     p75     max  ticks/sixteenth
+    boat                5    7.50    7.50    8.00    8.00    9.00   12.00
+    forest              8   10.50   10.50   13.33   15.00   15.50   17.50
+    grass              16    5.50    5.50    7.00    7.67    9.00   10.00
+    road              194    5.00    6.00    7.50    8.00    9.00   12.00
+  interval between direction changes while turning, by terrain and speed class (full circle = 16 x median; resolves only on a fine cadence)
+    group               n     min      p5     p25  median     p75     max  ticks/sixteenth
+    boat fast           4    8.00    8.00    9.00   12.00   12.00   12.00
+    boat mid            4    7.00    7.00    8.00    9.00   11.00   11.00
+    forest mid          9    8.00    8.00   12.00   13.00   16.00   18.00
+    forest slow        50   10.00   11.00   14.00   16.00   17.00   23.00
+    grass fast         73    4.00    6.00    7.00    8.00    9.00   12.00
+    grass mid         247    2.00    6.00    8.00    8.00    9.00   13.00
+    grass slow         93    4.00    6.00    8.00    8.00   10.00   13.00
+    road fast        1568    3.00    6.00    8.00    8.00    9.00   19.00
+    road mid          490    3.00    6.00    7.00    8.00    9.00   14.00
+    road slow         462    2.00    6.00    8.00    8.00    9.00   19.00
+
+[speed] pixels per tick between restatements <= 25 ticks apart at constant heading and speed byte, by speed byte
+  
+    group               n     min      p5     p25  median     p75     max  px/tick
+  speed byte by terrain under the tank centre (max, p75, median):
+    boat           n    370  max  64  p75  46  median  22
+    crater         n     60  max  64  p75  57  median  41
+    forest         n   1593  max  64  p75  29  median  24
+    grass          n   7924  max  64  p75  48  median  48
+    road           n  42184  max  64  p75  64  median  63
+    rubble         n    165  max  64  p75  58  median  47
+
+[pill] ticks between one pillbox's consecutive fires (<= 400), by hits it took in the previous 5 s
+  
+    group               n     min      p5     p25  median     p75     max  ticks
+    0 hits/5s         587    2.00    5.00   15.00   24.00   60.00  372.00
+    1 hits/5s         156    3.00    5.00   10.00   14.00   34.00  345.00
+    2 hits/5s         124    2.00    5.00    8.00   13.00   27.00  385.00
+    3 hits/5s         221    0.00    4.00    6.00    9.00   15.00  303.00
+    4 hits/5s         210    0.00    4.00    6.00    7.00    9.00  340.00
+    5 hits/5s         212    0.00    3.00    5.00    6.00    7.00   92.00
+    6+ hits/5s        985    0.00    3.00    4.00    6.00    7.00  370.00
+  all gaps histogram 1..40: 1:2 2:18 3:78 4:290 5:274 6:457 7:241 8:144 9:75 10:85 11:33 12:45 13:30 14:46 15:34 16:30 17:32 18:28 19:22 20:31 21:12 22:21 23:14 24:25 25:15 26:18 27:17 28:10 29:9 30:10 31:5 32:5 33:5 34:8 35:7 36:9 37:5 38:7 39:9 40:9
+  by time since the pill was last hit
+    group               n     min      p5     p25  median     p75     max  ticks
+    a <5 s           1907    0.00    3.00    5.00    6.00    9.00  385.00
+    b 5-15 s          294    2.00    6.00   15.00   20.00   24.00  372.00
+    c 15-30 s         106    4.00    6.00   27.00   35.00   42.00  339.00
+    d 30-60 s          61    2.00    5.00   19.00   60.00   81.00  370.00
+    e 60-120 s         19   55.00   55.00  100.00  102.00  271.00  328.00
+    f >120 s          108    3.00    4.00    6.00   68.00  101.00  340.00
+  fires by one pill within one record (the record cadence is ~13 ticks):
+    hit <5 s ago   1:1988 2:3
+    quiet >=5 s    1:810
+  F1 02 speed byte of firing pills (model): 100:2804
+
+[armour] shell hits per life, at death; first life of each player excluded (unknown start)
+  lives 16, usable 14; tank_hit sender is the hit tank itself 397, another player 81; same tank hit again within 2 ticks by a different sender 5
+  death code 1: n 14
+    hits histogram:            9:5 10:1 13:1 14:1 20:1 22:1 34:1 38:1
+    hits, lives with 0 drains: 9:5
+    max 8, drains capped: armour at death -1:13 >0:1  (exactly 0 in 0/14)
+    max 9, drains capped: armour at death 0:13 >0:1  (exactly 0 in 13/14)
+    max 10, drains capped: armour at death >0:14  (exactly 0 in 0/14)
+
+[man] walking speed by terrain under the man, restatements <= 25 ticks apart
+  
+    group               n     min      p5     p25  median     p75     max  px/tick
+    building           30    0.37    0.37    0.75    1.00    1.12    2.24
+    crater            103    0.14    0.20    0.24    0.33    0.50    1.41
+    deep sea           13    0.17    0.17    0.64    0.83    1.01    2.00
+    forest            929    0.14    0.24    0.40    0.50    0.63    7.28
+    grass            3023    0.13    0.57    0.85    1.00    1.12    6.40
+    road            10274    0.14    0.56    0.83    1.00    1.12    8.60
+    rubble            259    0.14    0.17    0.28    0.50    0.71    4.47
+  terrain under the man, centre convention: building:78 crater:152 deep sea:18 forest:1331 grass:4473 road:11835 rubble:441 shot building:1
+  terrain under the man, top-left convention: building:69 crater:50 deep sea:45 forest:940 grass:4412 road:12579 rubble:197 shot building:37
+  dwell on the square before each build event (ticks since the man entered it)
+  
+    group               n     min      p5     p25  median     p75     max  ticks
+    build building     11    6.00    6.00    6.00    8.00    9.00   14.00
+    build grass (harvest)    233    0.00    8.00   12.00   14.00   17.00   24.00
+    build road         16   22.00   22.00   29.00   30.00   34.00   37.00
+    pill repair_12     17    5.00    5.00    7.00    9.00   11.00   17.00
+    pill repair_4      11    4.00    4.00    7.00    9.00   12.00   14.00
+    pill repair_8      15    6.00    6.00    7.00   11.00   12.00   14.00
+    pill repair_full     19    5.00    5.00    7.00    8.00    9.00   11.00
+    plant pill         96    6.00    6.00    7.00    8.00   11.00   18.00
+  parachute runs (consecutive status-4 records): n 19, min 1460, p25 3213, median 3838, p75 4906, max 7155 ticks
+  parachute histogram in seconds: 29:1 52:1 55:1 57:1 64:1 66:1 70:2 75:1 77:1 78:1 79:1 87:1 89:1 98:1 101:1 116:1 129:1 143:1
+  parachute path: total movement px median 525 (max 900), start-to-end px median 472 (max 708), end-to-tank px median 209; run ends with the man walking in 19/19
+  parachute start to the tank's position at the death: px median 473 (p25 435, p75 597); end to that position: median 3 (p25 2, p75 4)
+  parachute start's distance from the nearest map edge: px median 1784, min 1767, max 1784
+  first five runs, start square -> end square: (145,144) -> (126,119), (112,111) -> (135,130), (145,144) -> (112,119), (111,144) -> (140,144), (144,145) -> (116,111)
+  parachute starts on a start square (F1 04 list): 19/19; on the start nearest the landing: 1
+  parachute speed over runs moving >32 px: median 0.127 px/tick, n 19
+
+[regrowth] forest appearing where it was not
+  events 154; prior terrain: grass:154
+  senders: player 0:78 player 1:76
+  rate: 1.902 per player-minute (81 player-minutes present)
+  grass squares on the map: mean 269, of which touching forest 133 (49.3%)
+  regrowth squares with N forest neighbours (of 8): 3:5 4:81 5:53 6:8 7:5 8:2; with >= 1: 154/154
+  rate per grass square: 0.4237 per player-hour; per forest-touching grass square: 0.8598 per player-hour
+
+[refuel] ticks between consecutive drains of one resource from one base by one tank (<= 200)
+  
+    group               n     min      p5     p25  median     p75     max  ticks
+    armor             237   49.00   50.00   50.00   50.00   52.00  180.00
+    mines             309    3.00    5.00    6.00    7.00    8.00   55.00
+    shells           2194    1.00    5.00    6.00    8.00    8.00  115.00
+  armor histogram 0..40: 
+  mines histogram 0..40: 3:1 4:5 5:35 6:86 7:61 8:72 9:41 10:4 11:1 24:1 26:1
+  shells histogram 0..40: 1:1 3:1 4:28 5:144 6:375 7:386 8:889 9:285 10:56 11:8 12:3 15:1 16:1 17:5 18:2 19:1 23:2 25:1 26:1
+  drains within 20 ticks of a drain of a different resource by the same tank: 45, others 2949
+
+[base] base armour (model) just before each shell hit, and at each capture
+  at hit:     5:7 6:6 7:2 8:2 9:6 10:7 11:5 12:2 13:2 14:6 15:9 16:5 17:2 18:2 19:5 20:10 21:5 22:2 23:2 24:4 25:8 26:5 27:1 28:2 29:4 30:8 31:4 32:1 33:1 34:3 35:8 36:4 37:1 38:1 39:2 40:9 41:3 42:1 44:3 45:10 46:2 47:1 49:3 50:11 52:1 54:3 55:11 56:1 57:1 59:2 60:11 62:1 64:1 65:12 70:13 75:13 80:12 85:12 90:13
+  at capture: 0:6 1:5 2:3 3:4 4:4 5:2 6:1 7:1 8:1 90:16
+    captured from hostile   n   27: 0:6 1:5 2:3 3:4 4:4 5:2 6:1 7:1 8:1
+    captured from neutral   n   16: 90:16
+
+[hidden] the hidden bit against forest under the tank's box
+  hidden set: n 623; centre square forest 619; whole 16px box in forest 613; 14px box 613; all 3x3 squares 291
+  hidden clear, centre square forest: n 974; whole 16px box in forest 42; 14px box 137; all 3x3 squares 0
+  Chebyshev px from tank centre to the nearest non-forest square (centre in forest, within 2 squares):
+    hidden: 1:1 2:2 5:1 7:2 9:48 10:49 11:36 12:29 13:44 14:26 15:51 16:39 17:28 18:36 19:23 20:46 21:11 22:13 23:16 24:43 25:5 26:5 27:8 28:12 29:8 30:8 31:1 32:2
+    shown:  1:188 2:141 3:131 4:104 5:111 6:80 7:124 8:95
+
+060101.1: 9155 records, 7.1 min, game type 3, 2 names
+
+[reload] ticks between a tank's consecutive fires (histogram 1..40)
+  8:1 9:9 10:19 11:3 12:77 13:111 14:29 15:18 16:18 17:5 18:1 19:1 25:1 31:1 39:1
+  gaps <= 100 ticks: n 301, min 8, p5 10, median 13
+  fires per record: 1:345
+  sender record cadence for comparison: min 0, p5 2, median 4, p75 6 ticks
+
+[turn] ticks per sixteenth of a circle, consecutive restatements <= 50 ticks apart, |delta| >= 2, by terrain at the start
+  (pairwise: biased by record cadence when the cadence is coarse)
+    group               n     min      p5     p25  median     p75     max  ticks/sixteenth
+    boat                1    6.00    6.00    6.00    6.00    6.00    6.00
+    grass               3    5.00    5.00    5.00    7.33    8.00    8.00
+    road               17    6.00    6.00    6.67    8.00    8.67   10.50
+  interval between direction changes while turning, by terrain and speed class (full circle = 16 x median; resolves only on a fine cadence)
+    group               n     min      p5     p25  median     p75     max  ticks/sixteenth
+    forest slow         5   11.00   11.00   14.00   16.00   17.00   18.00
+    grass fast          7    6.00    6.00    6.00    7.00   10.00   13.00
+    grass mid          20    6.00    6.00    7.00   10.00   12.00   14.00
+    grass slow          9    6.00    6.00    9.00   10.00   11.00   13.00
+    road fast         335    5.00    6.00    7.00    9.00   10.00   14.00
+    road mid           75    5.00    6.00    7.00    9.00   10.00   13.00
+    road slow          73    6.00    6.00    7.00    9.00   10.00   13.00
+
+[speed] pixels per tick between restatements <= 25 ticks apart at constant heading and speed byte, by speed byte
+  
+    group               n     min      p5     p25  median     p75     max  px/tick
+  speed byte by terrain under the tank centre (max, p75, median):
+    boat           n    263  max  64  p75  64  median  64
+    crater         n      1  max  63  p75  63  median  63
+    forest         n    302  max  64  p75  39  median  24
+    grass          n    529  max  64  p75  48  median  44
+    road           n   5310  max  64  p75  64  median  64
+    rubble         n     17  max  63  p75  60  median  54
+
+[pill] ticks between one pillbox's consecutive fires (<= 400), by hits it took in the previous 5 s
+  
+    group               n     min      p5     p25  median     p75     max  ticks
+    0 hits/5s          77   12.00   13.00   25.00   91.00  101.00  381.00
+    1 hits/5s          44    6.00    7.00   13.00   31.00   58.00  136.00
+    2 hits/5s          29    3.00    6.00   19.00   27.00   33.00   85.00
+    3 hits/5s          35    3.00    3.00    6.00   15.00   20.00   56.00
+    4 hits/5s          41    3.00    3.00    6.00    7.00   10.00   55.00
+    5 hits/5s          62    3.00    3.00    5.00    6.00    9.00   92.00
+    6+ hits/5s        235    2.00    3.00    4.00    6.00    7.00  115.00
+  all gaps histogram 1..40: 2:8 3:63 4:37 5:16 6:98 7:79 8:9 9:21 10:22 11:4 12:6 13:9 15:5 16:9 17:4 18:2 19:4 20:6 21:1 22:2 23:3 24:3 25:4 26:3 27:2 28:4 29:2 30:2 31:2 32:8 33:3 35:2 38:2
+  by time since the pill was last hit
+    group               n     min      p5     p25  median     p75     max  ticks
+    a <5 s            446    2.00    3.00    5.00    7.00   10.00  136.00
+    b 5-15 s           30   12.00   12.00   16.00   23.00   33.00  235.00
+    c 15-30 s          11   30.00   30.00   35.00   41.00   49.00  355.00
+    d 30-60 s           6   63.00   63.00   76.00   88.00   92.00   99.00
+    e 60-120 s          2  101.00  101.00  101.00  101.00  101.00  101.00
+    f >120 s           28   91.00   97.00  100.00  101.00  103.00  381.00
+  fires by one pill within one record (the record cadence is ~13 ticks):
+    hit <5 s ago   1:463
+    quiet >=5 s    1:134
+  F1 02 speed byte of firing pills (model): 86:597
+
+[armour] shell hits per life, at death; first life of each player excluded (unknown start)
+  lives 6, usable 5; tank_hit sender is the hit tank itself 99, another player 10; same tank hit again within 2 ticks by a different sender 0
+  death code 1: n 5
+    hits histogram:            9:3 13:2
+    hits, lives with 0 drains: 9:3
+    max 8, drains capped: armour at death -1:5  (exactly 0 in 0/5)
+    max 9, drains capped: armour at death 0:5  (exactly 0 in 5/5)
+    max 10, drains capped: armour at death >0:5  (exactly 0 in 0/5)
+
+[man] walking speed by terrain under the man, restatements <= 25 ticks apart
+  
+    group               n     min      p5     p25  median     p75     max  px/tick
+    building           22    0.37    0.45    0.71    0.90    1.05    1.41
+    crater              7    0.17    0.17    0.24    0.25    0.45    0.94
+    deep sea            4    0.33    0.33    0.85    1.00    1.22    1.22
+    forest            374    0.17    0.25    0.37    0.50    0.60    3.07
+    grass             280    0.24    0.47    0.75    1.00    1.12    2.98
+    river               1    0.53    0.53    0.53    0.53    0.53    0.53
+    road             1765    0.24    0.50    0.79    1.01    1.20    2.33
+    rubble              8    0.17    0.17    0.24    0.33    1.07    1.07
+  terrain under the man, centre convention: building:49 crater:8 deep sea:6 forest:446 grass:455 river:1 road:1983 rubble:12
+  terrain under the man, top-left convention: building:31 crater:2 deep sea:22 forest:310 grass:384 road:2190 rubble:11 shot building:10
+  dwell on the square before each build event (ticks since the man entered it)
+  
+    group               n     min      p5     p25  median     p75     max  ticks
+    build building     10    6.00    6.00    6.00   10.00   11.00   12.00
+    build grass (harvest)     50    9.00   11.00   12.00   14.00   16.00   20.00
+    pill repair_8       1    7.00    7.00    7.00    7.00    7.00    7.00
+    pill repair_full      2    6.00    6.00    6.00   10.00   10.00   10.00
+    plant pill         18    4.00    4.00    6.00    9.00   12.00   36.00
+  parachute runs (consecutive status-4 records): n 3, min 2254, p25 2254, median 3175, p75 4218, max 4218 ticks
+  parachute histogram in seconds: 45:1 64:1 84:1
+  parachute path: total movement px median 466 (max 567), start-to-end px median 407 (max 533), end-to-tank px median 244; run ends with the man walking in 3/3
+  parachute start to the tank's position at the death: px median 406 (p25 290, p75 535); end to that position: median 1 (p25 1, p75 2)
+  parachute start's distance from the nearest map edge: px median 1800, min 1783, max 1800
+  first five runs, start square -> end square: (114,144) -> (139,139), (142,112) -> (138,130), (142,112) -> (139,145)
+  parachute starts on a start square (F1 04 list): 3/3; on the start nearest the landing: 0
+  parachute speed over runs moving >32 px: median 0.128 px/tick, n 3
+
+[regrowth] forest appearing where it was not
+  events 13; prior terrain: road:3 grass:10
+  senders: player 0:8 player 1:5
+  rate: 0.917 per player-minute (14 player-minutes present)
+  grass squares on the map: mean 74, of which touching forest 55 (73.7%)
+  regrowth squares with N forest neighbours (of 8): 3:3 4:3 5:2 6:3 7:2; with >= 1: 13/13
+  rate per grass square: 0.7395 per player-hour; per forest-touching grass square: 1.0040 per player-hour
+
+[refuel] ticks between consecutive drains of one resource from one base by one tank (<= 200)
+  
+    group               n     min      p5     p25  median     p75     max  ticks
+    armor              39   49.00   49.00   51.00   52.00   53.00   56.00
+    mines             106    5.00    7.00    9.00    9.00    9.00   10.00
+    shells            410    4.00    6.00    7.00    9.00    9.00  115.00
+  armor histogram 0..40: 
+  mines histogram 0..40: 5:1 6:3 7:2 8:16 9:69 10:15
+  shells histogram 0..40: 4:2 5:14 6:57 7:60 8:62 9:167 10:47
+  drains within 20 ticks of a drain of a different resource by the same tank: 7, others 583
+
+[base] base armour (model) just before each shell hit, and at each capture
+  at hit:     6:2 11:2 16:2 21:2 26:3 31:2 36:2 41:2 46:2 51:2 56:2 61:1 66:1 71:1 75:2 80:2 85:2 90:2
+  at capture: 1:1 90:16
+    captured from hostile   n    1: 1:1
+    captured from neutral   n   16: 90:16
+
+[hidden] the hidden bit against forest under the tank's box
+  hidden set: n 120; centre square forest 120; whole 16px box in forest 120; 14px box 120; all 3x3 squares 60
+  hidden clear, centre square forest: n 182; whole 16px box in forest 4; 14px box 13; all 3x3 squares 0
+  Chebyshev px from tank centre to the nearest non-forest square (centre in forest, within 2 squares):
+    hidden: 9:2 10:7 11:4 12:5 13:7 14:23 15:8 16:4 17:6 18:8 19:8 20:1 21:3 22:33 24:1
+    shown:  1:35 2:30 3:24 4:27 5:21 6:25 7:11 8:9
