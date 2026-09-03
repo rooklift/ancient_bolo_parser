@@ -82,6 +82,8 @@ The tank direction nibble is 0 = north, increasing clockwise by 22.5° (note: *m
 
 `XX YY yx SS ZA` — map square, pixel byte, speed, and `A` = motion bits (1 accelerating, 2 decelerating, 4 turning CCW, 8 turning CW). The layout is 5 bytes, the direction living in the header's `TD` byte [E:tankpos-5].
 
+A moving tank restates its position in every record it sends, once per ring cycle; a stationary one only every few seconds, the period varying by log from about 4 to 8 s. Before the game has settled — nobody shooting, no base draining — nothing else from that player fills the interval, so a live, connected player can be silent for up to 9 s. Nothing over 10 s has been seen from a player who was still there; a consumer inferring a split or a departure from silence should allow at least that [E:idle-silence].
+
 The square a tank *occupies* for game purposes (laying a mine, dumping pills on death) is the square containing its centre, `((X*16 + px + 8) >> 4, (Y*16 + py + 8) >> 4)` — not (X, Y), which is the character's top-left square [E:centre-square].
 
 ## ID-coded subpackets
