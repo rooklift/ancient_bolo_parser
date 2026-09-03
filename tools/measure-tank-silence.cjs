@@ -18,13 +18,15 @@
  *   WALL: the time since his previous record. This is what a fade
  *   keyed to the playback clock sees, and it cannot tell a ghost from a
  *   STALL -- a stretch in which nothing from anyone reached the logging
- *   machine, which the corpus shows lasting up to the 30 s bound below,
- *   every player silent together.
+ *   machine.
  *
- *   RING: the time from his previous record to the last record from
- *   ANYONE before this one -- how long the ring was heard turning
- *   without him. During a stall it is zero: nobody is a ghost when
- *   nobody is heard. This is what the viewer keys its fade to.
+ *   RING: the time from his previous record to the latest record from
+ *   anyone stamped strictly earlier than his next one -- how long the
+ *   ring was heard turning without him. Through a stall it stays put;
+ *   and a burst of records at one tick, the usual end of a stall, does
+ *   not count against the players in the burst, which is how the viewer
+ *   sees it too (it applies every record at a tick before drawing).
+ *   This is the reading the viewer keys its fade to.
  *
  * A gap is a LIVE SILENCE when its wall reading is under 30 s (the
  * absence bound network.js uses for a machine that is gone) and the
@@ -33,13 +35,11 @@
  * sends them too, and the viewer takes them as proof of life just the
  * same.) A live silence is IDLE when the tank's position restatements
  * either side of it agree in square, pixel and direction, MOVING
- * otherwise.
- *
- * The output is the distribution of both readings, and for a row of
- * candidate thresholds, how many live silences each would fade under
- * each reading and in how many logs -- the false-fade count the
- * viewer's constant should drive to zero, or as near as the corpus
- * allows.
+ * otherwise. The idle ones are the fade's false positives beyond
+ * doubt; a long silence from a tank that moved meanwhile may be a
+ * split the log really did see, so the longest are listed with WHO WAS
+ * HEARD during them -- one voice alone, over and over, is the logging
+ * machine talking to itself across a split.
  *
  * Usage: node tools/measure-tank-silence.cjs [file | directory ...]
  * With no argument the corpus root from corpus.json / BOLO_CORPUS is read.
@@ -55,15 +55,14 @@ const TPS = BoloLog.TICKS_PER_SECOND;
 const ABSENCE_TICKS = 30 * TPS;
 const THRESHOLDS = [3, 5, 8, 10, 12, 15, 20, 25];
 const BIN_SECONDS = 1;
-const SHOW_LONGEST = 12;
+const SHOW_LONGEST = 16;
 
 let logs_scanned = 0;
 let records_scanned = 0;
 let silences = []; /* {wall, ring, idle} in ticks */
 let absences = 0;
-let longest = []; /* {file, player, wall, ring, idle, at} by ring */
-let per_log_max_wall = new Map();
-let per_log_max_ring = new Map();
+let longest = []; /* {file, player, wall, ring, idle, at, heard} by ring */
+let per_log_max = { wall: new Map(), ring: new Map() };
 
 function scan(file, recs) {
 	logs_scanned++;
@@ -71,19 +70,22 @@ function scan(file, recs) {
 	let label = replay_label(file);
 	let last = new Array(16).fill(undefined);
 	let last_pos = new Array(16).fill(undefined);
-	let last_any = undefined; /* time of the latest record from anyone */
+	let heard = Array.from({ length: 16 }, () => new Array(16).fill(0));
+	let tick_now = -Infinity;    /* the latest record time */
+	let tick_before = -Infinity; /* the latest record time strictly before it */
 	let max_wall = 0, max_ring = 0;
 	for (let rec of recs) {
-		if (rec.tankStatus === 0x0f) {
-			last_any = rec.time;
-			continue;
+		if (rec.time > tick_now) {
+			tick_before = tick_now;
+			tick_now = rec.time;
 		}
+		if (rec.tankStatus === 0x0f) continue;
 		let p = rec.player;
 		let pos = rec.subpackets.find(s => s.type === "tank_position");
 		let quit = rec.subpackets.some(s => s.type === "quit");
 		if (last[p] !== undefined) {
 			let wall = rec.time - last[p];
-			let ring = last_any - last[p];
+			let ring = Math.max(0, tick_before - last[p]);
 			if (wall >= ABSENCE_TICKS || quit) {
 				absences++;
 				last_pos[p] = undefined;
@@ -96,19 +98,21 @@ function scan(file, recs) {
 				if (wall > max_wall) max_wall = wall;
 				if (ring > max_ring) max_ring = ring;
 				if (longest.length < SHOW_LONGEST || ring > longest[longest.length - 1].ring) {
-					longest.push({ file: label, player: p, wall, ring, idle, at: rec.time - recs[0].time });
+					let voices = heard[p].map((n, q) => n ? `p${q}:${n}` : null).filter(Boolean).join(" ");
+					longest.push({ file: label, player: p, wall, ring, idle, at: rec.time - recs[0].time, heard: voices || "nobody" });
 					longest.sort((a, b) => b.ring - a.ring);
 					if (longest.length > SHOW_LONGEST) longest.pop();
 				}
 			}
 		}
 		last[p] = rec.time;
-		last_any = rec.time;
+		heard[p].fill(0);
+		for (let q = 0; q < 16; q++) if (q !== p) heard[q][p]++;
 		if (pos) last_pos[p] = pos;
 		if (quit) { last[p] = undefined; last_pos[p] = undefined; }
 	}
-	per_log_max_wall.set(label, max_wall);
-	per_log_max_ring.set(label, max_ring);
+	per_log_max.wall.set(label, max_wall);
+	per_log_max.ring.set(label, max_ring);
 }
 
 function* walk(target) {
@@ -196,17 +200,20 @@ for (let [title, key] of [["wall clock", "wall"], ["ring heard turning", "ring"]
 histogram("histogram, wall clock", "wall");
 histogram("histogram, ring", "ring");
 
-console.log(`\n[thresholds] live silences a fade-after-N-seconds rule would fade (false fades), and the logs they occur in`);
-console.log(`         wall clock                       ring`);
+console.log(`\n[thresholds] live silences a fade-after-N-seconds rule would fade, idle / moving, and the logs any occur in (of ${logs_scanned})`);
+console.log(`         wall clock                          ring`);
 for (let t of THRESHOLDS) {
-	let n_wall = silences.filter(s => s.wall > t * TPS).length;
-	let n_ring = silences.filter(s => s.ring > t * TPS).length;
-	let logs_wall = [...per_log_max_wall.values()].filter(m => m > t * TPS).length;
-	let logs_ring = [...per_log_max_ring.values()].filter(m => m > t * TPS).length;
-	console.log(`  ${String(t).padStart(3)} s  ${String(n_wall).padStart(7)} in ${String(logs_wall).padStart(4)} logs    ${String(n_ring).padStart(7)} in ${String(logs_ring).padStart(4)} logs   (of ${logs_scanned})`);
+	let row = [];
+	for (let key of ["wall", "ring"]) {
+		let idle = silences.filter(s => s.idle && s[key] > t * TPS).length;
+		let moving = silences.filter(s => !s.idle && s[key] > t * TPS).length;
+		let logs = [...per_log_max[key].values()].filter(m => m > t * TPS).length;
+		row.push(`${String(idle).padStart(6)} / ${String(moving).padStart(6)} in ${String(logs).padStart(4)} logs`);
+	}
+	console.log(`  ${String(t).padStart(3)} s  ${row.join("     ")}`);
 }
 
-console.log(`\n[longest] live silences by the ring reading`);
+console.log(`\n[longest] live silences by the ring reading, with the records heard from others meanwhile`);
 for (let l of longest) {
-	console.log(`  ring ${seconds(l.ring).padStart(5)} s  wall ${seconds(l.wall).padStart(5)} s  ${l.file}  player ${l.player}  ${l.idle ? "idle" : "moving"}  at ${seconds(l.at)} s into the log`);
+	console.log(`  ring ${seconds(l.ring).padStart(5)} s  wall ${seconds(l.wall).padStart(5)} s  ${l.file}  player ${l.player}  ${l.idle ? "idle  " : "moving"}  at ${seconds(l.at)} s  heard: ${l.heard}`);
 }
