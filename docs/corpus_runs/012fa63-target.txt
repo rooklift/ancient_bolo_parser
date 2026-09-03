@@ -45,18 +45,21 @@ candidate / quits in which the candidate was fired at. A true heir scores 0 in t
     lowest-index live tank, any side           344     71  2,281    608     25
     lowest-index player present                344     71  2,281    608     25
     next name to take the quitter's slot         2      2    202      9      1
+    of the 71 quits with fires and an enemy present, the pills shot every enemy present at the quit in 23, two or more in 27
   another ally live: 2 quits; fires at an old ally 0, at an old enemy 42, at a newcomer 0
     next mutual ally with a live tank            2      1     42      0      0
     lowest-index live tank, other side           2      1     42      0      0
     lowest-index live tank, any side             2      1     42      0      0
     lowest-index player present                  2      1     42      0      0
     next name to take the quitter's slot         0      0      0      0      0
+    of the 1 quits with fires and an enemy present, the pills shot every enemy present at the quit in 0, two or more in 1
   no ally live: 406 quits; fires at an old ally 40, at an old enemy 1,271, at a newcomer 0
     next mutual ally with a live tank            0      0      0      0      0
     lowest-index live tank, other side         252     54  1,310    858     45
     lowest-index live tank, any side           252     54  1,310    858     45
     lowest-index player present                292     55  1,311    852     43
     next name to take the quitter's slot         7      1    229      0      0
+    of the 55 quits with fires and an enemy present, the pills shot every enemy present at the quit in 25, two or more in 10
 
 Fires where the sender is taken as the target: 1,156,570; sender's tank hidden in forest
 at the time in 4,329 (0.4%) -- ~0 if a pill cannot target a hidden tank.
