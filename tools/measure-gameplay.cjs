@@ -27,7 +27,10 @@
  * percentiles are printed rather than extremes where staleness would
  * dominate.
  *
- * Usage: node tools/measure-gameplay.cjs <logfile> [more logfiles]
+ * Usage: node tools/measure-gameplay.cjs [file | directory ...]
+ * With no argument the corpus root from corpus.json / BOLO_CORPUS is read.
+ * Every log scanned feeds one set of tables; a header line names each log
+ * by its hashed label (tools/corpus.cjs).
  */
 "use strict";
 
@@ -35,6 +38,7 @@ const fs = require("fs");
 const path = require("path");
 const BoloLog = require(path.join(__dirname, "..", "viewer", "logparse.js"));
 const BoloGame = require(path.join(__dirname, "..", "viewer", "game.js"));
+const {corpus_root, replay_label} = require("./corpus.cjs");
 
 const TERRAIN_NAMES = ["building", "river", "swamp", "crater", "road", "forest",
 	"rubble", "grass", "shot building", "boat"];
@@ -112,8 +116,49 @@ function group_push(map, key, value) {
 	map.get(key).push(value);
 }
 
-function scan(file) {
-	let recs = [...BoloLog.records(new Uint8Array(fs.readFileSync(file)))];
+/* accumulators, summed over every log scanned */
+let reload_gaps = [];
+let fires_per_record = new Map();
+let record_gaps = [];
+let turn = new Map();
+/* turn rate proper: the interval between successive changes of the direction
+ * nibble while every restatement in between has the turn bit set, the same
+ * terrain under the tank centre (base squares count as road) and the same
+ * speed class; ticks per sixteenth = interval / |change|. Needs a fine
+ * record cadence to resolve; on a 13-tick cadence it reads 13. */
+let turn_intervals = new Map();
+let speed_by_byte = new Map();
+let speed_byte_by_terrain = new Map();
+let pill_gaps_by_hits = new Map();
+let pill_gaps_by_quiet = new Map();
+let pill_fires_per_record = new Map();
+let pill_gaps_all = [];
+let pill_speed_bytes = [];
+let lives = [];
+let hit_senders = { self: 0, other: 0, duplicate: 0 };
+let man_speed = new Map();
+let man_square_terrain = new Map();
+let dwell = new Map();
+let parachutes = [];
+let regrowth_prior = new Map();
+let regrowth_senders = new Map();
+let regrowth_count = 0;
+let regrowth_forest_neighbours = [];
+let grass_samples = [];
+let grass_neighbour_samples = [];
+let present_player_ticks = 0;
+let refuel_gaps = new Map();
+let refuel_interleaved = { with_other: 0, alone: 0 };
+let base_armour_at_hit = [];
+let base_armour_at_capture = [];
+let capture_by_owner = new Map();
+let hidden = { total: 0, centre_forest: 0, box16: 0, box14: 0, nbr3x3: 0 };
+let clearance_hidden = [], clearance_shown = [];
+let unhidden_forest = { total: 0, box16: 0, box14: 0, nbr3x3: 0 };
+let parachute_runs = [];
+let logs_scanned = 0, records_scanned = 0, minutes_scanned = 0;
+
+function scan(file, recs) {
 	let node_joins = BoloGame.classify_node_joins(recs);
 	let state = BoloGame.initial_state(BoloGame.extract_initial_map(recs, node_joins));
 
@@ -124,7 +169,6 @@ function scan(file) {
 	let last_man = new Array(16).fill(null);        /* last lgm_position sub + time */
 	let man_square_since = new Array(16).fill(null); /* {x, y, since} the man's current square */
 	let parachute_start = new Array(16).fill(null);  /* {time, sub, moved} */
-	let parachute_runs = [];
 	let life = new Array(16).fill(null);            /* {hits, drains, start, first, log: [+1|-1 ...]} */
 	let last_drain = Array.from({ length: 16 }, () => ({}));
 	let pill_last_fire = new Array(16).fill(null);
@@ -132,50 +176,12 @@ function scan(file) {
 	let pill_last_hit = new Array(16).fill(-Infinity);
 	let pill_fires_this_record = new Map();
 
-	/* results */
-	let reload_gaps = [];
-	let fires_per_record = new Map();
-	let record_gaps = [];
-	let turn = new Map();
-	/* turn rate proper: the interval between successive changes of the direction
-	 * nibble while every restatement in between has the turn bit set, the same
-	 * terrain under the tank centre (base squares count as road) and the same
-	 * speed class; ticks per sixteenth = interval / |change|. Needs a fine
-	 * record cadence to resolve; on a 13-tick cadence it reads 13. */
-	let turn_intervals = new Map();
 	let turn_track = new Array(16).fill([]);
-	let speed_by_byte = new Map();
-	let speed_byte_by_terrain = new Map();
-	let pill_gaps_by_hits = new Map();
-	let pill_gaps_by_quiet = new Map();
-	let pill_fires_per_record = new Map();
-	let pill_gaps_all = [];
-	let pill_speed_bytes = [];
-	let lives = [];
-	let hit_senders = { self: 0, other: 0, duplicate: 0 };
 	let last_hit_on = new Array(16).fill(null); /* {time, sender} */
-	let man_speed = new Map();
-	let man_square_terrain = new Map();
-	let dwell = new Map();
-	let parachutes = [];
-	let regrowth_prior = new Map();
-	let regrowth_senders = new Map();
-	let regrowth_count = 0;
-	let regrowth_forest_neighbours = [];
-	let grass_samples = [];
-	let grass_neighbour_samples = [];
-	let present_player_ticks = 0;
-	let refuel_gaps = new Map();
-	let refuel_interleaved = { with_other: 0, alone: 0 };
 	let last_any_drain = new Array(16).fill(null);
-	let base_armour_at_hit = [];
-	let base_armour_at_capture = [];
-	let capture_by_owner = new Map();
-	let hidden = { total: 0, centre_forest: 0, box16: 0, box14: 0, nbr3x3: 0 };
-	let clearance_hidden = [], clearance_shown = [];
-	let unhidden_forest = { total: 0, box16: 0, box14: 0, nbr3x3: 0 };
 
 	let prev_time = recs.length ? recs[0].time : 0;
+	let record_index = 0;
 
 	for (let rec of recs) {
 		let pl = rec.player;
@@ -318,7 +324,14 @@ function scan(file) {
 			let t0 = run.tank_at_start;
 			parachute_runs.push({ ticks, moved: run.moved, straight: Math.hypot(b.cx - a.cx, b.cy - a.cy), to_tank: tank ? Math.hypot(tank.cx - b.cx, tank.cy - b.cy) : NaN, man_after: !!man_sub,
 				start_to_death_tank: t0 ? Math.hypot(t0.cx - a.cx, t0.cy - a.cy) : NaN, end_to_death_tank: t0 ? Math.hypot(t0.cx - b.cx, t0.cy - b.cy) : NaN,
-				start_edge: Math.min(a.cx, a.cy, 4095 - a.cx, 4095 - a.cy), start: [a.cx >> 4, a.cy >> 4], end: [b.cx >> 4, b.cy >> 4] });
+				start_edge: Math.min(a.cx, a.cy, 4095 - a.cx, 4095 - a.cy), start: [a.cx >> 4, a.cy >> 4], end: [b.cx >> 4, b.cy >> 4],
+				on_start: state.starts.some(st => Math.abs(st.x - (a.cx >> 4)) <= 1 && Math.abs(st.y - (a.cy >> 4)) <= 1),
+				on_nearest_start: (() => {
+					if (!state.starts.length) return false;
+					let d = state.starts.map(st => Math.hypot(st.x * 16 + 8 - b.cx, st.y * 16 + 8 - b.cy));
+					let here = state.starts.findIndex(st => Math.abs(st.x - (a.cx >> 4)) <= 1 && Math.abs(st.y - (a.cy >> 4)) <= 1);
+					return here >= 0 && d[here] === Math.min(...d);
+				})() });
 			parachute_start[pl] = null;
 		}
 
@@ -451,7 +464,8 @@ function scan(file) {
 		pill_fires_this_record.clear();
 
 		BoloGame.apply_record(state, rec, null, null, null, node_joins);
-		if (grass_samples.length * 2000 < recs.indexOf(rec) + 1 || grass_samples.length === 0) {
+		record_index++;
+		if (grass_samples.length * 2000 < record_index || grass_samples.length === 0) {
 			/* every ~2000 records: how many grass squares exist, and how many of them touch forest */
 			let n = 0, touching = 0;
 			for (let y = 0; y < 256; y++) for (let x = 0; x < 256; x++) {
@@ -468,9 +482,16 @@ function scan(file) {
 		}
 	}
 
-	/* ---- report ---- */
 	let players = state.names.filter(n => n !== null).length;
-	console.log(`\n${path.basename(file)}: ${recs.length} records, ${((recs[recs.length - 1].time - recs[0].time) / 50 / 60).toFixed(1)} min, game type ${state.gameInfo ? state.gameInfo.gameType : "?"}, ${players} names`);
+	let minutes = (recs[recs.length - 1].time - recs[0].time) / 50 / 60;
+	logs_scanned++;
+	records_scanned += recs.length;
+	minutes_scanned += minutes;
+	console.log(`${replay_label(file)}: ${recs.length} records, ${minutes.toFixed(1)} min, game type ${state.gameInfo ? state.gameInfo.gameType : "?"}, ${players} names`);
+}
+
+function report() {
+	console.log(`\n${logs_scanned} log${logs_scanned === 1 ? "" : "s"}, ${records_scanned} records, ${minutes_scanned.toFixed(0)} minutes of game time`);
 
 	console.log("\n[reload] ticks between a tank's consecutive fires (histogram 1..40)");
 	console.log(`  ${histogram_line(reload_gaps, 1, 40)}`);
@@ -543,13 +564,8 @@ function scan(file) {
 		console.log(`  parachute start to the tank's position at the death: px median ${fmt(sd.median, 0)} (p25 ${fmt(sd.p25, 0)}, p75 ${fmt(sd.p75, 0)}); end to that position: median ${fmt(ed.median, 0)} (p25 ${fmt(ed.p25, 0)}, p75 ${fmt(ed.p75, 0)})`);
 		console.log(`  parachute start's distance from the nearest map edge: px median ${fmt(edge.median, 0)}, min ${fmt(edge.min, 0)}, max ${fmt(edge.max, 0)}`);
 		console.log(`  first five runs, start square -> end square: ${parachute_runs.slice(0, 5).map(r => `(${r.start}) -> (${r.end})`).join(", ")}`);
-		let on_start = parachute_runs.filter(r => state.starts.some(s => Math.abs(s.x - r.start[0]) <= 1 && Math.abs(s.y - r.start[1]) <= 1)).length;
-		let nearest = parachute_runs.filter(r => {
-			if (!Number.isFinite(r.start_to_death_tank) || !state.starts.length) return false;
-			let d = state.starts.map(s => Math.hypot(s.x * 16 + 8 - (r.end[0] * 16 + 8), s.y * 16 + 8 - (r.end[1] * 16 + 8)));
-			let here = state.starts.findIndex(s => Math.abs(s.x - r.start[0]) <= 1 && Math.abs(s.y - r.start[1]) <= 1);
-			return here >= 0 && d[here] === Math.min(...d);
-		}).length;
+		let on_start = parachute_runs.filter(r => r.on_start).length;
+		let nearest = parachute_runs.filter(r => r.on_nearest_start).length;
 		console.log(`  parachute starts on a start square (F1 04 list): ${on_start}/${parachute_runs.length}; on the start nearest the landing: ${nearest}`);
 		let speeds = parachute_runs.filter(r => r.straight > 32).map(r => r.straight / r.ticks);
 		if (speeds.length) console.log(`  parachute speed over runs moving >32 px: median ${fmt(stats(speeds).median, 3)} px/tick, n ${speeds.length}`);
@@ -585,9 +601,48 @@ function scan(file) {
 	console.log(`    shown:  ${histogram_line(clearance_shown, 0, 40)}`);
 }
 
-let files = process.argv.slice(2);
-if (!files.length) {
-	console.error("usage: node tools/measure-gameplay.cjs <logfile> [more]");
+function* walk(target) {
+	let stat;
+	try {
+		stat = fs.statSync(target);
+	} catch {
+		return;
+	}
+	if (stat.isFile()) {
+		yield target;
+		return;
+	}
+	let entries;
+	try {
+		entries = fs.readdirSync(target, {withFileTypes: true});
+	} catch {
+		return;
+	}
+	for (let entry of entries) {
+		let item = path.join(target, entry.name);
+		if (entry.isDirectory())
+			yield* walk(item);
+		else if (entry.isFile() && !/\.(txt|md|json|zip|sit|hqx|png|jpg|gif)$/i.test(entry.name))
+			yield item;
+	}
+}
+
+let args = process.argv.slice(2).filter(a => !a.startsWith("--"));
+let targets = args.length ? args : [corpus_root()];
+for (let target of targets) {
+	for (let file of walk(target)) {
+		let recs;
+		try {
+			recs = [...BoloLog.records(new Uint8Array(fs.readFileSync(file)))];
+		} catch {
+			continue;
+		}
+		if (recs.length < 2) continue;
+		scan(file, recs);
+	}
+}
+if (!logs_scanned) {
+	console.error("no logs found");
 	process.exit(2);
 }
-for (let f of files) scan(f);
+report();
