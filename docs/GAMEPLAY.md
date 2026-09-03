@@ -51,11 +51,13 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   hit at 0, which is the same count **(owner)**. Driving over a mine removes
   3, floored at 0, and a tank on its last 2 points is lost outright: in
   display bars 8 → 5, 3 → 0, 2 → 0, and 1 or 0 → lost; in the 9-scale
-  9 → 6, 4 → 1, 3 → 1, and 2 or 1 → lost **(owner, in an emulator;
-  measured: the corpus sweep puts the most mine-involved deaths at exactly 0
-  with a damage of 3, and its only 23 "impossible" survivors are the tanks
-  at 3 and 2 on the 9-scale that this floor spares; WinBolo uses 2 with no
-  floor)**. A shell hit at 0 bars is fatal while a mine at 2 bars is not,
+  9 → 6, 4 → 1, 3 → 1, and 2 or 1 → lost **(owner, in an emulator; measured
+  twice over: the corpus sweep puts the most mine-involved deaths at
+  exactly 0 with a loss of 3 and its only 23 "impossible" survivors are the
+  tanks at 3 and 2 that the floor spares, and read directly off survivors'
+  later deaths the loss is 3 in every row from 5 to 9, 3 at 4 and 2 at 3,
+  with runs of two and three mines showing the floor again; WinBolo uses 2
+  with no floor)**. A shell hit at 0 bars is fatal while a mine at 2 bars is not,
   so the two evidently take different paths in the game's code. One armour
   drain restores 1 to the tank and costs the base 5 **(measured, WinBolo
   `BASE_ARMOUR_GIVE`)**. The log carries no armour field, so a tank's health
