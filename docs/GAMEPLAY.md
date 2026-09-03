@@ -49,7 +49,14 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   by two senders, and the 7% with armour to spare are the size mine damage
   would leave. The game displays 8 bars and the tank dies when
   hit at 0, which is the same count **(owner)**. Driving over a mine removes
-  2 in WinBolo, probably the same in Bolo **(owner, unsure)**. One armour
+  3, floored at 0, and a tank on its last 2 points is lost outright: in
+  display bars 8 → 5, 3 → 0, 2 → 0, and 1 or 0 → lost; in the 9-scale
+  9 → 6, 4 → 1, 3 → 1, and 2 or 1 → lost **(owner, in an emulator;
+  measured: the corpus sweep puts the most mine-involved deaths at exactly 0
+  with a damage of 3, and its only 23 "impossible" survivors are the tanks
+  at 3 and 2 on the 9-scale that this floor spares; WinBolo uses 2 with no
+  floor)**. A shell hit at 0 bars is fatal while a mine at 2 bars is not,
+  so the two evidently take different paths in the game's code. One armour
   drain restores 1 to the tank and costs the base 5 **(measured, WinBolo
   `BASE_ARMOUR_GIVE`)**. The log carries no armour field, so a tank's health
   is integrated from hits, drains and deaths, as ammo already is
@@ -245,7 +252,13 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
 ## Terrain
 
 - **Mines** can lie on swamp, crater, road, forest, rubble and grass
-  **(corpus, FORMAT.md Terrain)**. Almost all games disallowed hidden mines;
+  **(corpus, FORMAT.md Terrain)**. A tank driving onto one takes 3 armour
+  with the floor described under Tanks; the square craters (7,187 of 7,348
+  corpus detonations) or, rarely, is left as grass **(measured)**. Whether
+  a mine set off by a shell hurts a tank standing on the square, and
+  whether the blast reaches neighbouring squares, is not known: the corpus
+  has 517 tanks that stood on a detonating square and drove on, and their
+  armour afterwards was not isolated. Almost all games disallowed hidden mines;
   who sees a mine when they are allowed, allies included, is not known
   **(owner)**.
 - **Forest regrowth** prefers grass but is not limited to it: trees grow
@@ -292,10 +305,10 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
 
 What the corpus run left unsettled.
 
-1. Mine damage to a tank (WinBolo 2). `tools/measure-mine-damage.cjs`
-   brackets it from detonations under a tank: on the fixtures, fatal at
-   integrated armour 1–2 and survived at 6–9, so between 2 and 5; the corpus
-   should pin it.
+1. Whether a mine set off by a shell hurts a tank on the square, and
+   whether a mine's blast reaches the neighbouring squares. The corpus run
+   of `tools/measure-mine-damage.cjs` has the material; the attribution
+   needs to separate tank-triggered from shell-triggered detonations.
 2. The tank reload: typically 12–13 ticks, but a quarter of gaps are 7–11
    and 2.4% of firing records carry two shots. Jitter in the stamps, or a
    variable reload?

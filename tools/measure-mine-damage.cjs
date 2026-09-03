@@ -244,19 +244,19 @@ if (!logs_scanned) {
 }
 
 console.log(`\n${logs_scanned} log${logs_scanned === 1 ? "" : "s"}, ${records_scanned} records`);
-console.log(`\n[detonations] explosions on a square the model holds mined (codes C and D excluded): ${detonations}`);
+console.log(`\n[mine hits] explosions on a square the model holds mined (codes C and D excluded): ${detonations}`);
 console.log(`  by explosion code (new terrain nibble): ${[...detonation_codes.entries()].sort((a, b) => a[0] - b[0]).map(([k, n]) => `${k.toString(16)}:${n}`).join(" ")}`);
-console.log(`  with a tank centred on the square (latest restatement <= 1 s old): ${under_tank}; followed by that tank's death within 1 s: ${fatal}; survived: ${survived}`);
+console.log(`  with a tank centred on the square (latest restatement <= 1 s old): ${under_tank}; tank lost within 1 s: ${fatal}; tank kept going: ${survived}`);
 console.log(`\n[bounds] integrated armour (9, -1 per hit, +1 per drain) at the moment of the detonation, first lives excluded`);
-console.log(`  survived detonations, armour before: ${histogram_line(survived_armour_before, -5, 9)}  (the damage is LESS than every one of these)`);
-console.log(`  fatal detonations, armour before:    ${histogram_line(fatal_armour_before, -5, 9)}  (the damage is AT LEAST every one of these)`);
-console.log(`\n[sweep] lives with a detonation: ${lives_with_mines} (of ${lives_total} lives; ${lives_excluded} excluded for shell hits alone driving armour below 0)`);
-console.log(`  ${"damage".padEnd(8)} ${"deaths at 0".padStart(12)} ${"below 0".padStart(9)} ${"above 0".padStart(9)} ${"survived-but-fatal".padStart(20)}`);
+console.log(`  tank kept going, armour before:  ${histogram_line(survived_armour_before, -5, 9)}  (the loss is LESS than every one of these)`);
+console.log(`  tank lost, armour before:        ${histogram_line(fatal_armour_before, -5, 9)}  (the loss is AT LEAST every one of these)`);
+console.log(`\n[sweep] lives with a mine hit: ${lives_with_mines} (of ${lives_total} lives; ${lives_excluded} excluded for shell hits alone driving armour below 0)`);
+console.log(`  ${"damage".padEnd(8)} ${"deaths at 0".padStart(12)} ${"below 0".padStart(9)} ${"above 0".padStart(9)} ${"kept-going-but-lost".padStart(20)}`);
 for (let s of sweep) {
 	console.log(`  ${String(s.d).padEnd(8)} ${String(s.deaths_exact).padStart(12)} ${String(s.deaths_below).padStart(9)} ${String(s.deaths_above).padStart(9)} ${String(s.survived_violations).padStart(20)}`);
 }
-console.log(`  (deaths exclude drownings, code 3; "survived-but-fatal" counts lives where a detonation the tank walked away from would have taken it to 0 or below under that damage)`);
+console.log(`  (deaths exclude drownings, code 3; "kept-going-but-lost" counts lives where a hit the tank drove on from would have taken it to 0 or below under that loss)`);
 if (examples.length) {
-	console.log("\n[examples] fatal detonations");
+	console.log("\n[examples] tanks lost to a mine hit");
 	for (let e of examples) console.log(`  ${e}`);
 }
