@@ -1,0 +1,217 @@
+BOLO GAMEPLAY QUESTIONNAIRE
+Answer under each question. Numbers are more useful than adjectives.
+Skip anything you do not know; "don't know" is a fine answer.
+
+--- TANKS ---
+
+1. What is a tank's maximum armour?
+Tanks die after 9 hits. Visually the game displays 8 armor, and then you die if you get hit while at 0.
+But this is presumably equivalent to having 9, and you die when reaching 0.
+
+2. How much armour does one shell hit remove from a tank?
+One.
+
+3. How much armour does driving over a mine remove from a tank?
+In WinBolo, 2. That is probably (not 100% certain) the same in Bolo.
+
+4. Does one "armour" drain from a base restore one point of tank armour?
+I strongly believe so.
+
+5. What is the maximum tank speed on each terrain type (road, grass, forest, swamp, crater, rubble, river, boat)?
+The following numbers give the correct ratios but may not be in the correct units.
+Road = 16. Grass = 12. Forest = 6. Swamp = 3. Crater = 3. Rubble = 3. River = 3.
+Boats are not really travelled over but rather *in*. Tanks in boats move at 16.
+
+6. What unit is the speed byte in a tank position packet, and what is its maximum value?
+Don't know.
+
+7. How fast does a tank turn (time for a full circle, or degrees per tick)?
+I wouldn't trust an emulator. But in WinBolo, time for a full circle:
+ - Road/grass/base/boat: 2.61 s
+ - Forest: 5.17 s
+ - River/swamp/crater/rubble: 10.29 s
+Mac Bolo is probably similar. You could check a replay.
+
+8. What is the minimum time between two shots from a tank?
+Approximately a quarter second. Not exact. WinBolo has 260 ms.
+A replay could tell the truth.
+
+9. Can a tank fire while moving or turning?
+Yes and yes.
+
+10. When exactly does a tank count as hidden in trees (centre pixel in a forest square, or fully inside one)?
+At the very least I believe you need the entire box of the tank inside, and it may be even stricter than that. Unsure.
+Careful analysis of replays might show.
+
+11. What does being hidden actually hide: the tank from enemy screens, from radar, from pillboxes, or all three?
+From enemy screens and from pillboxes, yes. I do not know what you mean by "radar".
+
+12. Is deep sea instant death, or only death when the tank has no boat?
+Instant death when not in a boat. Harmless in a boat.
+
+13. Where does a tank respawn: a random start square, the furthest from enemies, or the player's original one?
+Unknown. Not always the original one.
+
+14. What ammo, mines and armour does a tank respawn with in an open game? In a tournament game? In a strict game?
+Here "max" means 8 or 9 armor, depending on how you count (see Q1).
+Open: 40/40/max. Strict: 0/0/max. Tournament: variable shots, no mines, max armor.
+
+--- SHELLS ---
+
+15. Does a shell damage an allied tank?
+Yes.
+
+16. Does a shell damage a man (LGM)?
+If the shell fall is very near him, or it hits a forest tile he is in, yes. One shot kills him.
+Note that shells can fly over a man harmlessly if the above conditions aren't met.
+
+17. Does a live pillbox stop a shell? Does a dead pillbox stop a shell?
+Yes. No.
+
+18. At what armour level does a base start blocking shells? Do friendly and neutral bases block too?
+Not sure about the first question. Friendly and neutral bases do not block shells.
+
+19. Does a shell detonate a mine?
+Yes.
+
+20. What does a shell do to a boat?
+Destroys it, whether there is a tank in it or not.
+
+--- PILLBOXES ---
+
+21. How does a pillbox's fire rate rise when it is attacked, and how does it decay afterwards?
+I believe the fire rate doubles on a hit.
+In WinBolo, if the standard delay between shots is 100 (which I think is near 2 seconds) a fully angry pill has delay 6.
+The implied 8 shots a second feels about right. This question could be resolved from corpus evidence.
+It slowly decays to delay 100 again.
+
+22. What are the fastest and slowest intervals between shots from one pillbox?
+See Q21.
+
+23. What does the "speed" byte in the pillbox list mean, and what values does it take?
+Normally 6-100, see above.
+
+24. Does a pillbox fire at a man (LGM)? At a tank in a boat?
+No. Yes.
+
+25. What decides whether the man repairs a pillbox by 4, 8, 12 or fully?
+Not sure - I think possibly if the tank sending has less than a full unit of wood to spend.
+
+26. What resource does a pillbox repair consume, and how much?
+Wood. 1 tree harvested supplies exactly the amount needed to fully repair a pillbox, or plant a dead one at full health.
+
+27. Can a pillbox be picked up by anyone once it is dead, including its owner?
+Yes.
+
+--- BASES ---
+
+28. Can a hostile base be captured while it still has armour, or must it be at zero first?
+It must be reduced to near-zero (which can be done by a hostile tank shooting it). I do not know if it must be exactly zero.
+
+29. Is a neutral base captured on contact?
+On driving over it.
+
+30. Must the tank be stopped on a base to refuel, and how fast does each resource transfer?
+Slow motion on the base is OK, as long as it stays on the square. In WinBolo, going from 0/0/0 to 40/40/9 takes about 20 seconds, which probably isn't far off the Mac Bolo values.
+
+31. Does a base refuel a tank owned by an ally? By a neutral player?
+Yes. There is no such thing as a neutral player.
+
+32. Does a base do anything hostile to an enemy tank sitting on it?
+It is impassable to an enemy tank until reduced in armor to the point where it can be captured by driving over it.
+
+--- THE MAN (LGM) ---
+
+33. What can the man build or change, and what does each action cost in wood?
+Build or repair a pillbox, build a road, build a building, build a boat (only on river), harvest a tree (becomes grass) retrieving wood.
+Pillbox 1, road 0.5 I think, boat is 5 I think, not sure about building.
+
+34. How long does each action take (harvesting a tree, laying road, building a wall, building a boat, repairing a pill, planting a mine)?
+It is very fast once the man is there. This could be determined from any replay.
+
+35. How fast does the man walk, and does terrain change his speed?
+Check replays. Yes.
+
+36. Which terrain can the man cross? Can he board a boat?
+He is blocked by everything that blocks a tank. I believe he can enter a boat, but not use it. I could be wrong about him entering it.
+
+37. What kills the man: shells, mines, being driven over, anything else?
+Shells (see Q16) and explosions on him. Possibly harvesting a tree with a hidden mine (but practically no games allow hidden mines).
+
+38. How long does the parachute take to arrive, and where does the new man land?
+The new man lands where the tank was at the moment of the LGM's death. For speed, check a replay.
+
+39. What happens to a pillbox the man is carrying when he is killed?
+It is dropped on the ground at 0 health, still owned by that player.
+
+40. How does the man decide the path to his target, and what makes him give up?
+A straight line, as follows:
+Let's say he's going south east at (arbitrary units) speed [3,3]. If he encounters an obstacle to his east, his speed becomes [0,3].
+If he encounters an obstacle to the south as well, he would now be at [0,0] at which point he gives up.
+
+--- TERRAIN ---
+
+41. What is the rule for forest regrowth: any grass, only grass next to forest, and at what rate?
+In fact it is not limited to grass, and can go on most land tiles except impassable ones. Not sure about rate, check a replay.
+It may depend on the number of players, probably each client is simulating its own tree growth, i.e. 4 players may have 4 times as much as one.
+
+42. When a tank drives off a boat onto land, does the boat stay behind on the water square?
+Yes.
+
+43. Do rivers, swamps or craters slow or damage anything besides the tank?
+Men are slowed by swamps and craters, and blocked by rivers.
+Tanks can slowly cross river. This causes them to lose shells and mines slowly.
+
+44. Can a crater be filled in, and by what?
+Build a road on it. It also naturally floods if next to water.
+
+--- MINES ---
+
+45. Who can see a mine under each hidden-mines setting?
+Unknown, but almost all games disallow hidden mines.
+
+46. Can allies see each other's mines?
+If hidden mines are allowed then I don't know.
+
+47. Does the man detonate a mine by walking on it?
+I believe not.
+
+48. Can a mine be laid on any terrain, and can it be laid from a boat?
+The FORMAT docs "Terrain" section lists the 6 terrains that can have mines.
+It cannot be laid by the tank from a boat, but a man could be sent from the boat to plant a mine on land.
+The man cannot swim, so the boat would have to be adjacent to land, though not necessarily to the plant square.
+
+--- ALLIANCES AND PLAYERS ---
+
+49. What does an alliance share beyond pills and bases: view, radar, messages, anything else?
+It is possible to change your view so that instead of seeing the area around your tank, you see the area around any friendly pillbox.
+Alliances can send messages that can only be seen by allies. I don't know what radar is. Nothing else I can think of.
+
+50. When a player leaves an alliance, which member inherits his planted pillboxes and bases?
+This is modelled in the code.
+
+51. What did Join restore and what did Rejoin restore for a returning player?
+Join: I believe nothing. Rejoin: hopefully modelled correctly in the code by now.
+
+52. What happened to a player's pillboxes and bases while he was disconnected?
+I think the same as if he had quit.
+
+53. How is a "nearby" chat recipient decided?
+I didn't know there was such a thing.
+
+54. What differs between open, tournament and strict games besides the strict-game empty respawn?
+Just how much ammo / mines a tank carries on respawn.
+
+55. Do the start delay and time limit change anything visible in play?
+I don't think so.
+
+56. Did AI "brain" players behave in any way a log would show, such as never chatting or fixed patterns?
+I believe they did send messages. Fixed patterns according to their own coding, probably.
+
+57. What is recorded in the pill and base history string (the player@node name in the start-of-log groups)?
+Don't know.
+
+--- ANYTHING ELSE ---
+
+58. Is there any rule or number about Bolo you think a viewer or an LLM reading these logs is likely to get wrong?
+Probably but not off the top of my head.
