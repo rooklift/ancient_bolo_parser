@@ -38,6 +38,15 @@ const HOSTILE_COLOR = "#ff5d5d";
 const NEUTRAL_BASE = "#f0b429";
 
 const EFFECT_TICKS = 30; /* how long a transient effect stays on screen */
+/* Silence after which a tank draws as a ghost. It must clear the silences
+ * a player who is merely sitting still produces: a stationary tank
+ * restates its position only every few seconds (the period varies by log,
+ * 4 to 8 s), and before the game has settled -- nobody shooting, no base
+ * draining -- nothing else from him fills the gap, so live silences of
+ * up to 9 s are ordinary and 5 s faded every idle tank of the gathering
+ * phase. Nothing over 10 s is seen from a live player [E:idle-silence];
+ * a real ghost is silent for good, so the extra ten seconds cost nothing. */
+const GHOST_SILENCE_TICKS = TPS * 15;
 const OBJ_NATIVE_TILE = 16;
 const LGM_ANIMATION_FPS = 20;
 const LGM_ANIMATION = ["lgm_frame0", "lgm_frame1", "lgm_frame0", "lgm_frame2"];
@@ -735,8 +744,8 @@ function draw_tanks() {
 	for (let p = 0; p < 16; p++) {
 		let t = cur.tanks[p];
 		if (!t || t.dead || cur.quit[p]) continue;
-		/* a tank not restated for a long while is a ghost (split) or dead */
-		let stale = clock - t.lastSeen > TPS * 5;
+		/* a sender unheard from for a long while is a ghost (split) or dead */
+		let stale = clock - t.lastSeen > GHOST_SILENCE_TICKS;
 		let position = BoloGame.tank_position_at(game, cur, p, clock);
 		if (!position) continue; /* can't happen for tank tracks today, but
 		    the helper's contract allows null (see the LGM tank-entry case) */
