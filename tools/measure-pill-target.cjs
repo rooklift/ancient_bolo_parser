@@ -122,6 +122,9 @@ const totals = {
 	 * of a box the circle rejects: the larger axis distance of each such fire */
 	out_of_range_axis: [0, 0, 0, 0],   /* max(|dx|,|dy|) <= 136, <= 152, <= 168, over */
 	orphan_at_old_ally_dead_quit: 0, orphan_at_old_ally_alive_quit: 0,
+	/* one entry per quit that left grounded pills: who the pills fired at
+	 * afterwards, against several candidate heirs (see the report) */
+	windows: [],
 	orphan_fires_dead_quit: 0, orphan_fires_alive_quit: 0,
 	not_hostile_initial_ally: 0, not_hostile_direct_ally: 0, not_hostile_clique_ally: 0,
 	touching: 0, touching_facing: 0, apart_facing: 0, aim_neither_touching_facing: 0,
@@ -162,6 +165,7 @@ function scan(file) {
 	 * shuffle by player NAME, so the names of the owner's allies (and the
 	 * owner) as of the quit are frozen here and compared, never printed */
 	let orphaned = new Array(16).fill(null);
+	let file_windows = [];
 	/* how the model came to hold two players allied: from the game-info
 	 * words, from an accept event between the two, or only by the clique
 	 * merge an accept with a third party implies */
@@ -277,6 +281,7 @@ function scan(file) {
 				if (frozen && pill.owner !== NEUTRAL && me.distance <= RANGE_PX) {
 					totals.orphan_fires++;
 					let name = state.names[sender];
+					frozen.window.fires[name] = (frozen.window.fires[name] || 0) + 1;
 					if (frozen.allies.has(name)) totals.orphan_at_old_ally++;
 					else if (frozen.others.has(name)) totals.orphan_at_old_enemy++;
 					else totals.orphan_at_newcomer++;
@@ -442,6 +447,9 @@ function scan(file) {
 					let o = orphaned[k];
 					if (o && !o.returned && o.owner_name === sub.name) { o.returned = true; totals.quits_owner_returned++; }
 				}
+				for (let w of file_windows) {
+					if (w.slot === rec.player && w.candidates.slot_taker === null && sub.name !== w.owner_name) w.candidates.slot_taker = sub.name;
+				}
 			}
 		}
 		for (let i = 0; i < 16; i++) {
@@ -461,14 +469,34 @@ function scan(file) {
 					}
 				}
 				let dead_quit = rec.player === i && rec.tankStatus === 0x07;
+				/* candidate heirs for the "who really gets them" question:
+				 * the next mutual ally with a live tank (the viewer's pick),
+				 * the lowest-index live tank on the other side, the
+				 * lowest-index live tank of anyone, the lowest-index player
+				 * present at all, and whoever next takes the quitter's slot */
+				let live = j => { let t = state.tanks[j]; return !!(t && !t.dead && !t.dying && rec.time - t.lastSeen <= ALIVE_TICKS); };
+				let candidates = {next_live_ally: null, lowest_live_enemy: null, lowest_live_any: null, lowest_present_any: null, slot_taker: null};
+				for (let j = 0; j < 16; j++) {
+					if (j === i || state.names[j] === null || state.quit[j]) continue;
+					let mutual = !(state.alliances[i] & (1 << j)) && !(state.alliances[j] & (1 << i));
+					if (candidates.lowest_present_any === null) candidates.lowest_present_any = state.names[j];
+					if (!live(j)) continue;
+					if (candidates.lowest_live_any === null) candidates.lowest_live_any = state.names[j];
+					if (mutual && candidates.next_live_ally === null) candidates.next_live_ally = state.names[j];
+					if (!mutual && candidates.lowest_live_enemy === null) candidates.lowest_live_enemy = state.names[j];
+				}
+				let heir_state = heir && heir_alive ? "lowest ally live" : candidates.next_live_ally !== null ? "another ally live" : "no ally live";
+				let window = {slot: i, owner_name: state.names[i], heir_state, candidates, allies, others, fires: {}};
 				if (state.pills.some((p, k) => owners_before[k] === i && p.inTank === null)) {
+					file_windows.push(window);
+					totals.windows.push(window);
 					totals.quits_with_pills++;
 					if (heir) totals.quits_with_heir++;
 					if (heir) { if (heir_alive) totals.quits_heir_alive++; else totals.quits_heir_dead++; }
 					if (dead_quit) totals.quits_dead++; else totals.quits_alive++;
 				}
 				for (let k = 0; k < state.pills.length; k++) {
-					if (owners_before[k] === i && !orphaned[k]) orphaned[k] = {allies, others, owner_name: state.names[i], heir, heir_alive, returned: false, since: rec, dead_quit};
+					if (owners_before[k] === i && !orphaned[k]) orphaned[k] = {allies, others, owner_name: state.names[i], heir, heir_alive, returned: false, since: rec, dead_quit, window};
 				}
 			}
 		}
@@ -544,6 +572,45 @@ console.log(`the quitter's name rejoined later for ${n(totals.quits_owner_return
 console.log(`no heir but owner returned ${n(totals.orphan_fires_no_heir_returned)}, no heir and owner gone ${n(totals.orphan_fires_no_heir_gone)};`);
 console.log(`of the allied-sender fires from orphans, ${n(totals.not_hostile_orphan_heir)} had an heir available (a hand-over at quit would have caught those).`);
 console.log();
+{
+	/* Who really inherits? For each quit that left grounded pills, the
+	 * fires those pills made afterwards (until they changed hands again)
+	 * are tallied by target name and set against candidate heirs. A
+	 * candidate who really owns the pills is never fired at; a candidate
+	 * who is fired at as often as anyone else does not own them. */
+	const CANDIDATES = [
+		["next_live_ally", "next mutual ally with a live tank"],
+		["lowest_live_enemy", "lowest-index live tank, other side"],
+		["lowest_live_any", "lowest-index live tank, any side"],
+		["lowest_present_any", "lowest-index player present"],
+		["slot_taker", "next name to take the quitter's slot"],
+	];
+	console.log("Who inherits a quitter's grounded pills? Their later fires (until the pills changed hands");
+	console.log("again) by target, per quit, against candidate heirs. Columns: quits where the candidate");
+	console.log("exists / of those, quits whose pills fired at anyone / fires in those quits / fires at the");
+	console.log("candidate / quits in which the candidate was fired at. A true heir scores 0 in the last two.");
+	for (let group of ["lowest ally live", "another ally live", "no ally live"]) {
+		let ws = totals.windows.filter(w => w.heir_state === group);
+		let side = {ally: 0, enemy: 0, newcomer: 0};
+		for (let w of ws) for (let [name, c] of Object.entries(w.fires)) {
+			if (w.allies.has(name)) side.ally += c; else if (w.others.has(name)) side.enemy += c; else side.newcomer += c;
+		}
+		console.log(`  ${group}: ${n(ws.length)} quits; fires at an old ally ${n(side.ally)}, at an old enemy ${n(side.enemy)}, at a newcomer ${n(side.newcomer)}`);
+		for (let [key, title] of CANDIDATES) {
+			let have = ws.filter(w => w.candidates[key] !== null);
+			let fired = have.filter(w => Object.keys(w.fires).length);
+			let fires = 0, at = 0, at_windows = 0;
+			for (let w of fired) {
+				for (let c of Object.values(w.fires)) fires += c;
+				let hit = w.fires[w.candidates[key]] || 0;
+				at += hit;
+				if (hit) at_windows++;
+			}
+			console.log(`    ${title.padEnd(38)} ${[have.length, fired.length, fires, at, at_windows].map(v => n(v).padStart(7)).join("")}`);
+		}
+	}
+	console.log();
+}
 console.log(`Fires where the sender is taken as the target: ${n(totals.sender_is_target)}; sender's tank hidden in forest`);
 console.log(`at the time in ${n(totals.sender_hidden)} (${pc(totals.sender_hidden, totals.sender_is_target)}) -- ~0 if a pill cannot target a hidden tank.`);
 console.log();
