@@ -16,6 +16,17 @@
  * lower neighbour.  Split by direction, because that is where the effect
  * lives.
  *
+ * MEASUREMENT 1b: the same quiet-moment events, split by the parity of
+ * the named index and the side of due north the shot came from.  There
+ * is a known mechanism for the fault -- BRAD_TO_PACK(x) = ((x)+8)>>4
+ * overflows to 0x10 for bradians 248-255 and is ORed into the index
+ * nibble, reporting true_n|1 -- which the aggregate ~25% cannot verify
+ * but the split can, three ways: an EVEN named index in direction 0 can
+ * never be wrong; every on-lower case must have an ODD named index AND
+ * a west-of-north shot; and an even-index direction-0 shot must be
+ * east-of-north (a west shot from an even pill corrupts to odd).  Any
+ * counterexample falsifies the mechanism.
+ *
  * MEASUREMENT TWO: an independent check needing no shells at all.  A pill
  * inside a tank cannot fire, so an `F4` naming a carried pill is impossible
  * on its face.  If those impossibilities share the same direction, and the
@@ -69,6 +80,12 @@ function shells_in(rec) {
 }
 
 const shot = Array.from({length: 16}, () => ({n: 0, on_named: 0, on_lower: 0, neither: 0}));
+/* dir-0 mechanism split: [parity of named index][outcome][side of north] */
+const parity_side = Array.from({length: 2}, () => ({
+	named: {east: 0, west: 0, near: 0},
+	lower: {east: 0, west: 0, near: 0},
+	neither: 0,
+}));
 const carried = Array.from({length: 16}, () => ({fires: 0, while_carried: 0, lower_grounded: 0}));
 const totals = {logs: 0, fires: 0};
 
@@ -124,9 +141,24 @@ function scan(file) {
 					let dn = dist(named), dl = dist(lower);
 					let s = shot[sub.direction];
 					s.n++;
-					if (dn <= NEAR && dn <= dl) s.on_named++;
-					else if (dl <= NEAR) s.on_lower++;
+					let outcome = dn <= NEAR && dn <= dl ? "named"
+						: dl <= NEAR ? "lower" : "neither";
+					if (outcome === "named") s.on_named++;
+					else if (outcome === "lower") s.on_lower++;
 					else s.neither++;
+					if (sub.direction === 0) {
+						let ps = parity_side[sub.pillbox & 1];
+						if (outcome === "neither") ps.neither++;
+						else {
+							/* side of due north, from the true firer's centre;
+							 * |dx| <= 1 px is within quantisation of a
+							 * near-vertical shot and stays unclassified */
+							let firer = outcome === "named" ? named : lower;
+							let dx = found.wx - (firer.x * 16 + 8);
+							let side = dx < -1 ? "west" : dx > 1 ? "east" : "near";
+							ps[outcome][side]++;
+						}
+					}
 				}
 			}
 		}
@@ -154,6 +186,19 @@ for (let d = 0; d < 16; d++) {
 		`${`${s.on_named} (${pc(s.on_named, s.n)})`.padStart(20)} ` +
 		`${`${s.on_lower} (${pc(s.on_lower, s.n)})`.padStart(16)} ` +
 		`${`${s.neither} (${pc(s.neither, s.n)})`.padStart(12)}`);
+}
+console.log();
+console.log("Direction-0 mechanism check (the claim: reported = true_n | 1 for");
+console.log("west-of-north bradians 249-255, so: even-index errors, west-side");
+console.log("even-index shots, and east-side on-lower cases must all be ZERO):");
+console.log();
+console.log(`    ${"named idx".padStart(9)} ${"on named E/W/near".padStart(19)} ${"on n-1 E/W/near".padStart(17)} ${"neither".padStart(9)}`);
+for (let par = 0; par < 2; par++) {
+	let ps = parity_side[par];
+	console.log(`    ${(par ? "odd" : "even").padStart(9)} ` +
+		`${`${ps.named.east}/${ps.named.west}/${ps.named.near}`.padStart(19)} ` +
+		`${`${ps.lower.east}/${ps.lower.west}/${ps.lower.near}`.padStart(17)} ` +
+		`${String(ps.neither).padStart(9)}`);
 }
 console.log();
 console.log("Impossible fires -- an F4 naming a pill our model holds in a tank -- and");

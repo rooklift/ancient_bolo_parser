@@ -625,19 +625,26 @@ function draw_bases() {
 	let r = Math.max(2.5, z * 0.42);
 	let good = good_team();
 	for (const b of cur.bases) {
-		let img = obj_sprite(b.owner === BoloGame.NEUTRAL ? "base_neutral"
-			: BoloGame.team_of(cur, b.owner) === good ? "base_good" : "base_evil");
+		let side = pill_side(b, good);
+		let img = obj_sprite(b.owner === BoloGame.NEUTRAL ? "base_neutral" : `base_${side}`);
 		if (img) {
 			draw_obj(img, tile_to_screen_x(b.x), tile_to_screen_y(b.y));
 			continue;
 		}
 		let cx = tile_to_screen_x(b.x) + z / 2, cy = tile_to_screen_y(b.y) + z / 2;
-		ctx.fillStyle = b.owner === BoloGame.NEUTRAL ? NEUTRAL_BASE : side_color(b.owner);
+		ctx.fillStyle = b.owner === BoloGame.NEUTRAL ? NEUTRAL_BASE : side === "good" ? FRIENDLY_COLOR : HOSTILE_COLOR;
 		ctx.strokeStyle = "rgba(0,0,0,0.65)";
 		ctx.lineWidth = 1.5;
 		ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
 		ctx.strokeRect(cx - r, cy - r, r * 2, r * 2);
 	}
+}
+
+/* Which side a pill or base draws on for the viewpoint's team: neutral
+ * and DEPARTED (nobody's) are hostile to everyone. */
+function pill_side(p, good) {
+	if (p.owner === BoloGame.NEUTRAL || p.owner === BoloGame.DEPARTED) return "evil";
+	return BoloGame.team_of(cur, p.owner) === good ? "good" : "evil";
 }
 
 function draw_pills(dead) {
@@ -649,14 +656,14 @@ function draw_pills(dead) {
 		let cx = tile_to_screen_x(p.x) + z / 2;
 		let cy = tile_to_screen_y(p.y) + z / 2;
 		/* the art shows neutral pills as hostile; armour state 0 is the dead look */
-		let side = p.owner !== BoloGame.NEUTRAL && BoloGame.team_of(cur, p.owner) === good ? "good" : "evil";
+		let side = pill_side(p, good);
 		let img = obj_sprite(`pillbox_${side}_${String(Math.min(15, p.armour)).padStart(2, "0")}`);
 		if (img) {
 			draw_obj(img, tile_to_screen_x(p.x), tile_to_screen_y(p.y));
 			continue;
 		}
 		ctx.fillStyle = dead ? "#555c6a"
-			: p.owner === BoloGame.NEUTRAL ? HOSTILE_COLOR : side_color(p.owner);
+			: side === "good" ? FRIENDLY_COLOR : HOSTILE_COLOR;
 		ctx.strokeStyle = "rgba(0,0,0,0.65)";
 		ctx.lineWidth = 1.5;
 		ctx.beginPath();
