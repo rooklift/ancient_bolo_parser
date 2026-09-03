@@ -1,0 +1,58 @@
+443 logs, 13338093 records
+
+[gaps] between consecutive records of one player: 13303354 live silences, 1006 absences (>= 30 s, or ended by a quit)
+  all live     n=13303354  p50 0.1 s  p90 0.3 s  p99 0.8 s  p99.9 5.2 s  max 28.9 s
+  idle tank    n=  673328  p50 0.1 s  p90 0.4 s  p99 5.6 s  p99.9 9.2 s  max 19.7 s
+  moving tank  n=12630026  p50 0.1 s  p90 0.3 s  p99 0.5 s  p99.9 3.9 s  max 28.9 s
+
+[histogram] live silences over 2 s, 1 s bins (idle / moving)
+    2-3   s     5764 /   12666
+    3-4   s    11004 /    6753
+    4-5   s     7696 /    5846
+    5-6   s     4638 /    4230
+    6-7   s     2203 /     842
+    7-8   s     1499 /     540
+    8-9   s      630 /     394
+    9-10  s      366 /     158
+   10-11  s      243 /      93
+   11-12  s       70 /      33
+   12-13  s       47 /      36
+   13-14  s       27 /      16
+   14-15  s       13 /      21
+   15-16  s        3 /      23
+   16-17  s        3 /      17
+   17-18  s        0 /       4
+   18-19  s        0 /       3
+   19-20  s        1 /       3
+   20-21  s        0 /       7
+   21-22  s        0 /       7
+   22-23  s        0 /       4
+   23-24  s        0 /       4
+   24-25  s        0 /       6
+   26-27  s        0 /       1
+   27-28  s        0 /       2
+   28-29  s        0 /       8
+
+[thresholds] live silences a fade-after-N-seconds rule would fade (false fades), and the logs they occur in
+    3 s    47157 silences in  443 of 443 logs
+    5 s    15818 silences in  413 of 443 logs
+    8 s     2213 silences in  149 of 443 logs
+   10 s      686 silences in   97 of 443 logs
+   12 s      255 silences in   68 of 443 logs
+   15 s       96 silences in   47 of 443 logs
+   20 s       39 silences in   21 of 443 logs
+   25 s       11 silences in    7 of 443 logs
+
+[longest] live silences
+   28.9 s  012802.1  player 1  moving  at 1151.3 s into the log
+   28.9 s  012802.1  player 5  moving  at 1151.3 s into the log
+   28.9 s  012802.1  player 4  moving  at 1151.3 s into the log
+   28.9 s  012802.1  player 0  moving  at 1151.3 s into the log
+   28.8 s  111502.1~a686d0  player 0  moving  at 150.0 s into the log
+   28.7 s  101502.1~ac361f  player 4  moving  at 1237.9 s into the log
+   28.3 s  101502.1~ac361f  player 3  moving  at 1159.0 s into the log
+   28.1 s  072704.2~7b05fa  player 3  moving  at 605.1 s into the log
+   27.4 s  053001~d5b10b  player 0  moving  at 456.3 s into the log
+   27.3 s  101502.2~611f73  player 1  moving  at 3024.8 s into the log
+   26.1 s  060402  player 1  moving  at 738.3 s into the log
+   24.8 s  012302  player 5  moving  at 24.8 s into the log
