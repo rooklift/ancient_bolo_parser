@@ -112,7 +112,9 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
 - A shell damages any tank it hits, allied tanks included **(owner)**.
 - A shell kills the man in one hit, but only if it falls very near him or
   hits a forest square he is standing in; otherwise it flies over him
-  harmlessly **(owner)**.
+  harmlessly **(owner)**. The exception is the moment of building: while he
+  plants or repairs a pillbox, or builds a building or a boat, he is briefly
+  inside the thing, and a shell that hits it then kills him **(owner)**.
 - A **live pillbox stops a shell; a dead pillbox does not** **(owner)**.
   This settles FORMAT.md's [E:shell-passthrough], which had reached the same
   conclusion tentatively: the apparent pass-throughs were shell identity
@@ -220,7 +222,9 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   (3,3) and blocked to the east he continues at (0,3); blocked to the south
   as well he stops.
 - **Death.** Shells that fall near him or hit his forest square, and
-  explosions on him, kill him **(owner)**. He does not detonate a mine by
+  explosions on him, kill him, as does a shell hitting the pillbox,
+  building or boat he is briefly inside while planting, repairing or
+  building it **(owner)**. He does not detonate a mine by
   walking on it **(owner, unsure)**; harvesting a tree over a hidden mine
   might kill him, but practically no game allowed hidden mines **(owner)**.
   His death is logged as `F5`, or as `FF 51` if he was carrying a pill, which
