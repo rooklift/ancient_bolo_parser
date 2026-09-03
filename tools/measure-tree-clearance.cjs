@@ -233,6 +233,7 @@ function new_stats() {
 		contradiction_samples: [],
 		hidden_tank_samples: [],
 		plant_samples: [],
+		regrowth_samples: [],
 	};
 }
 
@@ -246,6 +247,10 @@ function new_model(seed) {
 		grid: BoloGame.initial_state(seed).grid,
 		pending: new Map(),
 		stats: new_stats(),
+		/* the last evented change to each square, so a regrowth anomaly
+		 * can say where the model's tree came from: the initial map, or
+		 * an earlier event */
+		last_event: new Map(),
 	};
 }
 
@@ -253,8 +258,15 @@ function set_terrain(model, x, y, terrain, evidence) {
 	if (x < 0 || y < 0 || x >= MAP_SIZE || y >= MAP_SIZE)
 		return;
 	let key = square_key(x, y);
-	if (evidence && is_forest(terrain) && is_forest(model.grid[key]))
+	if (evidence && is_forest(terrain) && is_forest(model.grid[key])) {
 		model.stats.regrowth_anomalies++;
+		let prev = model.last_event.get(key);
+		add_sample(model.stats.regrowth_samples,
+			`${evidence.file} ${format_time(evidence.time)} ${evidence.source} regrowth on model-forest (${x},${y}); ` +
+			(prev ? `the square's last event was ${prev.source} at ${format_time(prev.time)}` : "no event ever touched the square: the tree is the map's"));
+	}
+	if (evidence)
+		model.last_event.set(key, {time: evidence.time, source: evidence.source});
 	let pending = model.pending.get(key);
 	if (pending && evidence) {
 		if (is_forest(terrain)) {
@@ -509,6 +521,7 @@ if (SAMPLES) {
 			["contradictions", s.contradiction_samples],
 			["hidden-tank", s.hidden_tank_samples],
 			["plants on forest", s.plant_samples],
+			["regrowth on forest", s.regrowth_samples],
 		]) {
 			if (!list.length)
 				continue;
