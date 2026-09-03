@@ -17,6 +17,7 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { replay_label } = require("./corpus.cjs");
 const { Worker, isMainThread, parentPort } = require("node:worker_threads");
 
 const ROOT = path.join(__dirname, "..");
@@ -171,8 +172,7 @@ function print_report(seams, files, files_failed, top, target) {
 		let s = seams[i];
 		lines.push("");
 		lines.push(`#${i + 1}\t${s.seam.toFixed(2)} px\t` +
-			`${path.relative(target, s.file).replace(/\\/g, "/") ||
-				path.basename(s.file)}`);
+			`${replay_label(s.file)}`);
 		lines.push(`\tplayer ${s.player}, direction ${s.direction}, ` +
 			`record ${s.from_record} -> record ${s.at_record} ` +
 			`(tick ${s.from_time} -> ${s.at_time})`);

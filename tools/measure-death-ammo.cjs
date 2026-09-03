@@ -413,7 +413,6 @@ const TIERS = ["none", "crater", "superboom"];
 
 console.log(`
 ==================== death ammo vs explosion tier ====================
-corpus: ${ROOT}
 logs used: ${stats.files}${ALL_GAMETYPES ? " (all game types)" : ` (strict only; ${stats.skipped_gametype} skipped)`}
 lives beginning at an observed respawn: ${stats.lives_started}
 deaths seen: ${stats.deaths_seen}  (sunk, excluded: ${stats.deaths_sunk};

@@ -47,6 +47,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const { replay_label } = require("./corpus.cjs");
 const ROOT = path.join(__dirname, "..");
 const BoloLog = require(path.join(ROOT, "viewer", "logparse.js"));
 const BoloGame = require(path.join(ROOT, "viewer", "game.js"));
@@ -255,7 +256,7 @@ function process_log(file) {
 		}
 		if (violated) {
 			totals.order_violations++;
-			console.log(`ORDER VIOLATION ${path.basename(dump.file)} rec ${dump.rec}: pills ${dump.pills} observed at path indices ${observed.map(o => o.index).join(",")}`);
+			console.log(`ORDER VIOLATION ${replay_label(dump.file)} rec ${dump.rec}: pills ${dump.pills} observed at path indices ${observed.map(o => o.index).join(",")}`);
 			continue; /* cannot trust skip inference either */
 		}
 
@@ -273,23 +274,23 @@ function process_log(file) {
 					if (sq.pill || sq.base) { totals.skipped_occupied++; continue; }
 					if (sq.terrain !== sq.after) { totals.raced++; continue; }
 					bump(totals.skipped, sq.terrain);
-					if (VERBOSE) console.log(`  skip ${path.basename(dump.file)} rec ${dump.rec} path[${k}] (${sq.x},${sq.y}) ${NAMES[sq.terrain]}`);
+					if (VERBOSE) console.log(`  skip ${replay_label(dump.file)} rec ${dump.rec} path[${k}] (${sq.x},${sq.y}) ${NAMES[sq.terrain]}`);
 				}
 			}
 			const sq = dump.squares[o.index];
 			if (sq.terrain !== sq.after) {
 				totals.raced++;
-				console.log(`RACED USE ${path.basename(dump.file)} dump rec ${dump.rec} pill ${o.id} path[${o.index}] (${sq.x},${sq.y}): ` +
+				console.log(`RACED USE ${replay_label(dump.file)} dump rec ${dump.rec} pill ${o.id} path[${o.index}] (${sq.x},${sq.y}): ` +
 					`${NAMES[sq.terrain]} before the dump record, ${NAMES[sq.after]} after it (picked up rec ${o.pkRec})`);
 			} else {
 				bump(totals.used, sq.terrain);
 				/* a rest on refused terrain is either method noise (see the
 				 * control) or a hole in the predicate: always shown */
 				if (sq.terrain === 0 || sq.terrain === 8 || sq.terrain === 9) {
-					console.log(`REFUSED-TERRAIN USE ${path.basename(dump.file)} dump rec ${dump.rec} pill ${o.id} path[${o.index}] (${sq.x},${sq.y}) ` +
+					console.log(`REFUSED-TERRAIN USE ${replay_label(dump.file)} dump rec ${dump.rec} pill ${o.id} path[${o.index}] (${sq.x},${sq.y}) ` +
 						`${NAMES[sq.terrain]} (picked up rec ${o.pkRec})`);
 				}
-				if (VERBOSE) console.log(`  used ${path.basename(dump.file)} rec ${dump.rec} pill ${o.id} path[${o.index}] (${sq.x},${sq.y}) ${NAMES[sq.terrain]}`);
+				if (VERBOSE) console.log(`  used ${replay_label(dump.file)} rec ${dump.rec} pill ${o.id} path[${o.index}] (${sq.x},${sq.y}) ${NAMES[sq.terrain]}`);
 			}
 			floor = o.index + 1;
 		}

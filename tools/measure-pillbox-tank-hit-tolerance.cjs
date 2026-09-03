@@ -11,6 +11,7 @@ const fs = require("node:fs");
 const Module = require("node:module");
 const os = require("node:os");
 const path = require("node:path");
+const { replay_label } = require("./corpus.cjs");
 const { Worker, isMainThread, parentPort, workerData } =
 	require("node:worker_threads");
 
@@ -183,7 +184,7 @@ function compare_games(file, records, tolerant, zero) {
 					if (miss) metrics.new_match_misses.push(miss);
 					if (metrics.examples.length < 8) {
 						metrics.examples.push({
-							file,
+							file: replay_label(file),
 							record_count: record_counts.get(now.record),
 							record_time: now.record.time,
 							player,

@@ -17,6 +17,7 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { replay_label } = require("./corpus.cjs");
 const { Worker, isMainThread, parentPort } = require("node:worker_threads");
 
 const ROOT = path.join(__dirname, "..");
@@ -163,8 +164,7 @@ function print_report(hovers, files, files_failed, top, target) {
 		lines.push("");
 		lines.push(`#${i + 1}\t${h.speed.toFixed(2)} px/tick over ` +
 			`${h.duration} ticks (${h.distance.toFixed(1)} px)\t` +
-			`${path.relative(target, h.file).replace(/\\/g, "/") ||
-				path.basename(h.file)}`);
+			`${replay_label(h.file)}`);
 		lines.push(`\tplayer ${h.player}, direction ${h.direction}, ` +
 			`record ${h.from_record} -> record ${h.at_record} ` +
 			`(tick ${h.from_time} -> ${h.at_time})`);
