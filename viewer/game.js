@@ -135,6 +135,7 @@ function initial_state(seed) {
 			/* bitmasks, 0 bit = allied (log convention) */
 		present: Array.from({ length: 16 }, () => false),
 		quit: Array.from({ length: 16 }, () => false),
+		quitTime: Array.from({ length: 16 }, () => -Infinity),
 		gameInfo: null,
 		lastAllianceEvent: -Infinity, /* tick of the last request, accept or leave */
 	};
@@ -154,6 +155,7 @@ function clone_state(s) {
 		alliances: s.alliances.slice(),
 		present: s.present.slice(),
 		quit: s.quit.slice(),
+		quitTime: s.quitTime.slice(),
 		gameInfo: s.gameInfo,
 		lastAllianceEvent: s.lastAllianceEvent,
 	};
@@ -354,6 +356,20 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 	 * the object, so this snapshot survives): a quit record can restate a
 	 * bogus far-away position, but its pills drop at the last genuine one. */
 	const tankBefore = s.tanks[pl];
+
+	/* A GHOST: a quit-flagged slot sending records again, past the
+	 * straggler second — a netsplit dropped the player from the logger's
+	 * view but he never left the game [E:pill-target]. His departed
+	 * things come back to him at once, without waiting for the node_id
+	 * that will formally clear the quit flag. */
+	if (s.quit[pl] && rec.time - s.quitTime[pl] >= TICKS_PER_SECOND && s.names[pl] !== null) {
+		for (const item of s.pills.concat(s.bases)) {
+			if (item.owner === DEPARTED && item.departed && item.departed.name === s.names[pl]) {
+				item.owner = pl;
+				delete item.departed;
+			}
+		}
+	}
 
 	/* ANY record from a player proves the player is alive — stationary
 	 * tanks restate their position much less often, so liveness must not
@@ -694,15 +710,31 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 				 * identical history. */
 				let joining = s.quit[pl] || (node_joins && node_joins.has(rec));
 				let old = joining ? null : s.names[pl];
-				if (joining) {
-					/* slot reused by a new (or returning) player: they do
-					 * not inherit the previous occupant's alliances */
+				if (joining && s.names[pl] === sub.name && sub.name !== null) {
+					/* the SAME name is a RECONNECT: the person keeps his
+					 * alliance links (Rejoin restored them with no accept
+					 * events; verified by the allies who go on refuelling
+					 * at his bases with no re-accept in the log
+					 * [E:pill-target]) and his property (the reclaim
+					 * below, after an announced quit) */
+				} else if (joining) {
+					/* a NEW name displaces the slot's old occupant, who
+					 * may have had no quit event of his own (not every
+					 * disconnect is announced): an IMPLICIT quit hands
+					 * his grounded things over before his links reset */
+					if (s.names[pl] !== null) {
+						hand_over_pills(s, pl, lowest_remaining_ally(s, pl, true));
+					}
+					/* the new (or returning) player does not inherit the
+					 * previous occupant's alliances */
 					s.alliances[pl] = 0xffff & ~(1 << pl);
 					for (let i = 0; i < 16; i++) {
 						if (i !== pl) s.alliances[i] |= (1 << pl);
 					}
+				}
+				if (joining) {
 					/* a departed owner rejoining, in any slot, gets his
-					 * pills back; anyone else gets nothing. Bolo offered
+					 * things back; anyone else gets nothing. Bolo offered
 					 * both Join and Rejoin, and only Rejoin restored a
 					 * player's things; the log cannot tell which was
 					 * pressed, so this assumes Rejoin, the one players
@@ -719,6 +751,31 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 				s.names[pl] = sub.name;
 				s.present[pl] = true;
 				s.quit[pl] = false;
+				/* the same NAME on two live slots is one person twice (a
+				 * reconnect beside his own stale ghost, seen draining "the
+				 * ghost's" bases from the new slot): ownership belongs to
+				 * the person, resolved to the lowest live slot carrying
+				 * the name. Only an actual RENAME consolidates -- a
+				 * periodic same-name restatement moves nothing, and a
+				 * classified join colliding with a live name is a new
+				 * arrival whose property is already routed by the
+				 * implicit quit and the departed reclaim above. */
+				if (!joining && old !== sub.name) {
+					let low = -1;
+					for (let q = 0; q < 16; q++) {
+						if (!s.quit[q] && s.names[q] === sub.name) { low = q; break; }
+					}
+					if (low >= 0) {
+						for (let q = low + 1; q < 16; q++) {
+							if (s.quit[q] || s.names[q] !== sub.name) continue;
+							for (const item of s.pills.concat(s.bases)) {
+								if (item.owner === q && (item.inTank === undefined || item.inTank === null)) {
+									item.owner = low;
+								}
+							}
+						}
+					}
+				}
 				if (chat && old === null) {
 					chat.push({ time: rec.time, player: pl, join: true, text: sub.name });
 				} else if (chat && old !== sub.name) {
@@ -761,6 +818,7 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 				break;
 			case "quit":
 				s.quit[pl] = true;
+				s.quitTime[pl] = rec.time;
 				s.men[pl] = null;
 				s.shells[pl] = [];
 				/* Pills a quitter carries are dumped on the ground around
@@ -831,8 +889,9 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 				/* Manual: "Any pillboxes he is carrying at the time are his,
 				 * but any active ones on the map remain with the members of
 				 * the alliance." Reassign planted pills to the lowest-index
-				 * remaining ally before severing the links. (Bases are not
-				 * mentioned and keep their owner.) */
+				 * remaining ally before severing the links. The manual does
+				 * not mention bases, but ownership works the same for both
+				 * [E:pill-target], so they go over too. */
 				const heir = lowest_remaining_ally(s, pl, false);
 				if (heir >= 0) hand_over_pills(s, pl, heir);
 				s.alliances[pl] = 0xffff & ~(1 << pl);
