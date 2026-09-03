@@ -90,6 +90,24 @@ function hostile(state, pill, player) {
 	return (state.alliances[pill.owner] & (1 << player)) !== 0;
 }
 
+/* The lowest slot the quitter's alliance names, counting the model's
+ * alliance word and the quitter's last standing request alike, and
+ * whether that slot's player had already quit. Two replays in which a
+ * quitter's pills fired at the live heir the viewer picked both had such
+ * a slot: a game that hands property to the lowest allied slot without
+ * asking whether anyone is there would leave those pills nobody's. */
+function lowest_named_slot(state, quitter, request_mask) {
+	for (let j = 0; j < 16; j++) {
+		if (j === quitter) continue;
+		let in_word = state.names[j] !== null && !(state.alliances[quitter] & (1 << j));
+		let in_request = (request_mask & (1 << j)) !== 0;
+		if (!in_word && !in_request) continue;
+		return {slot: j, source: in_word ? "word" : "request",
+			departed: state.quit[j] || state.names[j] === null};
+	}
+	return null;
+}
+
 const totals = {
 	logs: 0, fires: 0, resolved_to_lower: 0, pair_ambiguous: 0,
 	pill_unresolved: 0, pill_dead: 0,
@@ -125,6 +143,9 @@ const totals = {
 	/* one entry per quit that left grounded pills: who the pills fired at
 	 * afterwards, against several candidate heirs (see the report) */
 	windows: [],
+	/* one entry per alliance leave that handed grounded pills to the
+	 * lowest mutual ally: who those pills fired at afterwards */
+	leave_windows: [],
 	orphan_fires_dead_quit: 0, orphan_fires_alive_quit: 0,
 	not_hostile_initial_ally: 0, not_hostile_direct_ally: 0, not_hostile_clique_ally: 0,
 	touching: 0, touching_facing: 0, apart_facing: 0, aim_neither_touching_facing: 0,
@@ -165,6 +186,9 @@ function scan(file) {
 	 * shuffle by player NAME, so the names of the owner's allies (and the
 	 * owner) as of the quit are frozen here and compared, never printed */
 	let orphaned = new Array(16).fill(null);
+	/* a pill the model handed from an alliance leaver to the lowest
+	 * mutual ally, until it next changes hands */
+	let left = new Array(16).fill(null);
 	let file_windows = [];
 	/* how the model came to hold two players allied: from the game-info
 	 * words, from an accept event between the two, or only by the clique
@@ -177,6 +201,9 @@ function scan(file) {
 	let alliance_events = [];
 	let sampled_here = 0;
 	let last_alliance_event = -Infinity;   /* tick of the last request, accept or leave */
+	/* each slot's last alliance request still standing: cleared by its
+	 * leave, its quit, or a join installing a new person in the slot */
+	let last_request = new Array(16).fill(0);
 
 	for (let rec of recs) {
 		for (let sub of rec.subpackets) {
@@ -207,6 +234,33 @@ function scan(file) {
 			if (sub.type === "node_id" && rec.tankStatus === 0x07 && !node_joins.has(rec) && !state.quit[rec.player]) {
 				alliance_events.push(`rec ${recs.indexOf(rec)} t${rec.time} p${rec.player} T=7 node_id NOT classified as a join`);
 			}
+			if (sub.type === "alliance_request") last_request[rec.player] = sub.tanks;
+			if (sub.type === "alliance_leave") {
+				/* the viewer's leave rule: grounded pills to the lowest
+				 * mutual ally still in the game, tank or no tank */
+				let leaver = rec.player;
+				let heir = -1;
+				for (let j = 0; j < 16 && heir < 0; j++) {
+					let mutual = j !== leaver && !(state.alliances[leaver] & (1 << j)) && !(state.alliances[j] & (1 << leaver));
+					if (mutual && !state.quit[j] && (state.present[j] || state.names[j] !== null)) heir = j;
+				}
+				let pills = [];
+				state.pills.forEach((p, k) => { if (p.owner === leaver && p.inTank === null) pills.push(k); });
+				if (heir >= 0 && pills.length) {
+					let allies = new Set(), others = new Set();
+					for (let j = 0; j < 16; j++) {
+						if (state.names[j] === null) continue;
+						if (j === leaver || !(state.alliances[leaver] & (1 << j))) allies.add(state.names[j]);
+						else others.add(state.names[j]);
+					}
+					let window = {heir_name: state.names[heir], named: lowest_named_slot(state, leaver, last_request[leaver]),
+						allies, others, fires: {}};
+					totals.leave_windows.push(window);
+					for (let k of pills) left[k] = {window, since: rec};
+				}
+				last_request[rec.player] = 0;
+			}
+			if (sub.type === "node_id" && node_joins.has(rec)) last_request[rec.player] = 0;
 			if (sub.type === "alliance_request" || sub.type === "alliance_accept" || sub.type === "alliance_leave") {
 				last_alliance_event = rec.time;
 				alliance_events.push(`rec ${recs.indexOf(rec)} t${rec.time} p${rec.player} ${sub.type}` +
@@ -298,6 +352,13 @@ function scan(file) {
 					if (frozen.heir) totals.orphan_fires_heir++;
 					else if (frozen.returned) totals.orphan_fires_no_heir_returned++;
 					else totals.orphan_fires_no_heir_gone++;
+				}
+			}
+			{
+				let l = left[state.pills.indexOf(pill)];
+				if (l && pill.owner !== NEUTRAL && me.distance <= RANGE_PX) {
+					let name = state.names[sender];
+					l.window.fires[name] = (l.window.fires[name] || 0) + 1;
 				}
 			}
 			if (!me.hostile) {
@@ -486,7 +547,9 @@ function scan(file) {
 					if (!mutual && candidates.lowest_live_enemy === null) candidates.lowest_live_enemy = state.names[j];
 				}
 				let heir_state = heir && heir_alive ? "lowest ally live" : candidates.next_live_ally !== null ? "another ally live" : "no ally live";
-				let window = {slot: i, owner_name: state.names[i], heir_state, candidates, allies, others, fires: {}};
+				let named = lowest_named_slot(state, i, last_request[i]);
+				last_request[i] = 0;
+				let window = {slot: i, owner_name: state.names[i], heir_state, candidates, allies, others, fires: {}, named};
 				if (state.pills.some((p, k) => owners_before[k] === i && p.inTank === null)) {
 					file_windows.push(window);
 					totals.windows.push(window);
@@ -525,6 +588,7 @@ function scan(file) {
 			if (state.pills[i].owner !== owners_before[i]) {
 				last_owner_change[i] = rec.time;
 				if (!orphaned[i] || orphaned[i].since !== rec) orphaned[i] = null;
+				if (!left[i] || left[i].since !== rec) left[i] = null;
 			}
 		}
 	}
@@ -615,6 +679,45 @@ console.log();
 		console.log(`    of the ${n(fired.length)} quits with fires and an enemy present, the pills shot every enemy present at the quit in ${n(all_enemies.length)}, two or more in ${n(two_enemies.length)}`);
 	}
 	console.log();
+	/* The lowest slot the departing player's alliance named: two replays
+	 * in which a live heir was fired at both had a departed player there
+	 * (one in the alliance word, one only in the quitter's request). If
+	 * the game hands to that slot regardless, fires at the heir should
+	 * all sit in the first row and the second row should stay at zero. */
+	let print_named_split = (heading, windows, heir_of) => {
+		console.log(heading);
+		console.log("Columns: quits or leaves (of them, slot named by the word / only by a request) /");
+		console.log("fires / fires at the heir / hand-overs in which the heir was fired at / fires at any old ally.");
+		for (let [title, pick] of [
+			["that slot had quit", w => w.named !== null && w.named.departed],
+			["that slot present", w => w.named !== null && !w.named.departed],
+			["no slot named", w => w.named === null],
+		]) {
+			let ws = windows.filter(pick);
+			let by_word = ws.filter(w => w.named && w.named.source === "word").length;
+			let by_request = ws.filter(w => w.named && w.named.source === "request").length;
+			let fires = 0, at_heir = 0, heir_windows = 0, at_ally = 0;
+			for (let w of ws) {
+				for (let [name, c] of Object.entries(w.fires)) {
+					fires += c;
+					if (w.allies.has(name)) at_ally += c;
+				}
+				let hit = w.fires[heir_of(w)] || 0;
+				at_heir += hit;
+				if (hit) heir_windows++;
+			}
+			console.log(`    ${title.padEnd(22)} ${n(ws.length).padStart(7)} (${n(by_word)} / ${n(by_request)})` +
+				`${[fires, at_heir, heir_windows, at_ally].map(v => n(v).padStart(8)).join("")}`);
+		}
+		console.log();
+	};
+	print_named_split("Live-heir quits split by the lowest slot the quitter's alliance named -- in the model's\n" +
+		"alliance word, or in the quitter's last standing request -- and whether that slot's\n" +
+		"player had already quit.",
+		totals.windows.filter(w => w.heir_state === "lowest ally live"), w => w.candidates.next_live_ally);
+	print_named_split("Alliance leaves that handed grounded pills to the lowest mutual ally, the same split\n" +
+		"(the fires counted until the pills next changed hands):",
+		totals.leave_windows, w => w.heir_name);
 }
 console.log(`Fires where the sender is taken as the target: ${n(totals.sender_is_target)}; sender's tank hidden in forest`);
 console.log(`at the time in ${n(totals.sender_hidden)} (${pc(totals.sender_hidden, totals.sender_is_target)}) -- ~0 if a pill cannot target a hidden tank.`);
