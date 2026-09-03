@@ -190,6 +190,8 @@ function scan(file) {
 	 * mutual ally, until it next changes hands */
 	let left = new Array(16).fill(null);
 	let file_windows = [];
+	let file_leave_windows = [];
+	let file_prev_time = null;
 	/* how the model came to hold two players allied: from the game-info
 	 * words, from an accept event between the two, or only by the clique
 	 * merge an accept with a third party implies */
@@ -253,9 +255,11 @@ function scan(file) {
 						if (j === leaver || !(state.alliances[leaver] & (1 << j))) allies.add(state.names[j]);
 						else others.add(state.names[j]);
 					}
-					let window = {heir_name: state.names[heir], named: lowest_named_slot(state, leaver, last_request[leaver]),
-						allies, others, fires: {}};
+					let window = {label, slot: leaver, heir_slot: heir, heir_name: state.names[heir],
+						named: lowest_named_slot(state, leaver, last_request[leaver]),
+						allies, others, fires: {}, pills: new Set(pills), exposure_ticks: 0, exposure_pills: new Set()};
 					totals.leave_windows.push(window);
+					file_leave_windows.push(window);
 					for (let k of pills) left[k] = {window, since: rec};
 				}
 				last_request[rec.player] = 0;
@@ -537,19 +541,21 @@ function scan(file) {
 				 * present at all, and whoever next takes the quitter's slot */
 				let live = j => { let t = state.tanks[j]; return !!(t && !t.dead && !t.dying && rec.time - t.lastSeen <= ALIVE_TICKS); };
 				let candidates = {next_live_ally: null, lowest_live_enemy: null, lowest_live_any: null, lowest_present_any: null, slot_taker: null};
+				let heir_slot = -1;
 				for (let j = 0; j < 16; j++) {
 					if (j === i || state.names[j] === null || state.quit[j]) continue;
 					let mutual = !(state.alliances[i] & (1 << j)) && !(state.alliances[j] & (1 << i));
 					if (candidates.lowest_present_any === null) candidates.lowest_present_any = state.names[j];
 					if (!live(j)) continue;
 					if (candidates.lowest_live_any === null) candidates.lowest_live_any = state.names[j];
-					if (mutual && candidates.next_live_ally === null) candidates.next_live_ally = state.names[j];
+					if (mutual && candidates.next_live_ally === null) { candidates.next_live_ally = state.names[j]; heir_slot = j; }
 					if (!mutual && candidates.lowest_live_enemy === null) candidates.lowest_live_enemy = state.names[j];
 				}
 				let heir_state = heir && heir_alive ? "lowest ally live" : candidates.next_live_ally !== null ? "another ally live" : "no ally live";
 				let named = lowest_named_slot(state, i, last_request[i]);
 				last_request[i] = 0;
-				let window = {slot: i, owner_name: state.names[i], heir_state, candidates, allies, others, fires: {}, named};
+				let window = {label, slot: i, owner_name: state.names[i], heir_state, candidates, allies, others, fires: {}, named,
+					heir_slot, pills: new Set(), exposure_ticks: 0, exposure_pills: new Set()};
 				if (state.pills.some((p, k) => owners_before[k] === i && p.inTank === null)) {
 					file_windows.push(window);
 					totals.windows.push(window);
@@ -559,7 +565,10 @@ function scan(file) {
 					if (dead_quit) totals.quits_dead++; else totals.quits_alive++;
 				}
 				for (let k = 0; k < state.pills.length; k++) {
-					if (owners_before[k] === i && !orphaned[k]) orphaned[k] = {allies, others, owner_name: state.names[i], heir, heir_alive, returned: false, since: rec, dead_quit, window};
+					if (owners_before[k] === i && !orphaned[k]) {
+						orphaned[k] = {allies, others, owner_name: state.names[i], heir, heir_alive, returned: false, since: rec, dead_quit, window};
+						window.pills.add(k);
+					}
 				}
 			}
 		}
@@ -587,8 +596,31 @@ function scan(file) {
 		for (let i = 0; i < state.pills.length; i++) {
 			if (state.pills[i].owner !== owners_before[i]) {
 				last_owner_change[i] = rec.time;
-				if (!orphaned[i] || orphaned[i].since !== rec) orphaned[i] = null;
-				if (!left[i] || left[i].since !== rec) left[i] = null;
+				if (orphaned[i] && orphaned[i].since !== rec) { orphaned[i].window.pills.delete(i); orphaned[i] = null; }
+				if (left[i] && left[i].since !== rec) { left[i].window.pills.delete(i); left[i] = null; }
+			}
+		}
+		/* exposure: time the heir's live tank spends within a shell's
+		 * flight of a live, grounded pill still held from the hand-over.
+		 * A pill that is really the heir's never fires at it there; a
+		 * pill that is really nobody's fires as soon as it can. */
+		let dt = file_prev_time === null ? 0 : Math.min(ALIVE_TICKS, Math.max(0, rec.time - file_prev_time));
+		file_prev_time = rec.time;
+		if (dt > 0) {
+			for (let w of file_windows.concat(file_leave_windows)) {
+				if (!w.pills.size || w.heir_slot < 0 || state.quit[w.heir_slot]) continue;
+				let t = state.tanks[w.heir_slot];
+				if (!t || t.dead || t.dying || rec.time - t.lastSeen > ALIVE_TICKS) continue;
+				let c = tank_centre(t);
+				let exposed = false;
+				for (let k of w.pills) {
+					let p = state.pills[k];
+					if (p.inTank !== null || p.armour === 0) continue;
+					if (Math.hypot(p.x * 16 + 8 - c.x, p.y * 16 + 8 - c.y) > RANGE_PX) continue;
+					exposed = true;
+					w.exposure_pills.add(k);
+				}
+				if (exposed) w.exposure_ticks += dt;
 			}
 		}
 	}
@@ -687,7 +719,9 @@ console.log();
 	let print_named_split = (heading, windows, heir_of) => {
 		console.log(heading);
 		console.log("Columns: quits or leaves (of them, slot named by the word / only by a request) /");
-		console.log("fires / fires at the heir / hand-overs in which the heir was fired at / fires at any old ally.");
+		console.log("fires / fires at the heir / hand-overs in which the heir was fired at / fires at any old ally /");
+		console.log("hand-overs in which the heir's live tank came within a shell's flight of a live handed pill /");
+		console.log("ticks it spent there (a pill that is nobody's fires at it there; the heir's own never does).");
 		for (let [title, pick] of [
 			["that slot had quit", w => w.named !== null && w.named.departed],
 			["that slot present", w => w.named !== null && !w.named.departed],
@@ -696,7 +730,7 @@ console.log();
 			let ws = windows.filter(pick);
 			let by_word = ws.filter(w => w.named && w.named.source === "word").length;
 			let by_request = ws.filter(w => w.named && w.named.source === "request").length;
-			let fires = 0, at_heir = 0, heir_windows = 0, at_ally = 0;
+			let fires = 0, at_heir = 0, heir_windows = 0, at_ally = 0, exposed = 0, exposure = 0;
 			for (let w of ws) {
 				for (let [name, c] of Object.entries(w.fires)) {
 					fires += c;
@@ -705,9 +739,21 @@ console.log();
 				let hit = w.fires[heir_of(w)] || 0;
 				at_heir += hit;
 				if (hit) heir_windows++;
+				if (w.exposure_ticks) exposed++;
+				exposure += w.exposure_ticks;
 			}
 			console.log(`    ${title.padEnd(22)} ${n(ws.length).padStart(7)} (${n(by_word)} / ${n(by_request)})` +
-				`${[fires, at_heir, heir_windows, at_ally].map(v => n(v).padStart(8)).join("")}`);
+				`${[fires, at_heir, heir_windows, at_ally, exposed, exposure].map(v => n(v).padStart(8)).join("")}`);
+		}
+		/* the departed row is small enough to list: one line per hand-over */
+		let listed = windows.filter(w => w.named !== null && w.named.departed);
+		if (listed.length) {
+			console.log("    the departed-slot hand-overs, one per line (fires at the heir / exposure ticks / pills exposed):");
+			for (let w of listed) {
+				let fires = Object.values(w.fires).reduce((a, b) => a + b, 0);
+				console.log(`      ${w.label} slot ${w.slot} -> heir slot ${w.heir_slot}, lowest named slot ${w.named.slot} (${w.named.source}):` +
+					` ${n(fires)} fires, ${n(w.fires[heir_of(w)] || 0)} at the heir, exposed ${n(w.exposure_ticks)} ticks to ${n(w.exposure_pills.size)} pills`);
+			}
 		}
 		console.log();
 	};
