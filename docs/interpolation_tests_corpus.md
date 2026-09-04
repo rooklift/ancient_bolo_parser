@@ -2368,6 +2368,63 @@ box test per orbit step in tank-hit candidate evaluation and a bounded
 second walk only when the first finds nothing, and local timing of the
 fixture build shows no difference beyond noise.
 
+## The rush split -- `eb6157f`, measurement only
+
+The audit scored a rush as distance over duration, with a zero-duration
+link counted as infinitely fast, so the rush lines could not tell a
+link drawn fast from one drawn in no time at all. The `917077a` section
+warned of it and the `ccc8ec3` section met it. `eb6157f` splits each
+rush line three ways -- *timed* (positive duration, above 3 px/tick:
+the arrival capped by an event record that landed early), *static*
+(zero duration, under half a pixel: drawing nothing) and *instant*
+(zero duration with real length: the cap at its limit) -- with the
+parts summing to the undivided line, which keeps its definition; see
+the fixture file's audit section for the mechanism. The tool's
+`--engine=DIR` runs it against another checkout's engine, which is how
+the rows below were measured without touching the old trees.
+
+Corpus, the `eb6157f` tool against the engines at `a0ade53`, `ccc8ec3`
+and `30d5351` (`a0ade53-audit-split.txt`, `ccc8ec3-audit-split.txt`,
+`30d5351-audit-split.txt`; 443 files, zero failures). Every line these
+runs share with the archived `-audit.txt` files is byte-identical, so
+the corpus they ran on is the holder's, and only the new lines are
+news:
+
+| engine | `terminal_links_rushed` | timed | static | instant | `rush_links` | timed | static | instant |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `a0ade53` | 69,287 | 12,981 | 55,459 | 847 | 7,433 | 1,492 | 5,937 | 4 |
+| `ccc8ec3` | 82,149 | 13,025 | 68,240 | 884 | 7,400 | 1,459 | 5,937 | 4 |
+| `30d5351` | 69,411 | 13,108 | 55,454 | 849 | 7,436 | 1,495 | 5,937 | 4 |
+
+* **Four-fifths of `terminal_links_rushed` was static all along.** At
+  `a0ade53`, 55,459 of the 69,287 are shells last stated already inside
+  their terminal's 16 px box (3.4% of all terminal links), where the
+  effect draws at the shell's position and there is nothing to
+  animate. The class the line was always described as -- an arrival
+  capped by an early event record -- is the 12,981 timed links (0.8%
+  of terminal links), with 847 instant ones the cap taken to its limit.
+  Every earlier reading of the line as "lag-related" was a reading of
+  the timed fifth.
+* **`ccc8ec3`'s 12,862 were static, link for link:** static +12,781,
+  timed +44, instant +37. The step-zero matches drew nothing, exactly
+  as the three-file diff said.
+* **`30d5351`'s residual 124 is timed:** against `a0ade53`, timed +127,
+  static -5, instant +2. Those are the rescued tank hits whose arrival
+  is capped at the hit record a tick or so later, the cost the section
+  accepted, now on the line that means it. Against `ccc8ec3` the walk
+  is +83 timed: where the first form matched at step zero and drew
+  nothing, the track-first walk finds the collision a step or two on
+  and the cap bites.
+* **The non-terminal rush line is 80% static too:** 7,433 = 1,492 timed
+  + 5,937 static + 4 instant, the static ones the verbatim re-sends of
+  `917077a`, identical at all three engines. The 4 instant links are
+  genuine mid-flight teleports -- four in 8.16M links -- and go on the
+  books beside the seam invariant.
+
+The headline table's `rushed` column carries the undivided line; the
+timed part is the number the column was meant to be, and its
+backfilled values are in the table's `timed` column.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
