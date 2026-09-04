@@ -150,9 +150,9 @@ Constant at all ten commits, and worth having once:
 | `e101787` | pairwise roster lockstep | 0.995494 | 0.001520 | 0.833249 | 235,846 | 68,540 | 2,876 |  |
 | `917077a` | fast-ring re-sends | 0.996647 | 0.001446 | 0.833054 | 235,759 | 69,273 | 1,382 | 423‡ |
 | `a4822ec` | doubtful voters abstain | 0.996657 | 0.001443 | 0.833123 | 235,835 | 69,279 | 1,407 | 437 |
-| `0bfd71d` | symmetric election, orphan tie-break | 0.996726 | 0.001419 | 0.833131 | 235,847 | 69,287 | 1,366 | **89** |
+| `0bfd71d` | symmetric elect, orphan tie-break | 0.996726 | 0.001419 | 0.833131 | 235,847 | 69,287 | 1,366 | **89** |
 | `a0ade53` | two quadratic scans removed | 0.996726 | 0.001419 | 0.833131 | 235,847 | 69,287 | 1,366 | 89 |
-| `ccc8ec3` | stale tank box, either box at every step | **0.996914** | **0.001379** | **0.834069** | **237,709** | 82,149 | **1,356** | 92 |
+| `ccc8ec3` | stale tank box, either box per step | **0.996914** | **0.001379** | **0.834069** | **237,709** | 82,149 | **1,356** | 92 |
 | `30d5351` | stale tank box, track first refusal | 0.996882 | 0.001384 | 0.833914 | 237,399 | 69,411 | 1,360 | 94 |
 
 The three right-hand columns are lower-is-better counts from the drawn
