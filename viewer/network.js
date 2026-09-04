@@ -17,12 +17,13 @@ const TICKS_PER_SECOND = 50;
  *   once by every node as the packet passes, so consecutive records
  *   normally step by 1. A step of n means n-1 nodes took their turn and
  *   logged nothing: a parked tank between restatements, a dead one, the
- *   recorder itself as readily as anyone. It is NOT a lost packet: two
- *   machines' logs of one game carry identical holes with no missing
- *   slot a record in the other, a moving tank never misses a
- *   restatement across one, and the ring turns through a hole at full
- *   pace (tools/compare-recordings.cjs, tools/measure-seq-holes.cjs)
- *   [E:seq-loss]. A step of 0 is a duplicate.
+ *   recorder itself as readily as anyone. It is almost never a lost
+ *   packet: over ten games logged on two machines at once, 38 of
+ *   38,385 missing slots were records the other machine had; a moving
+ *   tank never misses a restatement across a hole, and the ring turns
+ *   through one at full pace (tools/compare-recordings.cjs,
+ *   tools/measure-seq-holes.cjs) [E:seq-loss]. A step of 0 is a
+ *   duplicate.
  *
  *   STALL. The share of elapsed time spent in gaps where nothing at all
  *   arrived for over half a second -- a freeze the viewer shows whatever

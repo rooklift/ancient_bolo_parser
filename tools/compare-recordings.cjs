@@ -11,20 +11,34 @@
  *      for byte, sequence byte included: every ring record one machine
  *      wrote, the other wrote too, and in the same order. A log is the
  *      ring's transcript, not one machine's view of it [E:two-recorders].
- *   -- what a sequence-number hole is. The holes are identical in both
- *      logs, and not one of the missing slots turns up as a record in
- *      the other -- so nothing was lost on the way to either machine.
- *      A hole is a slot in which that node sent nothing worth logging
+ *   -- what a sequence-number hole is. The holes are all but identical
+ *      in both logs: over ten such pairs, of tens of thousands of
+ *      missing slots, a few dozen turn up as records in the other log.
+ *      Those few are packets one machine got and the other did not --
+ *      the only direct sight of loss the format allows -- and the rest
+ *      are slots in which that node sent nothing worth logging
  *      (tools/measure-seq-holes.cjs takes that further) [E:seq-loss].
+ *      Every run of records found in one log only is listed with the
+ *      gap the other log shows across it: a hole of a few ticks, or an
+ *      absence of many seconds, which is a machine cut off from the
+ *      ring.
  *   -- who recorded each log. A record from the recorder's own slot is
  *      stamped as it is SENT; everybody else's is stamped as the ring
- *      packet ARRIVES, one cycle later at the far end of the ring. So
- *      when the two logs' stamps are subtracted sender by sender, one
- *      sender stands a whole ring cycle apart from the rest: the
- *      recorder of the log in which that sender's records are earliest.
- *      That is an independent check on viewer/network.js's burst rule.
+ *      packet ARRIVES. So when the two logs' stamps are subtracted
+ *      sender by sender, the senders fall into two groups a whole ring
+ *      cycle apart: those whose packet reaches A before B, the arc of
+ *      the ring running forward from just after B's recorder up to and
+ *      including A's, and those whose packet reaches B first, the arc
+ *      from just after A's up to and including B's. The ring order
+ *      (read from the sequence steps) says which slot ends each arc,
+ *      and those are the two recorders -- an independent check on
+ *      viewer/network.js's burst rule.
  *   -- how far the two clocks drift apart, and how much the arrival
  *      stamps jitter from one machine to the other.
+ *
+ * Two logs of one game with fewer than a hundred records in common are
+ * not two views of one stretch but a log restarted (the same machine,
+ * different stretches of the game), and are reported as such.
  *
  * The start-of-log burst (F8 ids, game info, lists, map runs) is local
  * to each machine and sent to nobody, so it is set aside before the
@@ -189,16 +203,6 @@ function game_info(recs) {
 	return null;
 }
 
-function player_names(recs) {
-	let names = new Map();
-	for (let rec of recs) {
-		for (let sub of rec.subpackets) {
-			if (sub.type === "node_id" && !names.has(rec.player)) names.set(rec.player, sub.name);
-		}
-	}
-	return names;
-}
-
 /* ---------- statistics ---------- */
 
 function median(values) {
@@ -256,10 +260,59 @@ function seq_holes(recs) {
 
 /* ---------- the comparison ---------- */
 
+const OFFSET_TOLERANCE = 250;   /* ticks: a matched pair stamped further apart than this is a false match */
+const RUNS_SHOWN = 20;          /* runs of one-log-only records listed before the rest are counted */
+const MIN_SHARED = 100;         /* fewer records in common: not two views of one stretch */
+
 function describe(rec) {
-	let parts = rec.subpackets.map(sub => sub.type);
+	let parts = rec.subpackets.map(sub => {
+		if (sub.type !== "tank_position") return sub.type;
+		return `pos(${sub.x},${sub.y} speed ${sub.speed})`;
+	});
 	return `t=${rec.time} seq=${rec.seq} p=${rec.player} b=${rec.status.toString(16)} ` +
 		`T=${rec.tankStatus.toString(16)} ${parts.join(",") || "(header only)"}`;
+}
+
+/* Each slot's successor in the ring, from the records that step by
+ * exactly 1 (as tools/measure-seq-holes.cjs reads it). */
+function ring_order(recs) {
+	let counts = new Map();
+	for (let i = 1; i < recs.length; i++) {
+		if (((recs[i].seq - recs[i - 1].seq) & 0x7f) !== 1) continue;
+		let key = recs[i - 1].player * 16 + recs[i].player;
+		counts.set(key, (counts.get(key) || 0) + 1);
+	}
+	let next = new Map(), best = new Map();
+	for (let [key, n] of counts) {
+		let from = key >> 4, to = key & 15;
+		if (!best.has(from) || n > best.get(from)) { best.set(from, n); next.set(from, to); }
+	}
+	return next;
+}
+
+/* Runs of consecutive records found in one log only, inside the shared
+ * stretch, each with the gap the OTHER log shows across it: the other
+ * machine heard nothing for that long, and if that is more than a few
+ * seconds the run is an absence rather than a hole. */
+function only_runs(ring, map, other, lo, hi) {
+	let runs = [];
+	let run = null;
+	for (let i = lo; i <= hi; i++) {
+		if (map[i] >= 0) { if (run) { runs.push(run); run = null; } continue; }
+		if (!run) run = { from: i, to: i };
+		run.to = i;
+	}
+	if (run) runs.push(run);
+	for (let r of runs) {
+		let before = r.from - 1, after = r.to + 1;
+		while (before >= 0 && map[before] < 0) before--;
+		while (after < ring.length && map[after] < 0) after++;
+		r.records = ring.slice(r.from, r.to + 1);
+		r.other_gap = (before >= 0 && after < ring.length) ? other[map[after]].time - other[map[before]].time : null;
+		r.senders = [...new Set(r.records.map(rec => rec.player))].sort((p, q) => p - q);
+		r.span = r.records[r.records.length - 1].time - r.records[0].time;
+	}
+	return runs;
 }
 
 /* Compares two loaded logs. Returns the findings as an object and, unless
@@ -271,6 +324,8 @@ function compare(a_recs, b_recs, options = {}) {
 	let out = {
 		same_game: !!(info_a && info_b && info_a.gameId === info_b.gameId),
 		game_id: info_a ? info_a.gameId : null,
+		recorder: { a_by_bursts: BoloNetwork.recorder(a_recs), b_by_bursts: BoloNetwork.recorder(b_recs),
+			a_by_offset: null, b_by_offset: null },
 	};
 
 	/* Two different games share nothing but the odd idle restatement, so
@@ -286,12 +341,35 @@ function compare(a_recs, b_recs, options = {}) {
 	let pairs = align(a.ring.map(rec => rec.hex), b.ring.map(rec => rec.hex), unaligned);
 	out.aligned = true;
 	out.unaligned = unaligned;
+
+	/* An idle tank restates the same bytes for minutes, and after 128
+	 * records the sequence byte comes round too, so a stretch with no
+	 * unique record can be matched a lap out. The clocks are steady to a
+	 * few ppm and a packet reaches the far end of the ring within a
+	 * second, so a pair stamped further apart than the sender's usual
+	 * offset by more than a few seconds is a false match, not a delivery. */
+	let by_sender = new Map();
+	for (let [i, j] of pairs) {
+		let p = a.ring[i].player;
+		if (!by_sender.has(p)) by_sender.set(p, []);
+		by_sender.get(p).push(b.ring[j].time - a.ring[i].time);
+	}
+	let medians = new Map([...by_sender].map(([p, offsets]) => [p, median(offsets)]));
+	let kept = [], rejected = [];
+	for (let [i, j] of pairs) {
+		let off = b.ring[j].time - a.ring[i].time;
+		(Math.abs(off - medians.get(a.ring[i].player)) > OFFSET_TOLERANCE ? rejected : kept).push([i, j]);
+	}
+	pairs = kept;
+	out.rejected = rejected.map(([i, j]) => ({ a: a.ring[i], b: b.ring[j] }));
+
 	let a_to_b = new Int32Array(a.ring.length).fill(-1);
 	let b_to_a = new Int32Array(b.ring.length).fill(-1);
 	for (let [i, j] of pairs) { a_to_b[i] = j; b_to_a[j] = i; }
 	out.shared = pairs.length;
 	out.a_ring = a.ring.length;
 	out.b_ring = b.ring.length;
+	out.same_stretch = pairs.length >= MIN_SHARED;
 
 	/* Records found in one log only, placed against the shared stretch. */
 	let first = pairs.length ? pairs[0] : [a.ring.length, b.ring.length];
@@ -306,11 +384,13 @@ function compare(a_recs, b_recs, options = {}) {
 	}
 	out.a_only = only(a.ring, a_to_b, first[0], last[0]);
 	out.b_only = only(b.ring, b_to_a, first[1], last[1]);
+	out.a_runs = pairs.length ? only_runs(a.ring, a_to_b, b.ring, first[0], last[0]) : [];
+	out.b_runs = pairs.length ? only_runs(b.ring, b_to_a, a.ring, first[1], last[1]) : [];
 
 	/* Holes: the same in both? A hole in one log whose missing slots are
-	 * records in the other would be a packet lost on the way to the first
-	 * machine but not the second. */
-	function holes_against(ring, map, other_ring) {
+	 * records in the other is a packet that reached the second machine
+	 * and not the first. */
+	function holes_against(ring, map) {
 		let holes = seq_holes(ring);
 		let missing = 0, found = 0, comparable = 0;
 		for (let hole of holes) {
@@ -322,38 +402,62 @@ function compare(a_recs, b_recs, options = {}) {
 		}
 		return { holes: holes.length, comparable, missing, found_in_other: found };
 	}
-	out.a_holes = holes_against(a.ring, a_to_b, b.ring);
-	out.b_holes = holes_against(b.ring, b_to_a, a.ring);
+	out.a_holes = holes_against(a.ring, a_to_b);
+	out.b_holes = holes_against(b.ring, b_to_a);
 
-	/* Clocks and recorders. For every matched pair, B's stamp minus A's,
-	 * grouped by sender. */
-	let by_sender = new Map();
+	if (!out.same_stretch) {
+		if (!options.quiet) print_report(out, a, b, options);
+		return out;
+	}
+
+	/* Clocks. Every sender's stamps are offset by the clock difference
+	 * plus the time the packet takes between the two machines; the
+	 * senders fall into two groups a whole ring cycle apart. */
+	by_sender = new Map();
 	for (let [i, j] of pairs) {
-		let rec_a = a.ring[i], rec_b = b.ring[j];
-		if (!by_sender.has(rec_a.player)) by_sender.set(rec_a.player, []);
-		by_sender.get(rec_a.player).push(rec_b.time - rec_a.time);
+		let p = a.ring[i].player;
+		if (!by_sender.has(p)) by_sender.set(p, []);
+		by_sender.get(p).push(b.ring[j].time - a.ring[i].time);
 	}
 	let senders = [...by_sender.keys()].sort((p, q) => p - q);
-	let medians = new Map(senders.map(p => [p, median(by_sender.get(p))]));
+	medians = new Map(senders.map(p => [p, median(by_sender.get(p))]));
+	let cycle_a = ring_cycle(a.ring), cycle_b = ring_cycle(b.ring);
+	let cycle = Math.max(cycle_a || 0, cycle_b || 0);
+	let sorted = senders.map(p => medians.get(p)).sort((x, y) => x - y);
+	let split_at = null, widest = 0;
+	for (let n = 1; n < sorted.length; n++) {
+		if (sorted[n] - sorted[n - 1] > widest) { widest = sorted[n] - sorted[n - 1]; split_at = sorted[n]; }
+	}
+	let high = new Set(), low = new Set();
+	if (cycle && widest >= cycle / 2) {
+		for (let p of senders) (medians.get(p) >= split_at ? high : low).add(p);
+	}
+	let base = low.size ? median([...low].map(p => medians.get(p))) : median(sorted);
+
+	/* A sender's packet reaches whichever recorder comes first on its
+	 * way round. The high group (B's stamp later) is every slot whose
+	 * packet reaches A before B: the arc of the ring running forward
+	 * from just after B's recorder up to and including A's, which
+	 * stamps its own record as it sends. The low group is the arc from
+	 * just after A's up to and including B's. The ring order says which
+	 * slot ENDS each arc, and those are the two recorders. */
+	let order = ring_order(a.ring);
+	let tails = group => [...group].filter(p => order.has(p) && !group.has(order.get(p)));
+	let arc_ok = group => group.size && tails(group).length === 1 &&
+		[...group].every(p => order.has(p));
+	if (high.size && low.size && arc_ok(high) && arc_ok(low)) {
+		out.recorder.a_by_offset = tails(high)[0];
+		out.recorder.b_by_offset = tails(low)[0];
+	}
+	out.ring_order = order;
+
 	/* drift: the offset's trend over the game, each sender measured
-	 * against its own median so the recorder's cycle-wide step does not
-	 * tilt the fit */
+	 * against its own median so the cycle-wide step does not tilt the
+	 * fit */
 	let xs = [], ys = [];
 	for (let [i, j] of pairs) {
-		let rec_a = a.ring[i], rec_b = b.ring[j];
-		xs.push(rec_a.time - a.ring[0].time);
-		ys.push(rec_b.time - rec_a.time - medians.get(rec_a.player));
-	}
-	let base = median([...medians.values()]);
-	let cycle_a = ring_cycle(a.ring), cycle_b = ring_cycle(b.ring);
-	let cycle = cycle_a === null ? cycle_b : cycle_b === null ? cycle_a : Math.max(cycle_a, cycle_b);
-	/* the sender whose records A stamps a whole cycle earlier than B does
-	 * relative to everyone else is A's own slot, and vice versa */
-	let recorder_a = null, recorder_b = null;
-	for (let p of senders) {
-		let d = medians.get(p) - base;
-		if (cycle && d >= cycle / 2 && d <= 2 * cycle) recorder_a = recorder_a === null ? p : -1;
-		if (cycle && -d >= cycle / 2 && -d <= 2 * cycle) recorder_b = recorder_b === null ? p : -1;
+		xs.push(a.ring[i].time - a.ring[0].time);
+		ys.push(b.ring[j].time - a.ring[i].time - medians.get(a.ring[i].player));
 	}
 	out.clock = {
 		offset: base, cycle_a, cycle_b,
@@ -361,15 +465,10 @@ function compare(a_recs, b_recs, options = {}) {
 		span_ticks: xs.length ? xs[xs.length - 1] : 0,
 		by_sender: senders.map(p => ({
 			player: p, n: by_sender.get(p).length, median: medians.get(p),
+			group: high.has(p) ? "+" : low.has(p) ? "-" : "?",
 			p1: quantile(by_sender.get(p), 0.01), p99: quantile(by_sender.get(p), 0.99),
 			min: quantile(by_sender.get(p), 0), max: quantile(by_sender.get(p), 1),
 		})),
-	};
-	out.recorder = {
-		a_by_offset: recorder_a === -1 ? null : recorder_a,
-		b_by_offset: recorder_b === -1 ? null : recorder_b,
-		a_by_bursts: BoloNetwork.recorder(a_recs),
-		b_by_bursts: BoloNetwork.recorder(b_recs),
 	};
 
 	/* The boot bursts, compared as sets: a map run present in one and not
@@ -385,35 +484,62 @@ function compare(a_recs, b_recs, options = {}) {
 }
 
 function print_report(out, a, b, options) {
-	let names_a = player_names(a.boot.concat(a.ring)), names_b = player_names(b.boot.concat(b.ring));
-	let name = (names, p) => p === null ? "undecided" : `${p} (${(names.get(p) || "?").split("@")[0]})`;
+	let slot = p => p === null ? "undecided" : `slot ${p}`;
+	let seconds = ticks => `${(ticks / 50).toFixed(1)} s`;
 	console.log(`game id ${out.game_id || "?"}: the same game in both logs`);
 	console.log(`ring records: A ${out.a_ring}, B ${out.b_ring}, shared ${out.shared}` +
+		(out.rejected.length ? ` (${out.rejected.length} byte-identical matches rejected as stamped more than ${seconds(OFFSET_TOLERANCE)} off the sender's offset)` : "") +
 		(out.unaligned.unaligned_a || out.unaligned.unaligned_b
 			? ` (${out.unaligned.unaligned_a} of A and ${out.unaligned.unaligned_b} of B in anchorless stretches too long to diff, left unmatched)` : ""));
+	if (!out.same_stretch) {
+		console.log(`  fewer than ${MIN_SHARED} records in common: the two logs cover different stretches of the game -- ` +
+			`a log restarted, not two views of one stretch (recorder of A by burst position ${slot(out.recorder.a_by_bursts)}, ` +
+			`of B ${slot(out.recorder.b_by_bursts)})`);
+		return;
+	}
 	let only = (label, o) => console.log(`  ${label} only: ${o.before.length} before the shared stretch, ` +
 		`${o.inside.length} inside it, ${o.after.length} after`);
 	only("A", out.a_only);
 	only("B", out.b_only);
-	if (options.verbose) {
-		for (let rec of out.a_only.inside) console.log(`    A only: ${describe(rec)}`);
-		for (let rec of out.b_only.inside) console.log(`    B only: ${describe(rec)}`);
+	let runs = (label, other, list) => {
+		if (!list.length) return;
+		console.log(`  runs of records in ${label} only, inside the shared stretch, with the gap ${other} shows across each:`);
+		for (let r of list.slice(0, RUNS_SHOWN)) {
+			let kind = r.other_gap === null ? "at the edge" : r.other_gap <= OFFSET_TOLERANCE
+				? `a hole of ${r.other_gap} ticks in ${other}` : `an absence: ${other} heard nothing for ${seconds(r.other_gap)}`;
+			console.log(`    ${r.records.length} record${r.records.length === 1 ? "" : "s"} from sender${r.senders.length === 1 ? "" : "s"} ` +
+				`${r.senders.join(",")} over ${seconds(r.span)} at t=${r.records[0].time} -- ${kind}`);
+			if (options.verbose) for (let rec of r.records) console.log(`      ${describe(rec)}`);
+		}
+		if (list.length > RUNS_SHOWN) console.log(`    ... and ${list.length - RUNS_SHOWN} more runs`);
+	};
+	runs("A", "B", out.a_runs);
+	runs("B", "A", out.b_runs);
+	if (options.verbose && out.rejected.length) {
+		console.log("  rejected matches (A record | B record):");
+		for (let r of out.rejected.slice(0, RUNS_SHOWN)) console.log(`    ${describe(r.a)} | ${describe(r.b)}`);
 	}
-	let holes = (label, h) => console.log(`  ${label}'s sequence holes: ${h.holes}, ${h.comparable} inside the shared stretch ` +
-		`missing ${h.missing} slots, of which ${h.found_in_other} are records in the other log`);
-	holes("A", out.a_holes);
-	holes("B", out.b_holes);
+	let holes = (label, other, h) => console.log(`  ${label}'s sequence holes: ${h.holes}, ${h.comparable} inside the shared stretch ` +
+		`missing ${h.missing} slots, of which ${h.found_in_other} are records in ${other}`);
+	holes("A", "B", out.a_holes);
+	holes("B", "A", out.b_holes);
 	let c = out.clock;
 	console.log(`clocks: B - A = ${c.offset} ticks; ring cycle (median) A ${c.cycle_a} B ${c.cycle_b}; ` +
 		`drift ${c.drift_ppm.toFixed(1)} ppm over ${(c.span_ticks / 50).toFixed(0)} s ` +
 		`(${(c.drift_ppm * 1e-6 * c.span_ticks).toFixed(2)} ticks end to end)`);
 	for (let s of c.by_sender) {
-		console.log(`  sender ${s.player}: n=${s.n} median ${s.median} (${s.median - c.offset >= 0 ? "+" : ""}${s.median - c.offset}) ` +
+		console.log(`  sender ${s.player}: n=${s.n} median ${s.median} (${s.median - c.offset >= 0 ? "+" : ""}${s.median - c.offset}, group ${s.group}) ` +
 			`min ${s.min} p1 ${s.p1} p99 ${s.p99} max ${s.max}`);
 	}
+	let order = [];
+	if (out.ring_order.size) {
+		let p = Math.min(...out.ring_order.keys());
+		for (let n = 0; n < out.ring_order.size && p !== undefined; n++) { order.push(p); p = out.ring_order.get(p); }
+	}
+	console.log(`ring order: ${order.join(" -> ")}`);
 	let r = out.recorder;
-	console.log(`recorder of A: by stamp offsets ${name(names_a, r.a_by_offset)}, by burst position ${name(names_a, r.a_by_bursts)}`);
-	console.log(`recorder of B: by stamp offsets ${name(names_b, r.b_by_offset)}, by burst position ${name(names_b, r.b_by_bursts)}`);
+	console.log(`recorder of A: by stamp offsets ${slot(r.a_by_offset)}, by burst position ${slot(r.a_by_bursts)}`);
+	console.log(`recorder of B: by stamp offsets ${slot(r.b_by_offset)}, by burst position ${slot(r.b_by_bursts)}`);
 	console.log(`start-of-log bursts: A ${out.boot.a} records, B ${out.boot.b}; differing A ${out.boot.a_only}, B ${out.boot.b_only}`);
 }
 
@@ -500,6 +626,6 @@ function main() {
 	compare(load_log(BoloLog, positional[0]), load_log(BoloLog, positional[1]), options);
 }
 
-module.exports = { align, split_boot, seq_holes, compare };
+module.exports = { align, split_boot, seq_holes, ring_order, compare };
 
 if (require.main === module) main();
