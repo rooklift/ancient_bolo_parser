@@ -11,13 +11,12 @@
  *      for byte, sequence byte included: every ring record one machine
  *      wrote, the other wrote too, and in the same order. A log is the
  *      ring's transcript, not one machine's view of it [E:two-recorders].
- *   -- what a sequence-number hole is. The holes are all but identical
- *      in both logs: over ten such pairs, of tens of thousands of
- *      missing slots, a few dozen turn up as records in the other log.
- *      Those few are packets one machine got and the other did not --
- *      the only direct sight of loss the format allows -- and the rest
- *      are slots in which that node sent nothing worth logging
- *      (tools/measure-seq-holes.cjs takes that further) [E:seq-loss].
+ *   -- what a sequence-number hole is. The holes are identical in both
+ *      logs: over ten such pairs, not one of tens of thousands of
+ *      missing slots turns up as a record in the other log, so a hole
+ *      is a slot in which that node sent nothing worth logging, not a
+ *      packet one machine missed (tools/measure-seq-holes.cjs takes
+ *      that further) [E:seq-loss].
  *      Every run of records found in one log only is listed with the
  *      gap the other log shows across it: a hole of a few ticks, or an
  *      absence of many seconds. A byte-identical record stamped seconds
