@@ -20,8 +20,9 @@ const TICKS_PER_SECOND = 50;
  *   recorder itself as readily as anyone. It is not a lost packet:
  *   over ten games logged on two machines at once, none of 38,318
  *   missing slots was a record the other machine had; over a thousand
- *   logs, 18 of 1.6 million fall on a moving tank, which restates every
- *   cycle; and the ring turns through a hole at full pace
+ *   logs, 16 of 1.6 million fall on a moving tank, all of them crawling
+ *   (a tank under way restates every cycle, and none of the sixteen was
+ *   fast); and the ring turns through a hole at full pace
  *   (tools/compare-recordings.cjs, tools/measure-seq-holes.cjs)
  *   [E:seq-loss]. A step of 0 is a duplicate.
  *

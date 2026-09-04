@@ -200,6 +200,7 @@ function ring_stream(recorder, clock0, cycles, options = {}) {
 	check("all of them attributed", [tally.attributed, tally.unattributed, tally.whole_cycle_slots, tally.beyond_cycle_slots], [230, 0, 0, 0]);
 	check("every chain closes on the next sender", [tally.chain_ok, tally.chain_bad], [tally.holes, 0]);
 	check("parked slots read as still", [tally.classes.still, tally.classes.edge], [207, 3]);
+	check("moving tanks restate every cycle", [tally.restating.slow.skipped, tally.restating.fast.skipped, tally.restating.slow.pairs > 0], [0, 0, true]);
 	check("dead slots read as dead", tally.classes.dead, 20);
 	check("nothing read as moving", [tally.classes.moving, samples.length], [0, 0]);
 	check("no whole-cycle hole", tally.whole_cycle, 0);

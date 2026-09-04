@@ -79,6 +79,7 @@ const SEQ_TRUST_TICKS = 250;     /* as network.js: past this a step may have wra
 const MOVING_WINDOW = 40;        /* ticks: neighbours this close bracket one skipped cycle */
 const MIN_RECORDS = 2000;
 const PACE_MIN_CYCLE = 4;        /* ticks: below this the stamps cannot resolve a cycle */
+const SLOW_SPEED = 20;           /* speed byte below which every moving-tank hole in the corpus fell */
 const SAMPLES_PER_LOG = 3;       /* moving holes listed per log, so one log cannot fill the list */
 const SAMPLES_TOTAL = 60;
 const CLASSES = ["moving", "still", "dead", "changing", "edge", "silent"];
@@ -182,7 +183,9 @@ function empty_tally() {
 	let tally = { logs: 0, records: 0, slots: 0, holes: 0, missing: 0, chain_ok: 0, chain_bad: 0,
 		own: 0, own_class: {}, classes: {}, steps: {}, whole_cycle: 0, beyond_cycle: 0,
 		whole_cycle_slots: 0, beyond_cycle_slots: 0, unattributed: 0, attributed: 0,
-		holes_in_burst: 0, unpaced_logs: 0, gap_at_hole: [], gap_at_step: [], by_players: {} };
+		holes_in_burst: 0, unpaced_logs: 0, gap_at_hole: [], gap_at_step: [], by_players: {},
+		restating: { slow: { pairs: 0, same_pixel: 0, one_cycle: 0, skipped: 0 }, fast: { pairs: 0, same_pixel: 0, one_cycle: 0, skipped: 0 } },
+		moving_speeds: [] };
 	for (let c of CLASSES) { tally.classes[c] = 0; tally.own_class[c] = 0; }
 	return tally;
 }
@@ -228,6 +231,41 @@ function measure_file(recs, tally, samples, label) {
 	let info = null;
 	for (let rec of recs) { info = rec.subpackets.find(s => s.type === "game_info"); if (info) break; }
 	let file = { label, game: info ? info.gameId : "?", players: 0, recorder, records: span.length, slots: 0, missing: 0, holes: 0, moving: 0, own: 0 };
+
+	/* Does a moving tank restate every cycle? For consecutive position
+	 * records of one player with speed > 0 on both, count how many ring
+	 * cycles apart they are (the ring size read as the smallest step any
+	 * player's counter took in the last 64 records) and whether the pixel
+	 * changed. If restating followed the pixel, slow tanks would skip
+	 * cycles routinely; they do not, so a skipped cycle by a tank under
+	 * way is the one shape a lost restatement would have. */
+	let recent = [];   /* [index, delta], deltas non-decreasing: a monotonic deque */
+	let last_index = new Map();
+	for (let i = 0; i < span.length; i++) {
+		let rec = span[i];
+		let prev = last_index.get(rec.player);
+		if (prev !== undefined) {
+			let delta = unwrapped[i] - unwrapped[prev];
+			if (delta > 0) {
+				while (recent.length && recent[recent.length - 1][1] >= delta) recent.pop();
+				recent.push([i, delta]);
+			}
+		}
+		while (recent.length && recent[0][0] < i - 64) recent.shift();
+		let pos = position_of(rec);
+		if (prev !== undefined && pos && !(rec.tankStatus & 4) && recent.length) {
+			let before = position_of(span[prev]);
+			if (before && before.speed > 0 && pos.speed > 0 && rec.time - span[prev].time <= 60) {
+				let cycles = (unwrapped[i] - unwrapped[prev]) / recent[0][1];
+				let slow = Math.min(before.speed, pos.speed) < SLOW_SPEED;
+				let r = tally.restating[slow ? "slow" : "fast"];
+				r.pairs++;
+				if (same_pixel(before, pos)) r.same_pixel++;
+				if (cycles === 1) r.one_cycle++; else if (cycles >= 2) r.skipped++;
+			}
+		}
+		last_index.set(rec.player, i);
+	}
 	let file_samples = 0;
 	tally.logs++;
 	tally.records += span.length;
@@ -269,6 +307,7 @@ function measure_file(recs, tally, samples, label) {
 			if (slot === recorder) { tally.own++; tally.own_class[cls]++; file.own++; }
 			if (cls === "moving") {
 				file.moving++;
+				tally.moving_speeds.push(Math.min(position_of(prev).speed, position_of(after).speed));
 				if (file_samples < SAMPLES_PER_LOG && samples.length < SAMPLES_TOTAL) {
 					file_samples++;
 					samples.push({ label, owner: slot, step, prev, after, before_hole: span[i - 1], after_hole: span[i] });
@@ -328,6 +367,15 @@ function report(tally, files, samples, show_samples) {
 		`p50 ${cycles(at_hole, 0.5)} p90 ${cycles(at_hole, 0.9)} p99 ${cycles(at_hole, 0.99)}, ` +
 		`against an ordinary step across a burst boundary p50 ${cycles(at_step, 0.5)} p90 ${cycles(at_step, 0.9)} p99 ${cycles(at_step, 0.99)}` +
 		(tally.unpaced_logs ? ` (${tally.unpaced_logs} logs whose ring turns in under ${PACE_MIN_CYCLE} ticks left out of this line)` : ""));
+	console.log("\nrestating: consecutive position records of one tank with speed > 0 on both");
+	for (let [name, r] of Object.entries(tally.restating)) {
+		console.log(`  ${name === "slow" ? "speed under " + SLOW_SPEED : "speed " + SLOW_SPEED + " and up"}: ${r.pairs} pairs, ` +
+			`${pct(r.same_pixel, r.pairs)} at the same pixel, ${pct(r.one_cycle, r.pairs)} one cycle apart, ${r.skipped} skipped a cycle`);
+	}
+	if (tally.moving_speeds.length) {
+		let speeds = tally.moving_speeds.slice().sort((a, b) => a - b);
+		console.log(`  moving holes by the slower of the owner's two speeds: min ${speeds[0]} median ${speeds[speeds.length >> 1]} max ${speeds[speeds.length - 1]}`);
+	}
 	let worst = files.filter(f => f.moving).sort((a, b) => b.moving - a.moving).slice(0, 10);
 	if (worst.length) {
 		console.log("\nlogs with MOVING holes (the only candidates for loss; tools/find-replay.cjs finds a label, tools/find-same-game-replays.cjs a game id):");
