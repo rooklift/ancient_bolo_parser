@@ -54,17 +54,20 @@ in at build time); only the window, menu, dialogs and file access are
 reimplemented, in `tauri/src/main.rs`, with `viewer/tauri_api.js` giving the
 page the same `window.api` the Electron preload script does.
 
-Nothing needs installing to build it: the **Tauri Windows build** workflow
-(`.github/workflows/tauri-windows.yml`) runs on a GitHub Windows runner,
-and can be started by hand from the Actions tab. It produces an NSIS
-installer and a zip holding the bare `.exe`, as a workflow artifact, or
-attached to a release when given its tag (or when a release is published).
-To build locally instead, with Rust and Node installed:
+Nothing needs installing to build it: the release workflow
+(`.github/workflows/release-builds.yml`) builds it on a GitHub Windows
+runner beside the Electron apps, attaching
+`ancient-bolo-log-viewer-<version>-windows-tauri.zip`, a zip holding the
+single `.exe`, to the release. The workflow can also be started by hand
+from the Actions tab. To build locally instead, with Rust and Node
+installed:
 
 ```
 cd viewer/tauri
-npx --yes @tauri-apps/cli@2.11.4 build --bundles nsis
+npx --yes @tauri-apps/cli@2.11.4 build
 ```
+
+The executable is then `viewer/tauri/target/release/ancient-bolo-log-viewer.exe`.
 
 Differences from the Electron app: the menu shows the shortcuts but the page
 handles the keys itself (as the web version does), and dropped files arrive
