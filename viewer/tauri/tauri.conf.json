@@ -26,15 +26,9 @@
 		}
 	},
 	"bundle": {
-		"active": true,
-		"targets": ["nsis"],
+		"active": false,
 		"icon": ["icons/icon.ico", "icons/icon.png"],
 		"copyright": "Copyright 2026 Rooklift",
-		"shortDescription": "Replays of classic Mac Bolo game logs",
-		"windows": {
-			"nsis": {
-				"installMode": "currentUser"
-			}
-		}
+		"shortDescription": "Replays of classic Mac Bolo game logs"
 	}
 }
