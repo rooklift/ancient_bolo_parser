@@ -11,6 +11,8 @@ name: Tauri Windows build
 # artifact.
 
 on:
+  push:
+    branches: [claude/tauri-windows-app-tbgtz6] # temporary: proves the build on this branch before it reaches main
   release:
     types: [published]
   workflow_dispatch:
