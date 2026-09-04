@@ -1,0 +1,351 @@
+======================================================================
+1030 logs, 2,259,034 pill fires
+
+Direction-0 odd-index fires resolved to pill n-1 by hostility and range:
+       31,052   (both pills fit in 10,589; the named one is kept there)
+
+Fires set aside:
+    pill unresolved (missing or carried)           0
+    pill dead                                 12,035
+    sender has no live tank                    1,312
+    sender not hostile to the pill                14   (must be ~0; 1 of them direction 0 with an odd index)
+        of those: the sender's own pill 7; the sender's own records carried a 9n for
+        that pill within 100 ticks 0; the pill changed owner within 100 ticks 0
+        the pill's owner slot had quit since the pill got that owner ("orphaned") in 7
+        how the model holds them allied: from game info 0, an accept between the two 5,
+        only the clique merge of a third party's accept 1
+    sender's tank out of range                   632
+        by distance: 137-160 px 556, 161-200 55, 201-300 9, over 300 12;
+        sender's position over a second old 200; a nearer hostile pill along the nibble 93
+        by the larger axis distance: <= 136 px 373, <= 152 186, <= 168 42, over 31
+        (a box would put nearly all of them in the first bucket; a circle seen through stale positions spreads them)
+    sender the only hostile tank in range  2,035,568   (uninformative)
+
+The viewer's fire rule (a pill firing at a player the model holds friendly becomes nobody's) triggered 9 times.
+    20021108.3 rec 32187 t5229810 sender 2 pill 14 was owner 0
+    20010117~d60497 rec 30120 t8038358 sender 2 pill 11 was owner 2
+    20011027~a1ea2d rec 4232 t49365 sender 0 pill 0 was owner 3
+    20020211~fdf38b rec 8400 t460961 sender 3 pill 8 was owner 3
+    20020211~fdf38b rec 8404 t460971 sender 3 pill 12 was owner 3
+    20020211~fdf38b rec 8404 t460971 sender 3 pill 13 was owner 3
+    20020211~fdf38b rec 8458 t461070 sender 3 pill 5 was owner 3
+    20020211~fdf38b rec 8476 t461103 sender 3 pill 0 was owner 3
+    20020211~fdf38b rec 8540 t461220 sender 3 pill 14 was owner 3
+
+Orphaned pills (owner slot quit since they got that owner) fired 5,563 times, by the target's NAME as of the quit:
+at a member of the owner's alliance then 51, at anyone else present then 5,442, at a name not present then 70.
+(a pill that stays with its alliance never fires at the first group)
+Quits leaving grounded pills: 1,556, with an ally still in the game to hand them to 894;
+of those quits the tank was dead (T=7) at 119 and alive at 1,437. Orphaned-pill fires after a dead quit 699,
+of which at a member of the owner's alliance 36; after an alive quit 4,864, at an ally 15.
+Of the quits with an heir, the heir had a live tank at 778 and was dead or tankless at 116. Orphaned-pill fires
+after a hand-over to a live heir 3,585, at an ally 11; to a dead heir 592, at an ally 40.
+the quitter's name rejoined later for 20 pills. Orphaned-pill fires by that: heir available 4,177,
+no heir but owner returned 0, no heir and owner gone 1,386;
+of the allied-sender fires from orphans, 7 had an heir available (a hand-over at quit would have caught those).
+
+Who inherits a quitter's grounded pills? Their later fires (until the pills changed hands
+again) by target, per quit, against candidate heirs. Columns: quits where the candidate
+exists / of those, quits whose pills fired at anyone / fires in those quits / fires at the
+candidate / quits in which the candidate was fired at. A true heir scores 0 in the last two.
+  lowest ally live: 778 quits; fires at an old ally 11, at an old enemy 3,504, at a newcomer 70
+    next mutual ally with a live tank          778    140  3,585      6      1
+    lowest-index live tank, other side         647    139  3,449  1,875     92
+    lowest-index live tank, any side           778    140  3,585  1,113     52
+    lowest-index player present                778    140  3,585  1,111     51
+    next name to take the quitter's slot         3      2    202      9      1
+    of the 140 quits with fires and an enemy present, the pills shot every enemy present at the quit in 38, two or more in 40
+  another ally live: 6 quits; fires at an old ally 0, at an old enemy 61, at a newcomer 0
+    next mutual ally with a live tank            6      1     61      0      0
+    lowest-index live tank, other side           6      1     61     25      1
+    lowest-index live tank, any side             6      1     61     25      1
+    lowest-index player present                  6      1     61      0      0
+    next name to take the quitter's slot         0      0      0      0      0
+    of the 1 quits with fires and an enemy present, the pills shot every enemy present at the quit in 1, two or more in 1
+  no ally live: 772 quits; fires at an old ally 40, at an old enemy 1,877, at a newcomer 0
+    next mutual ally with a live tank            0      0      0      0      0
+    lowest-index live tank, other side         493     90  1,916  1,291     70
+    lowest-index live tank, any side           493     90  1,916  1,291     70
+    lowest-index player present                577     91  1,917  1,192     62
+    next name to take the quitter's slot         2      0      0      0      0
+    of the 91 quits with fires and an enemy present, the pills shot every enemy present at the quit in 39, two or more in 17
+
+How long does a hostile pill hold its fire? For every quit that left grounded pills, the
+lowest-index live enemy at the quit was followed: the unbroken run of ticks in which his
+live, unhidden tank was the nearest tank to one of those pills and within its range, read
+off at the moment that pill shot him (a shot at anyone restarts a pill's run, since its
+delay restarts). A rested pill's delay is 100 ticks, but the first shot at a newcomer can
+take longer than that, so the dead-heir runs below are judged against this distribution.
+    shots 2,607; run at the shot: median 10, 90th pct 104, 99th pct 146, 99.9th pct 281, max 644;
+    over 100 ticks 334, over 200 8, over 300 2
+
+Dead-heir quits: the lowest-index remaining ally had no live tank at the quit, so the
+hand-over passed him over. Once he held a live tank again, did it sit within a shell's
+flight of a live handed pill without being shot? Columns: quits / the ally later held a
+live tank / his live tank came within range of a live handed pill / ticks it spent there /
+fires from the pills / fires at that ally / quits in which he was fired at / exposed quits
+with no fire at him / of those, with a run (as above) longer than the control's 99th
+percentile / longer than the control's longest. Only the last two columns say the pills
+were apparently his after all.
+    all dead-heir quits                    116     32      7  4,666    592     40      3      4      4      1
+      ally dead at the quit                 56     22      5  4,206    452     40      3      2      2      1
+      ally stale at the quit                60     10      2    460    140      0      0      2      2      0
+      ally no tank at the quit               0      0      0      0      0      0      0      0      0      0
+      no other ally live                   110     30      6  2,236    531     40      3      3      3      0
+      another ally live                      6      2      1  2,430     61      0      0      1      1      1
+    one per line (ally state / returned / exposure ticks / pills exposed / longest run / fires / at the ally):
+      20010326~fc6a01 slot 0 -> ally slot 1 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010406.1~b6fbb9 slot 5 -> ally slot 3 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010406.1~b6fbb9 slot 0 -> ally slot 4 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010406.5~ef83a5 slot 2 -> ally slot 4 dead: returned, exposed 255 ticks to 1 pills, longest run 255, 33 fires, 0 at the ally
+      20010412.1~c4b988 slot 0 -> ally slot 1 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010417~c7467f slot 1 -> ally slot 3 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010418~6c2b20 slot 3 -> ally slot 1 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010504.4~231746 slot 2 -> ally slot 3 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010509~879826 slot 1 -> ally slot 3 stale: returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010521.1~6d82c7 slot 0 -> ally slot 2 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010629~78971e slot 3 -> ally slot 1 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010817~d40e0f slot 2 -> ally slot 1 stale: returned, exposed 313 ticks to 1 pills, longest run 313, 0 fires, 0 at the ally
+      20011218.4~9a3798 slot 4 -> ally slot 5 stale: returned, exposed 0 ticks to 0 pills, longest run 0, 5 fires, 0 at the ally
+      20020123 slot 2 -> ally slot 3 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20020715~fa1a84 slot 4 -> ally slot 3 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20020724.1 slot 3 -> ally slot 4 stale: returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20020914 slot 3 -> ally slot 1 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20021012.3~a2ac91 slot 0 -> ally slot 1 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20021012.5~a86d51 slot 0 -> ally slot 3 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20021021.8~e6f72d slot 0 -> ally slot 2 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 4 fires, 0 at the ally
+      20021024.3 slot 1 -> ally slot 0 dead, another ally live: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20021024.3 slot 2 -> ally slot 0 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20021029.1 slot 0 -> ally slot 1 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20021030.2~b2a8a7 slot 1 -> ally slot 0 stale: returned, exposed 0 ticks to 0 pills, longest run 0, 1 fires, 0 at the ally
+      20021108.5~32d576 slot 2 -> ally slot 3 dead: returned, exposed 529 ticks to 3 pills, longest run 196, 180 fires, 29 at the ally
+      20021114.1~03f214 slot 0 -> ally slot 1 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20030226.4~fbf61c slot 2 -> ally slot 3 dead: returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20030314.1 slot 3 -> ally slot 0 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20030430.2~5b694a slot 2 -> ally slot 3 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20030620.2~3f7f1e slot 3 -> ally slot 2 stale: returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20040324.4~e23dd3 slot 1 -> ally slot 3 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20040423.4~04ba45 slot 1 -> ally slot 2 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20040503.1~5eaa0e slot 3 -> ally slot 0 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20040517.1~790714 slot 2 -> ally slot 3 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20040517.1~790714 slot 0 -> ally slot 1 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20040727.1~113212 slot 1 -> ally slot 2 dead: returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20040727.2~8a0a19 slot 3 -> ally slot 1 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20040727.4~c346a7 slot 0 -> ally slot 3 dead: returned, exposed 515 ticks to 2 pills, longest run 284, 6 fires, 4 at the ally
+      20040803.1~b39f9e slot 3 -> ally slot 0 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20040804.6~a040d3 slot 2 -> ally slot 1 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20040812.1~a51417 slot 3 -> ally slot 4 dead: returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20040830.1~0f7401 slot 2 -> ally slot 3 dead: returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20040907.3~58378c slot 1 -> ally slot 0 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20041206.1~d64046 slot 4 -> ally slot 1 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20041206.2~7b580c slot 3 -> ally slot 2 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20041216.1~e7d715 slot 0 -> ally slot 1 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20050528.2~1e41cd slot 3 -> ally slot 2 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010131.4 slot 5 -> ally slot 4 dead: returned, exposed 477 ticks to 3 pills, longest run 158, 7 fires, 7 at the ally
+      20010131.4 slot 2 -> ally slot 0 stale, another ally live: returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010131.4 slot 0 -> ally slot 1 stale: returned, exposed 0 ticks to 0 pills, longest run 0, 1 fires, 0 at the ally
+      20021018.2 slot 2 -> ally slot 3 dead: returned, exposed 0 ticks to 0 pills, longest run 0, 46 fires, 0 at the ally
+      20010117~07b9d6 slot 5 -> ally slot 1 stale, another ally live: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010117~94107f slot 5 -> ally slot 0 dead, another ally live: returned, exposed 2,430 ticks to 1 pills, longest run 1,023, 61 fires, 0 at the ally
+      20010127~e3d7a8 slot 4 -> ally slot 0 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010131~a6732f slot 1 -> ally slot 2 stale, another ally live: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010203~7fe97a slot 2 -> ally slot 4 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010212~218ae4 slot 0 -> ally slot 2 dead: returned, exposed 0 ticks to 0 pills, longest run 0, 1 fires, 0 at the ally
+      20010213~4985da slot 0 -> ally slot 1 stale: returned, exposed 147 ticks to 1 pills, longest run 147, 4 fires, 0 at the ally
+      20010303~b4a2e2 slot 3 -> ally slot 0 dead: returned, exposed 0 ticks to 0 pills, longest run 0, 40 fires, 0 at the ally
+      20010304~4c89f2 slot 2 -> ally slot 3 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010304~6ad307 slot 0 -> ally slot 1 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010305~106115 slot 5 -> ally slot 2 dead: returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010305~5a5889 slot 0 -> ally slot 1 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010309~12f1b0 slot 4 -> ally slot 0 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010316~ba883a slot 5 -> ally slot 2 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010316~d79bc0 slot 3 -> ally slot 2 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010320~a21795 slot 0 -> ally slot 1 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 32 fires, 0 at the ally
+      20010323~1ded72 slot 1 -> ally slot 3 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010406~ab42d9 slot 2 -> ally slot 4 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010731~d738ad slot 2 -> ally slot 3 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010906~57bee6 slot 3 -> ally slot 1 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010915~6cb162 slot 1 -> ally slot 2 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010915~91cc39 slot 3 -> ally slot 2 dead: returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20010930~00f3be slot 0 -> ally slot 3 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 7 fires, 0 at the ally
+      20011027~dde98d slot 3 -> ally slot 1 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20011027~9e2581 slot 4 -> ally slot 1 dead, another ally live: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20011112~0d589e slot 3 -> ally slot 2 dead: returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20011115~81b63f slot 3 -> ally slot 0 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20011115~81b63f slot 1 -> ally slot 2 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20011205~fd0d01 slot 1 -> ally slot 3 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20011215~d7b50f slot 0 -> ally slot 1 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 30 fires, 0 at the ally
+      20011215~21e278 slot 3 -> ally slot 0 stale: returned, exposed 0 ticks to 0 pills, longest run 0, 63 fires, 0 at the ally
+      20011221~444231 slot 0 -> ally slot 4 dead: returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20020118~9b803b slot 2 -> ally slot 0 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20020123~320d97 slot 0 -> ally slot 4 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 4 fires, 0 at the ally
+      20020124~9d94fd slot 0 -> ally slot 3 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20020202~1a19d4 slot 3 -> ally slot 2 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20020202~50d9c6 slot 0 -> ally slot 2 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20020202~a85de7 slot 4 -> ally slot 1 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20020205~70977a slot 2 -> ally slot 0 dead: returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20020205~70977a slot 1 -> ally slot 3 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20020206~e8a5c0 slot 1 -> ally slot 0 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20020211~8eec4c slot 2 -> ally slot 1 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20020211~a06df2 slot 0 -> ally slot 2 dead: returned, exposed 0 ticks to 0 pills, longest run 0, 30 fires, 0 at the ally
+      20020224~6e35b9 slot 1 -> ally slot 2 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20020224~6d5ecd slot 0 -> ally slot 3 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20020227~094b9c slot 1 -> ally slot 3 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20020914~c6d10a slot 2 -> ally slot 0 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20020919~fc0437 slot 1 -> ally slot 0 dead: returned, exposed 0 ticks to 0 pills, longest run 0, 3 fires, 0 at the ally
+      20020919~757c77 slot 3 -> ally slot 2 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20020920~c0822d slot 0 -> ally slot 4 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20020923~4fac3d slot 3 -> ally slot 1 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20020923~fabdfb slot 3 -> ally slot 1 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20021004~f3810c slot 1 -> ally slot 3 dead: returned, exposed 0 ticks to 0 pills, longest run 0, 4 fires, 0 at the ally
+      20030317~ccb6ac slot 3 -> ally slot 2 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20030322~2313b4 slot 3 -> ally slot 2 dead: returned, exposed 0 ticks to 0 pills, longest run 0, 30 fires, 0 at the ally
+      20030329~8a49b1 slot 3 -> ally slot 0 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20030523~ce6898 slot 2 -> ally slot 0 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20030617~bf2107 slot 1 -> ally slot 2 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20030713~b7d491 slot 3 -> ally slot 0 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20040804~f95a68 slot 2 -> ally slot 3 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20040808~38dc5d slot 2 -> ally slot 3 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20040901~c91ee5 slot 2 -> ally slot 3 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      20040901~113b54 slot 0 -> ally slot 3 dead: returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      26~eb1ce8 slot 1 -> ally slot 0 dead: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+      27~f328a7 slot 2 -> ally slot 0 stale: never returned, exposed 0 ticks to 0 pills, longest run 0, 0 fires, 0 at the ally
+
+Live-heir quits split by the lowest slot the quitter's alliance named -- in the model's
+alliance word, or in the quitter's last standing request -- and whether that slot's
+player had already quit.
+Columns: quits or leaves (of them, slot named by the word / only by a request) /
+fires / fires at the heir / hand-overs in which the heir was fired at / fires at any old ally /
+hand-overs in which the heir's live tank came within a shell's flight of a live handed pill /
+ticks it spent there (a pill that is nobody's fires at it there; the heir's own never does).
+    that slot had quit          31 (29 / 2)     155       6       1       6       6   2,360
+    that slot present          747 (743 / 4)   3,430       0       0       5     194 209,442
+    no slot named                0 (0 / 0)       0       0       0       0       0       0
+    the departed-slot hand-overs, one per line (fires at the heir / exposure ticks / pills exposed):
+      20010411.1~94a140 slot 0 -> heir slot 2, lowest named slot 1 (word): 1 fires, 0 at the heir, exposed 291 ticks to 1 pills
+      20010412.1~c4b988 slot 4 -> heir slot 5, lowest named slot 2 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      20010420~8b4c07 slot 3 -> heir slot 4, lowest named slot 2 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      20010504.3~dcf845 slot 2 -> heir slot 4, lowest named slot 3 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      20010521~7a7eb8 slot 0 -> heir slot 5, lowest named slot 1 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      20010521~7a7eb8 slot 2 -> heir slot 4, lowest named slot 0 (request): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      20010817.2~840dad slot 5 -> heir slot 4, lowest named slot 0 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      20011019.1 slot 5 -> heir slot 3, lowest named slot 1 (word): 2 fires, 0 at the heir, exposed 863 ticks to 2 pills
+      20011019.1 slot 2 -> heir slot 4, lowest named slot 0 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      20021021.1~499f4c slot 1 -> heir slot 3, lowest named slot 0 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      20021122.1~70c5a2 slot 7 -> heir slot 3, lowest named slot 1 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      20021122.1~70c5a2 slot 3 -> heir slot 5, lowest named slot 1 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      20041014.6~580bd6 slot 4 -> heir slot 5, lowest named slot 0 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      20010116~f365ef slot 0 -> heir slot 4, lowest named slot 2 (word): 112 fires, 0 at the heir, exposed 369 ticks to 2 pills
+      20010117~16bc3c slot 5 -> heir slot 6, lowest named slot 1 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      20010117~0b3e38 slot 3 -> heir slot 5, lowest named slot 4 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      20010117~0b3e38 slot 2 -> heir slot 1, lowest named slot 0 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      20010117~d60497 slot 6 -> heir slot 4, lowest named slot 0 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      20010127~e3d7a8 slot 2 -> heir slot 5, lowest named slot 1 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      20010305~5a5889 slot 5 -> heir slot 4, lowest named slot 3 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      20010316~ba883a slot 3 -> heir slot 4, lowest named slot 0 (word): 0 fires, 0 at the heir, exposed 122 ticks to 1 pills
+      20010320~b9e403 slot 4 -> heir slot 1, lowest named slot 0 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      20010324~693860 slot 4 -> heir slot 2, lowest named slot 0 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      20010406~3a153d slot 2 -> heir slot 1, lowest named slot 0 (word): 1 fires, 0 at the heir, exposed 295 ticks to 2 pills
+      20010411~a2eefc slot 0 -> heir slot 2, lowest named slot 1 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      20020202~07932f slot 1 -> heir slot 3, lowest named slot 0 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      20020207~6a4bfb slot 3 -> heir slot 4, lowest named slot 2 (word): 33 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      20020209~ad032e slot 4 -> heir slot 2, lowest named slot 0 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      20020211~fdf38b slot 0 -> heir slot 3, lowest named slot 2 (request): 6 fires, 6 at the heir, exposed 420 ticks to 8 pills
+      20020222~09662f slot 2 -> heir slot 4, lowest named slot 0 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+      20020920~9affed slot 2 -> heir slot 4, lowest named slot 0 (word): 0 fires, 0 at the heir, exposed 0 ticks to 0 pills
+
+Alliance leaves that handed grounded pills to the lowest mutual ally, the same split
+(the fires counted until the pills next changed hands):
+Columns: quits or leaves (of them, slot named by the word / only by a request) /
+fires / fires at the heir / hand-overs in which the heir was fired at / fires at any old ally /
+hand-overs in which the heir's live tank came within a shell's flight of a live handed pill /
+ticks it spent there (a pill that is nobody's fires at it there; the heir's own never does).
+    that slot had quit           1 (1 / 0)      75       1       1       1       1   2,719
+    that slot present           55 (55 / 0)   4,376       0       0     344      45 298,037
+    no slot named                0 (0 / 0)       0       0       0       0       0       0
+    the departed-slot hand-overs, one per line (fires at the heir / exposure ticks / pills exposed):
+      20010117~d60497 slot 3 -> heir slot 2, lowest named slot 1 (word): 75 fires, 1 at the heir, exposed 2,719 ticks to 2 pills
+
+Fires where the sender is taken as the target: 2,245,041; sender's tank hidden in forest
+at the time in 8,769 (0.4%) -- ~0 if a pill cannot target a hidden tank.
+
+Massaging: of those 2,245,041 fires the sender's tank is against the pill (within 24 px) in 30,131,
+and the fire direction equals the tank's facing in 11,771 of them (39.1%);
+apart from the pill the two coincide in 139,851 of 2,214,910 (6.3%; 1 in 16 by chance).
+
+Deflection: the direction nibble against the bearing to the sender's tank, in sectors,
+split by the tank's motion across the pill's line of sight (from its last two positions):
+                                     exact    1 off    2 off   3+ off
+    tank still or unknown          522,685   29,277      127    5,887
+    moving, nibble leads it        912,022  707,290   19,719    7,039
+    moving, nibble trails it             0   39,790      591      614
+    (a leading pill puts the moving rows' misses in the first of the two, not the second)
+
+Contested fires (two or more hostile tanks in range): 209,473
+    sender is the nearest hostile tank       195,217   93.2%
+    expected if the simulator were random    103,849   49.6%
+    sender nearest among VISIBLE hostiles    199,746   95.4%   (rivals hidden in forest excluded)
+    sender beaten by a nearer hostile tank, by margin:
+        1-8 px           9,244   4.4%
+        9-16 px          2,209   1.1%
+        17-32 px         1,563   0.7%
+        33-64 px         1,171   0.6%
+        over 64 px          69   0.0%
+        of the 14,256 losses, the nearer tank was hidden in forest in 4,537, and
+        restated less recently than the sender's in 1,605
+
+Aim, on the same contested fires (209,473): the direction nibble against
+the bearing from the pill to each tank, in 16 coarse sectors:
+    exactly at the sender's tank             135,864   64.9%
+    one sector off the sender, not rival      54,116   25.8%
+    at the nearest rival, not the sender       1,067   0.5%
+    ambiguous or neither                      18,426   8.8%   (2,718 of them massage-shaped: touching, fired along the facing)
+
+Allied-sender fires, the first 14 (replay names redacted):
+    20010521~7a7eb8 rec 69311 t701539 sender 0 pill 4 owner 1 ally:clique dir 12 facing 5 dist 57px hit-by-sender no last-alliance-event 0 ticks ago hostile-pills-along-nibble []
+    20021108.3 rec 32187 t5229810 sender 2 pill 14 owner 0 ally:direct dir 15 facing 1 dist 88px hit-by-sender no last-alliance-event 221 ticks ago hostile-pills-along-nibble []
+    20021108.3 rec 32207 t5229910 sender 2 pill 13 owner 0 ally:direct dir 11 facing 12 dist 119px hit-by-sender no last-alliance-event 0 ticks ago hostile-pills-along-nibble []
+    20010117~d60497 rec 23963 t8020898 sender 3 pill 14 owner 2 ally:orphan dir 6 facing 6 dist 121px hit-by-sender no last-alliance-event 14 ticks ago hostile-pills-along-nibble []
+    20010117~d60497 rec 30120 t8038358 sender 2 pill 11 owner 2 ally:own dir 7 facing 4 dist 109px hit-by-sender no last-alliance-event 17474 ticks ago hostile-pills-along-nibble []
+    20010304~4c89f2 rec 2448 t581528 sender 3 pill 13 owner 2 ally:direct dir 0 facing 5 dist 131px hit-by-sender no last-alliance-event 10873 ticks ago hostile-pills-along-nibble []
+    20011027~a1ea2d rec 4232 t49365 sender 0 pill 0 owner 3 ally:direct dir 7 facing 5 dist 87px hit-by-sender no last-alliance-event 746 ticks ago hostile-pills-along-nibble []
+    20020211~fdf38b rec 8400 t460961 sender 3 pill 8 owner 3 ally:orphan dir 1 facing 4 dist 58px hit-by-sender no last-alliance-event 1192 ticks ago hostile-pills-along-nibble []
+    20020211~fdf38b rec 8404 t460971 sender 3 pill 12 owner 3 ally:orphan dir 7 facing 4 dist 87px hit-by-sender no last-alliance-event 1202 ticks ago hostile-pills-along-nibble []
+    20020211~fdf38b rec 8404 t460971 sender 3 pill 13 owner 3 ally:orphan dir 9 facing 4 dist 30px hit-by-sender no last-alliance-event 1202 ticks ago hostile-pills-along-nibble []
+    20020211~fdf38b rec 8458 t461070 sender 3 pill 5 owner 3 ally:orphan dir 9 facing 2 dist 54px hit-by-sender no last-alliance-event 1301 ticks ago hostile-pills-along-nibble []
+    20020211~fdf38b rec 8476 t461103 sender 3 pill 0 owner 3 ally:orphan dir 14 facing 2 dist 84px hit-by-sender no last-alliance-event 1334 ticks ago hostile-pills-along-nibble []
+    20020211~fdf38b rec 8540 t461220 sender 3 pill 14 owner 3 ally:orphan dir 15 facing 1 dist 125px hit-by-sender no last-alliance-event 1451 ticks ago hostile-pills-along-nibble [0]
+    20020919~67f3e8 rec 5216 t614885 sender 0 pill 13 owner 2 ally:direct dir 2 facing 6 dist 131px hit-by-sender no last-alliance-event 10 ticks ago hostile-pills-along-nibble []
+
+Out-of-range fires, the first 12:
+    20010323~9ab1d3 rec 16710 t1866424 sender 1 pill 8 dir 5 dist 137px axis 126px position 12 ticks old hostile-pills-in-range-along-nibble []
+    20010323~9ab1d3 rec 16710 t1866424 sender 1 pill 8 dir 7 dist 137px axis 126px position 12 ticks old hostile-pills-in-range-along-nibble []
+    20010406.1~b6fbb9 rec 23719 t1848573 sender 4 pill 1 dir 7 dist 143px axis 127px position 48 ticks old hostile-pills-in-range-along-nibble [0]
+    20010406.1~b6fbb9 rec 23719 t1848573 sender 4 pill 2 dir 8 dist 147px axis 143px position 48 ticks old hostile-pills-in-range-along-nibble [0]
+    20010411.1~94a140 rec 14700 t3481675 sender 4 pill 5 dir 13 dist 137px axis 128px position 113 ticks old hostile-pills-in-range-along-nibble []
+    20010424~0c0f47 rec 13847 t3415960 sender 3 pill 12 dir 3 dist 144px axis 106px position 6 ticks old hostile-pills-in-range-along-nibble [10]
+    20010424.2~21b482 rec 25818 t3509386 sender 0 pill 10 dir 1 dist 162px axis 148px position 11 ticks old hostile-pills-in-range-along-nibble []
+    20010424.2~21b482 rec 25818 t3509386 sender 0 pill 10 dir 1 dist 162px axis 148px position 11 ticks old hostile-pills-in-range-along-nibble []
+    20010424.2~21b482 rec 25818 t3509386 sender 0 pill 10 dir 1 dist 162px axis 148px position 11 ticks old hostile-pills-in-range-along-nibble []
+    20010425.3~038166 rec 14527 t4901626 sender 4 pill 3 dir 2 dist 137px axis 116px position 36 ticks old hostile-pills-in-range-along-nibble [13]
+    20010425.3~038166 rec 14527 t4901626 sender 4 pill 3 dir 2 dist 137px axis 116px position 36 ticks old hostile-pills-in-range-along-nibble [13]
+    20010425.3~038166 rec 14527 t4901626 sender 4 pill 3 dir 3 dist 137px axis 116px position 36 ticks old hostile-pills-in-range-along-nibble []
+
+Alliance events, quits and joins in 20020211~fdf38b up to record 8592 (the replay with the most allied-sender fires, 6),
+with the model's alliance masks as the event arrived (bit set = NOT allied):
+    rec 0 t407773 p0 T=7 node_id NOT classified as a join
+    rec 1 t407773 p1 T=7 node_id NOT classified as a join
+    rec 2 t407773 game info alliance words: 0:fffe 1:fffd 2:fffb 3:fff7 4:ffef 5:ffdf 6:ffbf 7:ff7f 8:feff 9:fdff 10:fbff 11:f7ff 12:efff 13:dfff 14:bfff 15:7fff
+    rec 143 t413311 p2 join (T=7) model-before: 0=fffe 1=fffd; pill owners 16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16
+    rec 395 t426815 p3 join (T=7) model-before: 0=fffe 1=fffd 2=fffb; pill owners 16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16
+    rec 578 t434568 p0 alliance_request bits 0004 [2] model-before: 0=fffe 1=fffd 2=fffb 3=fff7
+    rec 603 t435343 p1 alliance_request bits 0008 [3] model-before: 0=fffe 1=fffd 2=fffb 3=fff7
+    rec 620 t435950 p3 alliance_accept bits 0002 [1] model-before: 0=fffe 1=fffd 2=fffb 3=fff7
+    rec 627 t436230 p2 quit (T=1) model-before: 0=fffe 1=fff5 2=fffb 3=fff5; pill owners 16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16
+    rec 654 t437692 p1 alliance_leave model-before: 0=fffe 1=fff5 2=fffb 3=fff5
+    rec 8009 t459462 p0 alliance_request bits 000c [2,3] model-before: 0=fffe 1=fffd 2=fffb 3=fff7
+    rec 8102 t459769 p3 alliance_accept bits 0001 [0] model-before: 0=fffe 1=fffd 2=fffb 3=fff7
+    rec 8232 t460254 p0 quit (T=0) model-before: 0=fff6 1=fffd 2=fffb 3=fff6; pill owners 0,3,0,1,0,0,0,0,0,0,0,1,0,0,0,0
+    rec 8568 t461272 p3 quit (T=8) model-before: 0=fff6 1=fffd 2=fffb 3=fff6; pill owners 17,3,3,1,3,17,3,3,17,3,3,1,17,17,17,3
+    rec 8592 t461494 p1 quit (T=8) model-before: 0=fff6 1=fffd 2=fffb 3=fff6; pill owners 17,17,17,1,17,17,17,17,17,17,17,1,17,17,17,17
+======================================================================
