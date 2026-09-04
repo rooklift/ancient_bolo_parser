@@ -6,3 +6,6 @@ test/expected/n20021018.2-interpolation.tsv
 corpus.json
 audit_to_desktop.bat
 describe_to_desktop.bat
+viewer/tauri/target/
+viewer/tauri/www/
+viewer/tauri/gen/

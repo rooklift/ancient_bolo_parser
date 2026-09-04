@@ -3,8 +3,9 @@
 <head>
 	<meta charset="utf-8">
 	<!-- 'unsafe-inline' for styles: the renderer colours player chips and chat
-	     names with style attributes in generated HTML -->
-	<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'">
+	     names with style attributes in generated HTML. connect-src names the
+	     Tauri app's command channel; Electron and browsers ignore it. -->
+	<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' ipc: http://ipc.localhost; style-src 'self' 'unsafe-inline'">
 	<title>Ancient Bolo Log Viewer</title>
 	<link rel="stylesheet" href="style.css">
 </head>
@@ -142,6 +143,7 @@
 	<script src="motion.js"></script>
 	<script src="game.js"></script>
 	<script src="webm.js"></script>
+	<script src="tauri_api.js"></script>
 	<script src="renderer.js"></script>
 	<script src="video.js"></script>
 </body>

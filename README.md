@@ -44,6 +44,36 @@ browser, or serve the `viewer/` directory with any static file server. The web
 version has no application menu, so it cannot export video, and its toggle
 shortcuts are bare keys (D, I, F, L, G, M, B, R, T) rather than Ctrl+key.
 
+### Tauri edition (Windows)
+
+`viewer/tauri/` hosts the same viewer in a [Tauri](https://tauri.app) shell:
+a small Rust program around the WebView2 engine Windows already ships, so
+the app is a few MB instead of the ~200 MB Electron folder. The page files
+are shared with the Electron and web versions (`tauri/stage.mjs` copies them
+in at build time); only the window, menu, dialogs and file access are
+reimplemented, in `tauri/src/main.rs`, with `viewer/tauri_api.js` giving the
+page the same `window.api` the Electron preload script does.
+
+Nothing needs installing to build it: the **Tauri Windows build** workflow
+(`.github/workflows/tauri-windows.yml`) runs on a GitHub Windows runner,
+and can be started by hand from the Actions tab. It produces an NSIS
+installer and a zip holding the bare `.exe`, as a workflow artifact, or
+attached to a release when given its tag (or when a release is published).
+To build locally instead, with Rust and Node installed:
+
+```
+cd viewer/tauri
+npx --yes @tauri-apps/cli@2.11.4 build --bundles nsis
+```
+
+Differences from the Electron app: the menu shows the shortcuts but the page
+handles the keys itself (as the web version does), and dropped files arrive
+through the window rather than the page. Everything else, including video
+export, works the same way. Only Windows is set up so far; the Rust side
+avoids anything Windows-specific except the sleep hold during video export,
+and the menu's shortcut hints (label text after a tab), so other platforms
+mostly need icons, bundle settings and testing.
+
 ## Status
 
 The viewer reconstructs full game state (terrain, pills, bases, tanks, men, shells, alliances), including the pieces of game logic the log omits by design — pill dumps on death, boat consumption, alliance semantics; see the end of FORMAT.md for that list and its caveats. Tank, LGM and conservatively matched shell movement is interpolated between nearby restatements.
