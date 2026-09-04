@@ -536,6 +536,51 @@ whose arrival is capped by an early event record. These are the
 truth-side numbers the cost-ranked assignment work (ROADMAP item 2)
 must improve without the match rates being allowed to lie about it.
 
+### The rush split
+
+A rush was scored as distance over duration, with a zero-duration link
+counted as infinitely fast, so the rush lines could not tell a link
+drawn fast from one drawn in no time at all. The tool now splits each
+rush line three ways, and the parts sum to the undivided line, which
+keeps its old definition so the archived runs stay comparable:
+
+* *timed* (`terminal_links_rushed_timed`, `rush_links_timed`): positive
+  duration, above 3 px/tick -- the arrival capped by an event record
+  that landed early, the class the line was always described as;
+* *static* (`terminal_links_static`, `links_static`): zero duration and
+  under half a pixel of length, drawing nothing -- a verbatim re-send
+  under a fresh stamp, or a terminal matched where the shell already
+  was;
+* *instant* (`terminal_links_instant`, `links_instant`): zero duration
+  with real length, the cap taken to its limit -- the event record
+  carries the same stamp as the shell's last statement while the shell
+  still had a step or two to fly, so the effect appears a few pixels on
+  with no link drawn.
+
+The split reads the two fixtures very differently, and corrects the
+description above. On `n20021018.2` the 461 rushed terminal links are 5
+timed and 456 static, all of the static ones box terminals (tank hits,
+pill and base damage, explosions) whose shell was last stated already
+inside the 16 px box: the effect draws where the shell was and there is
+nothing to animate. The "455 terminal links whose arrival is capped by
+an early event record" were never that; the capped class on an ordinary
+ring is five links. On the fast-ring `040601.6` the 831 are 377 timed,
+386 static and 68 instant -- the ring's 1-3 tick cadence lands event
+records against shells still in flight, so the cap bites there and
+nowhere else -- and its 1,104 rush links are 19 timed and 1,085 static,
+the decomposition the fast-ring re-sends entry (`917077a`) had done by
+hand on that log. The `ccc8ec3` step-zero matches land where the
+reasoning said they would: against `30d5351` the first form's extra
+rushed links on `n20021018.2` are static 456 -> 592 with timed 5 -> 5,
+and on `040601.6` static 386 -> 412 with timed 377 -> 381.
+
+`--engine=DIR` runs the tool against another checkout's engine (a git
+worktree of an older commit) and reports that checkout's commit, so a
+historical state can be re-measured under a newer tool without dropping
+the tool into the old tree. The corpus runs of the split are in
+[`interpolation_tests_corpus.md`](interpolation_tests_corpus.md) under
+the rush split section.
+
 ## Cost-forced assignment -- `f340943`
 
 Parsimony phase 2: the residual resolver solves each component as
