@@ -118,7 +118,7 @@ Constant at all ten commits, and worth having once:
 
 ## Headline table
 
-| commit | | `matched_forward` | `unlinked` | `terminals_matched` | `tank_hit` |
+| commit | | `matched` <!-- matched_forward --> | `unlinked` | `terminal` <!-- terminals_matched --> | `tank_hit` |
 | --- | --- | --- | --- | --- | --- |
 | `323c673` | v1.0.7 | 0.948521 | 0.018737 | 0.761484 | 201,999 |
 | `76d8b8a` | branch point | 0.961727 | 0.013738 | 0.791346 | 211,623 |
