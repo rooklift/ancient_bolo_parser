@@ -119,7 +119,7 @@ Constant at all ten commits, and worth having once:
 
 ## Headline table
 
-| commit | | `matched` <!-- matched_forward --> | `unlinked` | `terminal` <!-- terminals_matched --> | `tank_hit` | `rushed` <!-- terminal_links_rushed --> | `backward` <!-- pops_paired_backwards --> | `contra` <!-- links_pill_contradicted --> |
+| commit | | `matched` <!-- matched_forward --> | `unlinked` | `terminal` <!-- terminals_matched --> | `tank_hit` | `timed` <!-- terminal_links_rushed_timed --> | `backward` <!-- pops_paired_backwards --> | `contra` <!-- links_pill_contradicted --> |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `323c673` | v1.0.7 | 0.948521 | 0.018737 | 0.761484 | 201,999 |  |  |  |
 | `76d8b8a` | branch point | 0.961727 | 0.013738 | 0.791346 | 211,623 |  |  |  |
@@ -134,46 +134,50 @@ Constant at all ten commits, and worth having once:
 | `0d181be` | bradian + stitching | 0.984399 | 0.005985 | 0.816888 | 228,016 |  |  |  |
 | `4c791a0` | forced assign + jitter | 0.988925 | 0.004020 | 0.827713 | 233,180 |  |  |  |
 | `b345ef0` | temporal gate | 0.988826† | 0.004112† | 0.827709 | 233,180†† |  |  |  |
-| `a74033a` | cost-forcing + pop rescue, v1.0.9 | 0.993609 | 0.002202 | 0.828353 | 232,342 | 76,597 | 5,588 |  |
-| `ad2168d` | leading impacts | 0.993965 | 0.002019 | 0.829538 | 233,481 | 79,521 | 5,514 |  |
-| `90925b0` | absorption guards | 0.993725 | 0.002190 | 0.829357 | 233,450 | 69,384 | 5,792 |  |
-| `97fa412` | main, death dumps in | 0.994274 | 0.002143 | 0.832129 | 234,701 |  | 3,096 |  |
-| `029acac` | subsumed joins | 0.994671 | 0.001949 | 0.833354 | 236,059 |  | 3,116 |  |
-| `537cb6d` | pill-stream lockstep | 0.994823 | 0.001914 | 0.833265 | 235,967 | 71,552 | 3,134 |  |
-| `3956580` | late-head slide | 0.994823 | 0.001914 | 0.833265 | 235,967 | 71,552 | 3,128 |  |
-| `e2bbbfb` | dilated continuations | 0.995341 | 0.001601 | 0.833183 | 235,739 | 72,139 | 2,924 |  |
-| `c890ecc` | seam closure | 0.995341 | 0.001601 | 0.833183 | 235,739 | 72,139 | 2,924 |  |
-| `baee09c` | tail slide | 0.995341 | 0.001601 | 0.833183 | 235,739 | **68,478** | 2,924 |  |
-| `716a349` | guard split | 0.995341 | 0.001601 | 0.833183 | 235,739 | 68,478 | 2,925 |  |
-| `cecdd9d` | pill-wide lockstep | 0.995415 | 0.001547 | 0.833156 | 235,715 | 68,496 | 2,900 |  |
-| `4233e94` | residual lockstep veto | 0.995308 | 0.001558 | 0.833192 | 235,747 | 68,496 | 2,922 |  |
-| `e101787` | pairwise roster lockstep | 0.995494 | 0.001520 | 0.833249 | 235,846 | 68,540 | 2,876 |  |
-| `917077a` | fast-ring re-sends | 0.996647 | 0.001446 | 0.833054 | 235,759 | 69,273 | 1,382 | 423‡ |
-| `a4822ec` | doubtful voters abstain | 0.996657 | 0.001443 | 0.833123 | 235,835 | 69,279 | 1,407 | 437 |
-| `0bfd71d` | symmetric elect, orphan tie-break | 0.996726 | 0.001419 | 0.833131 | 235,847 | 69,287 | 1,366 | **89** |
-| `a0ade53` | two quadratic scans removed | 0.996726 | 0.001419 | 0.833131 | 235,847 | 69,287 | 1,366 | 89 |
+| `a74033a` | cost-forcing + pop rescue, v1.0.9 | 0.993609 | 0.002202 | 0.828353 | 232,342 | 21,286 | 5,588 |  |
+| `ad2168d` | leading impacts | 0.993965 | 0.002019 | 0.829538 | 233,481 | 24,214 | 5,514 |  |
+| `90925b0` | absorption guards | 0.993725 | 0.002190 | 0.829357 | 233,450 | 14,077 | 5,792 |  |
+| `97fa412` | main, death dumps in | 0.994274 | 0.002143 | 0.832129 | 234,701 | 14,323 | 3,096 |  |
+| `029acac` | subsumed joins | 0.994671 | 0.001949 | 0.833354 | 236,059 | 16,056 | 3,116 |  |
+| `537cb6d` | pill-stream lockstep | 0.994823 | 0.001914 | 0.833265 | 235,967 | 16,103 | 3,134 |  |
+| `3956580` | late-head slide | 0.994823 | 0.001914 | 0.833265 | 235,967 | 16,103 | 3,128 |  |
+| `e2bbbfb` | dilated continuations | 0.995341 | 0.001601 | 0.833183 | 235,739 | 16,205 | 2,924 |  |
+| `c890ecc` | seam closure | 0.995341 | 0.001601 | 0.833183 | 235,739 | 16,205 | 2,924 |  |
+| `baee09c` | tail slide | 0.995341 | 0.001601 | 0.833183 | 235,739 | **12,544** | 2,924 |  |
+| `716a349` | guard split | 0.995341 | 0.001601 | 0.833183 | 235,739 | 12,544 | 2,925 |  |
+| `cecdd9d` | pill-wide lockstep | 0.995415 | 0.001547 | 0.833156 | 235,715 | 12,554 | 2,900 |  |
+| `4233e94` | residual lockstep veto | 0.995308 | 0.001558 | 0.833192 | 235,747 | 12,554 | 2,922 |  |
+| `e101787` | pairwise roster lockstep | 0.995494 | 0.001520 | 0.833249 | 235,846 | 12,578 | 2,876 |  |
+| `917077a` | fast-ring re-sends | 0.996647 | 0.001446 | 0.833054 | 235,759 | 12,974 | 1,382 | 423‡ |
+| `a4822ec` | doubtful voters abstain | 0.996657 | 0.001443 | 0.833123 | 235,835 | 12,979 | 1,407 | 437 |
+| `0bfd71d` | symmetric elect, orphan tie-break | 0.996726 | 0.001419 | 0.833131 | 235,847 | 12,981 | 1,366 | **89** |
+| `a0ade53` | two quadratic scans removed | 0.996726 | 0.001419 | 0.833131 | 235,847 | 12,981 | 1,366 | 89 |
 | `ccc8ec3` | stale tank box, either box per step | **0.996914** | **0.001379** | **0.834069** | **237,709** | 82,149 | **1,356** | 92 |
-| `30d5351` | stale tank box, track first refusal | 0.996882 | 0.001384 | 0.833914 | 237,399 | 69,411 | 1,360 | 94 |
+| `30d5351` | stale tank box, track first refusal | 0.996882 | 0.001384 | 0.833914 | 237,399 | 13,108 | 1,360 | 94 |
 
 The three right-hand columns are lower-is-better counts from the drawn
 audit and the vouched-link score, added so that a drawing-only commit
 (or one that trades a headline figure for a drawn one) has somewhere
-in this table to show its gain. `terminal_links_rushed` counts
-terminal links drawn faster than 3 px/tick because an event record
-capped the arrival; it also counts every zero-duration link as
-infinitely fast, which is what the `917077a` section warns about and
-what the `ccc8ec3` row's 82,149 actually was. `pops_paired_backwards`
-counts pop-ins paired to a pop-out behind them, the artifact the eye
-reads as a shell moving backwards. `links_pill_contradicted` counts
-pill links whose statement rosters disagree with the assignment; it
-should stay near zero. Blank cells are rows the metric did not exist
-for, or (`terminal_links_rushed` at `97fa412` and `029acac`) rows whose
-sections state only the delta. ‡ measured on the `917077a` engine by
-the `3b9d80d` measurement-only run. The claims-only commits between
-`90925b0` and `97fa412` (`775fe4b`, `a78253b`) have no row but moved
-`pops_paired_backwards` 5,792 -> 3,908 -> 3,253, see their sections;
-`7b9030a`, the uncapped falls, likewise took `terminal_links_rushed`
-79,521 -> 69,351 before `90925b0`.
+in this table to show its gain. `terminal_links_rushed_timed` counts
+terminal links drawn faster than 3 px/tick over a positive duration:
+an event record landed before the shell's physics arrival and capped
+it. It is the timed part of the older `terminal_links_rushed` line the
+sections quote, which also counts every zero-duration link as
+infinitely fast; four-fifths of that line is shells last stated
+already inside their terminal's box, a corpus constant near 55,000
+that no engine moves (see the rush split section, whose runs measured
+this column for every row from `a74033a` on under the `eb6157f` tool).
+`pops_paired_backwards` counts pop-ins paired to a pop-out behind
+them, the artifact the eye reads as a shell moving backwards.
+`links_pill_contradicted` counts pill links whose statement rosters
+disagree with the assignment; it should stay near zero. Blank cells
+are rows the metric did not exist for. ‡ measured on the `917077a`
+engine by the `3b9d80d` measurement-only run. The claims-only commits
+between `90925b0` and `97fa412` (`775fe4b`, `a78253b`) have no row but
+moved `pops_paired_backwards` 5,792 -> 3,908 -> 3,253, see their
+sections; `7b9030a`, the uncapped falls, likewise took the undivided
+rushed line 79,521 -> 69,351 before `90925b0`, a fall the split shows
+to be timed.
 
 The rows below the guard run were measured later, from the corpus
 holder's live checkouts: `97fa412` closes the unmeasured-`main` gap the
@@ -2367,6 +2371,116 @@ the holder's machine, which is run-to-run variation: the change adds one
 box test per orbit step in tank-hit candidate evaluation and a bounded
 second walk only when the first finds nothing, and local timing of the
 fixture build shows no difference beyond noise.
+
+## The rush split -- `eb6157f`, measurement only
+
+The audit scored a rush as distance over duration, with a zero-duration
+link counted as infinitely fast, so the rush lines could not tell a
+link drawn fast from one drawn in no time at all. The `917077a` section
+warned of it and the `ccc8ec3` section met it. `eb6157f` splits each
+rush line three ways -- *timed* (positive duration, above 3 px/tick:
+the arrival capped by an event record that landed early), *static*
+(zero duration, under half a pixel: drawing nothing) and *instant*
+(zero duration with real length: the cap at its limit) -- with the
+parts summing to the undivided line, which keeps its definition; see
+the fixture file's audit section for the mechanism. The tool's
+`--engine=DIR` runs it against another checkout's engine, which is how
+the rows below were measured without touching the old trees.
+
+Corpus, the `eb6157f` tool against the engines at `a0ade53`, `ccc8ec3`
+and `30d5351` (`a0ade53-audit-split.txt`, `ccc8ec3-audit-split.txt`,
+`30d5351-audit-split.txt`; 443 files, zero failures). Every line these
+runs share with the archived `-audit.txt` files is byte-identical, so
+the corpus they ran on is the holder's, and only the new lines are
+news:
+
+| engine | `terminal_links_rushed` | timed | static | instant | `rush_links` | timed | static | instant |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `a0ade53` | 69,287 | 12,981 | 55,459 | 847 | 7,433 | 1,492 | 5,937 | 4 |
+| `ccc8ec3` | 82,149 | 13,025 | 68,240 | 884 | 7,400 | 13,025 | 5,937 | 4 |
+| `30d5351` | 69,411 | 13,108 | 55,454 | 849 | 7,436 | 1,495 | 5,937 | 4 |
+
+* **Four-fifths of `terminal_links_rushed` was static all along.** At
+  `a0ade53`, 55,459 of the 69,287 are shells last stated already inside
+  their terminal's 16 px box (3.4% of all terminal links), where the
+  effect draws at the shell's position and there is nothing to
+  animate. The class the line was always described as -- an arrival
+  capped by an early event record -- is the 12,981 timed links (0.8%
+  of terminal links), with 847 instant ones the cap taken to its limit.
+  Every earlier reading of the line as "lag-related" was a reading of
+  the timed fifth.
+* **`ccc8ec3`'s 12,862 were static, link for link:** static +12,781,
+  timed +44, instant +37. The step-zero matches drew nothing, exactly
+  as the three-file diff said.
+* **`30d5351`'s residual 124 is timed:** against `a0ade53`, timed +127,
+  static -5, instant +2. Those are the rescued tank hits whose arrival
+  is capped at the hit record a tick or so later, the cost the section
+  accepted, now on the line that means it. Against `ccc8ec3` the walk
+  is +83 timed: where the first form matched at step zero and drew
+  nothing, the track-first walk finds the collision a step or two on
+  and the cap bites.
+* **The non-terminal rush line is 80% static too:** 7,433 = 1,492 timed
+  + 5,937 static + 4 instant, the static ones the verbatim re-sends of
+  `917077a`, identical at all three engines. The 4 instant links are
+  genuine mid-flight teleports -- four in 8.16M links -- and go on the
+  books beside the seam invariant.
+
+The same tool was then run against every headline row from `a74033a`
+on, seventeen more engines (`<commit>-audit-split.txt` for each; 443
+files, zero failures every time; every line shared with an archived
+audit byte-identical, and every audit figure the table had taken from
+a section's prose confirmed, including the +1,674 between `97fa412`
+and `029acac` whose undivided cells had been blank: 69,836 and
+71,510). Terminal links first, then the non-terminal rush line:
+
+| engine | timed | static | instant | `rush_links` timed | static | instant |
+| --- | --- | --- | --- | --- | --- | --- |
+| `a74033a` | 21,286 | 54,684 | 627 | 3,606 | 1,239 | 15 |
+| `ad2168d` | 24,214 | 54,680 | 627 | 3,587 | 1,239 | 15 |
+| `90925b0` | 14,077 | 54,680 | 627 | 3,995 | 0 | 0 |
+| `97fa412` | 14,323 | 54,875 | 638 | 4,029 | 0 | 0 |
+| `029acac` | 16,056 | 54,816 | 638 | 4,219 | 0 | 0 |
+| `537cb6d` | 16,103 | 54,809 | 640 | 4,149 | 0 | 0 |
+| `3956580` | 16,103 | 54,809 | 640 | 3,710 | 0 | 0 |
+| `e2bbbfb` | 16,205 | 55,301 | 633 | 5,536 | 0 | 0 |
+| `c890ecc` | 16,205 | 55,301 | 633 | 5,535 | 0 | 0 |
+| `baee09c` | **12,544** | 55,301 | 633 | 5,731 | 0 | 0 |
+| `716a349` | 12,544 | 55,301 | 633 | 4,511 | 0 | 0 |
+| `cecdd9d` | 12,554 | 55,324 | 618 | 4,707 | 0 | 0 |
+| `4233e94` | 12,554 | 55,324 | 618 | 4,727 | 0 | 0 |
+| `e101787` | 12,578 | 55,347 | 615 | 4,696 | 0 | 0 |
+| `917077a` | 12,974 | 55,446 | 853 | 1,489 | 5,937 | 4 |
+| `a4822ec` | 12,979 | 55,449 | 851 | 1,494 | 5,937 | 4 |
+| `0bfd71d` | 12,981 | 55,459 | 847 | 1,492 | 5,937 | 4 |
+| `a0ade53` | 12,981 | 55,459 | 847 | 1,492 | 5,937 | 4 |
+| `ccc8ec3` | 13,025 | 68,240 | 884 | 1,459 | 5,937 | 4 |
+| `30d5351` | 13,108 | 55,454 | 849 | 1,495 | 5,937 | 4 |
+
+* **Static terminal links are a property of the corpus, not the
+  engine:** 54,680 to 55,459 across every engine but `ccc8ec3`. A
+  shell last stated inside its box is a fact of the log, and no
+  matcher changes it, so every movement the undivided line ever showed
+  was its timed part (plus `ccc8ec3`'s step-zero matches).
+* **Read as timed, the line's history is the one the sections told:**
+  the leading impacts (`ad2168d`) cost +2,928 timed, "the expected
+  cost"; the uncapped falls and the guards brought it to 14,077; the
+  subsumed joins cost +1,733; the tail slide (`baee09c`) took -3,661,
+  all of it timed, and holds the record at 12,544.
+* **`917077a`'s +733 was not only a definition:** timed +396, instant
+  +238, static +99 on the terminal side. Its non-terminal
+  `rush_links` +2,734 was: timed 4,696 -> 1,489 (-3,207) as the 5,937
+  static re-sends appeared. The section's inference that the drawn-speed
+  story improved is confirmed, and the improvement was two-thirds of
+  the real rushes.
+* **The absorption guards' "instant sideways blips" are named:** the
+  1,239 static and 15 instant non-terminal links at `a74033a` and
+  `ad2168d` -- the same-time double-absorbs -- go to exactly 0 / 0 at
+  `90925b0`, and no zero-duration non-terminal link exists again until
+  the fast-ring re-sends.
+
+The headline table's column is the timed part from here on; the
+undivided `terminal_links_rushed` figures stay in the sections and the
+archived files.
 
 ## Findings
 

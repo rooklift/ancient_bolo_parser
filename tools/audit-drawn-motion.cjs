@@ -12,7 +12,22 @@
  * characterised by the link structure the engine built:
  *
  *   - the SPEED of every drawn link (a perfect engine draws every link at
- *     2 px/tick; hovers and rushes are the jitter artifacts);
+ *     2 px/tick; hovers and rushes are the jitter artifacts). A rush is
+ *     split three ways, because distance over duration cannot tell a
+ *     link drawn fast from one drawn in no time at all: TIMED rushes
+ *     have a positive duration and draw above 3 px/tick (an arrival
+ *     capped by an event record that landed early); STATIC links have
+ *     zero duration and zero length, and draw nothing (a verbatim
+ *     re-send under a fresh stamp, or a terminal matched where the
+ *     shell already was); INSTANT links have zero duration and a
+ *     positive length, the cap taken to its limit -- the event record
+ *     carries the same stamp as the shell's last statement while the
+ *     shell still had a step or two to fly, so the effect appears a
+ *     few pixels on with no link drawn (a fast-ring shape: the
+ *     redacted fast-ring fixture has 68, the ordinary one none). The
+ *     undivided rush lines keep their historical definition, which
+ *     scores every zero-duration link as infinitely fast, so older
+ *     archived runs stay comparable; the three parts sum to them;
  *   - SEAM JUMPS: a link's target must equal its successor's draw source,
  *     or the sprite visibly jumps at the handoff (should be exactly zero);
  *   - POPS: shells with no forward link vanish, origin-less shells
@@ -28,6 +43,12 @@
  * Usage:
  *   node tools/audit-drawn-motion.cjs [replay-or-directory]
  *       [--workers=N] [--max-files=N] [--describe-backwards]
+ *       [--engine=DIR]
+ *
+ * --engine=DIR measures the engine in another checkout (a git worktree
+ * of an older commit, say) with this tool, and reports that checkout's
+ * commit, so a historical baseline can be re-measured under a newer
+ * tool without dropping the tool into the old tree.
  *
  * --describe-backwards appends diagnostic lines for the backwards-pop
  * class: a tally of every backwards-paired pop by the state-flag
@@ -41,7 +62,8 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { replay_label } = require("./corpus.cjs");
-const { Worker, isMainThread, parentPort } = require("node:worker_threads");
+const { Worker, isMainThread, parentPort, workerData } =
+	require("node:worker_threads");
 
 const ROOT = path.join(__dirname, "..");
 const DEFAULT_REPLAY = path.join(ROOT, "fixtures", "n20021018.2");
@@ -53,6 +75,9 @@ const SEAM_TOLERANCE_PIXELS = 0.5;
 const POP_PAIR_LATERAL_PIXELS = 12;
 const POP_PAIR_SLACK_PIXELS = 16;
 const BACKWARDS_TOLERANCE_PIXELS = 1;
+/* A zero-duration link is static when it draws nothing: its length is
+ * below this, the same half pixel the seam invariant tolerates. */
+const STATIC_LENGTH_PIXELS = 0.5;
 
 const SPEED_BUCKETS = [
 	[0.0, "0.0-0.5"], [0.5, "0.5-1.0"], [1.0, "1.0-1.5"], [1.5, "1.5-1.8"],
@@ -117,8 +142,14 @@ function empty_metrics() {
 		links: 0,
 		terminal_links: 0,
 		terminal_links_rushed: 0,
+		terminal_links_rushed_timed: 0,
+		terminal_links_static: 0,
+		terminal_links_instant: 0,
 		hover_links: 0,
 		rush_links: 0,
+		rush_links_timed: 0,
+		links_static: 0,
+		links_instant: 0,
 		seam_jumps: 0,
 		seam_jump_max: 0,
 		pop_outs: 0,
@@ -158,9 +189,18 @@ function analyze_file(file, engines, metrics, examples = null) {
 					let distance = Math.hypot(target_x - source_x,
 						target_y - source_y);
 					let speed = duration > 0 ? distance / duration : Infinity;
+					/* The three parts of a rush; exactly one is set when
+					 * speed > RUSH_SPEED, none otherwise. */
+					let timed = duration > 0 && speed > RUSH_SPEED;
+					let static_link = duration <= 0 &&
+						distance < STATIC_LENGTH_PIXELS;
+					let instant = duration <= 0 && !static_link;
 					if (shell.next_terminal) {
 						metrics.terminal_links++;
 						if (speed > RUSH_SPEED) metrics.terminal_links_rushed++;
+						if (timed) metrics.terminal_links_rushed_timed++;
+						if (static_link) metrics.terminal_links_static++;
+						if (instant) metrics.terminal_links_instant++;
 					} else {
 						metrics.links++;
 						let bucket = speed_bucket(speed);
@@ -168,6 +208,9 @@ function analyze_file(file, engines, metrics, examples = null) {
 							(metrics.link_speeds[bucket] || 0) + 1;
 						if (speed < HOVER_SPEED) metrics.hover_links++;
 						if (speed > RUSH_SPEED) metrics.rush_links++;
+						if (timed) metrics.rush_links_timed++;
+						if (static_link) metrics.links_static++;
+						if (instant) metrics.links_instant++;
 						/* The handoff invariant: the link's target must be the
 						 * successor's draw source, or the sprite jumps. Old
 						 * engine states do not record next_shell; skip there. */
@@ -283,10 +326,10 @@ function* walk(item) {
 	for (let entry of entries) yield* walk(path.join(item, entry.name));
 }
 
-function load_engines() {
+function load_engines(engine_root) {
 	return {
-		log: require(path.join(ROOT, "viewer", "logparse.js")),
-		game: require(path.join(ROOT, "viewer", "game.js")),
+		log: require(path.join(engine_root, "viewer", "logparse.js")),
+		game: require(path.join(engine_root, "viewer", "game.js")),
 	};
 }
 
@@ -301,10 +344,11 @@ function rate(part, whole) {
  * live beside the tree), "unknown" outside a git checkout. Duplicated in
  * report-interpolation-rates.cjs so each tool stays a single file
  * droppable into historical worktrees for baseline re-runs. */
-function repo_commit() {
+function repo_commit(engine_root) {
 	const { execSync } = require("node:child_process");
 	const run = (command) => execSync(command,
-		{ cwd: ROOT, stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+		{ cwd: engine_root, stdio: ["ignore", "pipe", "ignore"] })
+		.toString().trim();
 	try {
 		let hash = run("git rev-parse --short HEAD");
 		return run("git status --porcelain -uno") ? `${hash}-dirty` : hash;
@@ -342,16 +386,18 @@ function hash_input(target) {
 		.update(path.resolve(target)).digest("hex")}`;
 }
 
-function print_report(metrics, input) {
+function print_report(metrics, input, engine_root) {
 	let lines = [
 		"# GENERATED - drawn shell motion audit; nothing written to disk.",
-		`commit\t${repo_commit()}`,
+		`commit\t${repo_commit(engine_root)}`,
 		`input\t${input}`,
 	];
 	for (let key of ["files", "files_failed", "build_ms", "audit_ms",
 		"shell_observations", "links", "terminal_links",
-		"terminal_links_rushed", "hover_links", "rush_links",
-		"seam_jumps", "pop_outs", "pop_ins",
+		"terminal_links_rushed", "terminal_links_rushed_timed",
+		"terminal_links_static", "terminal_links_instant",
+		"hover_links", "rush_links", "rush_links_timed", "links_static",
+		"links_instant", "seam_jumps", "pop_outs", "pop_ins",
 		"pops_paired_forward", "pops_paired_backwards"]) {
 		lines.push(`${key}\t${metrics[key]}`);
 	}
@@ -373,12 +419,14 @@ function print_report(metrics, input) {
 
 function parse_args(argv) {
 	let options = { target: null, workers: null, max_files: Infinity,
-		describe_backwards: false };
+		describe_backwards: false, engine_root: ROOT };
 	for (let arg of argv) {
 		let workers = arg.match(/^--workers=(\d+)$/);
 		let max_files = arg.match(/^--max-files=(\d+)$/);
+		let engine = arg.match(/^--engine=(.+)$/);
 		if (workers) options.workers = Math.max(1, parseInt(workers[1], 10));
 		else if (max_files) options.max_files = parseInt(max_files[1], 10);
+		else if (engine) options.engine_root = path.resolve(engine[1]);
 		else if (arg === "--describe-backwards") options.describe_backwards = true;
 		else if (arg.startsWith("--")) {
 			console.error(`error: unknown option ${arg}`);
@@ -403,7 +451,7 @@ function parse_args(argv) {
 }
 
 function run_worker() {
-	let engines = load_engines();
+	let engines = load_engines(workerData.engine_root);
 	parentPort.on("message", file => {
 		let metrics = empty_metrics();
 		let examples = [];
@@ -436,7 +484,7 @@ function main() {
 	let all_examples = [];
 
 	let finish = () => {
-		print_report(totals, hash_input(options.target));
+		print_report(totals, hash_input(options.target), options.engine_root);
 		if (!options.describe_backwards) return;
 		let classes = Object.entries(totals.backwards_classes)
 			.sort((a, b) => b[1] - a[1]);
@@ -454,7 +502,7 @@ function main() {
 	};
 
 	if (worker_count === 1) {
-		let engines = load_engines();
+		let engines = load_engines(options.engine_root);
 		for (let file of files) {
 			try {
 				analyze_file(file, engines, totals, all_examples);
@@ -471,7 +519,8 @@ function main() {
 	}
 
 	for (let i = 0; i < worker_count; i++) {
-		let worker = new Worker(__filename);
+		let worker = new Worker(__filename,
+			{ workerData: { engine_root: options.engine_root } });
 		let dispatch = () => {
 			let file = queue.shift();
 			if (file === undefined) {
