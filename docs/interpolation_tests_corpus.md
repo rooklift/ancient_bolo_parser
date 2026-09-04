@@ -94,11 +94,12 @@ see its section -- then moves both shell-side records on, and
 `0bfd71d` -- the symmetric election and orphan tie-break, see its
 section -- moves them on again by the largest step since `917077a`;
 `a0ade53` reproduces it byte for byte; `ccc8ec3` -- the sender's stale
-tank box, see its section -- takes every record in the table at once,
-at the price of 12,862 rushed terminal links; and `30d5351`, the same
-mechanism with the track keeping first refusal over the whole walk, is
-the **current head**, a shade under `ccc8ec3` on every column with the
-rushed links back within 124 of baseline. (Earlier
+tank box, see its section -- takes every record in the four matching
+columns at once, at the price of 12,862 rushed terminal links; and
+`30d5351`, the same mechanism with the track keeping first refusal over
+the whole walk, is the **current head**, a shade under `ccc8ec3` on
+every matching column with the rushed links back within 124 of
+baseline. (Earlier
 revisions of this paragraph pinned the file at `926f391`/`4572cff`, then at
 `a74033a`/`380e333`; later sections were measured from live checkouts of the
 named commits, per their sections.)
@@ -118,41 +119,61 @@ Constant at all ten commits, and worth having once:
 
 ## Headline table
 
-| commit | | `matched` <!-- matched_forward --> | `unlinked` | `terminal` <!-- terminals_matched --> | `tank_hit` |
-| --- | --- | --- | --- | --- | --- |
-| `323c673` | v1.0.7 | 0.948521 | 0.018737 | 0.761484 | 201,999 |
-| `76d8b8a` | branch point | 0.961727 | 0.013738 | 0.791346 | 211,623 |
-| `e4582dc` | v1.0.8 | 0.961727 | 0.013738 | 0.791346 | 211,623 |
-| `ad6a3b6` | "Stuff" | 0.934635 | 0.032850 | 0.776327 | 197,958 |
-| `5e69318` | tolerance | 0.935831 | 0.032708 | 0.782268 | 209,485 |
-| `c848efd` | "Stuff" | 0.935831 | 0.032708 | 0.782268 | 209,485 |
-| `4f5dbe9` | bad assumption | 0.967669 | 0.011431 | 0.813086 | 227,331 |
-| `83cb132` | quantized shots | 0.972767 | 0.009576 | 0.813034 | 227,201 |
-| `5f9d86f` | one-sided | 0.973966 | 0.009100 | 0.813066 | 227,223 |
-| `926f391` | index 1+ | 0.975030 | 0.008829 | 0.816566 | 227,585 |
-| `0d181be` | bradian + stitching | 0.984399 | 0.005985 | 0.816888 | 228,016 |
-| `4c791a0` | forced assign + jitter | 0.988925 | 0.004020 | 0.827713 | 233,180 |
-| `b345ef0` | temporal gate | 0.988826† | 0.004112† | 0.827709 | 233,180†† |
-| `a74033a` | cost-forcing + pop rescue, v1.0.9 | 0.993609 | 0.002202 | 0.828353 | 232,342 |
-| `ad2168d` | leading impacts | 0.993965 | 0.002019 | 0.829538 | 233,481 |
-| `90925b0` | absorption guards | 0.993725 | 0.002190 | 0.829357 | 233,450 |
-| `97fa412` | main, death dumps in | 0.994274 | 0.002143 | 0.832129 | 234,701 |
-| `029acac` | subsumed joins | 0.994671 | 0.001949 | 0.833354 | 236,059 |
-| `537cb6d` | pill-stream lockstep | 0.994823 | 0.001914 | 0.833265 | 235,967 |
-| `3956580` | late-head slide | 0.994823 | 0.001914 | 0.833265 | 235,967 |
-| `e2bbbfb` | dilated continuations | 0.995341 | 0.001601 | 0.833183 | 235,739 |
-| `c890ecc` | seam closure | 0.995341 | 0.001601 | 0.833183 | 235,739 |
-| `baee09c` | tail slide | 0.995341 | 0.001601 | 0.833183 | 235,739 |
-| `716a349` | guard split | 0.995341 | 0.001601 | 0.833183 | 235,739 |
-| `cecdd9d` | pill-wide lockstep | 0.995415 | 0.001547 | 0.833156 | 235,715 |
-| `4233e94` | residual lockstep veto | 0.995308 | 0.001558 | 0.833192 | 235,747 |
-| `e101787` | pairwise roster lockstep | 0.995494 | 0.001520 | 0.833249 | 235,846 |
-| `917077a` | fast-ring re-sends | 0.996647 | 0.001446 | 0.833054 | 235,759 |
-| `a4822ec` | doubtful voters abstain | 0.996657 | 0.001443 | 0.833123 | 235,835 |
-| `0bfd71d` | symmetric election, orphan tie-break | 0.996726 | 0.001419 | 0.833131 | 235,847 |
-| `a0ade53` | two quadratic scans removed | 0.996726 | 0.001419 | 0.833131 | 235,847 |
-| `ccc8ec3` | stale tank box, either box at every step | **0.996914** | **0.001379** | **0.834069** | **237,709** |
-| `30d5351` | stale tank box, track first refusal | 0.996882 | 0.001384 | 0.833914 | 237,399 |
+| commit | | `matched` <!-- matched_forward --> | `unlinked` | `terminal` <!-- terminals_matched --> | `tank_hit` | `rushed` <!-- terminal_links_rushed --> | `backward` <!-- pops_paired_backwards --> | `contra` <!-- links_pill_contradicted --> |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `323c673` | v1.0.7 | 0.948521 | 0.018737 | 0.761484 | 201,999 |  |  |  |
+| `76d8b8a` | branch point | 0.961727 | 0.013738 | 0.791346 | 211,623 |  |  |  |
+| `e4582dc` | v1.0.8 | 0.961727 | 0.013738 | 0.791346 | 211,623 |  |  |  |
+| `ad6a3b6` | "Stuff" | 0.934635 | 0.032850 | 0.776327 | 197,958 |  |  |  |
+| `5e69318` | tolerance | 0.935831 | 0.032708 | 0.782268 | 209,485 |  |  |  |
+| `c848efd` | "Stuff" | 0.935831 | 0.032708 | 0.782268 | 209,485 |  |  |  |
+| `4f5dbe9` | bad assumption | 0.967669 | 0.011431 | 0.813086 | 227,331 |  |  |  |
+| `83cb132` | quantized shots | 0.972767 | 0.009576 | 0.813034 | 227,201 |  |  |  |
+| `5f9d86f` | one-sided | 0.973966 | 0.009100 | 0.813066 | 227,223 |  |  |  |
+| `926f391` | index 1+ | 0.975030 | 0.008829 | 0.816566 | 227,585 |  |  |  |
+| `0d181be` | bradian + stitching | 0.984399 | 0.005985 | 0.816888 | 228,016 |  |  |  |
+| `4c791a0` | forced assign + jitter | 0.988925 | 0.004020 | 0.827713 | 233,180 |  |  |  |
+| `b345ef0` | temporal gate | 0.988826† | 0.004112† | 0.827709 | 233,180†† |  |  |  |
+| `a74033a` | cost-forcing + pop rescue, v1.0.9 | 0.993609 | 0.002202 | 0.828353 | 232,342 | 76,597 | 5,588 |  |
+| `ad2168d` | leading impacts | 0.993965 | 0.002019 | 0.829538 | 233,481 | 79,521 | 5,514 |  |
+| `90925b0` | absorption guards | 0.993725 | 0.002190 | 0.829357 | 233,450 | 69,384 | 5,792 |  |
+| `97fa412` | main, death dumps in | 0.994274 | 0.002143 | 0.832129 | 234,701 |  | 3,096 |  |
+| `029acac` | subsumed joins | 0.994671 | 0.001949 | 0.833354 | 236,059 |  | 3,116 |  |
+| `537cb6d` | pill-stream lockstep | 0.994823 | 0.001914 | 0.833265 | 235,967 | 71,552 | 3,134 |  |
+| `3956580` | late-head slide | 0.994823 | 0.001914 | 0.833265 | 235,967 | 71,552 | 3,128 |  |
+| `e2bbbfb` | dilated continuations | 0.995341 | 0.001601 | 0.833183 | 235,739 | 72,139 | 2,924 |  |
+| `c890ecc` | seam closure | 0.995341 | 0.001601 | 0.833183 | 235,739 | 72,139 | 2,924 |  |
+| `baee09c` | tail slide | 0.995341 | 0.001601 | 0.833183 | 235,739 | **68,478** | 2,924 |  |
+| `716a349` | guard split | 0.995341 | 0.001601 | 0.833183 | 235,739 | 68,478 | 2,925 |  |
+| `cecdd9d` | pill-wide lockstep | 0.995415 | 0.001547 | 0.833156 | 235,715 | 68,496 | 2,900 |  |
+| `4233e94` | residual lockstep veto | 0.995308 | 0.001558 | 0.833192 | 235,747 | 68,496 | 2,922 |  |
+| `e101787` | pairwise roster lockstep | 0.995494 | 0.001520 | 0.833249 | 235,846 | 68,540 | 2,876 |  |
+| `917077a` | fast-ring re-sends | 0.996647 | 0.001446 | 0.833054 | 235,759 | 69,273 | 1,382 | 423‡ |
+| `a4822ec` | doubtful voters abstain | 0.996657 | 0.001443 | 0.833123 | 235,835 | 69,279 | 1,407 | 437 |
+| `0bfd71d` | symmetric elect, orphan tie-break | 0.996726 | 0.001419 | 0.833131 | 235,847 | 69,287 | 1,366 | **89** |
+| `a0ade53` | two quadratic scans removed | 0.996726 | 0.001419 | 0.833131 | 235,847 | 69,287 | 1,366 | 89 |
+| `ccc8ec3` | stale tank box, either box per step | **0.996914** | **0.001379** | **0.834069** | **237,709** | 82,149 | **1,356** | 92 |
+| `30d5351` | stale tank box, track first refusal | 0.996882 | 0.001384 | 0.833914 | 237,399 | 69,411 | 1,360 | 94 |
+
+The three right-hand columns are lower-is-better counts from the drawn
+audit and the vouched-link score, added so that a drawing-only commit
+(or one that trades a headline figure for a drawn one) has somewhere
+in this table to show its gain. `terminal_links_rushed` counts
+terminal links drawn faster than 3 px/tick because an event record
+capped the arrival; it also counts every zero-duration link as
+infinitely fast, which is what the `917077a` section warns about and
+what the `ccc8ec3` row's 82,149 actually was. `pops_paired_backwards`
+counts pop-ins paired to a pop-out behind them, the artifact the eye
+reads as a shell moving backwards. `links_pill_contradicted` counts
+pill links whose statement rosters disagree with the assignment; it
+should stay near zero. Blank cells are rows the metric did not exist
+for, or (`terminal_links_rushed` at `97fa412` and `029acac`) rows whose
+sections state only the delta. ‡ measured on the `917077a` engine by
+the `3b9d80d` measurement-only run. The claims-only commits between
+`90925b0` and `97fa412` (`775fe4b`, `a78253b`) have no row but moved
+`pops_paired_backwards` 5,792 -> 3,908 -> 3,253, see their sections;
+`7b9030a`, the uncapped falls, likewise took `terminal_links_rushed`
+79,521 -> 69,351 before `90925b0`.
 
 The rows below the guard run were measured later, from the corpus
 holder's live checkouts: `97fa412` closes the unmeasured-`main` gap the
@@ -2411,8 +2432,9 @@ fixture build shows no difference beyond noise.
   was not among the ten commits measured.
 * **The measured line ends at the stale-box walk, `30d5351`**, the current
   head, with `ccc8ec3` one section earlier holding every record in the
-  headline table. (When this file first closed the current pair was
-  `4572cff`/`926f391`, later `380e333`/`a74033a`, then the `90925b0` guard
+  headline table's four matching columns. (When this file first closed
+  the current pair was `4572cff`/`926f391`, later `380e333`/`a74033a`,
+  then the `90925b0` guard
   run with `main` unmeasured past it. Since resolved: `main`'s HEAD was
   measured at `97fa412` and the line extended commit by commit -- see the
   headline table and the sections.)
