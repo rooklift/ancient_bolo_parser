@@ -102,8 +102,37 @@ function ring_stream(recorder, clock0, cycles, options = {}) {
 	let by = Object.fromEntries(out.clock.by_sender.map(s => [s.player, s.median - out.clock.offset]));
 	check("A's recorder stands a cycle apart from the rest", by, { 0: 0, 1: 0, 2: HOP * ORDER.length, 3: 0 });
 	check("recorder of A read from the offsets", out.recorder.a_by_offset, 2);
-	check("recorder of B not marked from A's side", out.recorder.b_by_offset, null);
+	check("recorder of B read from the offsets and the ring order", out.recorder.b_by_offset, 0);
+	check("ring order recovered", [...out.ring_order.entries()], [[0, 2], [2, 3], [3, 1], [1, 0]]);
+	check("no run of records in one log only", [out.a_runs.length, out.b_runs.length], [0, 0]);
 	check("no drift between steady clocks", Math.abs(out.clock.drift_ppm) < 1e-3, true);
+}
+{
+	/* A's machine cut off from the ring for cycles 20-59: B keeps every
+	 * record, A has none, and its clock shows the absence */
+	let a = ring_stream(2, 1000, 100).filter(r => !/^c[2-5]\ds/.test(r.hex));
+	let b = ring_stream(0, 5000, 100);
+	let out = compare_tool.compare(a, b, { quiet: true, network: { recorder: () => null } });
+	check("the absence is one run of B-only records", out.b_runs.length, 1);
+	check("with every sender in it", out.b_runs[0].senders, [0, 1, 2, 3]);
+	check("of the records A never got", out.b_runs[0].records.length, 160);
+	check("across a gap in A longer than a hole", out.b_runs[0].other_gap > 250, true);
+	check("a hole in A that is records in B", out.a_holes.found_in_other, 0);
+	check("recorders still read", [out.recorder.a_by_offset, out.recorder.b_by_offset], [2, 0]);
+}
+{
+	/* one packet that reached B and not A: a hole in A, a record in B */
+	let a = ring_stream(2, 1000, 60).filter(r => r.hex !== "c30s1");
+	let b = ring_stream(0, 5000, 60);
+	let out = compare_tool.compare(a, b, { quiet: true, network: { recorder: () => null } });
+	check("a single lost record is a hole in A filled by B", [out.a_holes.found_in_other, out.b_runs.length, out.b_runs[0].other_gap <= 250], [1, 1, true]);
+}
+{
+	/* the same recorder logging two different stretches */
+	let a = ring_stream(0, 1000, 300).filter(r => r.tankStatus === 7 || r.hex < "c150s");
+	let b = ring_stream(0, 1000, 300).filter(r => r.tankStatus === 7 || r.hex >= "c150s");
+	let out = compare_tool.compare(a, b, { quiet: true, network: { recorder: () => null } });
+	check("different stretches of one game are not one stretch", out.same_stretch, false);
 }
 {
 	let a = ring_stream(2, 1000, 30);
