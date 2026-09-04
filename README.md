@@ -53,7 +53,8 @@ The shell interpolator is a forensic reconstruction engine for anonymous project
 ## Provenance and credits
 
 - **Stuart Cheshire** — Bolo itself; `GAMEINFO` layout from his published
-  Brain development kit; map RLE from his `BoloMapFile.c` sample code.
+  Brain development kit; map RLE from his `BoloMapFile.c` sample code; and
+  sprites are ultimately derived from the original game too.
 - **Carl Osterwald ("wharf rat")** — original reverse engineering of the
   log encryption and packet formats (2001–2003), author of BoloViewer.
 - **Rob Keogh ("Pins")** whose working notes and prototype Perl
@@ -67,4 +68,4 @@ The shell interpolator is a forensic reconstruction engine for anonymous project
   1998–2008, GPL v2) — an independent GPL reimplementation of Bolo, used to
   explain behaviour the logs already demonstrate; `viewer/format.js`'s map
   reader/writer is a port of its `bolo_map.c`, and `viewer/sprites.js`'s
-  terrain tile rules are a port of its `screencalc.c`, using its sprite art.
+  terrain tile rules are a port of its `screencalc.c`.
