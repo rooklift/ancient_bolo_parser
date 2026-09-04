@@ -521,6 +521,11 @@ function scan(file) {
 			if (state.quit[i] && !quit_before[i]) {
 				let allies = new Set(), others = new Set();
 				let heir = false, heir_alive = null;
+				/* the lowest-index remaining ally when he had no live tank
+				 * at the quit: the case the hand-over rule passes over.
+				 * Followed by name afterwards, since a dead ally at a quit
+				 * is often a netsplit victim about to change slots. */
+				let dead_ally_slot = -1, dead_ally_name = null, dead_ally_kind = null;
 				for (let j = 0; j < 16; j++) {
 					if (state.names[j] === null) continue;
 					if (j === i || !(state.alliances[i] & (1 << j))) allies.add(state.names[j]);
@@ -531,6 +536,11 @@ function scan(file) {
 						heir = true;
 						let t = state.tanks[j];
 						heir_alive = !!(t && !t.dead && !t.dying && rec.time - t.lastSeen <= ALIVE_TICKS);
+						if (!heir_alive) {
+							dead_ally_slot = j;
+							dead_ally_name = state.names[j];
+							dead_ally_kind = !t ? "no tank" : (t.dead || t.dying) ? "dead" : "stale";
+						}
 					}
 				}
 				let dead_quit = rec.player === i && rec.tankStatus === 0x07;
@@ -555,7 +565,9 @@ function scan(file) {
 				let named = lowest_named_slot(state, i, last_request[i]);
 				last_request[i] = 0;
 				let window = {label, slot: i, owner_name: state.names[i], heir_state, candidates, allies, others, fires: {}, named,
-					heir_slot, pills: new Set(), exposure_ticks: 0, exposure_pills: new Set()};
+					heir_slot, pills: new Set(), exposure_ticks: 0, exposure_pills: new Set(),
+					dead_ally_slot, dead_ally_name, dead_ally_kind, dead_ally_returned: false,
+					dead_exposure_ticks: 0, dead_exposure_pills: new Set()};
 				if (state.pills.some((p, k) => owners_before[k] === i && p.inTank === null)) {
 					file_windows.push(window);
 					totals.windows.push(window);
@@ -621,6 +633,30 @@ function scan(file) {
 					w.exposure_pills.add(k);
 				}
 				if (exposed) w.exposure_ticks += dt;
+			}
+			/* the same for the ally the hand-over passed over for being
+			 * dead or tankless at the quit: if the pills are really his
+			 * after all, his live tank sits in their range unshot; if they
+			 * are nobody's, they fire at it as soon as it is there. Only
+			 * the fires at him were ever counted before this. */
+			for (let w of file_windows) {
+				if (w.dead_ally_slot < 0) continue;
+				let slot = state.names[w.dead_ally_slot] === w.dead_ally_name ? w.dead_ally_slot : state.names.indexOf(w.dead_ally_name);
+				if (slot < 0 || state.quit[slot]) continue;
+				let t = state.tanks[slot];
+				if (!t || t.dead || t.dying || rec.time - t.lastSeen > ALIVE_TICKS) continue;
+				w.dead_ally_returned = true;
+				if (!w.pills.size) continue;
+				let c = tank_centre(t);
+				let exposed = false;
+				for (let k of w.pills) {
+					let p = state.pills[k];
+					if (p.inTank !== null || p.armour === 0) continue;
+					if (Math.hypot(p.x * 16 + 8 - c.x, p.y * 16 + 8 - c.y) > RANGE_PX) continue;
+					exposed = true;
+					w.dead_exposure_pills.add(k);
+				}
+				if (exposed) w.dead_exposure_ticks += dt;
 			}
 		}
 	}
@@ -711,6 +747,48 @@ console.log();
 		console.log(`    of the ${n(fired.length)} quits with fires and an enemy present, the pills shot every enemy present at the quit in ${n(all_enemies.length)}, two or more in ${n(two_enemies.length)}`);
 	}
 	console.log();
+	/* The other direction of the dead-heir evidence. The fires at a dead
+	 * heir say the pills were not his; only his live tank sitting unshot
+	 * within their range could say they were. */
+	{
+		let ws = totals.windows.filter(w => w.dead_ally_slot >= 0);
+		console.log("Dead-heir quits: the lowest-index remaining ally had no live tank at the quit, so the");
+		console.log("hand-over passed him over. Once he held a live tank again, did it sit within a shell's");
+		console.log("flight of a live handed pill without being shot? Columns: quits / the ally later held a");
+		console.log("live tank / his live tank came within range of a live handed pill / ticks it spent there /");
+		console.log("fires from the pills / fires at that ally / quits in which he was fired at / exposed quits");
+		console.log("with no fire at him (pills apparently his after all).");
+		let row = (title, pick) => {
+			let sel = ws.filter(pick);
+			let returned = 0, exposed = 0, exposure = 0, fires = 0, at_ally = 0, at_windows = 0, unshot = 0;
+			for (let w of sel) {
+				if (w.dead_ally_returned) returned++;
+				if (w.dead_exposure_ticks) exposed++;
+				exposure += w.dead_exposure_ticks;
+				for (let c of Object.values(w.fires)) fires += c;
+				let hit = w.fires[w.dead_ally_name] || 0;
+				at_ally += hit;
+				if (hit) at_windows++;
+				if (w.dead_exposure_ticks && !hit) unshot++;
+			}
+			console.log(`    ${title.padEnd(34)} ${[sel.length, returned, exposed, exposure, fires, at_ally, at_windows, unshot].map(v => n(v).padStart(7)).join("")}`);
+		};
+		row("all dead-heir quits", () => true);
+		for (let kind of ["dead", "stale", "no tank"]) row(`  ally ${kind} at the quit`, w => w.dead_ally_kind === kind);
+		row("  no other ally live", w => w.heir_state === "no ally live");
+		row("  another ally live", w => w.heir_state === "another ally live");
+		if (ws.length) {
+			console.log("    one per line (ally state / returned / exposure ticks / pills exposed / fires / at the ally):");
+			for (let w of ws) {
+				let fires = Object.values(w.fires).reduce((a, b) => a + b, 0);
+				console.log(`      ${w.label} slot ${w.slot} -> ally slot ${w.dead_ally_slot} ${w.dead_ally_kind}` +
+					`${w.heir_state === "another ally live" ? ", another ally live" : ""}: ` +
+					`${w.dead_ally_returned ? "returned" : "never returned"}, exposed ${n(w.dead_exposure_ticks)} ticks to ` +
+					`${n(w.dead_exposure_pills.size)} pills, ${n(fires)} fires, ${n(w.fires[w.dead_ally_name] || 0)} at the ally`);
+			}
+		}
+		console.log();
+	}
 	/* The lowest slot the departing player's alliance named: two replays
 	 * in which a live heir was fired at both had a departed player there
 	 * (one in the alliance word, one only in the quitter's request). If
