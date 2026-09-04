@@ -137,10 +137,14 @@ function calc_river(al, a, ar, l, r, bl, b, br) {
 	[a, l, r, b] = [a, l, r, b].map(water_to_river);
 	let land = t => t !== RIVER && t !== ROAD;
 	if (land(a) && land(b) && land(r) && land(l)) return "river_surround";
-	if (land(a) && land(b) && r === RIVER && land(l)) return "river_end1";
-	if (land(a) && land(b) && land(r) && l === RIVER) return "river_end2";
-	if (land(a) && b === RIVER && land(r) && land(l)) return "river_end3";
-	if (a === RIVER && land(b) && land(r) && land(l)) return "river_end4";
+	/* Deviation from screencalc.c: the end tests there accept only RIVER
+	 * on the open side, so a lone river square touching a single road
+	 * fell through to a corner tile. Accept ROAD too, like every other
+	 * test in the chain does. */
+	if (land(a) && land(b) && !land(r) && land(l)) return "river_end1";
+	if (land(a) && land(b) && land(r) && !land(l)) return "river_end2";
+	if (land(a) && !land(b) && land(r) && land(l)) return "river_end3";
+	if (!land(a) && land(b) && land(r) && land(l)) return "river_end4";
 	if (land(a) && land(l)) return "river_corner1";
 	if (land(a) && land(r)) return "river_corner2";
 	if (land(b) && land(l)) return "river_corner3";
