@@ -128,6 +128,25 @@ function ring_stream(recorder, clock0, cycles, options = {}) {
 	check("a single lost record is a hole in A filled by B", [out.a_holes.found_in_other, out.b_runs.length, out.b_runs[0].other_gap <= 250], [1, 1, true]);
 }
 {
+	/* a packet held up for 400 ticks between B and A: A stamps it that
+	 * much later than usual, at the end of a wait of the same length --
+	 * a delayed delivery, matched, not a record in one log only */
+	let a = ring_stream(2, 1000, 60), b = ring_stream(0, 5000, 60);
+	/* the whole ring waits: B stamped the packet before the stall and
+	 * everything after it 400 ticks later; A gets the packet itself late */
+	let held_a = a.findIndex(r => r.hex === "c30s0"), held_b = b.findIndex(r => r.hex === "c30s0");
+	for (let i = held_a; i < a.length; i++) a[i].time += 400;
+	for (let i = held_b + 1; i < b.length; i++) b[i].time += 400;
+	let out = compare_tool.compare(a, b, { quiet: true, network: { recorder: () => null } });
+	check("a late delivery is still matched", [out.shared, out.a_only.inside.length, out.b_only.inside.length], [240, 0, 0]);
+	check("and reported as delayed at A", [out.delayed.length, out.delayed[0].late_at, out.delayed[0].by], [1, "A", 400]);
+	/* a stamp a cycle off, mid-traffic, is jitter */
+	a = ring_stream(2, 1000, 60); b = ring_stream(0, 5000, 60);
+	a.find(r => r.hex === "c30s0").time += HOP;
+	out = compare_tool.compare(a, b, { quiet: true, network: { recorder: () => null } });
+	check("a small deviation is jitter", [out.shared, out.delayed.length, out.rejected.length], [240, 0, 0]);
+}
+{
 	/* the same recorder logging two different stretches */
 	let a = ring_stream(0, 1000, 300).filter(r => r.tankStatus === 7 || r.hex < "c150s");
 	let b = ring_stream(0, 1000, 300).filter(r => r.tankStatus === 7 || r.hex >= "c150s");
@@ -184,6 +203,42 @@ function ring_stream(recorder, clock0, cycles, options = {}) {
 	check("dead slots read as dead", tally.classes.dead, 20);
 	check("nothing read as moving", [tally.classes.moving, samples.length], [0, 0]);
 	check("no whole-cycle hole", tally.whole_cycle, 0);
+}
+{
+	/* slot 3 leaves the ring at cycle 400: three players from then on,
+	 * and the holes after it must not be charged to the departed slot */
+	let recs = ring_stream(0, 1000, 800).filter(r => r.tankStatus !== 7);
+	let out = [], seq = 1;
+	for (let r of recs) {
+		let c = +r.hex.match(/^c(\d+)s/)[1];
+		if (c >= 400 && r.player === 3) continue;
+		r.seq = seq++ & 0x7f;
+		out.push(r);
+	}
+	/* slot 1 parks for one cycle in ten throughout */
+	recs = out.filter(r => !(r.player === 1 && +r.hex.match(/^c(\d+)s/)[1] % 10 === 5));
+	recs.forEach(r => { if (r.player === 1 && r.subpackets[0]) r.subpackets[0] = { type: "tank_position", x: 1, y: 1, px: 0, py: 0, speed: 0 }; });
+	recs[0].subpackets.push({ type: "base_capture", base: 0 });
+	let tally = holes_tool.empty_tally();
+	holes_tool.measure_file(recs, tally, [], "synthetic");
+	/* a window straddling the departure has two players on one residue
+	 * and is set aside; every other hole is the parked tank's */
+	check("every hole either attributed or set aside", [tally.attributed + tally.unattributed, tally.classes.moving], [80, 0]);
+	check("all attributed ones the parked tank", tally.classes.still, tally.attributed);
+	check("only the windows across the departure unclassed", tally.unattributed <= 4, true);
+	check("both ring sizes seen", Object.keys(tally.by_players).sort(), ["3", "4"]);
+}
+{
+	/* a dead member who speaks once in minutes still owns his residue */
+	let recs = ring_stream(0, 1000, 800).filter(r => r.tankStatus !== 7);
+	recs = recs.filter(r => r.player !== 3 || +r.hex.match(/^c(\d+)s/)[1] % 300 === 0);
+	for (let r of recs) if (r.player === 3) { r.tankStatus = 7; r.subpackets = []; }
+	recs[0].subpackets.push({ type: "base_capture", base: 0 });
+	let tally = holes_tool.empty_tally();
+	holes_tool.measure_file(recs, tally, [], "synthetic");
+	check("the silent member's turns are his", [tally.unattributed, tally.classes.moving], [0, 0]);
+	check("read as silent far from his records, dead near them, edge after his last", tally.classes.silent + tally.classes.dead + tally.classes.edge, tally.attributed);
+	check("mostly silent", tally.classes.silent > tally.classes.dead, true);
 }
 
 if (failures) {

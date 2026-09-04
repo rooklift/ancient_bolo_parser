@@ -1,0 +1,122 @@
+1006 logs, 22812380 settled records, 24770397 ring slots, 1959023 missing (7.91%) in 1504199 holes
+  of the missing slots: 1610577 in partial-cycle holes handed to their owners below, 28451 in partial-cycle holes whose successor chain does not close on the next sender (unclassed), 5252 in whole-cycle holes, 314743 in holes wider than a cycle
+ring order chain closes on the actual next sender at 1463692 partial-cycle holes, fails at 21155
+
+attributed slots by what the owner was doing:
+  moving          18    0.00%   of which the recorder's own slot: 8
+  still       699582   43.44%   of which the recorder's own slot: 199978
+  dead        391817   24.33%   of which the recorder's own slot: 87064
+  changing    513131   31.86%   of which the recorder's own slot: 146242
+  edge          6029    0.37%   of which the recorder's own slot: 926
+  recorder's own slot altogether: 434218 (26.96% of attributed slots)
+
+step histogram: 2:1361851  3:95990  4:30363  5:1508  6:1286  7:775  8:764  9:482  10:529  11:682  12:405  13:397  14:419  15:941  16:290  17:383  18:322  19:353  20:360  21:357  22:179  23:233  24:171  25:268  26:157  27:246  28:148  29:218  30:144  31:113  32:278  33:185  34:110  35:263  36:83  37:186  38:156  39:277  40:64  41:247  42:245  43:153  44:78  45:282  46:44  47:66  48:31  49:469  50:29  51:47  52:12  53:53  54:13  55:102  56:17  57:43  58:22  59:73  60:13  61:62  62:9  63:7  64:9  65:14  66:16  67:8  68:14  69:4  70:3  71:5  73:16  74:2  75:3  76:2  77:4  78:3  79:2  81:21  82:5  83:1  87:1  88:1  89:1  90:7  91:1  99:1  103:1  104:1
+holes spanning a whole cycle (step = players + 1): 2247; wider: 17105
+  2 players: 270 logs, 466248 missing of 6412581 slots (7.27%), 1861 whole-cycle holes
+  3 players: 24 logs, 49765 missing of 612759 slots (8.12%), 75 whole-cycle holes
+  4 players: 587 logs, 1157649 missing of 14546478 slots (7.96%), 275 whole-cycle holes
+  5 players: 42 logs, 103468 missing of 992262 slots (10.43%), 16 whole-cycle holes
+  6 players: 74 logs, 160169 missing of 2009724 slots (7.97%), 16 whole-cycle holes
+  7 players: 6 logs, 13889 missing of 125761 slots (11.04%), 3 whole-cycle holes
+  8 players: 3 logs, 7835 missing of 70832 slots (11.06%), 1 whole-cycle holes
+
+ring pace: 576365 holes sit inside a same-tick burst (38.32%); for the single-slot holes among the rest, the gap between the records either side in ring cycles: p50 1.00 p90 1.20 p99 1.86, against an ordinary step across a burst boundary p50 1.00 p90 1.18 p99 1.83 (58 logs whose ring turns in under 4 ticks left out of this line)
+
+logs with MOVING holes (the only candidates for loss):
+  20040729.3~b98bb1: 4 of 5183 missing slots, 4 players
+  20020123: 2 of 5355 missing slots, 6 players
+  20020202~488677: 2 of 5067 missing slots, 4 players
+  20010416~82d2e5: 1 of 3695 missing slots, 4 players
+  20010504.7~c67325: 1 of 2377 missing slots, 4 players
+  20010926: 1 of 2492 missing slots, 3 players
+  20021022.2~e1eecd: 1 of 10399 missing slots, 4 players
+  20030226.2~8f0f32: 1 of 1119 missing slots, 4 players
+  20040520.1~8efb3d: 1 of 3521 missing slots, 4 players
+  20050112.2~f57d9e: 1 of 934 missing slots, 2 players
+
+MOVING holes:
+  20010416~82d2e5: slot 1, step 2
+    owner before: t=6765816 seq=9 p=1 T=8 at (144,126) px undefined,undefined speed 5 [tank_position]
+    owner after:  t=6765828 seq=17 p=1 T=8 at (143,126) px undefined,undefined speed 5 [tank_position]
+    hole between: t=6765822 seq=12 p=3 T=0 [lgm_position,base_stock_tick,base_drain]
+             and: t=6765828 seq=14 p=0 T=8 at (120,144) px undefined,undefined speed 28 [tank_position,lgm_position]
+  20010504.7~c67325: slot 0, step 2
+    owner before: t=370516 seq=55 p=0 T=8 at (113,117) px undefined,undefined speed 6 [tank_position]
+    owner after:  t=370530 seq=63 p=0 T=8 at (113,116) px undefined,undefined speed 6 [tank_position]
+    hole between: t=370516 seq=58 p=1 T=8 at (125,128) px undefined,undefined speed 48 [tank_position,parachute_position,pillbox_fires,tank_hit,shells]
+             and: t=370523 seq=60 p=2 T=8 at (114,138) px undefined,undefined speed 64 [tank_position]
+  20010926: slot 2, step 2
+    owner before: t=61731 seq=119 p=2 T=8 at (135,135) px undefined,undefined speed 8 [tank_position]
+    owner after:  t=61755 seq=125 p=2 T=8 at (134,135) px undefined,undefined speed 16 [tank_position]
+    hole between: t=61739 seq=121 p=0 T=8 at (117,142) px undefined,undefined speed 32 [tank_position]
+             and: t=61755 seq=123 p=1 T=8 at (132,121) px undefined,undefined speed 3 [tank_position,terrain_change,shells]
+  20020123: slot 0, step 2
+    owner before: t=9704040 seq=1 p=0 T=8 at (115,128) px undefined,undefined speed 14 [tank_position]
+    owner after:  t=9704076 seq=13 p=0 T=8 at (114,128) px undefined,undefined speed 18 [tank_position]
+    hole between: t=9704058 seq=6 p=2 T=8 at (135,134) px undefined,undefined speed 36 [tank_position,lgm_position]
+             and: t=9704076 seq=8 p=1 T=8 at (109,123) px undefined,undefined speed 0 [tank_position,pillbox_fires,shells]
+  20020123: slot 4, step 3
+    owner before: t=9713764 seq=62 p=4 T=8 at (134,121) px undefined,undefined speed 1 [tank_position]
+    owner after:  t=9713799 seq=74 p=4 T=8 at (134,122) px undefined,undefined speed 13 [tank_position]
+    hole between: t=9713782 seq=67 p=5 T=8 at (119,128) px undefined,undefined speed 12 [tank_position,lgm_position,pillbox_fires,explosion,shells]
+             and: t=9713782 seq=70 p=2 T=8 at (140,116) px undefined,undefined speed 60 [tank_position]
+  20021022.2~e1eecd: slot 0, step 2
+    owner before: t=398742 seq=75 p=0 T=8 at (124,121) px undefined,undefined speed 7 [tank_position]
+    owner after:  t=398756 seq=83 p=0 T=8 at (124,122) px undefined,undefined speed 7 [tank_position]
+    hole between: t=398750 seq=78 p=2 T=8 at (135,150) px undefined,undefined speed 64 [tank_position,parachute_position]
+             and: t=398756 seq=80 p=1 T=0 [parachute_position]
+  20030226.2~8f0f32: slot 0, step 2
+    owner before: t=762203 seq=61 p=0 T=8 at (119,133) px undefined,undefined speed 9 [tank_position]
+    owner after:  t=762223 seq=69 p=0 T=8 at (120,133) px undefined,undefined speed 4 [tank_position]
+    hole between: t=762213 seq=64 p=1 T=0 [base_drain]
+             and: t=762223 seq=66 p=2 T=0 [base_drain]
+  20040520.1~8efb3d: slot 3, step 2
+    owner before: t=221133 seq=90 p=3 T=8 at (141,118) px undefined,undefined speed 5 [tank_position,shot_fired,pillbox_damage]
+    owner after:  t=221145 seq=98 p=3 T=8 at (142,118) px undefined,undefined speed 4 [tank_position,shot_fired,pillbox_damage]
+    hole between: t=221133 seq=93 p=2 T=8 at (130,135) px undefined,undefined speed 54 [tank_position,lgm_position]
+             and: t=221139 seq=95 p=1 T=8 at (130,116) px undefined,undefined speed 48 [tank_position,lgm_position]
+  20040729.3~b98bb1: slot 2, step 4
+    owner before: t=17574836 seq=120 p=2 T=8 at (138,145) px undefined,undefined speed 2 [tank_position,pillbox_damage]
+    owner after:  t=17574874 seq=12 p=2 T=8 at (139,145) px undefined,undefined speed 7 [tank_position]
+    hole between: t=17574836 seq=121 p=1 T=8 at (112,141) px undefined,undefined speed 52 [tank_position,parachute_position]
+             and: t=17574845 seq=125 p=1 T=8 at (112,141) px undefined,undefined speed 49 [tank_position,parachute_position]
+  20040729.3~b98bb1: slot 2, step 4
+    owner before: t=17574836 seq=120 p=2 T=8 at (138,145) px undefined,undefined speed 2 [tank_position,pillbox_damage]
+    owner after:  t=17574874 seq=12 p=2 T=8 at (139,145) px undefined,undefined speed 7 [tank_position]
+    hole between: t=17574845 seq=125 p=1 T=8 at (112,141) px undefined,undefined speed 49 [tank_position,parachute_position]
+             and: t=17574852 seq=1 p=1 T=8 at (112,141) px undefined,undefined speed 57 [tank_position,parachute_position]
+  20040729.3~b98bb1: slot 2, step 4
+    owner before: t=17574836 seq=120 p=2 T=8 at (138,145) px undefined,undefined speed 2 [tank_position,pillbox_damage]
+    owner after:  t=17574874 seq=12 p=2 T=8 at (139,145) px undefined,undefined speed 7 [tank_position]
+    hole between: t=17574852 seq=1 p=1 T=8 at (112,141) px undefined,undefined speed 57 [tank_position,parachute_position]
+             and: t=17574859 seq=5 p=1 T=8 at (112,140) px undefined,undefined speed 64 [tank_position,parachute_position]
+  20050112.2~f57d9e: slot 1, step 2
+    owner before: t=22749205 seq=47 p=1 T=8 at (74,56) px undefined,undefined speed 6 [tank_position]
+    owner after:  t=22749220 seq=51 p=1 T=8 at (74,55) px undefined,undefined speed 9 [tank_position,lgm_position]
+    hole between: t=22749213 seq=48 p=0 T=8 at (42,65) px undefined,undefined speed 0 [tank_position,parachute_position]
+             and: t=22749220 seq=50 p=0 T=0 [parachute_position,base_drain]
+  20021009.1~91314b: slot 0, step 4
+    owner before: t=503179 seq=85 p=0 T=8 at (135,144) px undefined,undefined speed 9 [tank_position]
+    owner after:  t=503201 seq=93 p=0 T=8 at (135,145) px undefined,undefined speed 3 [tank_position,pillbox_fires,pillbox_damage]
+    hole between: t=503190 seq=86 p=2 T=8 at (114,129) px undefined,undefined speed 48 [tank_position]
+             and: t=503201 seq=90 p=2 T=8 at (115,129) px undefined,undefined speed 48 [tank_position]
+  20010312~4f5a5c: slot 3, step 2
+    owner before: t=667710 seq=102 p=3 T=8 at (114,128) px undefined,undefined speed 10 [tank_position]
+    owner after:  t=667733 seq=110 p=3 T=8 at (114,127) px undefined,undefined speed 10 [tank_position]
+    hole between: t=667722 seq=105 p=0 T=8 at (103,121) px undefined,undefined speed 24 [tank_position,lgm_position]
+             and: t=667733 seq=107 p=2 T=8 at (152,135) px undefined,undefined speed 24 [tank_position,parachute_position]
+  20010316~6c567f: slot 3, step 2
+    owner before: t=734852 seq=101 p=3 T=a at (102,117) px undefined,undefined speed 7 [tank_position,lgm_position]
+    owner after:  t=734865 seq=113 p=3 T=a at (102,116) px undefined,undefined speed 6 [tank_position,lgm_position,terrain_change]
+    hole between: t=734858 seq=106 p=5 T=8 at (143,128) px undefined,undefined speed 64 [tank_position]
+             and: t=734858 seq=108 p=1 T=7 [parachute_position]
+  20020202~488677: slot 1, step 2
+    owner before: t=2459514 seq=127 p=1 T=8 at (147,121) px undefined,undefined speed 64 [tank_position]
+    owner after:  t=2459526 seq=3 p=1 T=8 at (147,122) px undefined,undefined speed 64 [tank_position]
+    hole between: t=2459514 seq=0 p=2 T=0 [message]
+             and: t=2459526 seq=2 p=3 T=0 [base_drain]
+  20020202~488677: slot 1, step 2
+    owner before: t=2459549 seq=11 p=1 T=8 at (146,123) px undefined,undefined speed 64 [tank_position]
+    owner after:  t=2459560 seq=15 p=1 T=8 at (145,123) px undefined,undefined speed 64 [tank_position]
+    hole between: t=2459549 seq=12 p=2 T=8 at (122,141) px undefined,undefined speed 0 [tank_position]
+             and: t=2459560 seq=14 p=3 T=0 [lgm_position,base_drain]

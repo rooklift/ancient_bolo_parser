@@ -20,8 +20,11 @@
  *      (tools/measure-seq-holes.cjs takes that further) [E:seq-loss].
  *      Every run of records found in one log only is listed with the
  *      gap the other log shows across it: a hole of a few ticks, or an
- *      absence of many seconds, which is a machine cut off from the
- *      ring.
+ *      absence of many seconds. A byte-identical record stamped seconds
+ *      apart is either an idle restatement matched a lap out (the
+ *      sequence byte comes round every 128 records) or the same packet
+ *      delivered late through a stall; the late machine's own log tells
+ *      which, since a real delay ends a wait of the same length there.
  *   -- who recorded each log. A record from the recorder's own slot is
  *      stamped as it is SENT; everybody else's is stamped as the ring
  *      packet ARRIVES. So when the two logs' stamps are subtracted
@@ -260,7 +263,8 @@ function seq_holes(recs) {
 
 /* ---------- the comparison ---------- */
 
-const OFFSET_TOLERANCE = 250;   /* ticks: a matched pair stamped further apart than this is a false match */
+const OFFSET_JITTER = 25;       /* ticks: stamps this far off the sender's offset are ordinary delivery jitter */
+const OFFSET_TOLERANCE = 250;   /* ticks: a gap in the other log longer than this is an absence, not a hole */
 const RUNS_SHOWN = 20;          /* runs of one-log-only records listed before the rest are counted */
 const MIN_SHARED = 100;         /* fewer records in common: not two views of one stretch */
 
@@ -344,10 +348,13 @@ function compare(a_recs, b_recs, options = {}) {
 
 	/* An idle tank restates the same bytes for minutes, and after 128
 	 * records the sequence byte comes round too, so a stretch with no
-	 * unique record can be matched a lap out. The clocks are steady to a
-	 * few ppm and a packet reaches the far end of the ring within a
-	 * second, so a pair stamped further apart than the sender's usual
-	 * offset by more than a few seconds is a false match, not a delivery. */
+	 * unique record can be matched a lap out -- on a fast four-player ring
+	 * a lap is under 200 ticks. But a packet can also arrive late for
+	 * real: a ring stalls for seconds and the same record is stamped at
+	 * the far machine when the stall clears. The two are told apart by
+	 * the late machine's own log: a delivery that arrived N ticks late
+	 * sits at the end of a gap of about N ticks in the log that stamped
+	 * it late, while a lap-out match sits in ordinary traffic. */
 	let by_sender = new Map();
 	for (let [i, j] of pairs) {
 		let p = a.ring[i].player;
@@ -355,13 +362,24 @@ function compare(a_recs, b_recs, options = {}) {
 		by_sender.get(p).push(b.ring[j].time - a.ring[i].time);
 	}
 	let medians = new Map([...by_sender].map(([p, offsets]) => [p, median(offsets)]));
-	let kept = [], rejected = [];
+	let kept = [], rejected = [], delayed = [];
 	for (let [i, j] of pairs) {
-		let off = b.ring[j].time - a.ring[i].time;
-		(Math.abs(off - medians.get(a.ring[i].player)) > OFFSET_TOLERANCE ? rejected : kept).push([i, j]);
+		let d = b.ring[j].time - a.ring[i].time - medians.get(a.ring[i].player);
+		if (Math.abs(d) <= OFFSET_JITTER) { kept.push([i, j]); continue; }
+		/* the log that stamped it later must show the wait */
+		let late_gap = d > 0
+			? (j > 0 ? b.ring[j].time - b.ring[j - 1].time : 0)
+			: (i > 0 ? a.ring[i].time - a.ring[i - 1].time : 0);
+		if (late_gap >= Math.abs(d) - OFFSET_JITTER) {
+			kept.push([i, j]);
+			delayed.push({ a: a.ring[i], b: b.ring[j], late_at: d > 0 ? "B" : "A", by: Math.abs(d), gap: late_gap });
+		} else {
+			rejected.push([i, j]);
+		}
 	}
 	pairs = kept;
 	out.rejected = rejected.map(([i, j]) => ({ a: a.ring[i], b: b.ring[j] }));
+	out.delayed = delayed;
 
 	let a_to_b = new Int32Array(a.ring.length).fill(-1);
 	let b_to_a = new Int32Array(b.ring.length).fill(-1);
@@ -488,7 +506,7 @@ function print_report(out, a, b, options) {
 	let seconds = ticks => `${(ticks / 50).toFixed(1)} s`;
 	console.log(`game id ${out.game_id || "?"}: the same game in both logs`);
 	console.log(`ring records: A ${out.a_ring}, B ${out.b_ring}, shared ${out.shared}` +
-		(out.rejected.length ? ` (${out.rejected.length} byte-identical matches rejected as stamped more than ${seconds(OFFSET_TOLERANCE)} off the sender's offset)` : "") +
+		(out.rejected.length ? ` (${out.rejected.length} byte-identical matches rejected: stamped off the sender's offset with no wait in the late log to show for it)` : "") +
 		(out.unaligned.unaligned_a || out.unaligned.unaligned_b
 			? ` (${out.unaligned.unaligned_a} of A and ${out.unaligned.unaligned_b} of B in anchorless stretches too long to diff, left unmatched)` : ""));
 	if (!out.same_stretch) {
@@ -515,6 +533,13 @@ function print_report(out, a, b, options) {
 	};
 	runs("A", "B", out.a_runs);
 	runs("B", "A", out.b_runs);
+	if (out.delayed.length) {
+		console.log(`  delivered late: ${out.delayed.length} record${out.delayed.length === 1 ? "" : "s"} stamped at one machine well after the other, each at the end of a wait in that machine's log -- the same packet, held up on its way round:`);
+		for (let r of out.delayed.slice(0, RUNS_SHOWN)) {
+			console.log(`    ${seconds(r.by)} late at ${r.late_at}, after ${r.late_at} heard nothing for ${seconds(r.gap)}: ${describe(r.late_at === "A" ? r.a : r.b)}`);
+		}
+		if (out.delayed.length > RUNS_SHOWN) console.log(`    ... and ${out.delayed.length - RUNS_SHOWN} more`);
+	}
 	if (options.verbose && out.rejected.length) {
 		console.log("  rejected matches (A record | B record):");
 		for (let r of out.rejected.slice(0, RUNS_SHOWN)) console.log(`    ${describe(r.a)} | ${describe(r.b)}`);

@@ -8,14 +8,10 @@
  * and not one missing slot is a record in the other log (see
  * tools/compare-recordings.cjs). So what does a hole mark?
  *
- * The records tell, because the ring order is in them. Over settled
- * play, records that step by exactly 1 name each slot's successor
- * (0->2, 2->3, 3->1, 1->0 in a four-player log), so every missing slot
- * can be handed to the player whose turn it was, and the chain checked:
- * the last attributed slot's successor must be the player who actually
- * closed the hole. It is, at every hole of every log measured. Then each
- * missing slot is classed by what its owner was doing, read from his
- * nearest records either side:
+ * The records tell, because the ring is in the counter: every missing
+ * count can be handed to the player whose turn it was (how, below), and
+ * classed by what he was doing, read from his nearest records either
+ * side:
  *
  *   OWN       the slot belongs to the recording machine itself (also
  *             counted in the class below). The recorder cannot lose its
@@ -33,10 +29,18 @@
  *             start, neighbours further apart than a couple of cycles.
  *   EDGE      no record from the owner on one side of the hole.
  *
- * Only holes shorter than a cycle are handed to owners, and only when
- * the chain of successors comes out on the player who actually closed
- * the hole (a ring with a member that never logs breaks the chain, and
- * those slots go unclassed). A hole of a whole cycle or more has every
+ *   SILENT    no record in the window either side of the hole came
+ *             from that slot: a member silent for many cycles, which a
+ *             moving tank cannot be.
+ *
+ * Which slot a missing count belongs to is read from the counter
+ * itself, unwrapped: a tank that restates every cycle steps it by
+ * exactly the ring size, and every slot owns one residue of it, so a
+ * window of records round the hole gives the size, the residues and
+ * their owners (see attribute_hole). The ring's membership changes
+ * inside a game -- a player joins, a split drops one -- and a window
+ * straddling such a change has two players on one residue; its holes go
+ * unclassed. Only holes shorter than a cycle are handed to owners. A hole of a whole cycle or more has every
  * slot in it, and the widest -- dozens of slots inside a few seconds --
  * are the counter jumping when a split ring rejoins; they are counted
  * apart. Alongside the classes: the step histogram against the player
@@ -77,7 +81,7 @@ const MIN_RECORDS = 2000;
 const PACE_MIN_CYCLE = 4;        /* ticks: below this the stamps cannot resolve a cycle */
 const SAMPLES_PER_LOG = 3;       /* moving holes listed per log, so one log cannot fill the list */
 const SAMPLES_TOTAL = 60;
-const CLASSES = ["moving", "still", "dead", "changing", "edge"];
+const CLASSES = ["moving", "still", "dead", "changing", "edge", "silent"];
 
 /* ---------- one log ---------- */
 
@@ -134,6 +138,46 @@ function classify(prev, next) {
 	return "changing";
 }
 
+/* WHO OWNS A MISSING SLOT. The ring's membership changes inside a game
+ * and a quiet member -- a dead tank that speaks once in minutes -- is
+ * invisible to any reading of who was heard lately, but the counter
+ * itself carries the ring: unwrapped, it steps by exactly the ring size
+ * between two consecutive records of a tank that restates every cycle,
+ * and every slot then owns one residue of it. So each hole is read in a
+ * window of nearby records: the ring size is the smallest step any one
+ * player's counter makes there, each residue is the player heard on it,
+ * and a missing count goes to the player owning its residue -- or to
+ * nobody, a SILENT member no record in the window came from, which a
+ * moving tank cannot be. A window in which two players share a residue
+ * straddles a membership change, and its holes go unclassed. */
+const WINDOW = 64;   /* records either side of a hole */
+
+function attribute_hole(span, unwrapped, index) {
+	let lo = Math.max(0, index - WINDOW), hi = Math.min(span.length - 1, index + WINDOW);
+	let last = new Map(), size = Infinity;
+	for (let k = lo; k <= hi; k++) {
+		let p = span[k].player;
+		if (last.has(p)) {
+			let d = unwrapped[k] - last.get(p);
+			if (d > 0 && d < size) size = d;
+		}
+		last.set(p, unwrapped[k]);
+	}
+	if (!isFinite(size) || size < 2) return null;
+	let owner = new Map();
+	for (let k = lo; k <= hi; k++) {
+		let r = unwrapped[k] % size;
+		if (owner.has(r) && owner.get(r) !== span[k].player) return null;
+		owner.set(r, span[k].player);
+	}
+	let slots = [];
+	for (let u = unwrapped[index - 1] + 1; u < unwrapped[index]; u++) {
+		let p = owner.get(u % size);
+		slots.push(p === undefined ? -1 : p);
+	}
+	return { size, slots };
+}
+
 function empty_tally() {
 	let tally = { logs: 0, records: 0, slots: 0, holes: 0, missing: 0, chain_ok: 0, chain_bad: 0,
 		own: 0, own_class: {}, classes: {}, steps: {}, whole_cycle: 0, beyond_cycle: 0,
@@ -146,8 +190,10 @@ function empty_tally() {
 function measure_file(recs, tally, samples, label) {
 	let span = settled(recs.filter(rec => rec.tankStatus !== 0x0f));
 	if (span.length < MIN_RECORDS) return null;
-	let next = ring_order(span);
-	let players = next.size;
+	/* the counter unwrapped: every step read as network.js reads it */
+	let unwrapped = new Int32Array(span.length);
+	for (let i = 1; i < span.length; i++) unwrapped[i] = unwrapped[i - 1] + ((span[i].seq - span[i - 1].seq) & 0x7f);
+	let sizes = new Map();
 	let recorder = BoloNetwork.recorder(recs);
 	/* per-player record indices, for the neighbour lookups */
 	let by_player = new Map();
@@ -181,12 +227,10 @@ function measure_file(recs, tally, samples, label) {
 
 	let info = null;
 	for (let rec of recs) { info = rec.subpackets.find(s => s.type === "game_info"); if (info) break; }
-	let file = { label, game: info ? info.gameId : "?", players, recorder, records: span.length, slots: 0, missing: 0, holes: 0, moving: 0, own: 0 };
+	let file = { label, game: info ? info.gameId : "?", players: 0, recorder, records: span.length, slots: 0, missing: 0, holes: 0, moving: 0, own: 0 };
 	let file_samples = 0;
 	tally.logs++;
 	tally.records += span.length;
-	let per = tally.by_players[players] = tally.by_players[players] || { logs: 0, slots: 0, missing: 0, whole_cycle: 0, holes: 0 };
-	per.logs++;
 	for (let i = 1; i < span.length; i++) {
 		let step = (span[i].seq - span[i - 1].seq) & 0x7f;
 		let gap = span[i].time - span[i - 1].time;
@@ -198,31 +242,28 @@ function measure_file(recs, tally, samples, label) {
 		file.holes++;
 		file.missing += step - 1;
 		tally.steps[step] = (tally.steps[step] || 0) + 1;
+		let read = attribute_hole(span, unwrapped, i);
+		if (!read) { tally.chain_bad++; tally.unattributed += step - 1; continue; }
+		let players = read.size;
+		sizes.set(players, (sizes.get(players) || 0) + 1);
+		let per = tally.by_players[players] = tally.by_players[players] || { logs: new Set(), slots: 0, missing: 0, whole_cycle: 0, holes: 0 };
+		per.logs.add(label);
+		per.holes++;
+		per.missing += step - 1;
 		/* a hole of a whole cycle or more is not one node's quiet turn:
 		 * every slot is in it, and the widest are the counter jumping
 		 * when a split ring rejoins. They are counted apart, and only
 		 * the partial-cycle holes are handed to their owners. */
 		if (step === players + 1) { tally.whole_cycle++; per.whole_cycle++; tally.whole_cycle_slots += step - 1; continue; }
 		if (step > players + 1) { tally.beyond_cycle++; tally.beyond_cycle_slots += step - 1; continue; }
-		/* the attribution is trusted only when the chain of successors
-		 * comes out on the player who actually closed the hole; a ring
-		 * with a member that never logs breaks it, and those go unclassed */
-		let owner = span[i - 1].player;
-		let owners = [];
-		for (let m = 1; m < step; m++) {
-			owner = next.get(owner);
-			if (owner === undefined) break;
-			owners.push(owner);
-		}
-		if (owners.length !== step - 1 || next.get(owner) !== span[i].player) {
-			tally.chain_bad++;
-			tally.unattributed += step - 1;
-			continue;
-		}
 		tally.chain_ok++;
-		for (let slot of owners) {
-			let [prev, after] = neighbours(slot, i);
-			let cls = classify(prev, after);
+		for (let slot of read.slots) {
+			let cls, prev = null, after = null;
+			if (slot < 0) cls = "silent";
+			else {
+				[prev, after] = neighbours(slot, i);
+				cls = classify(prev, after);
+			}
 			tally.classes[cls]++;
 			tally.attributed++;
 			if (slot === recorder) { tally.own++; tally.own_class[cls]++; file.own++; }
@@ -238,9 +279,10 @@ function measure_file(recs, tally, samples, label) {
 	tally.slots += file.slots;
 	tally.missing += file.missing;
 	tally.holes += file.holes;
-	per.slots += file.slots;
-	per.missing += file.missing;
-	per.holes += file.holes;
+	let mode = 0, best = 0;
+	for (let [size, n] of sizes) if (n > best) { best = n; mode = size; }
+	file.players = mode;
+	if (tally.by_players[mode]) tally.by_players[mode].slots += file.slots;
 	return file;
 }
 
@@ -262,9 +304,9 @@ function report(tally, files, samples, show_samples) {
 	console.log(`${tally.logs} logs, ${tally.records} settled records, ${tally.slots} ring slots, ` +
 		`${tally.missing} missing (${pct(tally.missing, tally.slots)}) in ${tally.holes} holes`);
 	console.log(`  of the missing slots: ${tally.attributed} in partial-cycle holes handed to their owners below, ` +
-		`${tally.unattributed} in partial-cycle holes whose successor chain does not close on the next sender (unclassed), ` +
+		`${tally.unattributed} in holes read where the ring's membership was changing (unclassed), ` +
 		`${tally.whole_cycle_slots} in whole-cycle holes, ${tally.beyond_cycle_slots} in holes wider than a cycle`);
-	console.log(`ring order chain closes on the actual next sender at ${tally.chain_ok} partial-cycle holes, fails at ${tally.chain_bad}`);
+	console.log(`${tally.chain_ok} partial-cycle holes read; ${tally.chain_bad} holes fell in a window where the ring's membership was changing and are set aside`);
 	console.log("\nattributed slots by what the owner was doing:");
 	for (let c of CLASSES) {
 		console.log(`  ${c.padEnd(9)} ${String(tally.classes[c]).padStart(8)}  ${pct(tally.classes[c], tally.attributed).padStart(7)}` +
@@ -275,7 +317,7 @@ function report(tally, files, samples, show_samples) {
 	console.log(`\nstep histogram: ${steps.map(s => `${s}:${tally.steps[s]}`).join("  ")}`);
 	console.log(`holes spanning a whole cycle (step = players + 1): ${tally.whole_cycle}; wider: ${tally.beyond_cycle}`);
 	for (let [players, per] of Object.entries(tally.by_players).sort((a, b) => a[0] - b[0])) {
-		console.log(`  ${players} players: ${per.logs} logs, ${per.missing} missing of ${per.slots} slots (${pct(per.missing, per.slots)}), ` +
+		console.log(`  ring of ${players}: ${per.logs.size} logs, ${per.missing} missing slots in ${per.holes} holes, ` +
 			`${per.whole_cycle} whole-cycle holes`);
 	}
 	let at_hole = tally.gap_at_hole.slice().sort((a, b) => a - b);
@@ -370,6 +412,6 @@ function main() {
 	report(tally, files, samples, show_samples);
 }
 
-module.exports = { empty_tally, measure_file, ring_order, classify, settled };
+module.exports = { empty_tally, measure_file, ring_order, attribute_hole, classify, settled };
 
 if (require.main === module) main();
