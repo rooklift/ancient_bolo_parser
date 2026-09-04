@@ -23,8 +23,19 @@ check("a trailing run in A only", compare_tool.align(["b", "c", "z"], ["b", "c"]
 check("repeats align in order", compare_tool.align(["a", "a", "b", "a"], ["a", "b", "a", "a"]).length, 3);
 check("nothing in common", compare_tool.align(["a", "b"], ["c", "d"]), []);
 check("empty streams", compare_tool.align([], []), []);
-check("too far apart to bother", compare_tool.align(["a", "b", "c", "d"], ["w", "x", "y", "z"], 3), null);
-check("within the edit bound", compare_tool.align(["a", "b"], ["a", "c"], 2), [[0, 0]]);
+{
+	/* two long streams of one game covering different stretches: linear
+	 * work, no heap blow-up, and the overlap still found */
+	let a = [], b = [];
+	for (let i = 0; i < 60000; i++) a.push("a" + i);
+	for (let i = 50000; i < 110000; i++) b.push("a" + i);
+	let pairs = compare_tool.align(a, b);
+	check("a long offset overlap is found whole", [pairs.length, pairs[0], pairs[pairs.length - 1]], [10000, [50000, 0], [59999, 9999]]);
+	let stats = { unaligned_a: 0, unaligned_b: 0 };
+	let c = new Array(3000).fill("same"), d = new Array(3000).fill("same");
+	check("an anchorless stretch too long to diff is left unmatched", [compare_tool.align(c, d, stats).length, stats], [0, { unaligned_a: 3000, unaligned_b: 3000 }]);
+	check("a short anchorless stretch goes to Myers", compare_tool.align(["x", "x", "y"], ["x", "y", "y"]).length, 2);
+}
 
 // ---- boot burst and holes
 

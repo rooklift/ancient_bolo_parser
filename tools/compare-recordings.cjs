@@ -49,16 +49,83 @@ const path = require("node:path");
 
 const ROOT = path.join(__dirname, "..");
 const SKIPPED_EXTENSIONS = /\.(txt|md|json|zip|sit|hqx|png|jpg|gif|bmp|py)$/i;
-const MAX_EDITS = 20000;   /* records by which two streams may differ and still be aligned */
 
 /* ---------- alignment ---------- */
 
 /* Longest common subsequence of two arrays of strings, as a list of
- * matched index pairs, by Myers' O((N+M)D) diff. The streams differ in a
- * few hundred records out of tens of thousands, which is the case the
- * algorithm is built for. */
-function align(a, b, max_edits = Infinity) {
-	let n = a.length, m = b.length, max = Math.min(n + m, max_edits);
+ * matched index pairs. Patience diff: records whose payload occurs exactly
+ * once on each side are anchors, the longest chain of anchors in order is
+ * taken, and the stretches between anchors are aligned the same way
+ * again, down to stretches small enough for Myers' diff. Almost every
+ * record of a log is unique (an idle restatement repeats, little else),
+ * so the anchors carry nearly the whole alignment and the memory stays
+ * linear -- a plain Myers diff over two logs of one game that cover
+ * different stretches keeps a frontier per edit step and runs out of
+ * heap. Stretches with no anchor and too many records on both sides are
+ * left unmatched rather than ground through; the report says how many. */
+function align(a, b, stats = { unaligned_a: 0, unaligned_b: 0 }) {
+	let pairs = [];
+	align_range(a, 0, a.length, b, 0, b.length, pairs, stats);
+	for (let [i, j] of pairs) {
+		if (a[i] !== b[j]) throw new Error("alignment matched unequal records");
+	}
+	return pairs;
+}
+
+const MYERS_LIMIT = 1500;   /* records per side under which a stretch goes to Myers */
+
+function align_range(a, a0, a1, b, b0, b1, pairs, stats) {
+	if (a0 >= a1 || b0 >= b1) return;
+	/* anchors: payloads seen once on each side of this stretch */
+	let count_a = new Map(), count_b = new Map();
+	for (let i = a0; i < a1; i++) count_a.set(a[i], (count_a.get(a[i]) || 0) + 1);
+	for (let j = b0; j < b1; j++) count_b.set(b[j], (count_b.get(b[j]) || 0) + 1);
+	let where_b = new Map();
+	for (let j = b0; j < b1; j++) if (count_b.get(b[j]) === 1 && count_a.get(b[j]) === 1) where_b.set(b[j], j);
+	let anchors = [];   /* [i, j] in order of i */
+	for (let i = a0; i < a1; i++) {
+		if (count_a.get(a[i]) === 1 && where_b.has(a[i])) anchors.push([i, where_b.get(a[i])]);
+	}
+	if (!anchors.length) {
+		if (a1 - a0 <= MYERS_LIMIT && b1 - b0 <= MYERS_LIMIT) {
+			for (let [i, j] of myers(a.slice(a0, a1), b.slice(b0, b1))) pairs.push([a0 + i, b0 + j]);
+		} else {
+			stats.unaligned_a += a1 - a0;
+			stats.unaligned_b += b1 - b0;
+		}
+		return;
+	}
+	let chain = longest_increasing(anchors);
+	let pa = a0, pb = b0;
+	for (let [i, j] of chain) {
+		align_range(a, pa, i, b, pb, j, pairs, stats);
+		pairs.push([i, j]);
+		pa = i + 1;
+		pb = j + 1;
+	}
+	align_range(a, pa, a1, b, pb, b1, pairs, stats);
+}
+
+/* The longest chain of anchors whose B indices increase, the A indices
+ * already being in order. Patience sorting, O(n log n). */
+function longest_increasing(anchors) {
+	let tails = [], tail_at = [], prev = new Array(anchors.length).fill(-1);
+	for (let n = 0; n < anchors.length; n++) {
+		let j = anchors[n][1];
+		let lo = 0, hi = tails.length;
+		while (lo < hi) { let mid = (lo + hi) >> 1; if (tails[mid] < j) lo = mid + 1; else hi = mid; }
+		tails[lo] = j;
+		tail_at[lo] = n;
+		prev[n] = lo > 0 ? tail_at[lo - 1] : -1;
+	}
+	let chain = [];
+	for (let n = tail_at[tails.length - 1]; n !== undefined && n >= 0; n = prev[n]) chain.push(anchors[n]);
+	return chain.reverse();
+}
+
+/* Myers' O((N+M)D) diff on two short stretches, as matched index pairs. */
+function myers(a, b) {
+	let n = a.length, m = b.length, max = n + m;
 	let v = new Map([[1, 0]]);
 	let trace = [];
 	let done = false;
@@ -74,7 +141,6 @@ function align(a, b, max_edits = Infinity) {
 			if (x >= n && y >= m) { done = true; break; }
 		}
 	}
-	if (!done) return null;   /* further apart than max_edits: not worth aligning */
 	let pairs = [];
 	let x = n, y = m;
 	for (let d = trace.length - 1; d > 0; d--) {
@@ -86,11 +152,7 @@ function align(a, b, max_edits = Infinity) {
 		x = px; y = py;
 	}
 	while (x > 0 && y > 0) { x--; y--; pairs.push([x, y]); }
-	pairs.reverse();
-	for (let [i, j] of pairs) {
-		if (a[i] !== b[j]) throw new Error("alignment matched unequal records");
-	}
-	return pairs;
+	return pairs.reverse();
 }
 
 /* ---------- loading ---------- */
@@ -211,22 +273,19 @@ function compare(a_recs, b_recs, options = {}) {
 		game_id: info_a ? info_a.gameId : null,
 	};
 
-	/* Two different games share nothing but the odd idle restatement, and
-	 * the diff would grind through the whole edit distance to say so; the
-	 * bound also keeps a damaged pair from running for hours. */
-	let pairs = out.same_game
-		? align(a.ring.map(rec => rec.hex), b.ring.map(rec => rec.hex), MAX_EDITS)
-		: null;
-	if (!pairs) {
+	/* Two different games share nothing but the odd idle restatement, so
+	 * there is nothing to align. */
+	if (!out.same_game) {
 		out.aligned = false;
 		if (!options.quiet) {
-			console.log(`game id ${out.game_id || "?"}: ${out.same_game
-				? "the same game, but the streams differ in more than " + MAX_EDITS + " records and were not aligned"
-				: "NOT the same game (" + (info_b ? info_b.gameId : "?") + " in B) -- nothing to compare"}`);
+			console.log(`game id ${out.game_id || "?"}: NOT the same game (${info_b ? info_b.gameId : "?"} in B) -- nothing to compare`);
 		}
 		return out;
 	}
+	let unaligned = { unaligned_a: 0, unaligned_b: 0 };
+	let pairs = align(a.ring.map(rec => rec.hex), b.ring.map(rec => rec.hex), unaligned);
 	out.aligned = true;
+	out.unaligned = unaligned;
 	let a_to_b = new Int32Array(a.ring.length).fill(-1);
 	let b_to_a = new Int32Array(b.ring.length).fill(-1);
 	for (let [i, j] of pairs) { a_to_b[i] = j; b_to_a[j] = i; }
@@ -329,7 +388,9 @@ function print_report(out, a, b, options) {
 	let names_a = player_names(a.boot.concat(a.ring)), names_b = player_names(b.boot.concat(b.ring));
 	let name = (names, p) => p === null ? "undecided" : `${p} (${(names.get(p) || "?").split("@")[0]})`;
 	console.log(`game id ${out.game_id || "?"}: the same game in both logs`);
-	console.log(`ring records: A ${out.a_ring}, B ${out.b_ring}, shared ${out.shared}`);
+	console.log(`ring records: A ${out.a_ring}, B ${out.b_ring}, shared ${out.shared}` +
+		(out.unaligned.unaligned_a || out.unaligned.unaligned_b
+			? ` (${out.unaligned.unaligned_a} of A and ${out.unaligned.unaligned_b} of B in anchorless stretches too long to diff, left unmatched)` : ""));
 	let only = (label, o) => console.log(`  ${label} only: ${o.before.length} before the shared stretch, ` +
 		`${o.inside.length} inside it, ${o.after.length} after`);
 	only("A", out.a_only);
