@@ -34,7 +34,7 @@ After the header, the file is a flat sequence of records:
 
 | size | contents |
 |------|----------|
-| 4    | time tag, **little-endian**, in Bolo ticks (50/s). Not zero-based: initialised from the Mac's `TickCount()` (60/s) when the game starts, so only differences are meaningful. As a 32-bit counter it wraps after ~2.7 years of machine uptime; tags are monotonic in file order, so a player should unwrap any huge backward jump |
+| 4    | time tag, **little-endian**, in Bolo ticks (50/s). It is the **recording machine's** clock at the moment it wrote the record: when the ring packet carrying the record arrived, or, for the recorder's own record, when it sent it. Two logs of one game stamp the same record on two different clocks, a constant apart for every sender, and a packet held up on its way round is stamped at one machine seconds after the other [E:two-recorders]. Not zero-based: initialised from the Mac's `TickCount()` (60/s) when the game starts, so only differences are meaningful. As a 32-bit counter it wraps after ~2.7 years of machine uptime; tags are monotonic in file order, so a player should unwrap any huge backward jump |
 | 1    | length byte `L` (includes itself; ≤ 127), **encrypted** |
 | L−1  | payload, **encrypted** |
 
