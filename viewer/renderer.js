@@ -189,13 +189,19 @@ let players_el = document.getElementById("players");
 let chat_el = document.getElementById("chat");
 let file_pick = document.getElementById("filePick");
 
-/* One code base for the Electron app and the web page: the preload script
- * gives Electron a window.api, and a browser has none. Without an
- * application menu the web page has no File → Open and no video export
- * (export_video refuses without window.api), and its toggle shortcuts are
- * bare keys because the browser owns Ctrl+D, Ctrl+F, Ctrl+T and friends. */
+/* One code base for the Electron app, the Tauri app and the web page: the
+ * preload script gives Electron a window.api, tauri_api.js gives the Tauri
+ * app one, and a browser has none. Without an application menu the web
+ * page has no File → Open and no video export (export_video refuses
+ * without window.api), and its toggle shortcuts are bare keys because the
+ * browser owns Ctrl+D, Ctrl+F, Ctrl+T and friends. */
 const WEB = !window.api;
 const TOGGLE_CTRL = !WEB; /* whether a toggle shortcut wants Cmd/Ctrl held */
+
+/* Electron's menu accelerators take Ctrl+O, the zoom keys and F11 before
+ * the page sees them; the web page and the Tauri app (whose menu registers
+ * no accelerators) handle those keys here instead. */
+const PAGE_SHORTCUTS = WEB || !!window.api.page_shortcuts;
 
 drop_hint_text.textContent = WEB
 	? "Open a Bolo game log (drop it here, click to choose one, or press Ctrl+O)."
@@ -1222,9 +1228,14 @@ window.addEventListener("keydown", e => {
 		window.api.exit_fullscreen();
 		return;
 	}
-	if (WEB && e.code === "KeyO" && (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
-		e.preventDefault(); /* no application menu: Ctrl+O is our open, not the browser's */
+	if (PAGE_SHORTCUTS && e.code === "KeyO" && (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
+		e.preventDefault(); /* no menu accelerator: Ctrl+O is our open, not the browser's */
 		open_log();
+		return;
+	}
+	if (e.code === "F11" && window.api && window.api.toggle_fullscreen) {
+		e.preventDefault();
+		window.api.toggle_fullscreen();
 		return;
 	}
 	if (toggle_key(e, "KeyD")) {
@@ -1243,8 +1254,8 @@ window.addEventListener("keydown", e => {
 		return;
 	}
 	if (!game) return;
-	if (WEB && (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
-		/* the menu's zoom accelerators, which a browser would otherwise take as page zoom */
+	if (PAGE_SHORTCUTS && (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
+		/* Electron's zoom accelerators, which a browser would otherwise take as page zoom */
 		if (e.code === "Equal" || e.code === "NumpadAdd") {
 			e.preventDefault();
 			zoom_step(1);
@@ -1402,7 +1413,9 @@ function open_log() {
 }
 
 if (window.api) {
-	window.api.on_load_log(payload => load_log(payload.data, payload.path));
+	window.api.on_load_log(payload => {
+		if (!exporting) load_log(payload.data, payload.path); /* a drop mid-export is ignored, as take_file ignores one */
+	});
 	window.api.on_menu(cmd => {
 		if (exporting) return;
 		switch (cmd) {
