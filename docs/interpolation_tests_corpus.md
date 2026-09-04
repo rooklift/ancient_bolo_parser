@@ -158,22 +158,22 @@ Constant at all ten commits, and worth having once:
 The three right-hand columns are lower-is-better counts from the drawn
 audit and the vouched-link score, added so that a drawing-only commit
 (or one that trades a headline figure for a drawn one) has somewhere
-in this table to show its gain. `rushed` is `terminal_links_rushed`,
+in this table to show its gain. `terminal_links_rushed` counts
 terminal links drawn faster than 3 px/tick because an event record
 capped the arrival; it also counts every zero-duration link as
 infinitely fast, which is what the `917077a` section warns about and
-what the `ccc8ec3` row's 82,149 actually was. `backwards` is
-`pops_paired_backwards`, a pop-in paired to a pop-out behind it, the
-artifact the eye reads as a shell moving backwards. `contradicted` is
-`links_pill_contradicted`, pill links whose statement rosters disagree
-with the assignment; it should stay near zero. Blank cells are rows the
-metric did not exist for, or (rushed at `97fa412` and `029acac`) rows
-whose sections state only the delta. ‡ measured on the `917077a` engine
-by the `3b9d80d` measurement-only run. The claims-only commits between
+what the `ccc8ec3` row's 82,149 actually was. `pops_paired_backwards`
+counts pop-ins paired to a pop-out behind them, the artifact the eye
+reads as a shell moving backwards. `links_pill_contradicted` counts
+pill links whose statement rosters disagree with the assignment; it
+should stay near zero. Blank cells are rows the metric did not exist
+for, or (`terminal_links_rushed` at `97fa412` and `029acac`) rows whose
+sections state only the delta. ‡ measured on the `917077a` engine by
+the `3b9d80d` measurement-only run. The claims-only commits between
 `90925b0` and `97fa412` (`775fe4b`, `a78253b`) have no row but moved
-`backwards` 5,792 -> 3,908 -> 3,253, see their sections; `7b9030a`, the
-uncapped falls, likewise took `rushed` 79,521 -> 69,351 before
-`90925b0`.
+`pops_paired_backwards` 5,792 -> 3,908 -> 3,253, see their sections;
+`7b9030a`, the uncapped falls, likewise took `terminal_links_rushed`
+79,521 -> 69,351 before `90925b0`.
 
 The rows below the guard run were measured later, from the corpus
 holder's live checkouts: `97fa412` closes the unmeasured-`main` gap the
