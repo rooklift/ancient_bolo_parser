@@ -9,13 +9,20 @@ const TICKS_PER_SECOND = 50;
 /* One verdict on how the game's networking held up, for the header.
  *
  * Three readings of the record stream, taken from what the log cannot
- * help recording -- when packets arrived, and how many the machine never
- * saw:
+ * help recording -- when packets arrived, and which turns of the ring
+ * went by with nothing logged:
  *
- *   LOSS. The payload's sequence number is bumped by every node a packet
- *   passes, so consecutive records normally step by 1. A step of n means
- *   n-1 packets never reached the logging machine; a step of 0 is a
- *   duplicate, not a loss.
+ *   LOSS -- a name kept for the code, though what it counts is QUIET
+ *   SLOTS. The payload's sequence number is a ring slot counter, stepped
+ *   once by every node as the packet passes, so consecutive records
+ *   normally step by 1. A step of n means n-1 nodes took their turn and
+ *   logged nothing: a parked tank between restatements, a dead one, the
+ *   recorder itself as readily as anyone. It is NOT a lost packet: two
+ *   machines' logs of one game carry identical holes with no missing
+ *   slot a record in the other, a moving tank never misses a
+ *   restatement across one, and the ring turns through a hole at full
+ *   pace (tools/compare-recordings.cjs, tools/measure-seq-holes.cjs)
+ *   [E:seq-loss]. A step of 0 is a duplicate.
  *
  *   STALL. The share of elapsed time spent in gaps where nothing at all
  *   arrived for over half a second -- a freeze the viewer shows whatever
@@ -182,10 +189,16 @@ function settled_span(records) {
  * disagreement means something is off and no verdict is returned. Two
  * plausible-looking signals do NOT work and are not consulted: the
  * log_bootinfo burst stamps sender 0 whoever is recording, and the
- * recorder is not spared packet loss -- its own records occupy sequence
- * slots and go missing like anyone's (the machine cannot log a cycle
- * that never reached it), at the ring's highest rate in one sample log
- * and its lowest in the other. */
+ * recorder's own slot has sequence holes like anyone's -- its own quiet
+ * cycles, a parked or dead tank logging nothing, at the ring's highest
+ * rate in one sample log and its lowest in the other [E:seq-loss].
+ *
+ * A pair of logs of one game written on two machines confirmed the burst
+ * rule by an independent route: the recorder stamps its own record as it
+ * sends and everyone else's as the packet arrives, so subtracting the two
+ * logs' stamps sender by sender leaves one sender a whole ring cycle
+ * apart from the rest, and it is the sender the burst rule names
+ * (tools/compare-recordings.cjs) [E:two-recorders]. */
 
 const BURST_GAP_TICKS = 6;      /* quiet after a record: the packet has left */
 const BURST_MIN_VOTES = 20;     /* below this the log is too short to say */
