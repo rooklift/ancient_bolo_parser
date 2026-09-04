@@ -16,6 +16,8 @@ name: Release builds
 # Tauri CLI.
 
 on:
+  push:
+    branches: [claude/tauri-windows-app-tbgtz6] # temporary: proves the workflow on this branch before it reaches main
   release:
     types: [published]
   workflow_dispatch:
