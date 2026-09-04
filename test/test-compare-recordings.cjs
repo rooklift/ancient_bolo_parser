@@ -178,6 +178,7 @@ function ring_stream(recorder, clock0, cycles, options = {}) {
 	let row = holes_tool.measure_file(recs, tally, samples, "synthetic");
 	check("four players seen", row.players, 4);
 	check("missing slots counted", tally.missing, 210 + 20);
+	check("all of them attributed", [tally.attributed, tally.unattributed, tally.whole_cycle_slots, tally.beyond_cycle_slots], [230, 0, 0, 0]);
 	check("every chain closes on the next sender", [tally.chain_ok, tally.chain_bad], [tally.holes, 0]);
 	check("parked slots read as still", [tally.classes.still, tally.classes.edge], [207, 3]);
 	check("dead slots read as dead", tally.classes.dead, 20);

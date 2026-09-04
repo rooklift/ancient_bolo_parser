@@ -33,10 +33,14 @@
  *             start, neighbours further apart than a couple of cycles.
  *   EDGE      no record from the owner on one side of the hole.
  *
- * Alongside the classes: the step histogram against the player count
- * (a whole packet lost would take every slot of a cycle with it, step
- * = players + 1; in four-player logs such steps do not occur, and in
- * two-player ones they are both tanks parked), and the pace of the ring
+ * Only holes shorter than a cycle are handed to owners, and only when
+ * the chain of successors comes out on the player who actually closed
+ * the hole (a ring with a member that never logs breaks the chain, and
+ * those slots go unclassed). A hole of a whole cycle or more has every
+ * slot in it, and the widest -- dozens of slots inside a few seconds --
+ * are the counter jumping when a split ring rejoins; they are counted
+ * apart. Alongside the classes: the step histogram against the player
+ * count, and the pace of the ring
  * at holes: how many holes sit INSIDE a same-tick burst, which a lost
  * packet never could, and for the single-slot holes among the rest the
  * gap between the records either side, in ring cycles, against the gap
@@ -71,6 +75,8 @@ const SEQ_TRUST_TICKS = 250;     /* as network.js: past this a step may have wra
 const MOVING_WINDOW = 40;        /* ticks: neighbours this close bracket one skipped cycle */
 const MIN_RECORDS = 2000;
 const PACE_MIN_CYCLE = 4;        /* ticks: below this the stamps cannot resolve a cycle */
+const SAMPLES_PER_LOG = 3;       /* moving holes listed per log, so one log cannot fill the list */
+const SAMPLES_TOTAL = 60;
 const CLASSES = ["moving", "still", "dead", "changing", "edge"];
 
 /* ---------- one log ---------- */
@@ -131,6 +137,7 @@ function classify(prev, next) {
 function empty_tally() {
 	let tally = { logs: 0, records: 0, slots: 0, holes: 0, missing: 0, chain_ok: 0, chain_bad: 0,
 		own: 0, own_class: {}, classes: {}, steps: {}, whole_cycle: 0, beyond_cycle: 0,
+		whole_cycle_slots: 0, beyond_cycle_slots: 0, unattributed: 0, attributed: 0,
 		holes_in_burst: 0, unpaced_logs: 0, gap_at_hole: [], gap_at_step: [], by_players: {} };
 	for (let c of CLASSES) { tally.classes[c] = 0; tally.own_class[c] = 0; }
 	return tally;
@@ -173,6 +180,7 @@ function measure_file(recs, tally, samples, label) {
 	if (!paced) tally.unpaced_logs++;
 
 	let file = { label, players, recorder, records: span.length, slots: 0, missing: 0, holes: 0, moving: 0, own: 0 };
+	let file_samples = 0;
 	tally.logs++;
 	tally.records += span.length;
 	let per = tally.by_players[players] = tally.by_players[players] || { logs: 0, slots: 0, missing: 0, whole_cycle: 0, holes: 0 };
@@ -188,23 +196,42 @@ function measure_file(recs, tally, samples, label) {
 		file.holes++;
 		file.missing += step - 1;
 		tally.steps[step] = (tally.steps[step] || 0) + 1;
-		if (step === players + 1) { tally.whole_cycle++; per.whole_cycle++; }
-		if (step > players + 1) tally.beyond_cycle++;
+		/* a hole of a whole cycle or more is not one node's quiet turn:
+		 * every slot is in it, and the widest are the counter jumping
+		 * when a split ring rejoins. They are counted apart, and only
+		 * the partial-cycle holes are handed to their owners. */
+		if (step === players + 1) { tally.whole_cycle++; per.whole_cycle++; tally.whole_cycle_slots += step - 1; continue; }
+		if (step > players + 1) { tally.beyond_cycle++; tally.beyond_cycle_slots += step - 1; continue; }
+		/* the attribution is trusted only when the chain of successors
+		 * comes out on the player who actually closed the hole; a ring
+		 * with a member that never logs breaks it, and those go unclassed */
 		let owner = span[i - 1].player;
+		let owners = [];
 		for (let m = 1; m < step; m++) {
 			owner = next.get(owner);
 			if (owner === undefined) break;
-			let [prev, after] = neighbours(owner, i);
+			owners.push(owner);
+		}
+		if (owners.length !== step - 1 || next.get(owner) !== span[i].player) {
+			tally.chain_bad++;
+			tally.unattributed += step - 1;
+			continue;
+		}
+		tally.chain_ok++;
+		for (let slot of owners) {
+			let [prev, after] = neighbours(slot, i);
 			let cls = classify(prev, after);
 			tally.classes[cls]++;
-			if (owner === recorder) { tally.own++; tally.own_class[cls]++; file.own++; }
+			tally.attributed++;
+			if (slot === recorder) { tally.own++; tally.own_class[cls]++; file.own++; }
 			if (cls === "moving") {
 				file.moving++;
-				if (samples.length < 40) samples.push({ label, owner, step, prev, after, before_hole: span[i - 1], after_hole: span[i] });
+				if (file_samples < SAMPLES_PER_LOG && samples.length < SAMPLES_TOTAL) {
+					file_samples++;
+					samples.push({ label, owner: slot, step, prev, after, before_hole: span[i - 1], after_hole: span[i] });
+				}
 			}
 		}
-		if (owner !== undefined && next.get(owner) === span[i].player) tally.chain_ok++;
-		else tally.chain_bad++;
 	}
 	tally.slots += file.slots;
 	tally.missing += file.missing;
@@ -232,13 +259,16 @@ function report(tally, files, samples, show_samples) {
 	let pct = (n, d) => d ? (100 * n / d).toFixed(2) + "%" : "-";
 	console.log(`${tally.logs} logs, ${tally.records} settled records, ${tally.slots} ring slots, ` +
 		`${tally.missing} missing (${pct(tally.missing, tally.slots)}) in ${tally.holes} holes`);
-	console.log(`ring order chain closes on the actual next sender at ${tally.chain_ok} holes, fails at ${tally.chain_bad}`);
-	console.log("\nmissing slots by what the owner was doing:");
+	console.log(`  of the missing slots: ${tally.attributed} in partial-cycle holes handed to their owners below, ` +
+		`${tally.unattributed} in partial-cycle holes whose successor chain does not close on the next sender (unclassed), ` +
+		`${tally.whole_cycle_slots} in whole-cycle holes, ${tally.beyond_cycle_slots} in holes wider than a cycle`);
+	console.log(`ring order chain closes on the actual next sender at ${tally.chain_ok} partial-cycle holes, fails at ${tally.chain_bad}`);
+	console.log("\nattributed slots by what the owner was doing:");
 	for (let c of CLASSES) {
-		console.log(`  ${c.padEnd(9)} ${String(tally.classes[c]).padStart(8)}  ${pct(tally.classes[c], tally.missing).padStart(7)}` +
+		console.log(`  ${c.padEnd(9)} ${String(tally.classes[c]).padStart(8)}  ${pct(tally.classes[c], tally.attributed).padStart(7)}` +
 			`   of which the recorder's own slot: ${tally.own_class[c]}`);
 	}
-	console.log(`  recorder's own slot altogether: ${tally.own} (${pct(tally.own, tally.missing)} of missing slots)`);
+	console.log(`  recorder's own slot altogether: ${tally.own} (${pct(tally.own, tally.attributed)} of attributed slots)`);
 	let steps = Object.keys(tally.steps).map(Number).sort((a, b) => a - b);
 	console.log(`\nstep histogram: ${steps.map(s => `${s}:${tally.steps[s]}`).join("  ")}`);
 	console.log(`holes spanning a whole cycle (step = players + 1): ${tally.whole_cycle}; wider: ${tally.beyond_cycle}`);
