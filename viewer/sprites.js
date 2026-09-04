@@ -258,7 +258,10 @@ function load(on_ready, base = "sprites/") {
 	NAMES.forEach((name, i) => {
 		let img = new Image();
 		img.addEventListener("load", () => {
-			actx.drawImage(img, i * TILE, 0);
+			/* Explicit source and destination rects: a decode that comes back
+			 * larger than the file (a browser-side image "enhancement") then
+			 * squashes into its own cell instead of spilling over the next. */
+			actx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, i * TILE, 0, TILE, TILE);
 			atlas_x.set(name, i * TILE);
 			settle();
 		});
