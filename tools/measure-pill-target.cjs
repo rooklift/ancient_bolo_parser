@@ -38,6 +38,7 @@ const ALIVE_TICKS = 250;    /* a tank unheard of for 5 s is not a target */
 const MARGIN_BUCKETS = [8, 16, 32, 64];
 const RECENT_TICKS = 100;   /* a hit or an ownership change this recent may explain a fire at an ally */
 const TOUCH_PX = 24;        /* tank centre to pill centre when the tank is against the pill */
+const REST_DELAY = 100;     /* a rested pill's delay between shots, its slowest (GAMEPLAY.md, Anger) */
 const SAMPLE_CASES = 24;    /* allied-sender fires listed for reading */
 
 function* walk(target) {
@@ -132,6 +133,10 @@ const totals = {
 	 * they fired at a player it held friendly (counted from the state
 	 * change, so it is the rule's real trigger count, not the tool's) */
 	rule_triggers: 0, rule_trigger_sample: [],
+	/* calibration for the dead-heir runs: how long a pill that certainly
+	 * held its target hostile (the lowest live enemy at the quit) let him
+	 * sit as the nearest tank in range before shooting him */
+	ctl_latencies: [],
 	/* the sender's tank beyond a shell's flight of the pill: how far, how
 	 * stale its position, and whether a nearer hostile pill fits the nibble */
 	out_of_range_by_distance: [0, 0, 0, 0],   /* 137-160, 161-200, 201-300, over 300 px */
@@ -325,6 +330,14 @@ function scan(file) {
 			}
 			let pill_x = pill.x * 16 + 8;
 			let pill_y = pill.y * 16 + 8;
+			{
+				let fired = state.pills.indexOf(pill);
+				for (let w of file_windows) {
+					if (w.ctl_runs[fired] && state.names[sender] === w.ctl_name) totals.ctl_latencies.push(w.ctl_runs[fired]);
+					if (w.dead_runs[fired]) w.dead_runs[fired] = 0;
+					if (w.ctl_runs[fired]) w.ctl_runs[fired] = 0;
+				}
+			}
 			for (let t of tanks) {
 				t.distance = Math.hypot(t.x - pill_x, t.y - pill_y);
 				t.hostile = hostile(state, pill, t.player);
@@ -551,7 +564,7 @@ function scan(file) {
 				 * present at all, and whoever next takes the quitter's slot */
 				let live = j => { let t = state.tanks[j]; return !!(t && !t.dead && !t.dying && rec.time - t.lastSeen <= ALIVE_TICKS); };
 				let candidates = {next_live_ally: null, lowest_live_enemy: null, lowest_live_any: null, lowest_present_any: null, slot_taker: null};
-				let heir_slot = -1;
+				let heir_slot = -1, ctl_slot = -1;
 				for (let j = 0; j < 16; j++) {
 					if (j === i || state.names[j] === null || state.quit[j]) continue;
 					let mutual = !(state.alliances[i] & (1 << j)) && !(state.alliances[j] & (1 << i));
@@ -559,7 +572,7 @@ function scan(file) {
 					if (!live(j)) continue;
 					if (candidates.lowest_live_any === null) candidates.lowest_live_any = state.names[j];
 					if (mutual && candidates.next_live_ally === null) { candidates.next_live_ally = state.names[j]; heir_slot = j; }
-					if (!mutual && candidates.lowest_live_enemy === null) candidates.lowest_live_enemy = state.names[j];
+					if (!mutual && candidates.lowest_live_enemy === null) { candidates.lowest_live_enemy = state.names[j]; ctl_slot = j; }
 				}
 				let heir_state = heir && heir_alive ? "lowest ally live" : candidates.next_live_ally !== null ? "another ally live" : "no ally live";
 				let named = lowest_named_slot(state, i, last_request[i]);
@@ -567,7 +580,18 @@ function scan(file) {
 				let window = {label, slot: i, owner_name: state.names[i], heir_state, candidates, allies, others, fires: {}, named,
 					heir_slot, pills: new Set(), exposure_ticks: 0, exposure_pills: new Set(),
 					dead_ally_slot, dead_ally_name, dead_ally_kind, dead_ally_returned: false,
-					dead_exposure_ticks: 0, dead_exposure_pills: new Set()};
+					dead_exposure_ticks: 0, dead_exposure_pills: new Set(),
+					/* per pill, the current unbroken run of ticks in which the
+					 * ally's live, unhidden tank is the nearest tank to that
+					 * live pill and within its range; and the longest such run.
+					 * A pill's delay never exceeds REST_DELAY and restarts at
+					 * each shot, so a run longer than that from a pill that
+					 * holds the ally hostile is impossible: it would have fired. */
+					dead_runs: {}, dead_run_max: 0,
+					/* the control: the lowest-index live enemy at the quit, under
+					 * the same run measure, to learn how long a hostile pill
+					 * really holds its fire */
+					ctl_slot, ctl_name: candidates.lowest_live_enemy, ctl_runs: {}};
 				if (state.pills.some((p, k) => owners_before[k] === i && p.inTank === null)) {
 					file_windows.push(window);
 					totals.windows.push(window);
@@ -638,25 +662,53 @@ function scan(file) {
 			 * dead or tankless at the quit: if the pills are really his
 			 * after all, his live tank sits in their range unshot; if they
 			 * are nobody's, they fire at it as soon as it is there. Only
-			 * the fires at him were ever counted before this. */
-			for (let w of file_windows) {
-				if (w.dead_ally_slot < 0) continue;
-				let slot = state.names[w.dead_ally_slot] === w.dead_ally_name ? w.dead_ally_slot : state.names.indexOf(w.dead_ally_name);
-				if (slot < 0 || state.quit[slot]) continue;
+			 * the fires at him were ever counted before this. The tracker
+			 * also keeps, per pill, the unbroken run of ticks in which the
+			 * tank is unhidden, within range and the nearest tank to that
+			 * live pill; a pill's delay restarts at each shot, so the run a
+			 * hostile pill can leave unshot is bounded, and the control (the
+			 * lowest live enemy at the quit) measures that bound. */
+			let track = (w, pref_slot, name, runs) => {
+				let slot = state.names[pref_slot] === name ? pref_slot : state.names.indexOf(name);
+				if (slot < 0 || state.quit[slot]) return null;
 				let t = state.tanks[slot];
-				if (!t || t.dead || t.dying || rec.time - t.lastSeen > ALIVE_TICKS) continue;
-				w.dead_ally_returned = true;
-				if (!w.pills.size) continue;
+				if (!t || t.dead || t.dying || rec.time - t.lastSeen > ALIVE_TICKS) return null;
+				let out = {exposed: false, pills: [], run_max: 0};
+				if (!w.pills.size) return out;
 				let c = tank_centre(t);
-				let exposed = false;
+				/* the other live tanks with a recent position, for the
+				 * nearest test: a hidden tank is no target, so it neither
+				 * makes the tracked tank decisive nor outranks it */
+				let others = [];
+				for (let j = 0; j < 16; j++) {
+					let o = state.tanks[j];
+					if (j === slot || !o || state.quit[j] || o.dead || o.dying || o.hidden) continue;
+					if (rec.time - o.lastSeen > ALIVE_TICKS) continue;
+					others.push(tank_centre(o));
+				}
 				for (let k of w.pills) {
 					let p = state.pills[k];
-					if (p.inTank !== null || p.armour === 0) continue;
-					if (Math.hypot(p.x * 16 + 8 - c.x, p.y * 16 + 8 - c.y) > RANGE_PX) continue;
-					exposed = true;
-					w.dead_exposure_pills.add(k);
+					if (p.inTank !== null || p.armour === 0) { runs[k] = 0; continue; }
+					let px = p.x * 16 + 8, py = p.y * 16 + 8;
+					let d = Math.hypot(px - c.x, py - c.y);
+					if (d > RANGE_PX) { runs[k] = 0; continue; }
+					out.exposed = true;
+					out.pills.push(k);
+					let decisive = !t.hidden && others.every(o => Math.hypot(px - o.x, py - o.y) >= d);
+					runs[k] = decisive ? (runs[k] || 0) + dt : 0;
+					if (runs[k] > out.run_max) out.run_max = runs[k];
 				}
-				if (exposed) w.dead_exposure_ticks += dt;
+				return out;
+			};
+			for (let w of file_windows) {
+				if (w.ctl_slot >= 0) track(w, w.ctl_slot, w.ctl_name, w.ctl_runs);
+				if (w.dead_ally_slot < 0) continue;
+				let r = track(w, w.dead_ally_slot, w.dead_ally_name, w.dead_runs);
+				if (!r) continue;
+				w.dead_ally_returned = true;
+				if (r.exposed) w.dead_exposure_ticks += dt;
+				for (let k of r.pills) w.dead_exposure_pills.add(k);
+				if (r.run_max > w.dead_run_max) w.dead_run_max = r.run_max;
 			}
 		}
 	}
@@ -752,15 +804,29 @@ console.log();
 	 * within their range could say they were. */
 	{
 		let ws = totals.windows.filter(w => w.dead_ally_slot >= 0);
+		let lat = totals.ctl_latencies.slice().sort((a, b) => a - b);
+		let q = f => lat.length ? lat[Math.min(lat.length - 1, Math.floor(f * lat.length))] : 0;
+		let ctl_max = lat.length ? lat[lat.length - 1] : 0;
+		console.log("How long does a hostile pill hold its fire? For every quit that left grounded pills, the");
+		console.log("lowest-index live enemy at the quit was followed: the unbroken run of ticks in which his");
+		console.log("live, unhidden tank was the nearest tank to one of those pills and within its range, read");
+		console.log("off at the moment that pill shot him (a shot at anyone restarts a pill's run, since its");
+		console.log("delay restarts). A rested pill's delay is " + REST_DELAY + " ticks, but the first shot at a newcomer can");
+		console.log("take longer than that, so the dead-heir runs below are judged against this distribution.");
+		console.log(`    shots ${n(lat.length)}; run at the shot: median ${n(q(0.5))}, 90th pct ${n(q(0.9))}, 99th pct ${n(q(0.99))}, 99.9th pct ${n(q(0.999))}, max ${n(ctl_max)};`);
+		console.log(`    over ${REST_DELAY} ticks ${n(lat.filter(v => v > REST_DELAY).length)}, over ${2 * REST_DELAY} ${n(lat.filter(v => v > 2 * REST_DELAY).length)}, over ${3 * REST_DELAY} ${n(lat.filter(v => v > 3 * REST_DELAY).length)}`);
+		console.log();
 		console.log("Dead-heir quits: the lowest-index remaining ally had no live tank at the quit, so the");
 		console.log("hand-over passed him over. Once he held a live tank again, did it sit within a shell's");
 		console.log("flight of a live handed pill without being shot? Columns: quits / the ally later held a");
 		console.log("live tank / his live tank came within range of a live handed pill / ticks it spent there /");
 		console.log("fires from the pills / fires at that ally / quits in which he was fired at / exposed quits");
-		console.log("with no fire at him (pills apparently his after all).");
+		console.log("with no fire at him / of those, with a run (as above) longer than the control's 99th");
+		console.log("percentile / longer than the control's longest. Only the last two columns say the pills");
+		console.log("were apparently his after all.");
 		let row = (title, pick) => {
 			let sel = ws.filter(pick);
-			let returned = 0, exposed = 0, exposure = 0, fires = 0, at_ally = 0, at_windows = 0, unshot = 0;
+			let returned = 0, exposed = 0, exposure = 0, fires = 0, at_ally = 0, at_windows = 0, unshot = 0, over_p99 = 0, over_max = 0;
 			for (let w of sel) {
 				if (w.dead_ally_returned) returned++;
 				if (w.dead_exposure_ticks) exposed++;
@@ -770,21 +836,23 @@ console.log();
 				at_ally += hit;
 				if (hit) at_windows++;
 				if (w.dead_exposure_ticks && !hit) unshot++;
+				if (w.dead_exposure_ticks && !hit && w.dead_run_max > q(0.99)) over_p99++;
+				if (w.dead_exposure_ticks && !hit && w.dead_run_max > ctl_max) over_max++;
 			}
-			console.log(`    ${title.padEnd(34)} ${[sel.length, returned, exposed, exposure, fires, at_ally, at_windows, unshot].map(v => n(v).padStart(7)).join("")}`);
+			console.log(`    ${title.padEnd(34)} ${[sel.length, returned, exposed, exposure, fires, at_ally, at_windows, unshot, over_p99, over_max].map(v => n(v).padStart(7)).join("")}`);
 		};
 		row("all dead-heir quits", () => true);
 		for (let kind of ["dead", "stale", "no tank"]) row(`  ally ${kind} at the quit`, w => w.dead_ally_kind === kind);
 		row("  no other ally live", w => w.heir_state === "no ally live");
 		row("  another ally live", w => w.heir_state === "another ally live");
 		if (ws.length) {
-			console.log("    one per line (ally state / returned / exposure ticks / pills exposed / fires / at the ally):");
+			console.log("    one per line (ally state / returned / exposure ticks / pills exposed / longest run / fires / at the ally):");
 			for (let w of ws) {
 				let fires = Object.values(w.fires).reduce((a, b) => a + b, 0);
 				console.log(`      ${w.label} slot ${w.slot} -> ally slot ${w.dead_ally_slot} ${w.dead_ally_kind}` +
 					`${w.heir_state === "another ally live" ? ", another ally live" : ""}: ` +
 					`${w.dead_ally_returned ? "returned" : "never returned"}, exposed ${n(w.dead_exposure_ticks)} ticks to ` +
-					`${n(w.dead_exposure_pills.size)} pills, ${n(fires)} fires, ${n(w.fires[w.dead_ally_name] || 0)} at the ally`);
+					`${n(w.dead_exposure_pills.size)} pills, longest run ${n(w.dead_run_max)}, ${n(fires)} fires, ${n(w.fires[w.dead_ally_name] || 0)} at the ally`);
 			}
 		}
 		console.log();
