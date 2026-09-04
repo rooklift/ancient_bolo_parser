@@ -179,7 +179,9 @@ function measure_file(recs, tally, samples, label) {
 	let paced = cycle >= PACE_MIN_CYCLE;
 	if (!paced) tally.unpaced_logs++;
 
-	let file = { label, players, recorder, records: span.length, slots: 0, missing: 0, holes: 0, moving: 0, own: 0 };
+	let info = null;
+	for (let rec of recs) { info = rec.subpackets.find(s => s.type === "game_info"); if (info) break; }
+	let file = { label, game: info ? info.gameId : "?", players, recorder, records: span.length, slots: 0, missing: 0, holes: 0, moving: 0, own: 0 };
 	let file_samples = 0;
 	tally.logs++;
 	tally.records += span.length;
@@ -286,8 +288,8 @@ function report(tally, files, samples, show_samples) {
 		(tally.unpaced_logs ? ` (${tally.unpaced_logs} logs whose ring turns in under ${PACE_MIN_CYCLE} ticks left out of this line)` : ""));
 	let worst = files.filter(f => f.moving).sort((a, b) => b.moving - a.moving).slice(0, 10);
 	if (worst.length) {
-		console.log("\nlogs with MOVING holes (the only candidates for loss):");
-		for (let f of worst) console.log(`  ${f.label}: ${f.moving} of ${f.missing} missing slots, ${f.players} players`);
+		console.log("\nlogs with MOVING holes (the only candidates for loss; tools/find-replay.cjs finds a label, tools/find-same-game-replays.cjs a game id):");
+		for (let f of worst) console.log(`  ${f.label} (game ${f.game}): ${f.moving} of ${f.missing} missing slots, ${f.players} players`);
 	} else {
 		console.log("\nno MOVING hole anywhere: no moving tank ever missed a restatement");
 	}
