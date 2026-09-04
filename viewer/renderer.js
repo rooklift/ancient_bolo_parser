@@ -1069,7 +1069,7 @@ async function load_log(bytes, name) {
 	let net = game.network;
 	network_meta_el.textContent = net ? `Network conditions: ${net.rating}` : "";
 	network_meta_el.title = net ?
-		`${net.loss.toFixed(1)}% of packets lost, ` +
+		`${net.loss.toFixed(1)}% of ring slots quiet (a node with nothing to log), ` +
 		`${net.stall.toFixed(1)}% of the time spent frozen, ` +
 		`a ring cycle taking ${(net.cycle / TPS).toFixed(2)}s at the slow end; ` +
 		`measured over settled play, ${fmt_time(net.from)} to ${fmt_time(net.to)}` : "";

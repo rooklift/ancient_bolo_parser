@@ -1,0 +1,244 @@
+1030 logs with a game id, 1014 distinct games, 16 recorded more than once
+
+=== game 180030e5b6f2cff7: 20010406.5~ef83a5, 20010406~ab42d9
+--- A = 20010406.5~ef83a5, B = 20010406~ab42d9
+game id 180030e5b6f2cff7: the same game in both logs
+ring records: A 10564, B 10417, shared 10377
+  A only: 0 before the shared stretch, 0 inside it, 187 after
+  B only: 40 before the shared stretch, 0 inside it, 0 after
+  A's sequence holes: 936, 902 inside the shared stretch missing 1317 slots, of which 0 are records in B
+  B's sequence holes: 939, 902 inside the shared stretch missing 1317 slots, of which 0 are records in A
+clocks: B - A = -1880219 ticks; ring cycle (median) A 13 B 13; drift -17.9 ppm over 631 s (-0.56 ticks end to end)
+  sender 0: n=2103 median -1880219 (+0, group -) min -1880335 p1 -1880220 p99 -1880218 max -1880217
+  sender 1: n=2120 median -1880219 (+0, group -) min -1880335 p1 -1880220 p99 -1880218 max -1880217
+  sender 2: n=1937 median -1880219 (+0, group -) min -1880335 p1 -1880220 p99 -1880218 max -1880217
+  sender 3: n=2172 median -1880219 (+0, group -) min -1880335 p1 -1880220 p99 -1880218 max -1880217
+  sender 4: n=2045 median -1880206 (+13, group +) min -1880208 p1 -1880207 p99 -1880200 max -1880090
+ring order: 0 -> 1 -> 2 -> 4 -> 3
+recorder of A: by stamp offsets slot 4, by burst position slot 4
+recorder of B: by stamp offsets slot 2, by burst position slot 2
+start-of-log bursts: A 80 records, B 80; differing A 7, B 7
+
+=== game 180aaaf6b6faa310: 20010411~8093eb, 20010411~6c09da
+--- A = 20010411~8093eb, B = 20010411~6c09da
+game id 180aaaf6b6faa310: the same game in both logs
+ring records: A 18074, B 18113, shared 17953 (7 byte-identical matches rejected as stamped more than 5.0 s off the sender's offset)
+  A only: 2 before the shared stretch, 5 inside it, 114 after
+  B only: 155 before the shared stretch, 5 inside it, 0 after
+  runs of records in A only, inside the shared stretch, with the gap B shows across each:
+    2 records from senders 0,3 over 0.0 s at t=3427934 -- an absence: B heard nothing for 8.4 s
+    1 record from sender 0 over 0.0 s at t=3430726 -- an absence: B heard nothing for 10.4 s
+    2 records from senders 0,3 over 0.0 s at t=3431484 -- an absence: B heard nothing for 8.7 s
+  runs of records in B only, inside the shared stretch, with the gap A shows across each:
+    2 records from senders 0,3 over 0.0 s at t=163086 -- an absence: A heard nothing for 8.4 s
+    1 record from sender 0 over 0.0 s at t=165780 -- an absence: A heard nothing for 10.3 s
+    2 records from senders 0,3 over 0.0 s at t=166623 -- an absence: A heard nothing for 8.7 s
+  A's sequence holes: 1829, 1824 inside the shared stretch missing 4854 slots, of which 0 are records in B
+  B's sequence holes: 1970, 1824 inside the shared stretch missing 4854 slots, of which 0 are records in A
+clocks: B - A = -3264437 ticks; ring cycle (median) A 9 B 9; drift 5.0 ppm over 704 s (0.18 ticks end to end)
+  sender 0: n=3047 median -3264437 (+0, group -) min -3264679 p1 -3264443 p99 -3264435 max -3264435
+  sender 1: n=3087 median -3264428 (+9, group +) min -3264430 p1 -3264430 p99 -3264427 max -3264323
+  sender 2: n=2801 median -3264428 (+9, group +) min -3264430 p1 -3264430 p99 -3264427 max -3264323
+  sender 3: n=2890 median -3264437 (+0, group -) min -3264679 p1 -3264445 p99 -3264435 max -3264435
+  sender 4: n=3113 median -3264428 (+9, group +) min -3264430 p1 -3264430 p99 -3264427 max -3264323
+  sender 5: n=3015 median -3264428 (+9, group +) min -3264430 p1 -3264430 p99 -3264427 max -3264323
+ring order: 0 -> 1 -> 2 -> 5 -> 4 -> 3
+recorder of A: by stamp offsets slot 4, by burst position slot 4
+recorder of B: by stamp offsets slot 0, by burst position slot 0
+start-of-log bursts: A 71 records, B 71; differing A 13, B 13
+
+=== game 180aaaf6b6faa779: 20010411.1~94a140, 20010411~a2eefc
+--- A = 20010411.1~94a140, B = 20010411~a2eefc
+game id 180aaaf6b6faa779: the same game in both logs
+ring records: A 15187, B 15688, shared 14873 (1 byte-identical matches rejected as stamped more than 5.0 s off the sender's offset)
+  A only: 1 before the shared stretch, 0 inside it, 313 after
+  B only: 815 before the shared stretch, 0 inside it, 0 after
+  A's sequence holes: 1214, 1190 inside the shared stretch missing 1915 slots, of which 0 are records in B
+  B's sequence holes: 1896, 1190 inside the shared stretch missing 1915 slots, of which 0 are records in A
+clocks: B - A = -3264436 ticks; ring cycle (median) A 8 B 8; drift 6.9 ppm over 462 s (0.16 ticks end to end)
+  sender 0: n=2491 median -3264436 (+0, group -) min -3264440 p1 -3264439 p99 -3264435 max -3264435
+  sender 1: n=2368 median -3264436 (+0, group -) min -3264441 p1 -3264439 p99 -3264435 max -3264435
+  sender 2: n=2428 median -3264428 (+8, group +) min -3264430 p1 -3264429 p99 -3264427 max -3264323
+  sender 3: n=2513 median -3264428 (+8, group +) min -3264430 p1 -3264429 p99 -3264427 max -3264323
+  sender 4: n=2574 median -3264428 (+8, group +) min -3264430 p1 -3264429 p99 -3264427 max -3264323
+  sender 5: n=2499 median -3264428 (+8, group +) min -3264430 p1 -3264429 p99 -3264427 max -3264323
+ring order: 0 -> 2 -> 3 -> 5 -> 4 -> 1
+recorder of A: by stamp offsets slot 4, by burst position slot 4
+recorder of B: by stamp offsets slot 0, by burst position slot 0
+start-of-log bursts: A 72 records, B 72; differing A 25, B 25
+
+=== game 81695636b7a359c9: 20010817.2~840dad, 20010817~eefeed
+--- A = 20010817.2~840dad, B = 20010817~eefeed
+game id 81695636b7a359c9: the same game in both logs
+ring records: A 8003, B 7264, shared 7263 (1 byte-identical matches rejected as stamped more than 5.0 s off the sender's offset)
+  A only: 249 before the shared stretch, 1 inside it, 490 after
+  B only: 0 before the shared stretch, 1 inside it, 0 after
+  runs of records in A only, inside the shared stretch, with the gap B shows across each:
+    1 record from sender 3 over 0.0 s at t=47141 -- an absence: B heard nothing for 5.5 s
+  runs of records in B only, inside the shared stretch, with the gap A shows across each:
+    1 record from sender 3 over 0.0 s at t=68525 -- an absence: A heard nothing for 5.5 s
+  A's sequence holes: 1006, 699 inside the shared stretch missing 1624 slots, of which 0 are records in B
+  B's sequence holes: 699, 699 inside the shared stretch missing 1624 slots, of which 0 are records in A
+clocks: B - A = 21644 ticks; ring cycle (median) A 14 B 14; drift -22.0 ppm over 614 s (-0.68 ticks end to end)
+  sender 0: n=1233 median 21658 (+14, group +) min 21656 p1 21657 p99 21659 max 21659
+  sender 1: n=1122 median 21658 (+14, group +) min 21656 p1 21657 p99 21659 max 21659
+  sender 2: n=1287 median 21658 (+14, group +) min 21656 p1 21657 p99 21659 max 21659
+  sender 3: n=1185 median 21644 (+0, group -) min 21429 p1 21613 p99 21647 max 21647
+  sender 4: n=1236 median 21658 (+14, group +) min 21656 p1 21657 p99 21659 max 21659
+  sender 5: n=1200 median 21658 (+14, group +) min 21656 p1 21657 p99 21659 max 21659
+ring order: 0 -> 5 -> 1 -> 4 -> 3 -> 2
+recorder of A: by stamp offsets slot 4, by burst position slot 4
+recorder of B: by stamp offsets slot 3, by burst position slot 3
+start-of-log bursts: A 75 records, B 75; differing A 20, B 20
+
+=== game 442d3c61b9a9afea: 20020914.3, 20020914~41fa38
+--- A = 20020914.3, B = 20020914~41fa38
+game id 442d3c61b9a9afea: the same game in both logs
+ring records: A 19730, B 19733, shared 19717 (2 byte-identical matches rejected as stamped more than 5.0 s off the sender's offset)
+  A only: 11 before the shared stretch, 2 inside it, 0 after
+  B only: 0 before the shared stretch, 2 inside it, 14 after
+  runs of records in A only, inside the shared stretch, with the gap B shows across each:
+    2 records from senders 0,4 over 0.0 s at t=13769925 -- an absence: B heard nothing for 7.7 s
+  runs of records in B only, inside the shared stretch, with the gap A shows across each:
+    2 records from senders 0,4 over 0.0 s at t=2003826 -- an absence: A heard nothing for 7.7 s
+  A's sequence holes: 1779, 1771 inside the shared stretch missing 9873 slots, of which 0 are records in B
+  B's sequence holes: 1772, 1772 inside the shared stretch missing 9978 slots, of which 0 are records in A
+clocks: B - A = -11766483 ticks; ring cycle (median) A 14 B 14; drift 1.4 ppm over 1533 s (0.10 ticks end to end)
+  sender 0: n=3284 median -11766469 (+14, group +) min -11766470 p1 -11766470 p99 -11766457 max -11766222
+  sender 1: n=3280 median -11766483 (+0, group -) min -11766490 p1 -11766487 p99 -11766482 max -11766481
+  sender 2: n=3295 median -11766483 (+0, group -) min -11766489 p1 -11766487 p99 -11766482 max -11766481
+  sender 3: n=3359 median -11766483 (+0, group -) min -11766493 p1 -11766487 p99 -11766482 max -11766481
+  sender 4: n=3297 median -11766469 (+14, group +) min -11766470 p1 -11766470 p99 -11766457 max -11766222
+  sender 5: n=3202 median -11766483 (+0, group -) min -11766493 p1 -11766487 p99 -11766482 max -11766481
+ring order: 0 -> 4 -> 3 -> 5 -> 2 -> 1
+recorder of A: by stamp offsets slot 4, by burst position slot 4
+recorder of B: by stamp offsets slot 1, by burst position slot 1
+start-of-log bursts: A 58 records, B 58; differing A 5, B 5
+
+=== game 88a013b5baac09c2: 20030329.1~282f82, 20030329~0c6085
+--- A = 20030329.1~282f82, B = 20030329~0c6085
+game id 88a013b5baac09c2: the same game in both logs
+ring records: A 20819, B 20902, shared 20819
+  A only: 0 before the shared stretch, 0 inside it, 0 after
+  B only: 56 before the shared stretch, 12 inside it, 15 after
+  runs of records in B only, inside the shared stretch, with the gap A shows across each:
+    12 records from senders 0,1,2,3 over 3.8 s at t=205257 -- a hole of 49 ticks in A
+  A's sequence holes: 721, 721 inside the shared stretch missing 844 slots, of which 12 are records in B
+  B's sequence holes: 793, 720 inside the shared stretch missing 816 slots, of which 0 are records in A
+clocks: B - A = -117354 ticks; ring cycle (median) A 6 B 6; drift 1.0 ppm over 704 s (0.04 ticks end to end)
+  sender 0: n=5196 median -117348 (+6, group +) min -117350 p1 -117350 p99 -117345 max -117337
+  sender 1: n=5275 median -117354 (+0, group -) min -117369 p1 -117358 p99 -117353 max -117353
+  sender 2: n=5286 median -117354 (+0, group -) min -117570 p1 -117358 p99 -117353 max -117353
+  sender 3: n=5062 median -117354 (+0, group -) min -117570 p1 -117358 p99 -117353 max -117353
+ring order: 0 -> 1 -> 3 -> 2
+recorder of A: by stamp offsets slot 0, by burst position slot 0
+recorder of B: by stamp offsets slot 2, by burst position slot 2
+start-of-log bursts: A 73 records, B 73; differing A 13, B 13
+
+=== game 88a013b5baac0fc2: 20030329.2~63463c, 20030329~e31921
+--- A = 20030329.2~63463c, B = 20030329~e31921
+game id 88a013b5baac0fc2: the same game in both logs
+ring records: A 17424, B 17178, shared 17178
+  A only: 243 before the shared stretch, 0 inside it, 3 after
+  B only: 0 before the shared stretch, 0 inside it, 0 after
+  A's sequence holes: 1722, 1489 inside the shared stretch missing 8611 slots, of which 0 are records in B
+  B's sequence holes: 1489, 1489 inside the shared stretch missing 8611 slots, of which 0 are records in A
+clocks: B - A = -117358 ticks; ring cycle (median) A 6 B 6; drift -3.2 ppm over 1050 s (-0.17 ticks end to end)
+  sender 0: n=4374 median -117351 (+7, group +) min -117354 p1 -117353 p99 -117346 max -117339
+  sender 1: n=4240 median -117351 (+7, group +) min -117354 p1 -117353 p99 -117346 max -117339
+  sender 2: n=4244 median -117358 (+0, group -) min -117378 p1 -117361 p99 -117356 max -117356
+  sender 3: n=4320 median -117351 (+7, group +) min -117354 p1 -117353 p99 -117346 max -117339
+ring order: 0 -> 2 -> 3 -> 1
+recorder of A: by stamp offsets slot 0, by burst position slot 0
+recorder of B: by stamp offsets slot 2, by burst position slot 2
+start-of-log bursts: A 77 records, B 79; differing A 22, B 24
+
+=== game 40518b7fbb17fd29: 20030619.7~4ebe34, 20030619~e4fe84
+--- A = 20030619.7~4ebe34, B = 20030619~e4fe84
+game id 40518b7fbb17fd29: the same game in both logs
+ring records: A 18654, B 18756, shared 18644 (3 byte-identical matches rejected as stamped more than 5.0 s off the sender's offset)
+  A only: 3 before the shared stretch, 0 inside it, 7 after
+  B only: 112 before the shared stretch, 0 inside it, 0 after
+  A's sequence holes: 1007, 1004 inside the shared stretch missing 2482 slots, of which 0 are records in B
+  B's sequence holes: 1114, 1004 inside the shared stretch missing 2482 slots, of which 0 are records in A
+clocks: B - A = -4954726 ticks; ring cycle (median) A 7 B 7; drift -23.5 ppm over 823 s (-0.97 ticks end to end)
+  sender 0: n=4679 median -4954719 (+7, group +) min -4954720 p1 -4954720 p99 -4954718 max -4954708
+  sender 1: n=4620 median -4954719 (+7, group +) min -4954720 p1 -4954720 p99 -4954718 max -4954712
+  sender 2: n=4664 median -4954719 (+7, group +) min -4954720 p1 -4954720 p99 -4954718 max -4954708
+  sender 3: n=4681 median -4954726 (+0, group -) min -4954738 p1 -4954732 p99 -4954725 max -4954724
+ring order: 0 -> 2 -> 3 -> 1
+recorder of A: by stamp offsets slot 2, by burst position slot 2
+recorder of B: by stamp offsets slot 3, by burst position slot 3
+start-of-log bursts: A 73 records, B 73; differing A 17, B 17
+
+=== game 45893aa8bd62d592: 20040907.2~aec227, 06~878ba6
+--- A = 20040907.2~aec227, B = 06~878ba6
+game id 45893aa8bd62d592: the same game in both logs
+ring records: A 33983, B 33965, shared 33965
+  A only: 16 before the shared stretch, 0 inside it, 2 after
+  B only: 0 before the shared stretch, 0 inside it, 0 after
+  A's sequence holes: 2280, 2267 inside the shared stretch missing 3975 slots, of which 0 are records in B
+  B's sequence holes: 2267, 2267 inside the shared stretch missing 3975 slots, of which 0 are records in A
+clocks: B - A = -426983 ticks; ring cycle (median) A 8 B 8; drift -11.4 ppm over 1592 s (-0.91 ticks end to end)
+  sender 0: n=8406 median -426975 (+8, group +) min -426977 p1 -426976 p99 -426972 max -426846
+  sender 1: n=8336 median -426975 (+8, group +) min -426977 p1 -426976 p99 -426972 max -426846
+  sender 2: n=8991 median -426975 (+8, group +) min -426977 p1 -426976 p99 -426972 max -426846
+  sender 3: n=8232 median -426983 (+0, group -) min -426996 p1 -426985 p99 -426981 max -426981
+ring order: 0 -> 2 -> 1 -> 3
+recorder of A: by stamp offsets slot 1, by burst position slot 1
+recorder of B: by stamp offsets slot 3, by burst position slot 3
+start-of-log bursts: A 73 records, B 73; differing A 8, B 8
+
+=== game 45893aa8bd62dc4f: 20040907.3~58378c, 06~d2971c
+--- A = 20040907.3~58378c, B = 06~d2971c
+game id 45893aa8bd62dc4f: the same game in both logs
+ring records: A 30339, B 31116, shared 30337
+  A only: 0 before the shared stretch, 0 inside it, 2 after
+  B only: 779 before the shared stretch, 0 inside it, 0 after
+  A's sequence holes: 2085, 2085 inside the shared stretch missing 2823 slots, of which 0 are records in B
+  B's sequence holes: 2581, 2085 inside the shared stretch missing 2823 slots, of which 0 are records in A
+clocks: B - A = -426984 ticks; ring cycle (median) A 8 B 8; drift -15.2 ppm over 1387 s (-1.05 ticks end to end)
+  sender 0: n=7353 median -426976 (+8, group +) min -426978 p1 -426978 p99 -426969 max -426851
+  sender 1: n=7644 median -426976 (+8, group +) min -426978 p1 -426978 p99 -426968 max -426851
+  sender 2: n=7721 median -426984 (+0, group -) min -427216 p1 -426986 p99 -426983 max -426982
+  sender 3: n=7619 median -426976 (+8, group +) min -426978 p1 -426978 p99 -426969 max -426851
+ring order: 0 -> 3 -> 1 -> 2
+recorder of A: by stamp offsets slot 1, by burst position slot 1
+recorder of B: by stamp offsets slot 2, by burst position slot 2
+start-of-log bursts: A 55 records, B 55; differing A 14, B 14
+
+=== game 82558c39b881ff04: 20020202~bee575, 20020202~57a296
+--- A = 20020202~bee575, B = 20020202~57a296
+game id 82558c39b881ff04: the same game in both logs
+ring records: A 90981, B 3838, shared 18 (1 byte-identical matches rejected as stamped more than 5.0 s off the sender's offset) (90870 of A and 3730 of B in anchorless stretches too long to diff, left unmatched)
+  fewer than 100 records in common: the two logs cover different stretches of the game -- a log restarted, not two views of one stretch (recorder of A by burst position slot 2, of B slot 2)
+
+=== game 0cd98099b89cbd57: 20020222~4e5000, 20020222~a15232
+--- A = 20020222~4e5000, B = 20020222~a15232
+game id 0cd98099b89cbd57: the same game in both logs
+ring records: A 2237, B 6030, shared 0 (2237 of A and 6030 of B in anchorless stretches too long to diff, left unmatched)
+  fewer than 100 records in common: the two logs cover different stretches of the game -- a log restarted, not two views of one stretch (recorder of A by burst position slot 0, of B slot 0)
+
+=== game 4441d9ceb9b55548: 20020923~4fac3d, 20020923~fabdfb
+--- A = 20020923~4fac3d, B = 20020923~fabdfb
+game id 4441d9ceb9b55548: the same game in both logs
+ring records: A 42255, B 50681, shared 47 (13 byte-identical matches rejected as stamped more than 5.0 s off the sender's offset) (41276 of A and 50315 of B in anchorless stretches too long to diff, left unmatched)
+  fewer than 100 records in common: the two logs cover different stretches of the game -- a log restarted, not two views of one stretch (recorder of A by burst position slot 3, of B slot 3)
+
+=== game 4293c69ebb2a9022: 20030703~aad4f0, 20030703~cf9f51
+--- A = 20030703~aad4f0, B = 20030703~cf9f51
+game id 4293c69ebb2a9022: the same game in both logs
+ring records: A 7406, B 1168, shared 0 (7406 of A and 1168 of B in anchorless stretches too long to diff, left unmatched)
+  fewer than 100 records in common: the two logs cover different stretches of the game -- a log restarted, not two views of one stretch (recorder of A by burst position slot 1, of B slot 1)
+
+=== game 42f337f1bb634a1f: 20030815~8d79b4, 20030815~068e01
+--- A = 20030815~8d79b4, B = 20030815~068e01
+game id 42f337f1bb634a1f: the same game in both logs
+ring records: A 7183, B 12894, shared 1 (7182 of A and 12893 of B in anchorless stretches too long to diff, left unmatched)
+  fewer than 100 records in common: the two logs cover different stretches of the game -- a log restarted, not two views of one stretch (recorder of A by burst position slot 1, of B slot 1)
+
+=== game 4035ee3fbd7e9bb6: 27~77a23d, 27~c348e6
+--- A = 27~77a23d, B = 27~c348e6
+game id 4035ee3fbd7e9bb6: the same game in both logs
+ring records: A 2091, B 19074, shared 1 (929 of A and 18605 of B in anchorless stretches too long to diff, left unmatched)
+  fewer than 100 records in common: the two logs cover different stretches of the game -- a log restarted, not two views of one stretch (recorder of A by burst position slot 2, of B slot 3)
