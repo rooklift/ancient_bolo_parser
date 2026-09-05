@@ -526,7 +526,7 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
 	let view = Submenu::with_items(app, "&View", true, &[
 		&item(app, "zoom-in", "Zoom in", "Ctrl+=")?,
 		&item(app, "zoom-out", "Zoom out", "Ctrl+-")?,
-		&item(app, "zoom-fit", "Fit map", "Ctrl+0")?,
+		&item(app, "centre-map", "Centre map", "Ctrl+0")?,
 		&PredefinedMenuItem::separator(app)?,
 		&item(app, "toggle-player-lock", "Toggle player lock", "Ctrl+L")?,
 		&PredefinedMenuItem::separator(app)?,

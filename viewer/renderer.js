@@ -339,9 +339,10 @@ function zoom_fit() {
 	request_draw();
 }
 
-/* Centre the view on the played area rather than the whole 256×256 sea. */
-function zoom_to_action() {
-	if (!cur) return zoom_fit();
+/* Bounding box of the played area: every tile of the current state that
+ * isn't deep sea. Null when there's no state or the map is all sea. */
+function action_bounds() {
+	if (!cur) return null;
 	let minx = MAP_SIZE, miny = MAP_SIZE, maxx = 0, maxy = 0, any = false;
 	for (let y = 0; y < MAP_SIZE; y++) {
 		for (let x = 0; x < MAP_SIZE; x++) {
@@ -354,15 +355,57 @@ function zoom_to_action() {
 			}
 		}
 	}
-	if (!any) return zoom_fit();
+	return any ? { minx, miny, maxx, maxy } : null;
+}
+
+/* Fit the view to the played area rather than the whole 256×256 sea.
+ * Used when a log loads; the menu's "Centre map" keeps the zoom instead. */
+function zoom_to_action() {
+	let b = action_bounds();
+	if (!b) return zoom_fit();
 	let { w, h } = css_size();
-	let spanx = maxx - minx + 8, spany = maxy - miny + 8;
+	let spanx = b.maxx - b.minx + 8, spany = b.maxy - b.miny + 8;
 	let z = ZOOMS[0];
 	for (let c of ZOOMS) if (c * spanx <= w && c * spany <= h) z = c;
 	view.zoom = z;
-	view.ox = (minx + maxx + 1) / 2 - w / (2 * z);
-	view.oy = (miny + maxy + 1) / 2 - h / (2 * z);
+	view.ox = (b.minx + b.maxx + 1) / 2 - w / (2 * z);
+	view.oy = (b.miny + b.maxy + 1) / 2 - h / (2 * z);
 	zoom_label.textContent = `zoom ${z}×`;
+	request_draw();
+}
+
+/* Bounding box of the map's start (spawn) points, or null if it has none. */
+function start_bounds() {
+	if (!cur || !cur.starts.length) return null;
+	let minx = MAP_SIZE, miny = MAP_SIZE, maxx = 0, maxy = 0;
+	for (let st of cur.starts) {
+		if (st.x < minx) minx = st.x;
+		if (st.x > maxx) maxx = st.x;
+		if (st.y < miny) miny = st.y;
+		if (st.y > maxy) maxy = st.y;
+	}
+	return { minx, miny, maxx, maxy };
+}
+
+/* Centre the view at the current zoom on the middle of the start points'
+ * bounding box. That, not the land's box, is where play happens: some
+ * maps carry a "signature" of land off to one side which would drag the
+ * land box's centre away from the action. Falls back to the land box
+ * when the map has no starts, and to the map's middle when it's all sea.
+ * Releases the player lock, as panning does: the lock would otherwise
+ * re-centre on the tank at the next draw and the command would appear
+ * to do nothing. */
+function centre_map() {
+	let b = start_bounds() || action_bounds();
+	let cx = b ? (b.minx + b.maxx + 1) / 2 : MAP_SIZE / 2;
+	let cy = b ? (b.miny + b.maxy + 1) / 2 : MAP_SIZE / 2;
+	let { w, h } = css_size();
+	view.ox = cx - w / (2 * view.zoom);
+	view.oy = cy - h / (2 * view.zoom);
+	if (player_locked) {
+		player_locked = false;
+		update_lock_indicator();
+	}
 	request_draw();
 }
 
@@ -1355,7 +1398,7 @@ window.addEventListener("keydown", e => {
 			return;
 		} else if (e.code === "Digit0" || e.code === "Numpad0") {
 			e.preventDefault();
-			zoom_to_action();
+			centre_map();
 			return;
 		}
 	}
@@ -1519,7 +1562,7 @@ if (window.api) {
 			case "go-to-end": go_to_boundary(true); break;
 			case "zoom-in": zoom_step(1); break;
 			case "zoom-out": zoom_step(-1); break;
-			case "zoom-fit": zoom_to_action(); break;
+			case "centre-map": centre_map(); break;
 			case "toggle-player-lock": toggle_player_lock(); break;
 			case "toggle-obj-sprites": toggle_obj_sprites(); break;
 			case "toggle-lgm-sprites": toggle_lgm_sprites(); break;
