@@ -1215,9 +1215,10 @@ lands:
 * The motivating replay: `links_pill_unpinned` 18 -> 2, vouched
   3387 -> 3391, contradicted 0; nothing else moves
 * No headline rate moves, so no new row in the table below
-* Not yet measured on the corpus, where `links_pill_unpinned` stands at
-  19,311 at `cee58aa` and where chain ends below stitches reach the
-  residual pass with states for the first time
+* Corpus: `810ef2c` in [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md)
+  -- `links_pill_unpinned` 19,311 -> 2,772, vouched +10,787, matching
+  and drawing still; contradictions 92 -> 140, the vote now scoring
+  links made below joins without the lockstep defence, read there
 
 Pinned in `test/test-viewer.cjs` ("orbit states carry down the chain
 below a stitch"): a pill shot at step 2, then at steps 28 and 31 across

@@ -156,7 +156,8 @@ Constant at all ten commits, and worth having once:
 | `30d5351` | stale tank box, track first refusal | 0.996882 | 0.001384 | 0.833914 | 237,399 | 13,108 | 1,360 | 94 |
 | `1f70a58` | tank births follow the gap | 0.996964 | 0.001324 | 0.834427 | 237,436 | 13,116 | 1,228 | 94 |
 | `9115ab4` | pill births follow the gap | **0.997117** | **0.001201** | 0.835183 | 237,788 | 13,132 | **1,169** | 92 |
-| `cee58aa` | dilated joins bounded by the measured lie | 0.997095 | 0.001222 | **0.835199** | **237,799** | 13,130 | 1,236 | 92 |
+| `cee58aa` | dilated joins bounded by the measured lie | 0.997095 | 0.001222 | 0.835199 | 237,799 | 13,130 | 1,236 | 92 |
+| `810ef2c` | orbit states below a stitch | 0.997095 | 0.001222 | **0.835202** | **237,804** | 13,154 | 1,236 | 140 |
 
 The three right-hand columns are lower-is-better counts from the drawn
 audit and the vouched-link score, added so that a drawing-only commit
@@ -192,6 +193,11 @@ keeps timed rushes and `0bfd71d` contradictions. `cee58aa` -- the
 dilated-join lie bound, see its section -- is a trade: it gives back a
 sliver of the two shell-side records and 67 backwards pops for a fifth
 of the corpus's hovers, and edges the two terminal-side records on.
+`810ef2c` -- orbit states below a stitch, see its section -- is
+pinning-only: it repeats `cee58aa`'s shell-side row, edges the
+terminal side by five, and moves the contradiction column 92 -> 140,
+which is the vouched-link metric seeing 16,500 links it could not
+score before rather than links changing.
 
 The rows below the guard run were measured later, from the corpus
 holder's live checkouts: `97fa412` closes the unmeasured-`main` gap the
@@ -2644,6 +2650,56 @@ identity (three shells do not repeat their bytes by chance), so the
 re-send pass could be extended to claim it as a zero-advance link if
 the ledger is ever wanted clean of those ghosts; nothing drawn would
 change.
+
+## Orbit states below a stitch -- `810ef2c`
+
+The fixture file's section of the same name has the mechanism:
+identity propagated down a chain below every stitch, forced origin and
+membership claim, and orbit states did not, so every link below such a
+join kept only its quantised reconstruction. `propagate_states_down_chain`
+re-derives them link by link with the pairwise matcher's own successor
+functions. On the fixture it moved nothing but the pinning axis; the
+corpus question was the same, at scale.
+
+Corpus, `810ef2c-report.txt` and `810ef2c-audit.txt` against `cee58aa`
+(443 files, zero failures, same corpus):
+
+* `links_pill_unpinned` 19,311 -> 2,772 (-16,539, -86%);
+  `links_pill_vouched` 2,906,319 -> 2,917,106 (+10,787);
+  `rate_links_pill_vouched` 0.569769 -> 0.570037
+* `links_pill_contradicted` 92 -> 140 (+48)
+* Matching and drawing essentially still: `links_shell` -2,
+  `terminals_matched` +5 (`tank_hit` +5, `shell_falls` +1,
+  `pillbox_damage` -1), `shells_visual_joins` 1,216 -> 1,209,
+  `pop_outs` -3, `pop_ins` +3, hovers 2,446 -> 2,446, seam jumps still
+  zero, `terminal_links_rushed` +28 (timed +24) and
+  `terminal_links_instant` 854 -> 867: ends whose exact pixel is now
+  recovered drawing a few pixels from their terminal instead of on it
+* `build_ms` 326,690 -> 350,831 (+7%), a single run each on the
+  holder's machine; an alternating A/B on the three local files put
+  the walk at 1.05, 0.99 and 1.04 of the previous engine, inside the
+  run-to-run spread, and the code runs the successor function a few
+  hundred extra times per file against the matcher's tens of thousands
+
+The contradiction line needs reading with care, since it is the
+regression alarm. The newly pinned links are the 16,539 that were
+matched pairwise below a join, before the join existed, when their
+shell had no source: the pill-stream and roster lockstep passes prune
+only pinned members' candidates, so those links were made on geometry
+alone, with none of the lockstep defence the rest of the corpus's pill
+links had. The walk cannot mis-pin a right link -- a pill shell's
+position is an exact orbit point, so the state it derives is whatever
+the positions say -- it can only pin a link, right or wrong, and then
+the roster vote can score it. Forty-eight contradictions among 16,539
+links made without the defence (0.29%) against 92 among 2.9 million
+made with it (0.003%) is the defence's absence showing, and those 48
+are the population the vote was built to catch. What they are exactly
+-- `--describe-links` names each with its step delta and the election
+that indicts it -- is the next look; if they are the ±2-step identity
+shifts along dense streams the skew study found in the churn buckets,
+the lockstep passes could be given a second pass over links a join has
+just pinned, which is where the count would be spent rather than
+merely seen.
 
 ## Findings
 
