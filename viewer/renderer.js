@@ -544,6 +544,16 @@ function esc(s) {
 	return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+/* The game's start as a YYYY-MM-DD date in GMT, from the game id's Mac
+ * epoch timestamp (seconds since 1904-01-01). null if the timestamp is
+ * zero, which no real game carries. */
+const MAC_EPOCH_MS = Date.UTC(1904, 0, 1);
+
+function game_start_date(gi) {
+	if (!gi.startTimeMac) return null;
+	return new Date(MAC_EPOCH_MS + gi.startTimeMac * 1000).toISOString().slice(0, 10);
+}
+
 /* U+F8FF is the Apple logo — a Private Use codepoint only Apple platforms
  * can draw (Mac players really did name themselves that). Substitute an
  * apple everyone has; the parsed data keeps the real codepoint. */
@@ -1142,15 +1152,21 @@ async function load_log(bytes, name) {
 		`a ring cycle taking ${(net.cycle / TPS).toFixed(2)}s at the slow end; ` +
 		`measured over settled play, ${fmt_time(net.from)} to ${fmt_time(net.to)}` : "";
 
-	/* Whose machine wrote the file: the ring's records land in same-tick
+	/* When the game started and whose machine wrote the file. The date is
+	 * the host's, from the game id in the game info: seconds since the
+	 * Mac epoch (1904), stored big-endian, in GMT since Bolo 0.99.5. It is
+	 * the game's start, not the log's, which may have begun later. The
+	 * recorder is found from the ring's records landing in same-tick
 	 * bursts that end with the recording machine's own, and only the
 	 * recorder's quit can be the log's last record. */
 	let rec = game.recorder;
-	recorder_meta_el.textContent = "Recorded by: " +
-		(rec ? pretty((rec.name || `player ${rec.player}`).split("@")[0]) : "unknown");
-	recorder_meta_el.title = rec ?
-		`player slot ${rec.player}: their records close the ring's same-tick bursts` :
-		"the burst-timing and final-quit signals disagree or are inconclusive";
+	let date = gi ? game_start_date(gi) : null;
+	let rec_name = rec ? pretty((rec.name || `player ${rec.player}`).split("@")[0]) : "unknown";
+	recorder_meta_el.textContent = (date ? date + " — " : "") + rec_name;
+	recorder_meta_el.title = (date ? `game started ${date} (host's clock, GMT); ` : "") +
+		(rec ?
+		`recorded by player slot ${rec.player}: their records close the ring's same-tick bursts` :
+		"recorder unknown: the burst-timing and final-quit signals disagree or are inconclusive");
 
 	rebuild_chat(game.t0);
 	zoom_to_action();
