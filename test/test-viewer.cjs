@@ -983,6 +983,49 @@ if (!fs.existsSync(log1)) {
 			stitched_follower.pillbox_source_x],
 		[true, ["63:28"], ["63:31"], 2259, 2128]);
 
+	/* The contradiction sweep, on a hand-built roster: one pill's four
+	 * pinned shells at steps 10, 12, 15, 16 restated two steps on, three
+	 * of them linked to their true successors and the fourth linked one
+	 * stream-mate too far, to step 20. The rosters elect +2 (four hits
+	 * against two for +4), so the vote indicts the +4 link alone: it is
+	 * undone, both shells keep their pill and their states, and the
+	 * three vouched links stand. */
+	{
+		const BoloMotion = require("../viewer/motion.js");
+		let pill_shell = step => ({
+			pixel_x: 2128, pixel_y: 2032, direction: 4,
+			pillbox_source_x: 2128, pillbox_source_y: 2032,
+			pillbox_orbit_states: [{ bradian: 63, step }],
+		});
+		let sources = [10, 12, 15, 16].map(pill_shell);
+		let targets = [12, 14, 17, 18, 20].map(pill_shell);
+		let link = (from, to) => {
+			from.next_shell = to;
+			from.next_time = 104;
+			from.next_terminal = false;
+			to.matched_from_previous = true;
+		};
+		link(sources[0], targets[0]);
+		link(sources[1], targets[1]);
+		link(sources[2], targets[2]);
+		link(sources[3], targets[4]);
+		let snapshots = [
+			{ time: 100, shells: sources, terminals: [] },
+			{ time: 104, shells: targets, terminals: [] },
+		];
+		let unlinked = BoloMotion.sweep_contradicted_links(snapshots);
+		check("the roster vote's contradiction is unlinked, its vouched neighbours kept",
+			[unlinked, sources.map(shell => shell.next_shell
+				? shell.next_shell.pillbox_orbit_states[0].step : null),
+				targets.map(shell => !!shell.matched_from_previous),
+				!!targets[4].contradiction_unlinked,
+				targets[4].pillbox_source_x,
+				targets[4].pillbox_orbit_states[0].step,
+				BoloMotion.score_pill_links(snapshots).contradicted],
+			[1, [12, 14, 17, null], [true, true, true, false, false], true,
+				2128, 20, 0]);
+	}
+
 	/* The pill-side twin: an F4 and its shell in one record 30 ticks after
 	 * the sender's previous one, the shell 15 steps out on bradian 63
 	 * (relative 67,-2 from the muzzle). The birth window follows the gap
