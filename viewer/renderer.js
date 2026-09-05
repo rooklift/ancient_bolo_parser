@@ -33,7 +33,8 @@ for (let t = 10; t <= 15; t++) RGB[t] = RGB[t - 8];
 /* Shapes mode uses the same allegiance language as the sprite art:
  * friendly green, hostile red (neutral pillboxes count as hostile unless
  * the neutral pill colour is on), with neutral bases — and neutral pills
- * when that toggle is on — in their own amber. */
+ * and departed pills and bases when that toggle is on — in their own
+ * amber. */
 const FRIENDLY_COLOR = "#58d858";
 const HOSTILE_COLOR = "#ff5d5d";
 const NEUTRAL_COLOR = "#f0b429";
@@ -655,14 +656,16 @@ function draw_bases() {
 	let r = Math.max(2.5, z * 0.42);
 	let good = good_team();
 	for (const b of cur.bases) {
-		let side = pill_side(b, good);
-		let img = obj_sprite(b.owner === BoloGame.NEUTRAL ? "base_neutral" : `base_${side}`);
+		/* neutral bases always have their own look; DEPARTED ones share it
+		 * only with the neutral pill colour on */
+		let side = b.owner === BoloGame.NEUTRAL ? "neutral" : pill_colour_side(b, good);
+		let img = obj_sprite(`base_${side}`);
 		if (img) {
 			draw_obj(img, tile_to_screen_x(b.x), tile_to_screen_y(b.y));
 			continue;
 		}
 		let cx = tile_to_screen_x(b.x) + z / 2, cy = tile_to_screen_y(b.y) + z / 2;
-		ctx.fillStyle = b.owner === BoloGame.NEUTRAL ? NEUTRAL_COLOR : side === "good" ? FRIENDLY_COLOR : HOSTILE_COLOR;
+		ctx.fillStyle = side === "neutral" ? NEUTRAL_COLOR : side === "good" ? FRIENDLY_COLOR : HOSTILE_COLOR;
 		ctx.strokeStyle = "rgba(0,0,0,0.65)";
 		ctx.lineWidth = 1.5;
 		ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
@@ -677,9 +680,9 @@ function pill_side(p, good) {
 	return BoloGame.team_of(cur, p.owner) === good ? "good" : "evil";
 }
 
-/* As pill_side, but with the neutral pill colour on, nobody's pills
- * (neutral and DEPARTED alike: they behave the same) draw as "neutral"
- * rather than as hostile. */
+/* As pill_side, but with the neutral pill colour on, nobody's pills and
+ * bases (neutral and DEPARTED alike: they behave the same) draw as
+ * "neutral" rather than as hostile. */
 function pill_colour_side(p, good) {
 	if (use_neutral_pill_colour && (p.owner === BoloGame.NEUTRAL || p.owner === BoloGame.DEPARTED)) return "neutral";
 	return pill_side(p, good);
