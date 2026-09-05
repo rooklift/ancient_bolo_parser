@@ -2780,6 +2780,14 @@ function dilated_join_candidate(end, start, reference = null) {
 		(end_shell.position_uncertainty || 0)) return null;
 	let expected = duration * SHELL_SPEED_PIXELS_PER_TICK;
 	if (along < -1 || along > expected + DILATED_CATCHUP_PIXELS) return null;
+	/* The shortfall is the clock lie the join assumes: the shell flew
+	 * `along` while the stamps counted `expected`. The largest lie the
+	 * corpus has shown is the one the smoothing bound was built from,
+	 * so a join needing a bigger one is not a lagging sender but two
+	 * shells -- a shot dead at the wall ten pixels on and a fresh one
+	 * restated a pixel behind where it was, glued into a crawl that
+	 * outbid the wall on cost. */
+	if (expected - along > MAX_SMOOTHING_ALONG_TRACK_PIXELS) return null;
 	if (!tank_states_reachable(end_shell, shell, duration) ||
 		!pill_states_reachable(end_shell, shell, duration)) return null;
 	let advance = unanimous_lockstep_advance(reference, end, start);
