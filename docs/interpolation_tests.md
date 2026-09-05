@@ -1258,7 +1258,11 @@ reference build and link scan measured 1.04, 1.08 and 1.05 of the
 previous engine by alternating A/B, inside the run-to-run spread. The
 corpus is the only measurement: 140 contradictions to spend, and the
 question is how many of the freed ends and starts the second joining
-round settles rather than pops. Not yet measured there.
+round settles rather than pops. Corpus: `7801209` in
+[`interpolation_tests_corpus.md`](interpolation_tests_corpus.md) --
+contradictions 140 -> 14, unlinked -45, terminals +95 with every type
+up, pop-outs -58, pop-ins -47; the 14 left are stitched links in
+five replays, read there.
 
 Pinned in `test/test-viewer.cjs` ("the roster vote's contradiction is
 unlinked, its vouched neighbours kept") on a hand-built roster: four
