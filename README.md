@@ -6,6 +6,8 @@ A parser for log files written by the classic Macintosh tank game **Bolo** (Stua
 
 The log format was cracked around 2001–2003 by Carl Osterwald ("wharf rat") for his BoloViewer application. This project builds on a surviving copy of his (or someone's) format notes, adds empirical findings of its own, and documents everything in [FORMAT.md](docs/FORMAT.md). The rules of the game the logs record, as distinct from the log format, are in [GAMEPLAY.md](docs/GAMEPLAY.md).
 
+The documentation is spread over some twenty files; [HANDBOOK.md](docs/HANDBOOK.md) is the single unified document that explains everything in order (the game, the format, the playback rules, the network, the shell physics, the interpolation engine and its measurement, the tools, and the evidence) and says which file carries the detail.
+
 The parser is dependency-free ES-module JavaScript (Node ≥ 18).
 
 ## Usage
