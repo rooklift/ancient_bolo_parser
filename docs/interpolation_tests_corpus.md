@@ -2693,13 +2693,34 @@ the positions say -- it can only pin a link, right or wrong, and then
 the roster vote can score it. Forty-eight contradictions among 16,539
 links made without the defence (0.29%) against 92 among 2.9 million
 made with it (0.003%) is the defence's absence showing, and those 48
-are the population the vote was built to catch. What they are exactly
--- `--describe-links` names each with its step delta and the election
-that indicts it -- is the next look; if they are the ±2-step identity
-shifts along dense streams the skew study found in the churn buckets,
-the lockstep passes could be given a second pass over links a join has
-just pinned, which is where the count would be spent rather than
-merely seen.
+are the population the vote was built to catch.
+
+`--describe-links` settles what they are (`810ef2c-links.txt`, against
+`0bfd71d-links.txt`, the last archived tally, at 89; the three between
+`0bfd71d` and `cee58aa` were never classed):
+
+| class | `0bfd71d` | `810ef2c` |
+| --- | --- | --- |
+| pairwise +2 | 21 | 42 |
+| pairwise -2 | 4 | 12 |
+| stitched +2 | 38 | 48 |
+| stitched -2 | 6 | 7 |
+| pairwise ±3 | 6 | 13 |
+| stitched ±3 | 7 | 11 |
+| everything else | 7 | 7 |
+
+Forty of the fifty-one new contradictions are ±2-step, twenty-nine of
+them pairwise links: the ±1-member identity shift along a dense
+same-bradian stream that the skew study named as the cross-list excess
+(each member worth two steps), on links made pairwise below a join
+without the lockstep defence. The commonest single shape is a link
+advancing four steps where the pill's roster elected two. Nothing
+outside the ±2/±3 classes moved, and the per-replay spread is the
+same handful-per-log the baseline shows, so this is the known error
+population made visible, not a new one made. Spending the count is
+the next dial: a second lockstep pass over links a join has just
+pinned, unlinking or re-matching a pinned link whose advance the
+roster contradicts.
 
 ## Findings
 
