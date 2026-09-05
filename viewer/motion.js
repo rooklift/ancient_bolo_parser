@@ -4890,6 +4890,59 @@ function slide_compressed_chain_heads(snapshots) {
  * joining across clients would create especially convincing false
  * identities. Whatever a cross-client coincidence really is, it renders
  * conservatively as one shell disappearing and another appearing. */
+/* Spend the roster vote's verdicts, not just record them. score_pill_links
+ * finds the links whose step advance contradicts the advance the pill's
+ * own statements elected over that record pair; until every join had
+ * carried its states down the chain those links were mostly invisible
+ * to the vote, and the ones it could see were made by joins whose own
+ * gate consulted a reference that lacked the election at the time. On
+ * final state the vote is the authority the pairwise matcher already
+ * defers to, so a link it indicts is undone here: the end loses its
+ * story, the start its predecessor, both keep their pill and their
+ * states (a pill shell's position is an exact orbit point whichever
+ * stream-mate it is), and the caller runs the joining passes once more
+ * over the freed pieces -- whose candidates all consult the same
+ * reference, now with the election in it, so the indicted link cannot
+ * come back and the right stream-mate can take its place. Verbatim
+ * re-sends and visual joins are outside the scored population and stay.
+ * Returns the number unlinked. */
+function sweep_contradicted_links(snapshots) {
+	let reference = build_pill_lockstep_reference(snapshots,
+		(i, j) => `${i}:${j}`);
+	if (!reference.size) return 0;
+	let index_of = new Map();
+	snapshots.forEach((snapshot, index) => {
+		for (let shell of snapshot.shells) index_of.set(shell, index);
+	});
+	let unlinked = 0;
+	for (let snapshot of snapshots) {
+		for (let shell of snapshot.shells) {
+			let next = shell.next_shell;
+			if (!next || shell.next_terminal || next.visual_join ||
+				next.stale_restatement ||
+				shell.pillbox_source_x === undefined) continue;
+			let step_a = pinned_orbit_step(shell.pillbox_orbit_states);
+			let step_b = pinned_orbit_step(next.pillbox_orbit_states);
+			if (step_a === null || step_b === null) continue;
+			let advance = reference.get(`${shell.pillbox_source_x}:` +
+				`${shell.pillbox_source_y}:${index_of.get(shell)}:` +
+				`${index_of.get(next)}`);
+			if (advance === undefined || step_b - step_a === advance) continue;
+			delete shell.next_time;
+			delete shell.next_pixel_x;
+			delete shell.next_pixel_y;
+			delete shell.next_shell;
+			delete shell.next_terminal;
+			delete shell.visual_join_source;
+			delete next.matched_from_previous;
+			delete next.stitched;
+			next.contradiction_unlinked = true;
+			unlinked++;
+		}
+	}
+	return unlinked;
+}
+
 function build_shell_positions(records, terminals, pillbox_sources_by_record,
 	tank_sources_by_record, tank_positions = null, pill_states = []) {
 	if (tank_positions) {
@@ -4944,6 +4997,13 @@ function build_shell_positions(records, terminals, pillbox_sources_by_record,
 		stitch_shell_chains(client_snapshots);
 		resolve_residual_shell_fates(client_snapshots);
 		claim_unseen_pillbox_births(client_snapshots, pill_states);
+		/* Every pin is in; let the vote indict, and give the freed
+		 * pieces the joining passes once more, under the election. */
+		if (sweep_contradicted_links(client_snapshots)) {
+			stitch_shell_chains(client_snapshots);
+			resolve_residual_shell_fates(client_snapshots);
+			claim_unseen_pillbox_births(client_snapshots, pill_states);
+		}
 		slide_compressed_chain_tails(client_snapshots);
 		smooth_shell_chains(client_snapshots);
 		reconcile_link_targets(client_snapshots);
@@ -5269,6 +5329,7 @@ const BoloMotion = {
 	tank_position_at, tank_direction_at, lgm_position_at, shell_position_at,
 	shell_birth_positions_at, shell_fall_positions_at,
 	describe_unmatched_terminals, describe_unfated_ends, score_pill_links,
+	sweep_contradicted_links,
 	set_roster_vote_recording, reset_flow_component_stats,
 	flow_component_stats: () => flow_component_stats,
 };

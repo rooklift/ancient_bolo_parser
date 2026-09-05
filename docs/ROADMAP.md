@@ -169,6 +169,10 @@ measure the false-claim risk before believing it. Explicitly optional.
   stitch. DONE: `propagate_states_down_chain` re-derives the states
   link by link below every stitch, forced origin and membership claim
   (see `docs/interpolation_tests.md`, "Orbit states below a stitch").
+  The pins it added let the roster vote see 48 more contradictions,
+  and the contradiction sweep that followed undoes what the vote
+  indicts and re-runs the joining passes over the pieces ("Spending
+  the vote", same file).
 * The hover class (4,164 corpus links drawn slow, mostly dilated joins)
   wanted the drawing-side speed floor item 2b promised. It went 4,164
   -> 3,347 in the lockstep arc, -> 3,093 with the pill-birth window and
