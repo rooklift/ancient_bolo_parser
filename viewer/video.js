@@ -590,7 +590,7 @@ function ex_game_panel(cx, cw, y) {
 	ctx.font = `12px ${EX_FONT}`;
 	ctx.fillStyle = "#8b96ad";
 	/* the clock stands in for the live record count */
-	let meta = [`${fmt_time(clock)} / ${fmt_time(game.t1)}`, game_type_label(), loaded_version]
+	let meta = [`${fmt_time(clock)} / ${fmt_time(game.t1)}`, loaded_version]
 		.filter(Boolean).join(" · ");
 	ctx.fillText(ex_truncate(meta, cw), cx, y + 13);
 	y += 17;
