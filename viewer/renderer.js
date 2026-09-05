@@ -452,7 +452,6 @@ function update_transport() {
 	time_label.textContent = `${fmt_time(clock)} / ${fmt_time(game.t1)}`;
 	let bits = [
 		`${cursor.toLocaleString()} / ${game.records.length.toLocaleString()} records`,
-		game_type_label(),
 		loaded_version,
 	];
 	game_meta_el.textContent = bits.filter(Boolean).join(" · ");
@@ -466,7 +465,7 @@ function update_transport() {
 function game_type_label() {
 	let gi = game.final.gameInfo;
 	if (!gi) return "";
-	return ["", "open game", "tournament", "strict"][gi.gameType] ||
+	return ["", "Open", "Tournament", "Strict"][gi.gameType] ||
 		`type ${gi.gameType}`;
 }
 
@@ -1145,7 +1144,8 @@ async function load_log(bytes, name) {
 	 * update_transport: the network was what it was, and a figure that
 	 * crept about as the clock moved would only invite reading it as live. */
 	let net = game.network;
-	network_meta_el.textContent = net ? `Network conditions: ${net.rating}` : "";
+	network_meta_el.textContent = [game_type_label(), net ? `net conditions: ${net.rating}` : ""]
+		.filter(Boolean).join(" · ");
 	network_meta_el.title = net ?
 		`${net.loss.toFixed(1)}% of ring slots quiet (a node with nothing to log), ` +
 		`${net.stall.toFixed(1)}% of the time spent frozen, ` +
