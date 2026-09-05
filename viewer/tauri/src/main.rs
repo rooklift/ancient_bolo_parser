@@ -22,6 +22,7 @@ use serde_json::{Map, Value};
 use tauri::{
 	ipc::{InvokeBody, Request, Response},
 	menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
+	webview::PageLoadEvent,
 	AppHandle, DragDropEvent, Emitter, Manager, WebviewWindow, WindowEvent, Wry,
 };
 use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
@@ -531,6 +532,15 @@ fn main() {
 			exit_fullscreen,
 			toggle_fullscreen,
 		])
+		/* An export can't outlive its page: a reload (which the page tries to
+		 * prevent, but the webview owns more keys than the page can see)
+		 * starts a fresh page that knows nothing of the file being written,
+		 * and would be refused its own exports while the old one stays open. */
+		.on_page_load(|webview, payload| {
+			if payload.event() == PageLoadEvent::Started {
+				abort_export(webview.app_handle());
+			}
+		})
 		.setup(|app| {
 			let handle = app.handle().clone();
 			app.set_menu(build_menu(&handle)?)?;
@@ -550,7 +560,7 @@ fn main() {
 						offer_log(&handle, path);
 					}
 				}
-				/* an export can't outlive its page: drop the partial file */
+				/* the partial file goes with the window (and with the page, above) */
 				WindowEvent::Destroyed => abort_export(&handle),
 				_ => {}
 			});

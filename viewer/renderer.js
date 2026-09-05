@@ -1215,11 +1215,17 @@ const FKEY_SPEEDS = [0.5, 1, 2, 4, 8, 16, 32, 64];
 
 window.addEventListener("keydown", e => {
 	if (exporting) {
-		/* the overlay blocks the pointer; keys are blocked here, with Escape
-		 * as the keyboard route to the overlay's cancel button */
+		/* the overlay blocks the pointer; keys are ignored here, with Escape
+		 * as the keyboard route to the overlay's cancel button. Ignored is
+		 * not swallowed, though: the Tauri webview reloads on an unhandled
+		 * Ctrl+R or F5 (which would abandon the export), so those are
+		 * swallowed too. Other keys keep their defaults, since the setup
+		 * dialog's fields are typed into while `exporting` already holds. */
 		if (e.code === "Escape") {
 			e.preventDefault();
 			cancel_video_export();
+		} else if (e.code === "F5" || ((e.ctrlKey || e.metaKey) && e.code === "KeyR")) {
+			e.preventDefault();
 		}
 		return;
 	}
