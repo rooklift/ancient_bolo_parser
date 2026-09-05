@@ -993,6 +993,73 @@ The scene is pinned in `test/test-viewer.cjs` ("tank-hit box the sender
 knew recovers a graze the track has left"), with the tank restated
 *after* the hit record as in the log, and fails on the previous engine.
 
+## Tank births follow the record gap
+
+Prompted by replay `2de598ba-20011027C_XD_palptrex_pinsnix` at 4:21 (tick
+13072 from the log's start): player 2's tank, parked at 146,133 facing
+west, fires two shots per record at the wall at 142,133 while pill 13
+fires back through it. The records come 28 ticks apart, the tank fires
+every 14, so every record restates a fresh volley at almost the previous
+volley's pixels -- head at 2295 then 2294, the second shell at 2321 both
+times -- beside the previous volley's impacts. The first shot, seven
+pixels short of the wall, was drawn hanging there for the whole 28-tick
+record, sliding one pixel, then a further twelve over the next 45 ticks,
+then vanishing, while its explosion was handed to an invisible shot.
+
+The mechanism was the tank-birth window in `mark_new_tank_shells`: the
+muzzle tolerance plus the gap's worth of flight, but only while the gap
+was inside the half-second position window; past 25 ticks it collapsed to
+the bare 16 px tolerance. At a 28-tick gap neither fresh shell (17 and 44
+px from the muzzle) could claim its fire event, and the pairwise matcher
+skips terminals past the same 25 ticks, so both volleys reached the
+residual pass as two chain ends, two origin-less starts and two spent
+shots that `creation_start_match` (16 px at zero duration) could not
+attach either. The flow then forced the only story it had: each old shell
+onto the new shell a pixel ahead, as a dilated join, and the two shots
+onto explosions as unseen sources. The window now follows the gap without
+the cap, bounded by the shell's range. A shot logged in a record was
+fired since the sender's previous record, so that is where its shell can
+be; past the pairwise window the old-shell story goes untested before a
+birth is claimed, but nearest-first assignment against the fire count
+keeps a lingering shell from outranking a fresh one.
+
+Two forms were measured: the allowance following the gap up to the
+50-tick pairwise window and reverting to the muzzle tolerance beyond, and
+the open, range-bounded form. The open form is a shade better on both
+files with tank play across long gaps (fixture terminals 20720 -> 20722,
+pop-outs 269 -> 267; the replay 5514 -> 5515, 93 -> 92) and nothing moves
+the other way, so it is the one kept.
+
+Fixture, against `9ed3bd6`:
+
+* `rate_shells_matched_forward` 0.996298 -> 0.996380
+* `rate_shells_unlinked` 0.001736 -> 0.001681 (128 -> 124)
+* `rate_terminals_matched` 0.860478 -> 0.860727 (20716 -> 20722):
+  `explosion` +1, `base_damage` +2, `pillbox_damage` +3
+* `shells_from_tank` 9034 -> 9062, `shell_births` 20726 -> 20754,
+  `terminals_unseen_tank_source` 1125 -> 1119
+* Audit: `pop_outs` 273 -> 267, `pop_ins` 263 -> 235,
+  `terminal_links_rushed` 461 -> 462, hovers 1 -> 1, seam jumps still
+  zero, `rate_links_steady` unchanged
+* `040601.6` is byte-identical
+* The motivating replay: matched forward 0.993365 -> 0.994016, unlinked
+  52 -> 45, terminals matched 5503 -> 5515 (`explosion` 451 -> 454,
+  `pillbox_damage` 2045 -> 2054), tank origins 2257 -> 2284, unseen tank
+  sources 267 -> 260; audit hovers 11 -> 8, `pop_outs` 102 -> 92,
+  `pop_ins` 91 -> 66, rushed 98 -> 98, seam jumps zero
+* Not measured on the corpus: no corpus was to hand for this change
+
+Left as found: `creation_start_match` still measures a same-record shot
+against zero flight, so a leftover start further than 16 px from the
+muzzle cannot be attached in the residual pass; `creation_fate_match`
+already takes the gap as extra flight for the unseen-shot phases, and the
+same allowance would be the consistent thing here.
+
+The scene is pinned in `test/test-viewer.cjs` ("a volley restated across
+a long gap dies at the wall, the next is born at the tank"), with the
+log's record spacing, and fails on the previous engine: the leading
+shell gets no fate and neither shell of the second volley a birth.
+
 ## Findings at the close of the ten-run table -- `926f391`
 
 Written when `926f391` was the branch's head and the table above ended
@@ -1074,6 +1141,7 @@ all on the fixture, all from the sections above:
 | `926f391`, close of the ten-run table | 0.980136 | 0.008081 | 0.849553 |
 | v1.0.9 `8f6fe27` (engine `a74033a`) | 0.994427 | 0.002535 | 0.856366 |
 | `30d5351`, the stale-box walk | 0.996298 | 0.001736 | 0.860478 |
+| tank births follow the record gap | 0.996380 | 0.001681 | 0.860727 |
 
 * **Every headline record is held by the current head.** Unlinked
   shells are down to 128, roughly a tenth of the branch point's rate; forward
