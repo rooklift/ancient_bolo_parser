@@ -152,8 +152,9 @@ Constant at all ten commits, and worth having once:
 | `a4822ec` | doubtful voters abstain | 0.996657 | 0.001443 | 0.833123 | 235,835 | 12,979 | 1,407 | 437 |
 | `0bfd71d` | symmetric elect, orphan tie-break | 0.996726 | 0.001419 | 0.833131 | 235,847 | 12,981 | 1,366 | **89** |
 | `a0ade53` | two quadratic scans removed | 0.996726 | 0.001419 | 0.833131 | 235,847 | 12,981 | 1,366 | 89 |
-| `ccc8ec3` | stale tank box, either box per step | **0.996914** | **0.001379** | **0.834069** | **237,709** | 82,149 | **1,356** | 92 |
+| `ccc8ec3` | stale tank box, either box per step | 0.996914 | 0.001379 | 0.834069 | **237,709** | 82,149 | 1,356 | 92 |
 | `30d5351` | stale tank box, track first refusal | 0.996882 | 0.001384 | 0.833914 | 237,399 | 13,108 | 1,360 | 94 |
+| `1f70a58` | tank births follow the gap | **0.996964** | **0.001324** | **0.834427** | 237,436 | 13,116 | **1,228** | 94 |
 
 The three right-hand columns are lower-is-better counts from the drawn
 audit and the vouched-link score, added so that a drawing-only commit
@@ -178,6 +179,11 @@ moved `pops_paired_backwards` 5,792 -> 3,908 -> 3,253, see their
 sections; `7b9030a`, the uncapped falls, likewise took the undivided
 rushed line 79,521 -> 69,351 before `90925b0`, a fall the split shows
 to be timed.
+
+`1f70a58` -- the tank-birth window, see its section -- takes the three
+shell-side records and the backwards-pop record at once, the first row
+to move a headline record since `ccc8ec3`; `ccc8ec3` keeps `tank_hit`,
+whose 310 extra hits were the zero-length links `30d5351` gave back.
 
 The rows below the guard run were measured later, from the corpus
 holder's live checkouts: `97fa412` closes the unmeasured-`main` gap the
