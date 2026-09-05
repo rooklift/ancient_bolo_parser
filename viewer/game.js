@@ -199,6 +199,29 @@ function tank_square(t) {
 	return { x: (t.x * 16 + t.px + 8) >> 4, y: (t.y * 16 + t.py + 8) >> 4 };
 }
 
+/* The effect for a man's death: F5, or FF 51 when he carried a pill. The
+ * event names his square outright, and the effect centres there unless
+ * something better is on hand. The same record normally restates the
+ * dying man's position just ahead of the event, pixel-precise, and every
+ * such restatement in the fixtures has its centre on the event's square.
+ * That position is used only when it is all of: present, a walking man
+ * rather than a parachute, restated in THIS record, and centred on the
+ * named square. Anything less falls back to the square. */
+function lgm_death_effect(s, pl, rec, sub) {
+	const effect = { time: rec.time, type: "lgm_death", x: sub.x, y: sub.y, player: pl };
+	const m = s.men[pl];
+	if (m && !m.parachute && m.position_time === rec.time && Number.isInteger(m.px) && Number.isInteger(m.py)) {
+		const sq = tank_square(m);
+		if (sq.x === sub.x && sq.y === sub.y) {
+			effect.x = m.x;
+			effect.y = m.y;
+			effect.px = m.px;
+			effect.py = m.py;
+		}
+	}
+	return effect;
+}
+
 /* Each dying-position update clears forest squares touched by a
  * 15x15 pixel box around the tank centre: a square is touched when its
  * nearest pixel lies within 7 pixels on BOTH axes. Chebyshev, not
@@ -625,8 +648,8 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 					p.armour = 0;
 				}
 				/* no F5 is sent in this case, so the man dies here */
+				if (effects) effects.push(lgm_death_effect(s, pl, rec, sub));
 				if (s.men[pl] && !s.men[pl].parachute) s.men[pl] = null;
-				if (effects) effects.push({ time: rec.time, type: "lgm_death", x: sub.x, y: sub.y, player: pl });
 				break;
 			}
 			case "pill_repair_4":
@@ -691,8 +714,8 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 				/* the same record restates the dying man's position (b=8,
 				 * applied above), so clear him here; the replacement's
 				 * parachute arrives in later records */
+				if (effects) effects.push(lgm_death_effect(s, pl, rec, sub));
 				if (s.men[pl] && !s.men[pl].parachute) s.men[pl] = null;
-				if (effects) effects.push({ time: rec.time, type: "lgm_death", x: sub.x, y: sub.y, player: pl });
 				break;
 			case "shell_falls": {
 				let effect = null;
