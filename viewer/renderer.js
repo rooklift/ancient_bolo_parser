@@ -1163,7 +1163,7 @@ async function load_log(bytes, name) {
 	let date = gi ? game_start_date(gi) : null;
 	let rec_name = rec ? pretty((rec.name || `player ${rec.player}`).split("@")[0]) : "unknown";
 	recorder_meta_el.textContent = (date ? date + " — " : "") + rec_name;
-	recorder_meta_el.title = (date ? `game started ${date} (host's clock, GMT); ` : "") +
+	recorder_meta_el.title = (date ? `game started ${date} (UTC); ` : "") +
 		(rec ?
 		`recorded by player slot ${rec.player}: their records close the ring's same-tick bursts` :
 		"recorder unknown: the burst-timing and final-quit signals disagree or are inconclusive");

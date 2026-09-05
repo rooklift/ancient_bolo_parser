@@ -160,7 +160,7 @@ function dumpSummary() {
 	if (gameInfo) {
 		console.log(`map: "${gameInfo.mapName}"  host: ${gameInfo.hostIp}  game type: ${gameInfo.gameType}`);
 		if (gameInfo.startTimeMac) {
-			console.log(`started: ${macTime(gameInfo.startTimeMac)} GMT (host's clock; the game's start, not the log's)`);
+			console.log(`started: ${macTime(gameInfo.startTimeMac)} UTC`);
 		}
 	}
 	console.log(`players:`);
