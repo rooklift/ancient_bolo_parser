@@ -514,7 +514,10 @@ if any exists among the records that produce snapshots.
   (`unseen_*_source`), the beginnings of shooter attribution. Chains
   fragmented by sender clock *dilation* are additionally reconnected
   under time-only widened windows at a penalty cost (dilated joins) —
-  the spatial physics is never relaxed. The same clock lie runs the
+  the spatial physics is never relaxed, and the lie a join may assume
+  is bounded by the largest along-track lie the corpus has shown, the
+  measurement behind the smoothing bound: a join needing more is two
+  shells, not a lagging sender. The same clock lie runs the
   other way for impacts: a chain end whose restatement arrived late
   understates its remaining flight, so an impact record can *lead* the
   receiver-clock arrival estimate. The residual pass admits such an
