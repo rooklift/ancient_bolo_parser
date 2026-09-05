@@ -6,9 +6,9 @@
  * that renderer.js and video.js expect from the Electron preload script.
  *
  * Every file the page reads was chosen by the user through this process (a
- * dialog, a drop, or the command line): the page asks for "the pending log"
- * rather than naming a path, so no command reads or writes an arbitrary
- * path handed over from the web side. */
+ * dialog, a drop, or the command line): the page asks for a log by the id
+ * this process gave it rather than naming a path, so no command reads or
+ * writes an arbitrary path handed over from the web side. */
 
 use std::{
 	fs,
@@ -22,6 +22,7 @@ use serde_json::{Map, Value};
 use tauri::{
 	ipc::{InvokeBody, Request, Response},
 	menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
+	webview::PageLoadEvent,
 	AppHandle, DragDropEvent, Emitter, Manager, WebviewWindow, WindowEvent, Wry,
 };
 use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
@@ -35,10 +36,22 @@ const SETTINGS_FILE: &str = "settings.json";
 const LAST_OPEN_DIRECTORY: &str = "last_open_directory";
 const LAST_SAVE_DIRECTORY: &str = "last_save_directory";
 
+/* A log this process read, waiting for the page to take it. Each is stashed
+ * under its own id, and the page asks for bytes by the id it was told of,
+ * so two logs arriving while the page is busy can't swap contents. */
+struct PendingLog {
+	id: u64,
+	path: PathBuf,
+	data: Vec<u8>,
+}
+
+/* A page that never collects (none listening yet) can't hoard logs. */
+const MAX_PENDING_LOGS: usize = 4;
+
 #[derive(Default)]
 struct AppState {
-	/* a log this process read, waiting for the page to take it */
-	pending_log: Option<(PathBuf, Vec<u8>)>,
+	pending_logs: Vec<PendingLog>,
+	next_log_id: u64,
 	loaded_file_path: Option<PathBuf>,
 	/* video export: the renderer streams the file as it encodes; one at a time */
 	export_file: Option<(fs::File, PathBuf)>,
@@ -55,6 +68,8 @@ fn lock(app: &AppHandle) -> std::sync::MutexGuard<'_, AppState> {
 struct FileResult {
 	canceled: bool,
 	#[serde(skip_serializing_if = "Option::is_none")]
+	id: Option<u64>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	path: Option<String>,
 	#[serde(skip_serializing_if = "Option::is_none")]
 	error: Option<String>,
@@ -62,19 +77,31 @@ struct FileResult {
 
 impl FileResult {
 	fn canceled() -> Self {
-		FileResult { canceled: true, path: None, error: None }
+		FileResult { canceled: true, id: None, path: None, error: None }
 	}
 	fn error(err: impl ToString) -> Self {
-		FileResult { canceled: true, path: None, error: Some(err.to_string()) }
+		FileResult { canceled: true, id: None, path: None, error: Some(err.to_string()) }
 	}
 	fn ok(path: &Path) -> Self {
-		FileResult { canceled: false, path: Some(path_string(path)), error: None }
+		FileResult { canceled: false, id: None, path: Some(path_string(path)), error: None }
+	}
+	/* an opened log: the id its bytes are taken by */
+	fn opened(id: u64, path: &Path) -> Self {
+		FileResult { id: Some(id), ..FileResult::ok(path) }
 	}
 }
 
+/* A log waiting for the page: the id its bytes are taken by, and its path. */
 #[derive(Clone, Serialize)]
 struct LoadLog {
+	id: u64,
 	path: String,
+}
+
+impl LoadLog {
+	fn of(log: &PendingLog) -> Self {
+		LoadLog { id: log.id, path: path_string(&log.path) }
+	}
 }
 
 fn path_string(path: &Path) -> String {
@@ -133,8 +160,17 @@ fn read_log(path: &Path) -> Result<Vec<u8>, String> {
 	fs::read(path).map_err(|err| err.to_string())
 }
 
-fn stash_log(app: &AppHandle, path: PathBuf, data: Vec<u8>) {
-	lock(app).pending_log = Some((path, data));
+/* Hold a log for the page under a fresh id, evicting the oldest held once
+ * there are too many. */
+fn stash_log(app: &AppHandle, path: PathBuf, data: Vec<u8>) -> u64 {
+	let mut state = lock(app);
+	state.next_log_id += 1;
+	let id = state.next_log_id;
+	state.pending_logs.push(PendingLog { id, path, data });
+	while state.pending_logs.len() > MAX_PENDING_LOGS {
+		state.pending_logs.remove(0);
+	}
+	id
 }
 
 /* A log the user handed us outside the page (dropped on the window): read
@@ -142,8 +178,8 @@ fn stash_log(app: &AppHandle, path: PathBuf, data: Vec<u8>) {
 fn offer_log(app: &AppHandle, path: &Path) {
 	match read_log(path) {
 		Ok(data) => {
-			stash_log(app, path.to_path_buf(), data);
-			let _ = app.emit("load-log", LoadLog { path: path_string(path) });
+			let id = stash_log(app, path.to_path_buf(), data);
+			let _ = app.emit("load-log", LoadLog { id, path: path_string(path) });
 		}
 		Err(err) => error_box(app, "Could not open log", &err),
 	}
@@ -270,25 +306,29 @@ async fn open_log(app: AppHandle, window: WebviewWindow) -> FileResult {
 	match read_log(&path) {
 		Ok(data) => {
 			remember_directory(&app, LAST_OPEN_DIRECTORY, &path);
-			stash_log(&app, path.clone(), data);
-			FileResult::ok(&path)
+			let id = stash_log(&app, path.clone(), data);
+			FileResult::opened(id, &path)
 		}
 		Err(err) => FileResult::error(err),
 	}
 }
 
-/* The bytes of the log most recently offered to the page, as a raw response
- * (an ArrayBuffer on the other side) rather than a JSON array of numbers. */
+/* The bytes of the log the page was told of under this id, as a raw response
+ * (an ArrayBuffer on the other side) rather than a JSON array of numbers.
+ * Each log is handed over once; an id no longer held (taken already, or
+ * evicted) is an error. */
 #[tauri::command]
-fn take_log_bytes(app: AppHandle) -> Response {
-	let data = lock(&app).pending_log.take().map(|(_, data)| data).unwrap_or_default();
-	Response::new(data)
+fn take_log_bytes(app: AppHandle, id: u64) -> Result<Response, String> {
+	let mut state = lock(&app);
+	let index = state.pending_logs.iter().position(|log| log.id == id).ok_or("that log is no longer waiting")?;
+	Ok(Response::new(state.pending_logs.remove(index).data))
 }
 
-/* At startup: the path of a log named on the command line, if any. */
+/* At startup: the logs waiting already, in the order they arrived (one
+ * named on the command line, and any dropped before the page listened). */
 #[tauri::command]
-fn pending_log_path(app: AppHandle) -> Option<String> {
-	lock(&app).pending_log.as_ref().map(|(path, _)| path_string(path))
+fn pending_logs(app: AppHandle) -> Vec<LoadLog> {
+	lock(&app).pending_logs.iter().map(LoadLog::of).collect()
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -518,7 +558,7 @@ fn main() {
 		.invoke_handler(tauri::generate_handler![
 			open_log,
 			take_log_bytes,
-			pending_log_path,
+			pending_logs,
 			save_map,
 			video_begin,
 			video_write,
@@ -531,6 +571,15 @@ fn main() {
 			exit_fullscreen,
 			toggle_fullscreen,
 		])
+		/* An export can't outlive its page: a reload (which the page tries to
+		 * prevent, but the webview owns more keys than the page can see)
+		 * starts a fresh page that knows nothing of the file being written,
+		 * and would be refused its own exports while the old one stays open. */
+		.on_page_load(|webview, payload| {
+			if payload.event() == PageLoadEvent::Started {
+				abort_export(webview.app_handle());
+			}
+		})
 		.setup(|app| {
 			let handle = app.handle().clone();
 			app.set_menu(build_menu(&handle)?)?;
@@ -538,7 +587,9 @@ fn main() {
 
 			if let Some(path) = find_cli_log() {
 				match read_log(&path) {
-					Ok(data) => stash_log(&handle, path, data),
+					Ok(data) => {
+						stash_log(&handle, path, data); /* listed to the page by pending_logs */
+					}
 					Err(err) => error_box(&handle, "Could not open log", &err),
 				}
 			}
@@ -550,7 +601,7 @@ fn main() {
 						offer_log(&handle, path);
 					}
 				}
-				/* an export can't outlive its page: drop the partial file */
+				/* the partial file goes with the window (and with the page, above) */
 				WindowEvent::Destroyed => abort_export(&handle),
 				_ => {}
 			});
