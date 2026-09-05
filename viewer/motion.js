@@ -2857,6 +2857,64 @@ function propagate_identity_down_chain(origin_shell, first_shell) {
 	}
 }
 
+/* Carry the discrete track down a chain, the exactness the identity walk
+ * above leaves behind. Every link from a stitched or claimed start onward
+ * was matched pairwise before the start had a source, when the successor
+ * functions had no states to advance, so each downstream shell kept only
+ * its quantised reconstruction: no exact pixel for drawing and smoothing
+ * to anchor on, no orbit walk for the residual pass when the chain's end
+ * reaches it, no pin for the lockstep vote. Re-derive them link by link
+ * under the link's own duration -- the same successor functions the
+ * pairwise matcher runs, so a link they confirm is exactly as trusted as
+ * one matched with states in hand -- filling only where states are
+ * absent (an ambiguity-propagated head keeps its own), copying verbatim
+ * across a re-send as the re-send pass does, and stopping at the first
+ * link the discrete model cannot confirm: that link stands on its
+ * geometry, as it did, and nothing below it is claimed. `first_time` is
+ * the first shell's record time; each next observation's is the link's
+ * own end time. */
+function propagate_states_down_chain(first_shell, first_time) {
+	let time = first_time;
+	let hops = 0;
+	for (let walk = first_shell; walk && walk.next_shell &&
+		!walk.next_terminal && hops < MAX_CHAIN_WALK;
+		walk = walk.next_shell, hops++) {
+		let next = walk.next_shell;
+		let duration = walk.next_time - time;
+		time = walk.next_time;
+		if (!(duration >= 0)) break;
+		if (walk.pillbox_orbit_states && walk.pillbox_orbit_states.length &&
+			walk.pillbox_source_x !== undefined) {
+			if (next.pillbox_source_x !== walk.pillbox_source_x ||
+				next.pillbox_source_y !== walk.pillbox_source_y) break;
+			if (next.pillbox_orbit_states &&
+				next.pillbox_orbit_states.length) continue;
+			if (next.stale_restatement) {
+				set_pillbox_orbit_states(next, walk.pillbox_orbit_states);
+				continue;
+			}
+			let states = pillbox_shell_successor_states(walk, next, duration);
+			if (!states || !states.length) break;
+			set_pillbox_orbit_states(next, states.map(state => ({
+				bradian: state.bradian, step: state.step,
+			})));
+		} else if (walk.tank_bradian_states && walk.tank_bradian_states.length) {
+			if (next.tank_bradian_states) continue;
+			if (next.stale_restatement) {
+				set_tank_bradian_states(next,
+					walk.tank_bradian_states.map(state => ({ ...state })));
+				continue;
+			}
+			let states = tank_shell_successor_states(walk, next, duration);
+			if (!states || !states.length) break;
+			set_tank_bradian_states(next, states);
+			apply_tank_bradian_heading(next);
+		} else {
+			break;
+		}
+	}
+}
+
 /* One end-to-start continuation candidate, or null. Shared between the
  * margin-based stitching pass and the forced-assignment residual pass. */
 function stitch_candidate(end, start, reference = null) {
@@ -2921,6 +2979,7 @@ function apply_stitch(candidate) {
 	}
 	refine_shell_heading(end_shell, start_shell);
 	apply_tank_bradian_heading(start_shell);
+	propagate_states_down_chain(start_shell, candidate.start.time);
 }
 
 /* Discrete evidence that an intermediate observation is the very shell a
@@ -3154,6 +3213,7 @@ function absorb_intermediate_observations(snapshots, end, start,
 		}
 	}
 	previous.next_shell = final_next_shell;
+	propagate_states_down_chain(end_shell, end.time);
 }
 
 /* Births claimed from orbit membership alone, for shells whose firing
@@ -3288,6 +3348,7 @@ function claim_unseen_pillbox_births(snapshots, pill_states) {
 				shell.heading_y = delta_y / distance;
 			}
 			propagate_identity_down_chain(shell, shell.next_shell);
+			propagate_states_down_chain(shell, snapshot.time);
 		}
 	}
 }
@@ -3775,6 +3836,7 @@ function apply_forced_origin(creation, start, match) {
 			shell.position_uncertainty || 0));
 	}
 	propagate_identity_down_chain(shell, shell.next_shell);
+	propagate_states_down_chain(shell, start.time);
 }
 
 /* An impact with no observed shell, forced onto a fired shot: mark the
