@@ -33,7 +33,13 @@ function clock(ticks, t0) {
 	return `${String(m).padStart(3)}:${(s % 60).toFixed(1).padStart(4, "0")}`;
 }
 
-if (rawIdx >= 0) {
+/* Each mode is a plain function that returns, rather than calling
+ * process.exit(): with stdout on a pipe Node writes asynchronously,
+ * and an explicit exit drops whatever is still buffered, truncating
+ * `--json` output piped into another program. Nothing here keeps the
+ * event loop alive, so the process ends by itself once stdout drains. */
+
+function dumpRaw() {
 	const n = rawCountArg !== null ? parseInt(rawCountArg, 10) : 10;
 	let i = 0;
 	for (const raw of rawRecords(buf)) {
@@ -41,19 +47,17 @@ if (rawIdx >= 0) {
 		console.log(`${raw.time.toString(16).padStart(8, "0")} len=${raw.data.length + 1} ${hex}`);
 		if (++i >= n) break;
 	}
-	process.exit(0);
 }
 
-if (args.includes("--json")) {
+function dumpJson() {
 	const stats = {};
 	for (const rec of records(buf, stats)) {
 		console.log(JSON.stringify(rec));
 	}
 	warnTruncation(stats);
-	process.exit(0);
 }
 
-if (args.includes("--events")) {
+function dumpEvents() {
 	let t0 = null;
 	const names = {};
 	const stats = {};
@@ -106,58 +110,68 @@ if (args.includes("--events")) {
 		}
 	}
 	warnTruncation(stats);
-	process.exit(0);
 }
 
-// Default: summary.
-const stats = {};
-let count = 0;
-let warned = 0;
-let first = null;
-let last = null;
-const byType = {};
-const players = {};
-const byStatus = {};
-const warnByStatus = {};
-let gameInfo = null;
+function dumpSummary() {
+	const stats = {};
+	let count = 0;
+	let warned = 0;
+	let first = null;
+	let last = null;
+	const byType = {};
+	const players = {};
+	const byStatus = {};
+	const warnByStatus = {};
+	let gameInfo = null;
 
-for (const rec of records(buf, stats)) {
-	count++;
-	if (first === null) first = rec.time;
-	last = rec.time;
-	const key = `b=${rec.status.toString(16)} T=${rec.tankStatus.toString(16)}`;
-	byStatus[key] = (byStatus[key] || 0) + 1;
-	if (rec.warning) {
-		warned++;
-		warnByStatus[key] = (warnByStatus[key] || 0) + 1;
+	for (const rec of records(buf, stats)) {
+		count++;
+		if (first === null) first = rec.time;
+		last = rec.time;
+		const key = `b=${rec.status.toString(16)} T=${rec.tankStatus.toString(16)}`;
+		byStatus[key] = (byStatus[key] || 0) + 1;
+		if (rec.warning) {
+			warned++;
+			warnByStatus[key] = (warnByStatus[key] || 0) + 1;
+		}
+		for (const sub of rec.subpackets) {
+			byType[sub.type] = (byType[sub.type] || 0) + 1;
+			if (sub.type === "node_id") players[rec.player] = sub.name;
+			if (sub.type === "game_info" && !gameInfo) gameInfo = sub;
+		}
 	}
-	for (const sub of rec.subpackets) {
-		byType[sub.type] = (byType[sub.type] || 0) + 1;
-		if (sub.type === "node_id") players[rec.player] = sub.name;
-		if (sub.type === "game_info" && !gameInfo) gameInfo = sub;
+
+	console.log(`Bolo log, version ${header.versionString} (${header.version})`);
+	console.log(`records: ${count} (${warned} with parse warnings)`);
+	if (stats.truncatedBytes) {
+		console.log(`NOTE: file is truncated — ${stats.truncatedBytes} trailing bytes dropped`);
+	}
+	if (first !== null) {
+		console.log(`duration: ${((last - first) / TICKS_PER_SECOND / 60).toFixed(1)} minutes of game time`);
+	}
+	if (gameInfo) {
+		console.log(`map: "${gameInfo.mapName}"  host: ${gameInfo.hostIp}  game type: ${gameInfo.gameType}`);
+	}
+	console.log(`players:`);
+	for (const [num, name] of Object.entries(players)) {
+		console.log(`  ${num}: ${name}`);
+	}
+	console.log(`subpacket counts:`);
+	for (const [type, n] of Object.entries(byType).sort((a, b) => b[1] - a[1])) {
+		console.log(`  ${String(n).padStart(8)}  ${type}`);
+	}
+	console.log(`records by status nibbles (warnings):`);
+	for (const [key, n] of Object.entries(byStatus).sort((a, b) => b[1] - a[1])) {
+		console.log(`  ${String(n).padStart(8)}  ${key}  (${warnByStatus[key] || 0} warned)`);
 	}
 }
 
-console.log(`Bolo log, version ${header.versionString} (${header.version})`);
-console.log(`records: ${count} (${warned} with parse warnings)`);
-if (stats.truncatedBytes) {
-	console.log(`NOTE: file is truncated — ${stats.truncatedBytes} trailing bytes dropped`);
-}
-if (first !== null) {
-	console.log(`duration: ${((last - first) / TICKS_PER_SECOND / 60).toFixed(1)} minutes of game time`);
-}
-if (gameInfo) {
-	console.log(`map: "${gameInfo.mapName}"  host: ${gameInfo.hostIp}  game type: ${gameInfo.gameType}`);
-}
-console.log(`players:`);
-for (const [num, name] of Object.entries(players)) {
-	console.log(`  ${num}: ${name}`);
-}
-console.log(`subpacket counts:`);
-for (const [type, n] of Object.entries(byType).sort((a, b) => b[1] - a[1])) {
-	console.log(`  ${String(n).padStart(8)}  ${type}`);
-}
-console.log(`records by status nibbles (warnings):`);
-for (const [key, n] of Object.entries(byStatus).sort((a, b) => b[1] - a[1])) {
-	console.log(`  ${String(n).padStart(8)}  ${key}  (${warnByStatus[key] || 0} warned)`);
+if (rawIdx >= 0) {
+	dumpRaw();
+} else if (args.includes("--json")) {
+	dumpJson();
+} else if (args.includes("--events")) {
+	dumpEvents();
+} else {
+	dumpSummary();
 }
