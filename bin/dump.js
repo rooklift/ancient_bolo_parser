@@ -27,6 +27,14 @@ function warnTruncation(stats) {
 	}
 }
 
+// The game id's start time: seconds since the Mac epoch (1904-01-01),
+// in GMT since Bolo 0.99.5.
+const MAC_EPOCH_MS = Date.UTC(1904, 0, 1);
+
+function macTime(seconds) {
+	return new Date(MAC_EPOCH_MS + seconds * 1000).toISOString().slice(0, 19).replace("T", " ");
+}
+
 function clock(ticks, t0) {
 	const s = Math.max(0, ticks - t0) / TICKS_PER_SECOND;
 	const m = Math.floor(s / 60);
@@ -151,6 +159,9 @@ function dumpSummary() {
 	}
 	if (gameInfo) {
 		console.log(`map: "${gameInfo.mapName}"  host: ${gameInfo.hostIp}  game type: ${gameInfo.gameType}`);
+		if (gameInfo.startTimeMac) {
+			console.log(`started: ${macTime(gameInfo.startTimeMac)} GMT (host's clock; the game's start, not the log's)`);
+		}
 	}
 	console.log(`players:`);
 	for (const [num, name] of Object.entries(players)) {
