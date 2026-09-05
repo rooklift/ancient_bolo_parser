@@ -8,7 +8,12 @@
  * Bytes cross the bridge raw in both directions: a Uint8Array argument
  * goes as the request body, a Rust Response comes back as an ArrayBuffer.
  * Rejections from the Rust side become the { error } results main.js
- * returned, so the page's error handling stays as it was. */
+ * returned, so the page's error handling stays as it was.
+ *
+ * A log the host read arrives in two steps: its path and an id, then its
+ * bytes, fetched by that id. The host holds each log under its own id
+ * until taken, so two logs arriving while the page is busy can't swap
+ * contents. */
 
 (function() {
 	if (window.api || !window.__TAURI__) return;
@@ -24,8 +29,15 @@
 		return promise.then(() => ({}), err => ({ error: error_of(err) }));
 	}
 
-	function take_log_bytes() {
-		return invoke("take_log_bytes").then(ab => new Uint8Array(ab));
+	function take_log_bytes(id) {
+		return invoke("take_log_bytes", { id }).then(ab => new Uint8Array(ab));
+	}
+
+	/* A log the host offered (by event, or listed at startup): fetch its
+	 * bytes and hand both to the page. One no longer held (taken already,
+	 * or evicted by later arrivals the page will hear of) is passed over. */
+	function deliver_log(cb, offer) {
+		take_log_bytes(offer.id).then(data => cb({ path: offer.path, data }), () => {});
 	}
 
 	window.api = {
@@ -34,8 +46,8 @@
 
 		open_log: () => invoke("open_log").then(async res => {
 			if (res.canceled) return res;
-			return { canceled: false, path: res.path, data: await take_log_bytes() };
-		}, err => ({ canceled: true, error: error_of(err) })),
+			return { canceled: false, path: res.path, data: await take_log_bytes(res.id) };
+		}).catch(err => ({ canceled: true, error: error_of(err) })),
 
 		save_map: (name, data) => invoke("save_map", data, { headers: { "x-name": encodeURIComponent(name) } })
 			.catch(err => ({ canceled: true, error: error_of(err) })),
@@ -55,12 +67,13 @@
 		exit_fullscreen: () => invoke("exit_fullscreen"),
 		toggle_fullscreen: () => invoke("toggle_fullscreen"),
 
-		/* logs the host read itself: one named on the command line (asked
-		 * for at startup) and any dropped on the window later */
+		/* logs the host read itself: those waiting at startup (one named on
+		 * the command line, any dropped before the page listened) and any
+		 * dropped on the window later */
 		on_load_log: cb => {
-			listen("load-log", async e => cb({ path: e.payload.path, data: await take_log_bytes() }));
-			invoke("pending_log_path").then(async path => {
-				if (path) cb({ path, data: await take_log_bytes() });
+			listen("load-log", e => deliver_log(cb, e.payload));
+			invoke("pending_logs").then(offers => {
+				for (let offer of offers) deliver_log(cb, offer);
 			});
 		},
 

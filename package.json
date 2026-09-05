@@ -8,7 +8,7 @@
 		"bolodump": "bin/dump.js"
 	},
 	"scripts": {
-		"test": "node test/test.js && node test/test-viewer.cjs && node test/test-robustness.cjs && node test/test-pillbox_shell_orbits.cjs && node test/test-webm.cjs && node test/test-check-record-time-order.cjs && node test/test-compare-recordings.cjs"
+		"test": "node test/test.js && node test/test-viewer.cjs && node test/test-robustness.cjs && node test/test-pillbox_shell_orbits.cjs && node test/test-webm.cjs && node test/test-tauri-api.cjs && node test/test-check-record-time-order.cjs && node test/test-compare-recordings.cjs"
 	},
 	"engines": {
 		"node": ">=18"
