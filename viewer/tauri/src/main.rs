@@ -23,7 +23,7 @@ use tauri::{
 	ipc::{InvokeBody, Request, Response},
 	menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
 	webview::PageLoadEvent,
-	AppHandle, DragDropEvent, Emitter, Manager, WebviewWindow, WindowEvent, Wry,
+	AppHandle, DragDropEvent, Emitter, Manager, RunEvent, WebviewWindow, WindowEvent, Wry,
 };
 use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
 use tauri_plugin_opener::OpenerExt;
@@ -607,6 +607,15 @@ fn main() {
 			});
 			Ok(())
 		})
-		.run(tauri::generate_context!())
-		.expect("error while running the Ancient Bolo Log Viewer");
+		.build(tauri::generate_context!())
+		.expect("error while building the Ancient Bolo Log Viewer")
+		/* File > Exit (the predefined quit item) posts WM_QUIT, which ends
+		 * the event loop and exits the process without ever destroying the
+		 * window, so the Destroyed handler above never sees it. The Exit
+		 * event fires on every way out, that one included. */
+		.run(|app, event| {
+			if let RunEvent::Exit = event {
+				abort_export(app);
+			}
+		});
 }
