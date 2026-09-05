@@ -114,7 +114,7 @@ function build_menu() {
 			submenu: [
 				{ label: "Zoom in", accelerator: "CmdOrCtrl+=", click: () => send("zoom-in") },
 				{ label: "Zoom out", accelerator: "CmdOrCtrl+-", click: () => send("zoom-out") },
-				{ label: "Fit map", accelerator: "CmdOrCtrl+0", click: () => send("zoom-fit") },
+				{ label: "Centre map", accelerator: "CmdOrCtrl+0", click: () => send("centre-map") },
 				{ type: "separator" },
 				{ label: "Toggle player lock", accelerator: "CmdOrCtrl+L", click: () => send("toggle-player-lock") },
 				{ type: "separator" },
