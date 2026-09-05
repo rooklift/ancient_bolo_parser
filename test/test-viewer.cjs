@@ -230,7 +230,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture pill links scored against the roster vote", [
 			score.links, score.vouched, score.contradicted, score.unvouched,
 			score.unpinned, score.restated, [...score.clients],
-		], [52764, 20080, 0, 12863, 23, 0, []]);
+		], [52764, 20088, 0, 12873, 5, 0, []]);
 		/* The elections themselves: most pills cannot vote at all (under
 		 * three pinned sources), and of those that can, a vote inside the
 		 * margin stands down. The scene that motivated abstention is
@@ -945,6 +945,43 @@ if (!fs.existsSync(log1)) {
 	check("a dilated join needing a larger clock lie than measured yields to the wall",
 		[fourth_shot.next_terminal_event_type, rounded(fourth_shot.next_time)],
 		["explosion", 120.5199]);
+
+	/* Orbit states must survive a stitch. A pill shot seen at step 2, then
+	 * not for 52 ticks (past the pairwise window), then at steps 28 and 31
+	 * six ticks apart: the last link is matched pairwise while the step-28
+	 * shell has no source, and the stitch then bridges the gap and hands
+	 * the step-28 shell its identity and orbit state. The step-31 shell
+	 * used to keep only its quantised reconstruction -- no state, no exact
+	 * pixel -- because identity propagated down the chain and states did
+	 * not. The state walk re-derives it from the link's own duration. */
+	let stitched_states = BoloGame.build([
+		record(80, [{ type: "pillbox_list", items: [{
+			x: 133, y: 127, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(90, [{
+			type: "tank_position", x: 120, y: 120,
+			pixelX: 0, pixelY: 0, direction: 4,
+			inBoat: false, hidden: false, dying: false,
+			speed: 0, motion: 0,
+		}]),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 4 },
+			shell_list(4, [[2143, 2031]]),
+		]),
+		record(152, [shell_list(4, [[2247, 2030]])]),
+		record(158, [shell_list(4, [[2259, 2029]])]),
+	]);
+	let stitched_start = stitched_states.shell_positions[0][2].shells[0];
+	let stitched_follower = stitched_states.shell_positions[0][3].shells[0];
+	check("orbit states carry down the chain below a stitch",
+		[!!stitched_start.stitched,
+			(stitched_start.pillbox_orbit_states || []).map(
+				state => `${state.bradian}:${state.step}`),
+			(stitched_follower.pillbox_orbit_states || []).map(
+				state => `${state.bradian}:${state.step}`),
+			stitched_follower.pillbox_orbit_pixel_x,
+			stitched_follower.pillbox_source_x],
+		[true, ["63:28"], ["63:31"], 2259, 2128]);
 
 	/* The pill-side twin: an F4 and its shell in one record 30 ticks after
 	 * the sender's previous one, the shell 15 steps out on bradian 63
@@ -2878,7 +2915,7 @@ if (!fs.existsSync(log2)) {
 	}
 	check("fast-ring fixture pill links: re-sends excluded, no contradictions", [
 		score.links, score.restated, score.vouched, score.contradicted,
-	], [80429, 1679, 26962, 0]);
+	], [80429, 1679, 27006, 0]);
 }
 
 process.exit(failures ? 1 : 0);

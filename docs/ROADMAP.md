@@ -162,17 +162,26 @@ analogue of the orbit-membership claim would run on the bradian
 hypothesis machinery with far weaker constraints. Uncertain payoff;
 measure the false-claim risk before believing it. Explicitly optional.
 
-## 8. Small engine debts
+## 8. Small engine debts -- mostly retired
 
-* `propagate_identity_down_chain` carries source and birth but not
-  orbit states, so exactness is silently dropped downstream of every
-  stitch.
+* `propagate_identity_down_chain` carried source and birth but not
+  orbit states, so exactness was silently dropped downstream of every
+  stitch. DONE: `propagate_states_down_chain` re-derives the states
+  link by link below every stitch, forced origin and membership claim
+  (see `docs/interpolation_tests.md`, "Orbit states below a stitch").
 * The hover class (4,164 corpus links drawn slow, mostly dilated joins)
-  still wants the drawing-side speed floor item 2b promised; the
-  smoothing pass's own 24px plausibility gate is the other half of it.
-* The seam-jump family (129 links, max 3.16 px, stable since
-  `a74033a`) is on the books but unexplained; small enough to ignore,
-  annoying enough to root-cause someday.
+  wanted the drawing-side speed floor item 2b promised. It went 4,164
+  -> 3,347 in the lockstep arc, -> 3,093 with the pill-birth window and
+  -> 2,446 with the dilated-join lie bound, none of them the floor. The
+  residue is the true dilation class -- hops whose assumed clock lie is
+  inside the measured bound, drawn slow by construction -- and a floor
+  would only redraw those as a sprint and a park, the hover in another
+  costume. The lever is deciding per hop whether it is one shell or
+  two, which the lie bound began; the smoothing pass's own 24px
+  plausibility gate remains the other half. Open, restated.
+* The seam-jump family (129 links, max 3.16 px) was root-caused and
+  closed by item 9's seam closure: 81 corpus seam jumps to 0, and 0 at
+  every audit since. DONE.
 
 ## 9. The pill lockstep arc -- DONE
 

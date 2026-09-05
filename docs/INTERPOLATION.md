@@ -382,6 +382,14 @@ restatements inside it are *absorbed* into the chain as identity links
 `resolve_residual_shell_fates`), with a temporal gate so a trailing
 shell on the same segment is never claimed, at most one candidate per
 snapshot, and orbit evidence allowed to override the clock both ways.
+Whatever a stitch, a forced origin or an orbit-membership claim learns
+about a chain's head is carried down the whole chain: the source and
+birth (`propagate_identity_down_chain`) and, re-derived link by link
+under each link's own duration with the same successor functions the
+pairwise matcher runs, the orbit or bradian states
+(`propagate_states_down_chain`), so the exact pixel, the orbit walk
+and the lockstep pin reach every shell below the join rather than
+stopping at it.
 The second is drawing-only, after every identity has been decided: each
 chain of three or more restatements is re-timed to constant velocity
 between its best-known anchors (`smooth_shell_chains`), since the jitter
