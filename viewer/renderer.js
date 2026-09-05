@@ -47,8 +47,8 @@ const LGM_ANIMATION = ["lgm_frame0", "lgm_frame1", "lgm_frame0", "lgm_frame2"];
  * Classic Bolo object art, two-sided: "good" is the viewed player's team,
  * "evil" is everyone else — including neutral pillboxes, which the
  * original art does not distinguish from hostile ones. The "neutral"
- * pillbox set is that hostile art with its red swapped for the neutral
- * base's yellow, shown only when Cmd/Ctrl+N turns the neutral pill colour
+ * pillbox set is that hostile art with its red swapped for a grey
+ * (#a5a5a5), shown only when Cmd/Ctrl+N turns the neutral pill colour
  * on. Tank sprite indices match the log's tank directions: 0 = north,
  * clockwise. Pillbox indices are armour states 0 (dead) to 15 (fresh). On
  * by default; Cmd/Ctrl+G switches to vector markers. Only used at zooms
