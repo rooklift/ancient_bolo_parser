@@ -374,12 +374,29 @@ function zoom_to_action() {
 	request_draw();
 }
 
-/* Centre the view on the played area's bounding box (or the map's middle
- * when there's nothing but sea) at the current zoom. Releases the player
- * lock, as panning does: the lock would otherwise re-centre on the tank
- * at the next draw and the command would appear to do nothing. */
+/* Bounding box of the map's start (spawn) points, or null if it has none. */
+function start_bounds() {
+	if (!cur || !cur.starts.length) return null;
+	let minx = MAP_SIZE, miny = MAP_SIZE, maxx = 0, maxy = 0;
+	for (let st of cur.starts) {
+		if (st.x < minx) minx = st.x;
+		if (st.x > maxx) maxx = st.x;
+		if (st.y < miny) miny = st.y;
+		if (st.y > maxy) maxy = st.y;
+	}
+	return { minx, miny, maxx, maxy };
+}
+
+/* Centre the view at the current zoom on the middle of the start points'
+ * bounding box. That, not the land's box, is where play happens: some
+ * maps carry a "signature" of land off to one side which would drag the
+ * land box's centre away from the action. Falls back to the land box
+ * when the map has no starts, and to the map's middle when it's all sea.
+ * Releases the player lock, as panning does: the lock would otherwise
+ * re-centre on the tank at the next draw and the command would appear
+ * to do nothing. */
 function centre_map() {
-	let b = action_bounds();
+	let b = start_bounds() || action_bounds();
 	let cx = b ? (b.minx + b.maxx + 1) / 2 : MAP_SIZE / 2;
 	let cy = b ? (b.miny + b.maxy + 1) / 2 : MAP_SIZE / 2;
 	let { w, h } = css_size();
