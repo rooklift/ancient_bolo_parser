@@ -989,15 +989,54 @@ function draw_effects() {
 				break;
 			}
 			case "lgm_death": {
-				ctx.strokeStyle = `rgba(255,255,255,${1 - age})`;
-				ctx.lineWidth = 1;
+				/* the man dies in a burst of green streaks flying out from
+				 * his square: each streak's head races outward and its tail
+				 * detaches from the centre behind it, the whole fading out */
+				let burst = lgm_death_burst(e);
+				let head = 1 - (1 - age) * (1 - age); /* fast start, easing off */
+				let tail = age * age;
+				ctx.strokeStyle = `rgba(88,216,88,${1 - age})`;
+				ctx.lineWidth = Math.max(1, z * 0.1);
+				ctx.lineCap = "round";
 				ctx.beginPath();
-				ctx.arc(cx, cy, (0.2 + age * 0.4) * z, 0, Math.PI * 2);
+				for (let line of burst) {
+					let r0 = line.length * tail * z;
+					let r1 = line.length * head * z;
+					ctx.moveTo(cx + line.dx * r0, cy + line.dy * r0);
+					ctx.lineTo(cx + line.dx * r1, cy + line.dy * r1);
+				}
 				ctx.stroke();
+				ctx.lineCap = "butt";
 				break;
 			}
 		}
 	}
+}
+
+const LGM_DEATH_LINES = 10;
+
+/* The streaks of an LGM death burst, fixed for the life of the effect so
+ * they hold still from frame to frame: a direction and a length in tiles
+ * for each, drawn from a small generator seeded by the event's time and
+ * square so the same log always bursts the same way. Cached on the effect. */
+function lgm_death_burst(e) {
+	if (e.burst) return e.burst;
+	let seed = (e.time * 73856093) ^ (e.x * 19349663) ^ (e.y * 83492791);
+	let next = () => {  /* mulberry32 */
+		seed = (seed + 0x6d2b79f5) | 0;
+		let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+		t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+	};
+	let burst = [];
+	for (let i = 0; i < LGM_DEATH_LINES; i++) {
+		/* evenly spaced around the circle with some jitter, so the
+		 * burst reads as a burst rather than a random scatter */
+		let angle = (i + next() * 0.8) * Math.PI * 2 / LGM_DEATH_LINES;
+		burst.push({ dx: Math.cos(angle), dy: Math.sin(angle), length: 0.5 + next() * 1.0 });
+	}
+	e.burst = burst;
+	return burst;
 }
 
 /* ---------- loading ---------- */
