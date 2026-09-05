@@ -15,8 +15,6 @@ name: Tauri test build
 # minus the tag checks and the release upload.
 
 on:
-  push:
-    branches: [claude/manual-tauri-build-59ag4p] # temporary, to prove the build on this branch
   workflow_dispatch:
     inputs:
       ref:
