@@ -211,9 +211,27 @@ fn reveal_loaded_file(app: &AppHandle) {
 	}
 }
 
+/* Fullscreen hides the menu bar, as Electron's does by itself. On Windows
+ * the menu is part of the window frame rather than of the page, so a
+ * borderless fullscreen window keeps drawing it across the top of the
+ * screen unless it is detached; hidden, the page gets the whole monitor.
+ * (macOS has no window menus: both calls are no-ops there, and its own
+ * fullscreen hides the menu bar anyway.) The page's F11 and Escape and
+ * the menu's item all come through here, so the two always change
+ * together. */
+fn set_window_fullscreen(window: &WebviewWindow, on: bool) {
+	if on {
+		let _ = window.hide_menu();
+		let _ = window.set_fullscreen(true);
+	} else {
+		let _ = window.set_fullscreen(false);
+		let _ = window.show_menu();
+	}
+}
+
 fn toggle_window_fullscreen(window: &WebviewWindow) {
 	let now = window.is_fullscreen().unwrap_or(false);
-	let _ = window.set_fullscreen(!now);
+	set_window_fullscreen(window, !now);
 }
 
 /* ---------- the export file ---------- */
@@ -461,7 +479,7 @@ fn show_file(app: AppHandle) {
 #[tauri::command]
 fn exit_fullscreen(window: WebviewWindow) {
 	if window.is_fullscreen().unwrap_or(false) {
-		let _ = window.set_fullscreen(false);
+		set_window_fullscreen(&window, false);
 	}
 }
 
