@@ -1164,7 +1164,11 @@ story, three became pops, and `rate_links_steady` 0.964069 -> 0.964403.
 The motivating replay: hovers 5 -> 2, steady 0.966929 -> 0.968561, one
 link fewer (`pop_outs` 70 -> 71, one backwards pair added -- the 2270
 shell's pop-in behind the fifth shot's vanish, the remainder above),
-terminals unchanged. Not yet measured on the corpus.
+terminals unchanged. Corpus: `cee58aa` in
+[`interpolation_tests_corpus.md`](interpolation_tests_corpus.md) -- a
+trade, hovers -647 (-21%) and terminals +32 against unlinked +213 and
+backwards pops +67, with the refused joins' two classes read off the
+local files there.
 
 Pinned in `test/test-viewer.cjs` ("a dilated join needing a larger
 clock lie than measured yields to the wall"), the five records of the
