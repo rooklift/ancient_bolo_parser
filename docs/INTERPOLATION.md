@@ -215,6 +215,7 @@ New shells are matched backwards to firing events:
   firing time, which matters when a moving tank fires between position
   packets.
 - **Pillbox shots** (`F4`): see below — these get the full orbit treatment.
+  The same gap-following range applies (`mark_new_pillbox_shells`).
   The F4's pill index can be one too high when the direction nibble reads
   0 and the index is odd (a packing carry, FORMAT.md [E:pill-fire-index];
   ~25% of direction-0 fires), so odd-index direction-0 shots also try
