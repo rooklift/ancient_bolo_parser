@@ -1111,7 +1111,10 @@ Fixture, against `45aea5d` (main after the tank-window merge):
   55 -> 18, vouched 3371 -> 3387, contradicted 0; audit hovers 8 -> 5,
   `pop_outs` 92 -> 70, `pop_ins` 66 -> 53, `rate_links_steady`
   0.966929 -> 0.968155, rushed 98 -> 99, seam jumps zero
-* Not yet measured on the corpus
+* Corpus: `9115ab4` in [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md)
+  -- unlinked -1,215, terminals +1,471 with every type up, pill origins
+  +1,159, unpinned pill links -9,149, contradictions 94 -> 92, hovers
+  -184, pop-outs -1,509, backwards pops -59, for 43 more rush links
 
 Pinned in `test/test-viewer.cjs` ("a pill shot first seen across a long
 gap is born at its pill"): an F4 and its shell 15 steps out on bradian
