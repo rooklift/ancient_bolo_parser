@@ -1225,6 +1225,51 @@ below a stitch"): a pill shot at step 2, then at steps 28 and 31 across
 a 52-tick gap; the previous engine leaves the step-31 shell with its
 source and no state.
 
+## Spending the vote -- the contradiction sweep
+
+The state walk's corpus run left the vouched-link metric scoring
+16,539 links it could not see before, and 48 of them contradicted the
+pill's elected advance -- ±2-step, mostly pairwise, links made below a
+join without the lockstep defence (the corpus file's `810ef2c` section
+has the class table). The vote had only ever been a measurement; the
+pairwise matcher defers to it at match time, but a link that reached
+final state contradicting it stood. This turns the verdict into an
+act.
+
+`sweep_contradicted_links` runs after the membership claims, when every
+pin is in, and applies `score_pill_links`'s own definition: a link with
+both ends pinned, a passed election over its record pair, and a step
+advance that disagrees. Such a link is undone -- the end loses its
+story, the start its predecessor, both keep their pill and their
+states, since a pill shell's position is an exact orbit point whichever
+stream-mate it is -- and the stitching, residual and membership passes
+run once more over the freed pieces. Their candidates all consult the
+same reference, now carrying the election, so the indicted link cannot
+return and the right stream-mate can take its place; where none can,
+the pieces stand as an unfated end and an orphan start, which is the
+honest drawing of a link the pill's own statements say was wrong.
+Verbatim re-sends and visual joins are outside the scored population
+and are left alone.
+
+Fixture, against `b614f39` (main after the state-walk merge): nothing
+to sweep. All three local files carry zero contradictions, so every
+matching and drawing line is byte-identical; the cost of the extra
+reference build and link scan measured 1.04, 1.08 and 1.05 of the
+previous engine by alternating A/B, inside the run-to-run spread. The
+corpus is the only measurement: 140 contradictions to spend, and the
+question is how many of the freed ends and starts the second joining
+round settles rather than pops. Corpus: `7801209` in
+[`interpolation_tests_corpus.md`](interpolation_tests_corpus.md) --
+contradictions 140 -> 14, unlinked -45, terminals +95 with every type
+up, pop-outs -58, pop-ins -47; the 14 left are stitched links in
+five replays, read there.
+
+Pinned in `test/test-viewer.cjs` ("the roster vote's contradiction is
+unlinked, its vouched neighbours kept") on a hand-built roster: four
+pinned shells at steps 10, 12, 15 and 16 restated two steps on, three
+linked to their true successors and the fourth one stream-mate too
+far; the sweep undoes the fourth alone.
+
 ## Findings at the close of the ten-run table -- `926f391`
 
 Written when `926f391` was the branch's head and the table above ended
