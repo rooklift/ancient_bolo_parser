@@ -125,7 +125,7 @@ if (!fs.existsSync(log1)) {
 	}
 	check("fixture orbit-membership and stream-provenance birth claims",
 		[orbit_births.unseen, orbit_births.stream, orbit_births.sound],
-		[20, 3, true]);
+		[7, 3, true]);
 
 	/* Terminal-failure diagnostics: read-only classification of every
 	 * terminal that ends the pipeline with no matched shell and no
@@ -176,7 +176,7 @@ if (!fs.existsSync(log1)) {
 		], [1012, true, true, 240, 89]);
 		check("fixture same-record unseen shots claimed without cost", [
 			matched, unseen.pill, unseen.tank,
-		], [20722, 1222, 1119]);
+		], [20727, 1217, 1119]);
 
 		/* The end-side mirror: every chain end with no forward story gets
 		 * a class; the census must equal the unmatched-forward count less
@@ -205,7 +205,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture end-side census reconciles", [
 			ends_described, ends_described === unfated, end_reasons_sound,
 			fate_open,
-		], [267, true, true, 22]);
+		], [262, true, true, 22]);
 	}
 
 	/* The truth axis: every pill link scored against the statement-roster
@@ -230,7 +230,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture pill links scored against the roster vote", [
 			score.links, score.vouched, score.contradicted, score.unvouched,
 			score.unpinned, score.restated, [...score.clients],
-		], [52764, 20080, 0, 12842, 44, 0, []]);
+		], [52764, 20080, 0, 12863, 23, 0, []]);
 		/* The elections themselves: most pills cannot vote at all (under
 		 * three pinned sources), and of those that can, a vote inside the
 		 * margin stands down. The scene that motivated abstention is
@@ -251,7 +251,7 @@ if (!fs.existsSync(log1)) {
 			scene.verdict, scene.advance, scene.score, scene.runner_up,
 			scene.full_score, scene.full_runner_up, scene.sources,
 			scene.landings,
-		], [9918, 1992, 3717, "passed", 8, 5, 3, 5, 4,
+		], [9954, 1993, 3717, "passed", 8, 5, 3, 5, 4,
 			"6,9,11,14,17,19d,22d", "14,17,19,22,25"]);
 	}
 
@@ -900,6 +900,37 @@ if (!fs.existsSync(log1)) {
 			first_volley.map(shell => rounded(shell.next_time)),
 			second_volley.map(shell => !!shell.starts_at_tank)],
 		[["explosion", "explosion"], [107.5182, 121.1634], [true, true]]);
+
+	/* The pill-side twin: an F4 and its shell in one record 30 ticks after
+	 * the sender's previous one, the shell 15 steps out on bradian 63
+	 * (relative 67,-2 from the muzzle). The birth window follows the gap
+	 * here too; capped at the position window the marker stood down
+	 * entirely, and a single sighting that far from the muzzle is too
+	 * doubtful for the orbit-membership claim, so the shell popped in
+	 * mid-flight with its F4 unclaimed. */
+	let long_gap_pill_shot = BoloGame.build([
+		record(60, [{ type: "pillbox_list", items: [{
+			x: 133, y: 127, owner: 1, armour: 15, speed: 100,
+		}] }]),
+		record(70, [{
+			type: "tank_position", x: 120, y: 120,
+			pixelX: 0, pixelY: 0, direction: 4,
+			inBoat: false, hidden: false, dying: false,
+			speed: 0, motion: 0,
+		}]),
+		record(100, [
+			{ type: "pillbox_fires", pillbox: 0, direction: 4 },
+			shell_list(4, [[2195, 2030]]),
+		]),
+	]);
+	let long_gap_pill_shell = long_gap_pill_shot.shell_positions[0][1].shells[0];
+	check("a pill shot first seen across a long gap is born at its pill",
+		[!!long_gap_pill_shell.starts_at_pillbox,
+			long_gap_pill_shell.pillbox_source_x,
+			long_gap_pill_shell.pillbox_source_y,
+			(long_gap_pill_shell.pillbox_orbit_states || []).map(
+				state => `${state.bradian}:${state.step}`)],
+		[true, 2128, 2032, ["63:15"]]);
 
 	/* From replay 122903.4: a lagging sender whose record timestamps drift
 	 * against its simulation by several updates. Per-hop speeds read 1.4,

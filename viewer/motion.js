@@ -1324,9 +1324,13 @@ function mark_unseen_pillbox_terminals(source_groups, terminals,
 
 function mark_new_pillbox_shells(previous, next) {
 	let duration = next.time - previous.time;
-	if (duration < 0 || duration > MAX_POSITION_INTERPOLATION_TICKS) return;
-	let maximum_distance = duration * SHELL_SPEED_PIXELS_PER_TICK +
-		SHELL_MATCH_ERROR_PIXELS * 2;
+	if (duration < 0) return;
+	/* As for tank shots: an F4 logged in this record was fired since the
+	 * sender's previous record, so the window follows the gap, bounded
+	 * by the shell's range (the caller already bounds the gap to the
+	 * pairwise window). */
+	let maximum_distance = Math.min(duration * SHELL_SPEED_PIXELS_PER_TICK,
+		SHELL_RANGE_PIXELS) + SHELL_MATCH_ERROR_PIXELS * 2;
 	let source_groups = [];
 	for (let source of next.pillbox_sources) {
 		let group = source_groups.find(item => item.pixel_x === source.pixel_x &&

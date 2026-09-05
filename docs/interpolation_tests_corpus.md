@@ -152,8 +152,10 @@ Constant at all ten commits, and worth having once:
 | `a4822ec` | doubtful voters abstain | 0.996657 | 0.001443 | 0.833123 | 235,835 | 12,979 | 1,407 | 437 |
 | `0bfd71d` | symmetric elect, orphan tie-break | 0.996726 | 0.001419 | 0.833131 | 235,847 | 12,981 | 1,366 | **89** |
 | `a0ade53` | two quadratic scans removed | 0.996726 | 0.001419 | 0.833131 | 235,847 | 12,981 | 1,366 | 89 |
-| `ccc8ec3` | stale tank box, either box per step | **0.996914** | **0.001379** | **0.834069** | **237,709** | 82,149 | **1,356** | 92 |
+| `ccc8ec3` | stale tank box, either box per step | 0.996914 | 0.001379 | 0.834069 | 237,709 | 82,149 | 1,356 | 92 |
 | `30d5351` | stale tank box, track first refusal | 0.996882 | 0.001384 | 0.833914 | 237,399 | 13,108 | 1,360 | 94 |
+| `1f70a58` | tank births follow the gap | 0.996964 | 0.001324 | 0.834427 | 237,436 | 13,116 | 1,228 | 94 |
+| `9115ab4` | pill births follow the gap | **0.997117** | **0.001201** | **0.835183** | **237,788** | 13,132 | **1,169** | 92 |
 
 The three right-hand columns are lower-is-better counts from the drawn
 audit and the vouched-link score, added so that a drawing-only commit
@@ -178,6 +180,14 @@ moved `pops_paired_backwards` 5,792 -> 3,908 -> 3,253, see their
 sections; `7b9030a`, the uncapped falls, likewise took the undivided
 rushed line 79,521 -> 69,351 before `90925b0`, a fall the split shows
 to be timed.
+
+`1f70a58` -- the tank-birth window, see its section -- takes the three
+shell-side records and the backwards-pop record at once, the first row
+to move a headline record since `ccc8ec3`, which keeps `tank_hit` (its
+310 extra hits were the zero-length links `30d5351` gave back).
+`9115ab4` -- the pill-birth window, see its section -- moves all four
+on again and takes `tank_hit` too, at 2 px/tick this time; `baee09c`
+keeps timed rushes and `0bfd71d` contradictions.
 
 The rows below the guard run were measured later, from the corpus
 holder's live checkouts: `97fa412` closes the unmeasured-`main` gap the
@@ -2527,6 +2537,47 @@ links, backwards pops or contradictions rising, and all three fell or
 held. The four commits between `30d5351` and this one touch only game
 state (ownership on quit, base stocks, the LGM burst), so the whole
 delta is this change's.
+
+## Pill births follow the record gap too -- `9115ab4`
+
+The fixture file's section of the same name has the mechanism: the
+pill-side birth marker stood down entirely past the half-second
+position window, so an F4 and its shell in a long-gap record were left
+to the residual pass, which could attach them only within 16 px of the
+muzzle, and to the orbit-membership claim, which takes a lone sighting
+only fresh from the muzzle. The marker now follows the gap as the tank
+one does. The corpus question was whether F4-backed claims across long
+gaps would contradict the roster vote or steal successors from live
+shells.
+
+Corpus, `9115ab4-report.txt` and `9115ab4-audit.txt` against `1f70a58`
+(443 files, zero failures, same corpus):
+
+* `rate_shells_matched_forward` 0.996964 -> 0.997117
+* `rate_shells_unlinked` 0.001324 -> 0.001201 (13,002 -> 11,787)
+* `rate_terminals_matched` 0.834427 -> 0.835183 (1,624,161 ->
+  1,625,632, +1,471): `pillbox_damage` +656, `explosion` +358,
+  `tank_hit` +352, `shell_falls` +105, `base_damage` level
+* `shells_from_pillbox` 970,475 -> 971,634 (+1,159);
+  `shells_unseen_pillbox_birth` 6,281 -> 3,530, the difference now
+  claimed from their F4s rather than inferred from orbit membership;
+  `terminals_unseen_pillbox_source` 168,392 -> 167,475 (-917)
+* `links_pill_unpinned` 28,474 -> 19,325 (-9,149): heads pinned to
+  their orbit at the muzzle carry the pin down the chain;
+  `links_pill_vouched` +3,438, `links_pill_contradicted` 94 -> 92
+* `shells_visual_joins` 1,294 -> 1,259, `flow_components` 134,456 ->
+  132,645; `shells_from_tank` -1
+* Audit: `hover_links` 3,277 -> 3,093, `pop_outs` 29,622 -> 28,113
+  (-1,509), `pop_ins` 27,771 -> 26,575, `pops_paired_backwards` 1,228 ->
+  1,169, `rate_links_steady` 0.966693 -> 0.966727, seam jumps still
+  zero; the slowest bucket `link_speed:0.0-0.5` 571 -> 446
+* The cost: `rush_links` 7,437 -> 7,480 (+43, all timed) and
+  `terminal_links_rushed` 69,397 -> 69,415 (+18, sixteen timed) --
+  newly attributed heads whose first link is drawn against a record
+  that landed early, forty-odd against fifteen hundred pops removed
+
+The second measured candidate, widening `creation_start_match`, is not
+in this row; the fixture section records it as redundant.
 
 ## Findings
 
