@@ -221,8 +221,10 @@ fn toggle_window_fullscreen(window: &WebviewWindow) {
 /* An untouched machine must not sleep mid-export. The flag belongs to the
  * thread that sets it, so it is set and cleared from the one thread that
  * lives as long as the app does. (Timer throttling of a backgrounded
- * window, the other hold main.js took, is off for the whole app in
- * tauri.conf.json.) */
+ * window, the other hold main.js took, has no equivalent here: the
+ * backgroundThrottling setting in tauri.conf.json only works on macOS and
+ * iOS, so on Windows WebView2 keeps its usual hidden-page throttling. The
+ * export survives that because its loop avoids timers, see video.js.) */
 fn set_export_holds(app: &AppHandle, on: bool) {
 	#[cfg(windows)]
 	{
