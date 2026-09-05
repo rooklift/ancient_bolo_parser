@@ -31,11 +31,12 @@ for (let t = 10; t <= 15; t++) RGB[t] = RGB[t - 8];
 }
 
 /* Shapes mode uses the same allegiance language as the sprite art:
- * friendly green, hostile red (neutral pillboxes count as hostile), with
- * only neutral bases keeping their own amber. */
+ * friendly green, hostile red (neutral pillboxes count as hostile unless
+ * the neutral pill colour is on), with neutral bases — and neutral pills
+ * when that toggle is on — in their own amber. */
 const FRIENDLY_COLOR = "#58d858";
 const HOSTILE_COLOR = "#ff5d5d";
-const NEUTRAL_BASE = "#f0b429";
+const NEUTRAL_COLOR = "#f0b429";
 
 const EFFECT_TICKS = 30; /* how long a transient effect stays on screen */
 const OBJ_NATIVE_TILE = 16;
@@ -44,17 +45,20 @@ const LGM_ANIMATION = ["lgm_frame0", "lgm_frame1", "lgm_frame0", "lgm_frame2"];
 
 /* ---------- object sprites (sprites/objects/) ----------
  * Classic Bolo object art, two-sided: "good" is the viewed player's team,
- * "evil" is everyone else — including neutral pillboxes, which the art
- * does not distinguish from hostile ones. Tank sprite indices match the
- * log's tank directions: 0 = north, clockwise. Pillbox
- * indices are armour states 0 (dead) to 15 (fresh). On by default;
- * Cmd/Ctrl+G switches to vector markers. Only used at zooms where the
- * terrain also draws with sprites — vector markers read better over the
- * flat-colour map. */
+ * "evil" is everyone else — including neutral pillboxes, which the
+ * original art does not distinguish from hostile ones. The "neutral"
+ * pillbox set is that hostile art with its red swapped for the neutral
+ * base's yellow, shown only when Cmd/Ctrl+N turns the neutral pill colour
+ * on. Tank sprite indices match the log's tank directions: 0 = north,
+ * clockwise. Pillbox indices are armour states 0 (dead) to 15 (fresh). On
+ * by default; Cmd/Ctrl+G switches to vector markers. Only used at zooms
+ * where the terrain also draws with sprites — vector markers read better
+ * over the flat-colour map. */
 let use_obj_sprites = true;
 let use_lgm_sprites = true;
 let use_big_shots = false;
 let use_simple_terrain = false;
+let use_neutral_pill_colour = false;
 let coordinate_debug_enabled = false;
 let pillbox_ids_enabled = false;
 let pill_fire_flashes_enabled = false;
@@ -67,7 +71,7 @@ function load_obj_sprites() {
 	for (let i = 0; i < 16; i++) {
 		let n = String(i).padStart(2, "0");
 		names.push(`tank_good_${n}`, `tank_evil_${n}`, `tank_goodboat_${n}`, `tank_evilboat_${n}`,
-			`pillbox_good_${n}`, `pillbox_evil_${n}`, `shell_${n}`);
+			`pillbox_good_${n}`, `pillbox_evil_${n}`, `pillbox_neutral_${n}`, `shell_${n}`);
 	}
 	for (let name of names) {
 		let img = new Image();
@@ -658,7 +662,7 @@ function draw_bases() {
 			continue;
 		}
 		let cx = tile_to_screen_x(b.x) + z / 2, cy = tile_to_screen_y(b.y) + z / 2;
-		ctx.fillStyle = b.owner === BoloGame.NEUTRAL ? NEUTRAL_BASE : side === "good" ? FRIENDLY_COLOR : HOSTILE_COLOR;
+		ctx.fillStyle = b.owner === BoloGame.NEUTRAL ? NEUTRAL_COLOR : side === "good" ? FRIENDLY_COLOR : HOSTILE_COLOR;
 		ctx.strokeStyle = "rgba(0,0,0,0.65)";
 		ctx.lineWidth = 1.5;
 		ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
@@ -673,6 +677,14 @@ function pill_side(p, good) {
 	return BoloGame.team_of(cur, p.owner) === good ? "good" : "evil";
 }
 
+/* As pill_side, but with the neutral pill colour on, nobody's pills
+ * (neutral and DEPARTED alike: they behave the same) draw as "neutral"
+ * rather than as hostile. */
+function pill_colour_side(p, good) {
+	if (use_neutral_pill_colour && (p.owner === BoloGame.NEUTRAL || p.owner === BoloGame.DEPARTED)) return "neutral";
+	return pill_side(p, good);
+}
+
 function draw_pills(dead) {
 	let z = view.zoom;
 	let r = Math.max(2, z * 0.36);
@@ -681,15 +693,15 @@ function draw_pills(dead) {
 		if (p.inTank !== null || (p.armour === 0) !== dead) continue;
 		let cx = tile_to_screen_x(p.x) + z / 2;
 		let cy = tile_to_screen_y(p.y) + z / 2;
-		/* the art shows neutral pills as hostile; armour state 0 is the dead look */
-		let side = pill_side(p, good);
+		/* armour state 0 is the dead look */
+		let side = pill_colour_side(p, good);
 		let img = obj_sprite(`pillbox_${side}_${String(Math.min(15, p.armour)).padStart(2, "0")}`);
 		if (img) {
 			draw_obj(img, tile_to_screen_x(p.x), tile_to_screen_y(p.y));
 			continue;
 		}
 		ctx.fillStyle = dead ? "#555c6a"
-			: side === "good" ? FRIENDLY_COLOR : HOSTILE_COLOR;
+			: side === "good" ? FRIENDLY_COLOR : side === "neutral" ? NEUTRAL_COLOR : HOSTILE_COLOR;
 		ctx.strokeStyle = "rgba(0,0,0,0.65)";
 		ctx.lineWidth = 1.5;
 		ctx.beginPath();
@@ -1122,6 +1134,11 @@ function toggle_simple_terrain() {
 	request_draw();
 }
 
+function toggle_neutral_pill_colour() {
+	use_neutral_pill_colour = !use_neutral_pill_colour;
+	request_draw();
+}
+
 function toggle_coordinate_debug() {
 	coordinate_debug_enabled = !coordinate_debug_enabled;
 	update_coordinate_debug();
@@ -1318,6 +1335,9 @@ window.addEventListener("keydown", e => {
 	} else if (toggle_key(e, "KeyB")) {
 		e.preventDefault();
 		toggle_big_shots();
+	} else if (toggle_key(e, "KeyN")) {
+		e.preventDefault();
+		toggle_neutral_pill_colour();
 	} else if (toggle_key(e, "KeyR")) {
 		e.preventDefault();
 		toggle_raw_shells();
@@ -1439,6 +1459,7 @@ if (window.api) {
 			case "toggle-lgm-sprites": toggle_lgm_sprites(); break;
 			case "toggle-big-shots": toggle_big_shots(); break;
 			case "toggle-simple-terrain": toggle_simple_terrain(); break;
+			case "toggle-neutral-pill-colour": toggle_neutral_pill_colour(); break;
 			case "toggle-coordinate-debug": toggle_coordinate_debug(); break;
 			case "toggle-pillbox-ids": toggle_pillbox_ids(); break;
 			case "toggle-pill-fire-flashes": toggle_pill_fire_flashes(); break;
