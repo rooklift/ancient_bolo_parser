@@ -389,7 +389,11 @@ under each link's own duration with the same successor functions the
 pairwise matcher runs, the orbit or bradian states
 (`propagate_states_down_chain`), so the exact pixel, the orbit walk
 and the lockstep pin reach every shell below the join rather than
-stopping at it.
+stopping at it. Once every pin is in, the roster vote gets the last
+word: a link whose step advance contradicts the advance the pill's own
+statements elected over its record pair is undone
+(`sweep_contradicted_links`) and the joining passes run once more over
+the freed pieces, under the election.
 The second is drawing-only, after every identity has been decided: each
 chain of three or more restatements is re-timed to constant velocity
 between its best-known anchors (`smooth_shell_chains`), since the jitter
