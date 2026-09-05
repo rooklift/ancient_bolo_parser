@@ -442,7 +442,9 @@ fn show_error(app: AppHandle, title: String, message: String) {
 }
 
 #[tauri::command]
-fn file_loaded(app: AppHandle, path: String) {
+fn file_loaded(app: AppHandle, window: WebviewWindow, path: String, title: String) {
+	/* the page sets document.title, which the native window does not follow */
+	let _ = window.set_title(&title);
 	let path = PathBuf::from(path);
 	if path.is_absolute() {
 		lock(&app).loaded_file_path = Some(path);

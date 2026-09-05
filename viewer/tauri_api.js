@@ -62,7 +62,8 @@
 		/* files reach the page by the native drop below, never as File objects with a path */
 		file_path: file => file.name,
 
-		file_loaded: file_path => invoke("file_loaded", { path: file_path }),
+		/* Electron's native title follows document.title; Tauri's has to be told */
+		file_loaded: file_path => invoke("file_loaded", { path: file_path, title: document.title }),
 		show_file: () => invoke("show_file"),
 		exit_fullscreen: () => invoke("exit_fullscreen"),
 		toggle_fullscreen: () => invoke("toggle_fullscreen"),
