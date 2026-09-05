@@ -207,9 +207,13 @@ tolerance) never outcompete exact geometry.
 New shells are matched backwards to firing events:
 
 - **Tank shots** (`5d`): candidate shells within range of the firing tank's
-  position, in the right sector. The birth point is then refined against the
-  interpolated tank track at the inferred firing time, which matters when a
-  moving tank fires between position packets.
+  position, in the right sector. The range follows the record gap: a shot
+  logged in a record was fired since the sender's previous one, so its
+  shell may sit anywhere from the muzzle out to the gap's worth of flight,
+  bounded by the shell's range (`mark_new_tank_shells`). The birth point
+  is then refined against the interpolated tank track at the inferred
+  firing time, which matters when a moving tank fires between position
+  packets.
 - **Pillbox shots** (`F4`): see below — these get the full orbit treatment.
   The F4's pill index can be one too high when the direction nibble reads
   0 and the index is odd (a packing carry, FORMAT.md [E:pill-fire-index];

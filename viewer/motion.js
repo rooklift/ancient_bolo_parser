@@ -1401,9 +1401,23 @@ function mark_new_pillbox_shells(previous, next) {
 
 function mark_new_tank_shells(previous, next) {
 	let duration = previous ? next.time - previous.time : 0;
+	/* A shot logged in this record was fired since the sender's previous
+	 * record, so its shell lies anywhere from the muzzle out to the gap's
+	 * worth of flight, bounded by the shell's range. The allowance used
+	 * to stop growing past the half-second position window, collapsing
+	 * to the bare muzzle tolerance beyond it: a parked tank firing at a
+	 * wall through 28-tick gaps then had every fresh shot orphaned, and
+	 * the residual pass glued each onto the previous shot's chain a
+	 * pixel away -- drawn as a shell hovering in front of the wall for a
+	 * whole record instead of hitting it. Past the pairwise window the
+	 * old-shell story has not been tested before a birth is claimed, but
+	 * nearest-first assignment against the fire count keeps a lingering
+	 * shell from outranking a fresh one, and the measured effect of the
+	 * open window is a net gain (`docs/interpolation_tests.md`). */
 	let maximum_distance = SHELL_TANK_BIRTH_ERROR_PIXELS;
-	if (duration > 0 && duration <= MAX_POSITION_INTERPOLATION_TICKS) {
-		maximum_distance += duration * SHELL_SPEED_PIXELS_PER_TICK;
+	if (duration > 0) {
+		maximum_distance += Math.min(duration * SHELL_SPEED_PIXELS_PER_TICK,
+			SHELL_RANGE_PIXELS);
 	}
 	let source_groups = [];
 	for (let source of next.tank_sources) {
