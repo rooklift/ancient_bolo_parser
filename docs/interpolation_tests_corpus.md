@@ -2622,21 +2622,28 @@ What the refused joins are, read off the two local files with the
 refusal instrumented (four on the fast-ring fixture, five on the
 motivating replay): two classes. On the fast-ring fixture most are
 byte-identical restatements of a whole three-shell list 39 to 46 ticks
-after its first statement -- a frozen list re-sent, an identity the
-4-tick re-send pass is right not to claim and that the join used to
-draw as a 46-tick hover; the bound now draws it as a vanish and a
-pop-in on the same spot, which is where the backwards pairs come from.
+after its first statement, under a fresh ring count and beside a
+same-tick record from the same sender whose list has moved on (the
+fast-ring fixture, records #50498 -> #50544 at 29:12.5 -> 29:13.4,
+#16515 -> #16539 at 10:30.6 -> 10:31.2, #52299 -> #52335 at 30:10.2 ->
+30:11.0, all player 1) -- a stale list restated, an identity the 4-tick
+re-send pass is right not to claim and that the join used to draw as a
+46-tick hover before the shells vanished anyway. The bound refuses the
+join, so the shells vanish at the first statement, and the re-send's
+own shells, with no forward story of their own, are drawn for no
+frame at all: `shell_position_at` holds a storyless shell only at its
+own tick, which a fractional playback clock never lands on. The
+backwards pairs are those zero-duration ghosts, audit bookkeeping;
+what the eye sees is the hover ending 46 ticks sooner.
 On the motivating replay all five are crawls of 7 to 20 px over 29 to
 45 ticks from a tank stream restating fresh shells near old ones -- two
 shells glued into one, the class the bound exists for. The corpus's
-257 are presumably the same mix; the fast-ring fixture's class is the
-one to weigh, since a hover and a flicker on the same spot are both
-wrong and the flicker is at least honest about not knowing. A verbatim
-multi-shell re-send across a long gap is provable identity (three
-shells do not repeat their bytes by chance), so exempting that shape
-from the bound, or extending the re-send pass to it, would recover
-those as zero-advance links if the flicker is judged the worse
-drawing; not dialled here.
+257 are presumably the same mix, and neither class loses anything
+visible. A verbatim multi-shell re-send across a long gap is provable
+identity (three shells do not repeat their bytes by chance), so the
+re-send pass could be extended to claim it as a zero-advance link if
+the ledger is ever wanted clean of those ghosts; nothing drawn would
+change.
 
 ## Findings
 
