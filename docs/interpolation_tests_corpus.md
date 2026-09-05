@@ -150,14 +150,15 @@ Constant at all ten commits, and worth having once:
 | `e101787` | pairwise roster lockstep | 0.995494 | 0.001520 | 0.833249 | 235,846 | 12,578 | 2,876 |  |
 | `917077a` | fast-ring re-sends | 0.996647 | 0.001446 | 0.833054 | 235,759 | 12,974 | 1,382 | 423‡ |
 | `a4822ec` | doubtful voters abstain | 0.996657 | 0.001443 | 0.833123 | 235,835 | 12,979 | 1,407 | 437 |
-| `0bfd71d` | symmetric elect, orphan tie-break | 0.996726 | 0.001419 | 0.833131 | 235,847 | 12,981 | 1,366 | **89** |
+| `0bfd71d` | symmetric elect, orphan tie-break | 0.996726 | 0.001419 | 0.833131 | 235,847 | 12,981 | 1,366 | 89 |
 | `a0ade53` | two quadratic scans removed | 0.996726 | 0.001419 | 0.833131 | 235,847 | 12,981 | 1,366 | 89 |
 | `ccc8ec3` | stale tank box, either box per step | 0.996914 | 0.001379 | 0.834069 | 237,709 | 82,149 | 1,356 | 92 |
 | `30d5351` | stale tank box, track first refusal | 0.996882 | 0.001384 | 0.833914 | 237,399 | 13,108 | 1,360 | 94 |
 | `1f70a58` | tank births follow the gap | 0.996964 | 0.001324 | 0.834427 | 237,436 | 13,116 | 1,228 | 94 |
 | `9115ab4` | pill births follow the gap | **0.997117** | **0.001201** | 0.835183 | 237,788 | 13,132 | **1,169** | 92 |
 | `cee58aa` | dilated joins bounded by the measured lie | 0.997095 | 0.001222 | 0.835199 | 237,799 | 13,130 | 1,236 | 92 |
-| `810ef2c` | orbit states below a stitch | 0.997095 | 0.001222 | **0.835202** | **237,804** | 13,154 | 1,236 | 140 |
+| `810ef2c` | orbit states below a stitch | 0.997095 | 0.001222 | 0.835202 | 237,804 | 13,154 | 1,236 | 140 |
+| `7801209` | the contradiction sweep | 0.997101 | 0.001218 | **0.835250** | **237,818** | 13,163 | 1,230 | **14** |
 
 The three right-hand columns are lower-is-better counts from the drawn
 audit and the vouched-link score, added so that a drawing-only commit
@@ -197,7 +198,11 @@ of the corpus's hovers, and edges the two terminal-side records on.
 pinning-only: it repeats `cee58aa`'s shell-side row, edges the
 terminal side by five, and moves the contradiction column 92 -> 140,
 which is the vouched-link metric seeing 16,500 links it could not
-score before rather than links changing.
+score before rather than links changing. `7801209` -- the
+contradiction sweep, see its section -- spends them: contradictions
+140 -> 14, the column's record by a wide margin, with every other
+column level or better; `9115ab4` keeps the two shell-side records by
+a hair, `baee09c` timed rushes.
 
 The rows below the guard run were measured later, from the corpus
 holder's live checkouts: `97fa412` closes the unmeasured-`main` gap the
@@ -2721,6 +2726,63 @@ population made visible, not a new one made. Spending the count is
 the next dial: a second lockstep pass over links a join has just
 pinned, unlinking or re-matching a pinned link whose advance the
 roster contradicts.
+
+## The contradiction sweep -- `7801209`
+
+The fixture file's section "Spending the vote" has the mechanism: once
+every pin is in, a link whose step advance contradicts the advance the
+pill's own statements elected over its record pair is undone, both
+shells keeping their pill and their states, and the stitching,
+residual and membership passes run once more over the freed pieces
+under the election. Nothing to sweep on any local file; the corpus,
+at 140, is the measurement, and the question was how many of the
+freed pairs the second round would settle rather than pop.
+
+Corpus, `7801209-report.txt`, `7801209-audit.txt` and
+`7801209-links.txt` against `810ef2c` (443 files, zero failures, same
+corpus):
+
+* `links_pill_contradicted` 140 -> 14 (`rate` 0.000027 -> 0.000003),
+  the alarm column's record; `links_pill_vouched` +7
+* `shells_unlinked` 12,000 -> 11,955; `shells_matched_forward` +58;
+  `terminals_matched` 1,625,669 -> 1,625,764 (+95, every type up:
+  `pillbox_damage` +49, `tank_hit` +14, `explosion` +12,
+  `shell_falls` +12, `base_damage` +8)
+* `links_shell` 8,163,171 -> 8,163,134 (-37): 126 links undone, 89
+  remade or replaced by the second round, the rest becoming an end
+  and a start -- `shells_stream_birth` 930 -> 1,014, the freed starts
+  with a pill and states drawn from the muzzle, `shells_visual_joins`
+  1,209 -> 1,222, `terminals_unseen_pillbox_source` +45
+* `links_pill_unpinned` 2,772 -> 2,836: the sweep runs after the
+  membership claims, so a chain the second round joins below a
+  membership claim is not walked again; a small debt the next dial
+  can take with it
+* Audit: `pop_outs` 28,335 -> 28,277, `pop_ins` 26,823 -> 26,776,
+  `pops_paired_forward` 3,058 -> 3,017, `pops_paired_backwards`
+  1,236 -> 1,230, hovers 2,446 -> 2,451, `terminal_links_rushed` +11,
+  seam jumps still zero
+* `build_ms` 350,831 -> 359,429 (+2.5%): the extra reference build on
+  every file, the second joining round on the files with something
+  to sweep
+
+Where the vote indicted a link, the second round found a better story
+for most of the pairs, and the ledger says the stories were better:
+fewer unlinked shells, more terminals of every kind, fewer pops of
+every kind. That is the vote earning its keep as an authority rather
+than a meter.
+
+The 14 left standing are all stitched links, in five replays; six of
+them are one chain in `20020911~1f7b70` joined across four records
+against the roster at every hop, and three are 4-tick hops in
+`20010326~fc6a01`, a fast-ring log. Every one was remade in the
+second round by a stitch or dilated join whose gate consulted the
+reference -- but that reference is keyed by record time, and on a fast
+ring two snapshots share a time, so a one-hop and a composed two-hop
+span write the same key, last writer winning, the quirk the reference
+builder's own comment left as measured. `score_pill_links` keys by
+snapshot index for exactly that reason. Keying the joining passes'
+reference by index too is the obvious next look, and would either
+close the remaining 14 or show them to be something else.
 
 ## Findings
 
