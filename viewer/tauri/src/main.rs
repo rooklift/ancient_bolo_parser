@@ -514,6 +514,7 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
 		&item(app, "toggle-simple-terrain", "Toggle simple terrain", "Ctrl+T")?,
 		&item(app, "toggle-lgm-sprites", "Toggle simple LGM", "Ctrl+M")?,
 		&item(app, "toggle-big-shots", "Toggle big shots", "Ctrl+B")?,
+		&item(app, "toggle-neutral-pill-colour", "Toggle neutral pill colour", "Ctrl+N")?,
 		&PredefinedMenuItem::separator(app)?,
 		&item(app, "toggle-fullscreen", "Toggle Full Screen", "F11")?,
 	])?;
