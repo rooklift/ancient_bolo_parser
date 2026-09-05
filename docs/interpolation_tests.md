@@ -1176,6 +1176,54 @@ clock lie than measured yields to the wall"), the five records of the
 scene as logged; the previous engine joins the fourth shot to the 2282
 shell.
 
+## Orbit states below a stitch
+
+Roadmap item 8's first debt. `apply_stitch` puts the recovered orbit
+states on the start shell, but `propagate_identity_down_chain` carried
+only the source and the birth down the rest of the chain, and every
+link from the start onward had been matched pairwise before the stitch
+existed, when the start had no source and `pillbox_shell_successor_states`
+had nothing to advance. So below every stitch, forced origin and
+membership claim the shells kept only their quantised reconstruction:
+no exact pixel for drawing and smoothing to anchor on, no orbit walk
+when the chain's end reached the residual pass, no pin for the roster
+vote.
+
+`propagate_states_down_chain` now follows the identity walk at all
+four sites (`apply_stitch`, `absorb_intermediate_observations`,
+`apply_forced_origin`, `claim_unseen_pillbox_births`), re-deriving each
+downstream link's states from the link's own duration with the same
+successor functions the pairwise matcher runs -- so a link they confirm
+is exactly as trusted as one matched with states in hand -- filling
+only where states are absent, copying verbatim across a re-send as the
+re-send pass does, and stopping at the first link the discrete model
+cannot confirm. Tank chains get the same treatment with bradian states,
+and a uniquely surviving bradian becomes the heading as it does
+pairwise.
+
+Fixture, against `c007a78` (main after the lie-bound merge): every
+matching and drawing line identical -- no link, terminal, birth, pop or
+speed bucket moves -- except one terminal link reclassified static ->
+instant (an end whose exact pixel is now recovered draws a few pixels
+from its terminal rather than on it). The pinning axis is where it
+lands:
+
+* `links_pill_unpinned` 23 -> 5; `links_pill_vouched` 20080 -> 20088,
+  `links_pill_contradicted` still 0
+* `040601.6`: `links_pill_unpinned` 145 -> 71, vouched 26962 -> 27006,
+  contradicted 0; nothing else moves
+* The motivating replay: `links_pill_unpinned` 18 -> 2, vouched
+  3387 -> 3391, contradicted 0; nothing else moves
+* No headline rate moves, so no new row in the table below
+* Not yet measured on the corpus, where `links_pill_unpinned` stands at
+  19,311 at `cee58aa` and where chain ends below stitches reach the
+  residual pass with states for the first time
+
+Pinned in `test/test-viewer.cjs` ("orbit states carry down the chain
+below a stitch"): a pill shot at step 2, then at steps 28 and 31 across
+a 52-tick gap; the previous engine leaves the step-31 shell with its
+source and no state.
+
 ## Findings at the close of the ten-run table -- `926f391`
 
 Written when `926f391` was the branch's head and the table above ended
