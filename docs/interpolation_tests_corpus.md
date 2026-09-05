@@ -2482,6 +2482,52 @@ The headline table's column is the timed part from here on; the
 undivided `terminal_links_rushed` figures stay in the sections and the
 archived files.
 
+## Tank births follow the record gap -- `1f70a58`
+
+The fixture file's section of the same name has the scene (a parked
+tank firing two shots per 28-tick record at a wall, each fresh volley
+orphaned and glued onto the previous one a pixel away) and the
+mechanism: the tank-birth window in `mark_new_tank_shells` stopped
+growing past the half-second position window and collapsed to the bare
+muzzle tolerance, and now follows the gap, bounded by the shell's
+range. The open form was chosen over a 50-tick-capped one on two local
+files; the corpus was the check on whether the open window claims
+shells it should not at long gaps.
+
+Corpus, `1f70a58-report.txt` and `1f70a58-audit.txt` against `30d5351`
+(443 files, zero failures; `shells` and `terminals` identical, so the
+same corpus):
+
+* `rate_shells_matched_forward` 0.996882 -> 0.996964
+* `rate_shells_unlinked` 0.001384 -> 0.001324 (13,591 -> 13,002)
+* `rate_terminals_matched` 0.833914 -> 0.834427 (1,623,163 ->
+  1,624,161, +998): `pillbox_damage` +685, `base_damage` +126,
+  `explosion` +121, `tank_hit` +37, `shell_falls` +29 -- every type up
+* `shells_from_tank` 652,175 -> 655,723 (+3,548), `shell_births`
+  1,622,649 -> 1,626,198; `terminals_unseen_tank_source` 78,932 ->
+  77,946 (-986): impacts that were credited to invisible shots are now
+  the observed shell's own
+* `links_shell` 8,163,589 -> 8,163,392 (-197) and `shells_visual_joins`
+  1,311 -> 1,294: the dilated and visual joins that were gluing volleys
+  together, dissolved; `flow_components` 134,819 -> 134,456
+* `links_pill_contradicted` 94 -> 94, `links_pill_vouched` unchanged;
+  pill matching does not see the change
+* Audit: `hover_links` 3,538 -> 3,277 (-261), `pop_outs` 30,423 ->
+  29,622 (-801), `pop_ins` 31,123 -> 27,771 (-3,352),
+  `pops_paired_backwards` 1,360 -> 1,228, `terminal_links_rushed`
+  69,411 -> 69,397, `rush_links` 7,436 -> 7,437, `rate_links_steady`
+  0.966649 -> 0.966693, seam jumps still zero
+* The slow speed buckets thin the most: `link_speed:0.0-0.5` 653 -> 571,
+  `0.5-1.0` 2,885 -> 2,706, which is the hover-in-front-of-the-wall
+  shape leaving the drawn output
+
+The one concern the open window carried -- claiming a lingering old
+shell as a fresh shot past the pairwise window -- would show as rushed
+links, backwards pops or contradictions rising, and all three fell or
+held. The four commits between `30d5351` and this one touch only game
+state (ownership on quit, base stocks, the LGM burst), so the whole
+delta is this change's.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
