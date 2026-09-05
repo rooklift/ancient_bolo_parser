@@ -1052,16 +1052,71 @@ Fixture, against `9ed3bd6`:
   +3,548, hovers -261, pop-outs -801, pop-ins -3,352, contradictions
   and seam jumps unchanged
 
-Left as found: `creation_start_match` still measures a same-record shot
-against zero flight, so a leftover start further than 16 px from the
-muzzle cannot be attached in the residual pass; `creation_fate_match`
-already takes the gap as extra flight for the unseen-shot phases, and the
-same allowance would be the consistent thing here.
+Left as found at the time: `creation_start_match` still measures a
+same-record shot against zero flight. The next section measures the
+consistent allowance and finds it redundant once both birth markers
+carry the gap.
 
 The scene is pinned in `test/test-viewer.cjs` ("a volley restated across
 a long gap dies at the wall, the next is born at the tank"), with the
 log's record spacing, and fails on the previous engine: the leading
 shell gets no fate and neither shell of the second volley a birth.
+
+## Pill births follow the record gap too
+
+The same cap in the pill-side birth marker: `mark_new_pillbox_shells`
+stood down entirely past the half-second position window, so an F4 and
+its shell in a record more than 25 ticks after the sender's previous
+one could not be attributed at the pairwise stage. The residual pass
+could attach the shell to the F4 only within 16 px of the muzzle
+(`creation_start_match` at zero duration), and the orbit-membership
+claim takes a single sighting only fresh from the muzzle, so a shell
+first seen well out along its orbit popped in mid-flight with its F4
+left to be spent as an unseen source. The marker now follows the gap as
+the tank one does, bounded by the shell's range; the pairwise window
+already bounds the gap at 50 ticks. The count-forced unseen terminals
+it marks (`mark_unseen_pillbox_terminals`) take the same widened
+distance.
+
+The other candidate, widening `creation_start_match` so a same-record
+shot's flight is the interval [0, gap] as `creation_fate_match` already
+takes it, was measured alone and on top of this change. Alone it moves
+three unlinked shells on the fixture and seven on the motivating replay,
+all pill, none tank -- the tank marker already covers the identical
+window, so a tank start the marker refused is refused there too. On top
+of this change it is a wash (fixture 119 -> 118 unlinked, the replay
+27 -> 28) and mostly reclassifies orbit-membership births as
+F4-attributed ones. Left strict.
+
+Fixture, against `45aea5d` (main after the tank-window merge):
+
+* `rate_shells_matched_forward` 0.996380 -> 0.996448
+* `rate_shells_unlinked` 0.001681 -> 0.001613 (124 -> 119)
+* `rate_terminals_matched` 0.860727 -> 0.860935 (20722 -> 20727):
+  `explosion` +2, `pillbox_damage` +2, `tank_hit` +1
+* `terminals_unseen_pillbox_source` 1222 -> 1217;
+  `shells_unseen_pillbox_birth` 20 -> 7, the difference now claimed
+  from their F4s rather than inferred from orbit membership
+* `links_pill_unpinned` 44 -> 23, vouched 20080 unchanged, contradicted
+  still 0; the roster-vote tallies shift by a few dozen as the newly
+  pinned heads join the electorate
+* Audit: `pop_outs` 267 -> 262, `terminal_links_rushed` 462 -> 463,
+  hovers and seam jumps unchanged
+* `040601.6`: every headline line identical; `links_pill_unpinned`
+  153 -> 145 and the vote tallies move with it
+* The motivating replay: matched forward 0.994016 -> 0.995447, unlinked
+  45 -> 27, terminals matched 5515 -> 5538 (`pillbox_damage` +12,
+  `explosion` +6, `tank_hit` +5), pill origins 3257 -> 3271, unseen pill
+  sources 494 -> 476, visual joins 2 -> 0, `links_pill_unpinned`
+  55 -> 18, vouched 3371 -> 3387, contradicted 0; audit hovers 8 -> 5,
+  `pop_outs` 92 -> 70, `pop_ins` 66 -> 53, `rate_links_steady`
+  0.966929 -> 0.968155, rushed 98 -> 99, seam jumps zero
+* Not yet measured on the corpus
+
+Pinned in `test/test-viewer.cjs` ("a pill shot first seen across a long
+gap is born at its pill"): an F4 and its shell 15 steps out on bradian
+63, 30 ticks after the previous record; the previous engine leaves it
+with no source.
 
 ## Findings at the close of the ten-run table -- `926f391`
 
@@ -1145,6 +1200,7 @@ all on the fixture, all from the sections above:
 | v1.0.9 `8f6fe27` (engine `a74033a`) | 0.994427 | 0.002535 | 0.856366 |
 | `30d5351`, the stale-box walk | 0.996298 | 0.001736 | 0.860478 |
 | tank births follow the record gap | 0.996380 | 0.001681 | 0.860727 |
+| pill births follow the record gap | 0.996448 | 0.001613 | 0.860935 |
 
 * **Every headline record is held by the current head.** Unlinked
   shells are down to 128, roughly a tenth of the branch point's rate; forward
