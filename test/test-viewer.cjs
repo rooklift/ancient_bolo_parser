@@ -176,7 +176,7 @@ if (!fs.existsSync(log1)) {
 		], [1012, true, true, 240, 89]);
 		check("fixture same-record unseen shots claimed without cost", [
 			matched, unseen.pill, unseen.tank,
-		], [20716, 1222, 1125]);
+		], [20722, 1222, 1119]);
 
 		/* The end-side mirror: every chain end with no forward story gets
 		 * a class; the census must equal the unmatched-forward count less
@@ -205,7 +205,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture end-side census reconciles", [
 			ends_described, ends_described === unfated, end_reasons_sound,
 			fate_open,
-		], [273, true, true, 22]);
+		], [267, true, true, 22]);
 	}
 
 	/* The truth axis: every pill link scored against the statement-roster
@@ -858,6 +858,48 @@ if (!fs.existsSync(log1)) {
 		[!!unseen_terminal.unseen_tank_source,
 			unseen_terminal.tank_source_direction],
 		[true, 4]);
+
+	/* From replay 2de598ba-20011027C_XD_palptrex_pinsnix at 4:21: a parked
+	 * tank facing west fires at a wall two tiles ahead, two shots per
+	 * 28-tick record, so each record restates a fresh volley at almost the
+	 * previous volley's pixels beside the previous volley's impacts. The
+	 * birth window must follow the record gap: capped at the half-second
+	 * position window it left the fresh shots unclaimed, and the residual
+	 * pass joined each volley's leader to its successor a pixel away,
+	 * drawn hovering in front of the wall for a whole record instead of
+	 * hitting it. */
+	let long_gap_volleys = BoloGame.build([
+		record(84, [{
+			type: "tank_position", x: 146, y: 133,
+			pixelX: 2, pixelY: 11, direction: 12,
+			inBoat: false, hidden: false, dying: false,
+			speed: 0, motion: 0,
+		}]),
+		record(100, [
+			{ type: "shot_fired", direction: 12 },
+			{ type: "shot_fired", direction: 12 },
+			shell_list(12, [[2295, 2136], [2321, 2137]]),
+		]),
+		record(128, [
+			{ type: "shot_fired", direction: 12 },
+			{ type: "shot_fired", direction: 12 },
+			{ type: "explosion", code: 8, x: 142, y: 133 },
+			{ type: "explosion", code: 8, x: 142, y: 133 },
+			shell_list(12, [[2294, 2136], [2321, 2137]]),
+		]),
+		record(143, [
+			{ type: "shot_fired", direction: 12 },
+			{ type: "explosion", code: 11, x: 142, y: 133 },
+			shell_list(12, [[2314, 2137], [2290, 2135]]),
+		]),
+	]);
+	let first_volley = long_gap_volleys.shell_positions[0][1].shells;
+	let second_volley = long_gap_volleys.shell_positions[0][2].shells;
+	check("a volley restated across a long gap dies at the wall, the next is born at the tank",
+		[first_volley.map(shell => shell.next_terminal_event_type),
+			first_volley.map(shell => rounded(shell.next_time)),
+			second_volley.map(shell => !!shell.starts_at_tank)],
+		[["explosion", "explosion"], [107.5182, 121.1634], [true, true]]);
 
 	/* From replay 122903.4: a lagging sender whose record timestamps drift
 	 * against its simulation by several updates. Per-hop speeds read 1.4,
