@@ -31,10 +31,9 @@ for (let t = 10; t <= 15; t++) RGB[t] = RGB[t - 8];
 }
 
 /* Shapes mode uses the same allegiance language as the sprite art:
- * friendly green, hostile red (neutral pillboxes count as hostile unless
- * the neutral pill colour is on), with neutral bases — and neutral pills
- * and departed pills and bases when that toggle is on — in their own
- * amber. */
+ * friendly green, hostile red (nobody's pillboxes count as hostile unless
+ * the neutral pill colour is on), with nobody's bases — and nobody's
+ * pills when that toggle is on — in their own amber. */
 const FRIENDLY_COLOR = "#58d858";
 const HOSTILE_COLOR = "#ff5d5d";
 const NEUTRAL_COLOR = "#f0b429";
@@ -656,9 +655,10 @@ function draw_bases() {
 	let r = Math.max(2.5, z * 0.42);
 	let good = good_team();
 	for (const b of cur.bases) {
-		/* neutral bases always have their own look; DEPARTED ones share it
-		 * only with the neutral pill colour on */
-		let side = b.owner === BoloGame.NEUTRAL ? "neutral" : pill_colour_side(b, good);
+		/* a DEPARTED base is neutral in every way the corpus can measure
+		 * (nobody's, hostile to all, captured at any armour like a neutral
+		 * one: GAMEPLAY.md, Bases), so it always gets the neutral look */
+		let side = nobodys(b) ? "neutral" : pill_side(b, good);
 		let img = obj_sprite(`base_${side}`);
 		if (img) {
 			draw_obj(img, tile_to_screen_x(b.x), tile_to_screen_y(b.y));
@@ -673,18 +673,23 @@ function draw_bases() {
 	}
 }
 
-/* Which side a pill or base draws on for the viewpoint's team: neutral
- * and DEPARTED (nobody's) are hostile to everyone. */
+/* Neutral, or DEPARTED (the owner left with no heir): the two behave the
+ * same, so they draw the same. */
+function nobodys(p) {
+	return p.owner === BoloGame.NEUTRAL || p.owner === BoloGame.DEPARTED;
+}
+
+/* Which side a pill or base draws on for the viewpoint's team: nobody's
+ * are hostile to everyone. */
 function pill_side(p, good) {
-	if (p.owner === BoloGame.NEUTRAL || p.owner === BoloGame.DEPARTED) return "evil";
+	if (nobodys(p)) return "evil";
 	return BoloGame.team_of(cur, p.owner) === good ? "good" : "evil";
 }
 
-/* As pill_side, but with the neutral pill colour on, nobody's pills and
- * bases (neutral and DEPARTED alike: they behave the same) draw as
- * "neutral" rather than as hostile. */
+/* As pill_side, but with the neutral pill colour on, nobody's pills draw
+ * as "neutral" rather than as hostile. */
 function pill_colour_side(p, good) {
-	if (use_neutral_pill_colour && (p.owner === BoloGame.NEUTRAL || p.owner === BoloGame.DEPARTED)) return "neutral";
+	if (use_neutral_pill_colour && nobodys(p)) return "neutral";
 	return pill_side(p, good);
 }
 
