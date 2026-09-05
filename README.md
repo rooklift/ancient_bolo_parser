@@ -59,8 +59,11 @@ Nothing needs installing to build it: the release workflow
 runner beside the Electron apps, attaching
 `ancient-bolo-log-viewer-<version>-windows-tauri.zip`, a zip holding the
 single `.exe`, to the release. The workflow can also be started by hand
-from the Actions tab. To build locally instead, with Rust and Node
-installed:
+from the Actions tab. For a build to test without releasing, a second
+workflow (`.github/workflows/tauri-test-build.yml`, "Tauri test build")
+builds just the Tauri app from whichever branch is picked in the Actions
+tab, leaving the `.exe` as a downloadable artifact on the run's page. To
+build locally instead, with Rust and Node installed:
 
 ```
 cd viewer/tauri
