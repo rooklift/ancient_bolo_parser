@@ -1047,7 +1047,10 @@ Fixture, against `9ed3bd6`:
   `pillbox_damage` 2045 -> 2054), tank origins 2257 -> 2284, unseen tank
   sources 267 -> 260; audit hovers 11 -> 8, `pop_outs` 102 -> 92,
   `pop_ins` 91 -> 66, rushed 98 -> 98, seam jumps zero
-* Not measured on the corpus: no corpus was to hand for this change
+* Corpus: `1f70a58` in [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md)
+  -- unlinked -589, terminals +998 with every type up, tank origins
+  +3,548, hovers -261, pop-outs -801, pop-ins -3,352, contradictions
+  and seam jumps unchanged
 
 Left as found: `creation_start_match` still measures a same-record shot
 against zero flight, so a leftover start further than 16 px from the
