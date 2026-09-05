@@ -989,13 +989,15 @@ function draw_effects() {
 				break;
 			}
 			case "lgm_death": {
-				/* the man dies in a burst of green streaks flying out from
-				 * his square: each streak's head races outward and its tail
-				 * detaches from the centre behind it, the whole fading out */
+				/* the man dies in a burst of streaks in his side's colour
+				 * flying out from his square: each streak's head races
+				 * outward and its tail detaches from the centre behind it,
+				 * the whole fading out */
 				let burst = lgm_death_burst(e);
 				let head = 1 - (1 - age) * (1 - age); /* fast start, easing off */
 				let tail = age * age;
-				ctx.strokeStyle = `rgba(88,216,88,${1 - age})`;
+				ctx.globalAlpha = 1 - age;
+				ctx.strokeStyle = side_color(e.player);
 				ctx.lineWidth = Math.max(1, z * 0.1);
 				ctx.lineCap = "round";
 				ctx.beginPath();
@@ -1007,6 +1009,7 @@ function draw_effects() {
 				}
 				ctx.stroke();
 				ctx.lineCap = "butt";
+				ctx.globalAlpha = 1;
 				break;
 			}
 		}
