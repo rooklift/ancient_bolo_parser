@@ -901,6 +901,51 @@ if (!fs.existsSync(log1)) {
 			second_volley.map(shell => !!shell.starts_at_tank)],
 		[["explosion", "explosion"], [107.5182, 121.1634], [true, true]]);
 
+	/* The same stream, two records on: the fourth shot sits ten pixels
+	 * from the wall at 13115 and dies there at 13120, the impact riding
+	 * the 13145 record; the fifth is 34 px out. The 13145 list restates
+	 * a shell a pixel behind the fourth's last statement, with only one
+	 * fire event for its two shells. Joining the fourth onto it as a
+	 * dilated continuation assumes the sender's clock lied by 52 px over
+	 * the gap -- beyond the largest lie the corpus has shown -- and drew
+	 * the shot creeping at 0.85 px/tick for its whole life, the wall
+	 * handed to the fifth. The lie bound refuses the join, so the fourth
+	 * takes its wall. */
+	let bounded_lie = BoloGame.build([
+		record(84, [{
+			type: "tank_position", x: 146, y: 133,
+			pixelX: 2, pixelY: 11, direction: 12,
+			inBoat: false, hidden: false, dying: false,
+			speed: 0, motion: 0,
+		}]),
+		record(100, [
+			{ type: "shot_fired", direction: 12 },
+			{ type: "shot_fired", direction: 12 },
+			shell_list(12, [[2294, 2136], [2321, 2137]]),
+		]),
+		record(115, [
+			{ type: "shot_fired", direction: 12 },
+			{ type: "explosion", code: 11, x: 142, y: 133 },
+			shell_list(12, [[2314, 2137], [2290, 2135]]),
+		]),
+		record(145, [
+			{ type: "shot_fired", direction: 12 },
+			{ type: "explosion", code: 11, x: 142, y: 133 },
+			shell_list(12, [[2282, 2136], [2307, 2137]]),
+		]),
+		record(160, [
+			{ type: "shot_fired", direction: 12 },
+			{ type: "shot_fired", direction: 12 },
+			{ type: "explosion", code: 11, x: 142, y: 133 },
+			{ type: "explosion", code: 11, x: 142, y: 133 },
+			shell_list(12, [[2270, 2136], [2296, 2137]]),
+		]),
+	]);
+	let fourth_shot = bounded_lie.shell_positions[0][2].shells[1];
+	check("a dilated join needing a larger clock lie than measured yields to the wall",
+		[fourth_shot.next_terminal_event_type, rounded(fourth_shot.next_time)],
+		["explosion", 120.5199]);
+
 	/* The pill-side twin: an F4 and its shell in one record 30 ticks after
 	 * the sender's previous one, the shell 15 steps out on bradian 63
 	 * (relative 67,-2 from the muzzle). The birth window follows the gap
@@ -2833,7 +2878,7 @@ if (!fs.existsSync(log2)) {
 	}
 	check("fast-ring fixture pill links: re-sends excluded, no contradictions", [
 		score.links, score.restated, score.vouched, score.contradicted,
-	], [80432, 1679, 26962, 0]);
+	], [80429, 1679, 26962, 0]);
 }
 
 process.exit(failures ? 1 : 0);

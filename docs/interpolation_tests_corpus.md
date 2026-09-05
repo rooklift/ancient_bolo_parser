@@ -155,7 +155,8 @@ Constant at all ten commits, and worth having once:
 | `ccc8ec3` | stale tank box, either box per step | 0.996914 | 0.001379 | 0.834069 | 237,709 | 82,149 | 1,356 | 92 |
 | `30d5351` | stale tank box, track first refusal | 0.996882 | 0.001384 | 0.833914 | 237,399 | 13,108 | 1,360 | 94 |
 | `1f70a58` | tank births follow the gap | 0.996964 | 0.001324 | 0.834427 | 237,436 | 13,116 | 1,228 | 94 |
-| `9115ab4` | pill births follow the gap | **0.997117** | **0.001201** | **0.835183** | **237,788** | 13,132 | **1,169** | 92 |
+| `9115ab4` | pill births follow the gap | **0.997117** | **0.001201** | 0.835183 | 237,788 | 13,132 | **1,169** | 92 |
+| `cee58aa` | dilated joins bounded by the measured lie | 0.997095 | 0.001222 | **0.835199** | **237,799** | 13,130 | 1,236 | 92 |
 
 The three right-hand columns are lower-is-better counts from the drawn
 audit and the vouched-link score, added so that a drawing-only commit
@@ -187,7 +188,10 @@ to move a headline record since `ccc8ec3`, which keeps `tank_hit` (its
 310 extra hits were the zero-length links `30d5351` gave back).
 `9115ab4` -- the pill-birth window, see its section -- moves all four
 on again and takes `tank_hit` too, at 2 px/tick this time; `baee09c`
-keeps timed rushes and `0bfd71d` contradictions.
+keeps timed rushes and `0bfd71d` contradictions. `cee58aa` -- the
+dilated-join lie bound, see its section -- is a trade: it gives back a
+sliver of the two shell-side records and 67 backwards pops for a fifth
+of the corpus's hovers, and edges the two terminal-side records on.
 
 The rows below the guard run were measured later, from the corpus
 holder's live checkouts: `97fa412` closes the unmeasured-`main` gap the
@@ -2578,6 +2582,68 @@ Corpus, `9115ab4-report.txt` and `9115ab4-audit.txt` against `1f70a58`
 
 The second measured candidate, widening `creation_start_match`, is not
 in this row; the fixture section records it as redundant.
+
+## Dilated joins bounded by the measured clock lie -- `cee58aa`
+
+The fixture file's section of the same name has the scene: the fourth
+shot of the 4:21 stream, ten pixels from its wall, joined as a dilated
+continuation onto the next volley's restatement a pixel behind it and
+drawn at 0.85 px/tick for its whole life, the wall handed to the fifth.
+The join assumed a 52 px clock lie over a 30-tick gap;
+`dilated_join_candidate` had no bound on the shortfall at all, and now
+refuses one beyond `MAX_SMOOTHING_ALONG_TRACK_PIXELS` (48), the bound
+built on the largest along-track lie the corpus has shown (35.5 px).
+The local numbers said this would be a trade -- the fast-ring fixture
+lost three links for thirty hovers -- and the corpus confirms the
+shape.
+
+Corpus, `cee58aa-report.txt` and `cee58aa-audit.txt` against `9115ab4`
+(443 files, zero failures, same corpus):
+
+* `hover_links` 3,093 -> 2,446 (-647, -21%); `link_speed:0.0-0.5`
+  446 -> 339 and `0.5-1.0` 2,647 -> 2,107; `rate_links_steady`
+  0.966727 -> 0.966814
+* `links_shell` 8,163,430 -> 8,163,173 (-257): the refused joins.
+  32 of their ends took a terminal instead (`terminals_matched`
+  1,625,632 -> 1,625,664, every type up, `tank_hit` +11), the rest
+  vanish: `shells_unlinked` 11,787 -> 12,000 (+213),
+  `pop_outs` 28,113 -> 28,338 (+225), `pop_ins` 26,575 -> 26,820 (+245)
+* `pops_paired_backwards` 1,169 -> 1,236 (+67) and
+  `pops_paired_forward` 2,972 -> 3,054 (+82): the refused joins'
+  orphans, popping in beside the vanish
+* `shells_visual_joins` 1,259 -> 1,216, `links_pill_contradicted`
+  92 -> 92, vouched -3, rushes +3, seam jumps still zero
+* `rate_shells_matched_forward` 0.997117 -> 0.997095 and
+  `rate_shells_unlinked` 0.001201 -> 0.001222, both records handed
+  back to `9115ab4`; `rate_terminals_matched` 0.835183 -> 0.835199 and
+  `tank_hit` 237,788 -> 237,799, both records on
+
+What the refused joins are, read off the two local files with the
+refusal instrumented (four on the fast-ring fixture, five on the
+motivating replay): two classes. On the fast-ring fixture most are
+byte-identical restatements of a whole three-shell list 39 to 46 ticks
+after its first statement, under a fresh ring count and beside a
+same-tick record from the same sender whose list has moved on (the
+fast-ring fixture, records #50498 -> #50544 at 29:12.5 -> 29:13.4,
+#16515 -> #16539 at 10:30.6 -> 10:31.2, #52299 -> #52335 at 30:10.2 ->
+30:11.0, all player 1) -- a stale list restated, an identity the 4-tick
+re-send pass is right not to claim and that the join used to draw as a
+46-tick hover before the shells vanished anyway. The bound refuses the
+join, so the shells vanish at the first statement, and the re-send's
+own shells, with no forward story of their own, are drawn for no
+frame at all: `shell_position_at` holds a storyless shell only at its
+own tick, which a fractional playback clock never lands on. The
+backwards pairs are those zero-duration ghosts, audit bookkeeping;
+what the eye sees is the hover ending 46 ticks sooner.
+On the motivating replay all five are crawls of 7 to 20 px over 29 to
+45 ticks from a tank stream restating fresh shells near old ones -- two
+shells glued into one, the class the bound exists for. The corpus's
+257 are presumably the same mix, and neither class loses anything
+visible. A verbatim multi-shell re-send across a long gap is provable
+identity (three shells do not repeat their bytes by chance), so the
+re-send pass could be extended to claim it as a zero-advance link if
+the ledger is ever wanted clean of those ghosts; nothing drawn would
+change.
 
 ## Findings
 

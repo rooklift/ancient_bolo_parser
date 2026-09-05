@@ -1121,6 +1121,61 @@ gap is born at its pill"): an F4 and its shell 15 steps out on bradian
 63, 30 ticks after the previous record; the previous engine leaves it
 with no source.
 
+## Dilated joins bounded by the measured clock lie
+
+The same replay, two records on. The fourth shot of the 4:21 stream is
+10 px from the wall at tick 13115 and dies there at 13120; the impact
+rides the 13145 record. The fifth is 34 px out. The 13145 list restates
+a shell at 2282, a pixel behind the fourth's last statement, with one
+fire event for its two shells, so 2282 reached the residual pass as an
+origin-less start. There the flow priced the fourth's stories: the wall
+at 50 (an arrival 25 ticks before its record, the terminal cost being
+the whole lag to the record), or a dilated join onto 2282 at 21 -- the
+join's shortfall of 52 px over the 30-tick gap divided by four. It took
+the join, cost-forced by a margin of 18, handed the wall to the fifth,
+and the chain smoothing then drew the fourth shot at 0.85 px/tick for
+its entire sixty-tick life.
+
+The join assumed the sender's clock lied by 52 px. The largest
+along-track lie the corpus has shown is 35.5 px, the measurement the
+smoothing bound `MAX_SMOOTHING_ALONG_TRACK_PIXELS` (48) was built on,
+and `dilated_join_candidate` had no bound on the shortfall at all --
+only `along >= -1` and the catch-up allowance above. A join needing a
+larger lie than any ever measured is not a lagging sender but two
+shells, so the candidate now refuses a shortfall beyond that bound. The
+fourth shot takes its wall at 13120.
+
+What it does not settle: the fifth shot now carries the 2282 join (a
+32 px hop over the 30-tick gap, a 28 px lie, inside the bound) and is
+then joined on to 2270 at 13160 rather than dying at the wall face
+2 px away, because the fate there costs 28 -- its record trails the
+arrival by 14 ticks, which is only the record cadence -- against the
+join's 12.5. Whether the fate cost in the residual flow should charge
+for lag that no record could have avoided is a separate cost-model
+question, noted here and not dialled; the die-at-impact section's
+continue-vs-die caution applies.
+
+Fixture, against `2f2c17b` (main after the pill-window merge): every
+line identical; nothing on `n20021018.2` needed a lie that large. On
+`040601.6`, the fast-ring fixture, the bound refuses three joins
+(`shells_unlinked` 25 -> 28, `pop_outs` 115 -> 118) and takes
+`hover_links` 46 -> 16 with them -- 27 of the 30 hovers found another
+story, three became pops, and `rate_links_steady` 0.964069 -> 0.964403.
+The motivating replay: hovers 5 -> 2, steady 0.966929 -> 0.968561, one
+link fewer (`pop_outs` 70 -> 71, one backwards pair added -- the 2270
+shell's pop-in behind the fifth shot's vanish, the remainder above),
+terminals unchanged. Corpus: `cee58aa` in
+[`interpolation_tests_corpus.md`](interpolation_tests_corpus.md) -- a
+trade on the ledger, hovers -647 (-21%) and terminals +32 against
+unlinked +213 and backwards pops +67, with the refused joins' two
+classes read off the local files there; on screen the second class is
+a hover ending sooner, its pop-in a ghost drawn for no frame.
+
+Pinned in `test/test-viewer.cjs` ("a dilated join needing a larger
+clock lie than measured yields to the wall"), the five records of the
+scene as logged; the previous engine joins the fourth shot to the 2282
+shell.
+
 ## Findings at the close of the ten-run table -- `926f391`
 
 Written when `926f391` was the branch's head and the table above ended
