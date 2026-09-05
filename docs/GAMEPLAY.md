@@ -22,6 +22,8 @@ should be weighed as such. Each statement carries one of three tags:
   and then over the 443-log corpus (`docs/corpus_runs/0c4e116-gameplay.txt`);
   the numbers below are the corpus ones, and the evidence is in
   FORMAT.notes.md under [E:gameplay] and [E:base-capture].
+- **(fixtures)** — measured on the two fixture logs only, not yet over the
+  corpus; FORMAT.notes.md carries the evidence, cited as `[E:foo]`.
 
 Where a WinBolo constant agrees with a measurement it is named, since the
 two reimplementations agreeing on a number is worth more than either alone.
@@ -233,11 +235,19 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
 - **Death.** Shells that fall near him or hit his forest square, and
   explosions on him, kill him, as does a shell hitting the pillbox,
   building or boat he is briefly inside while planting, repairing or
-  building it **(owner)**. He does not detonate a mine by
+  building it **(owner)**. A shell that ends against a **tank** he is
+  standing beside kills him too, his own tank as readily as an enemy's
+  (he has just climbed out, or is about to climb back in), and so does a
+  shell hitting a **base** on his square; in the two fixture logs every
+  one of 86 deaths has a shell arriving at the man's position within 30
+  ticks, ending on open ground, a pillbox, a building, a tree, a tank or
+  a base **(fixtures, [E:lgm-killers])**. He does not detonate a mine by
   walking on it **(owner, unsure)**; harvesting a tree over a hidden mine
   might kill him, but practically no game allowed hidden mines **(owner)**.
   His death is logged as `F5`, or as `FF 51` if he was carrying a pill, which
   then lies dead on the ground, still the same player's **(owner; corpus)**.
+  Either event is sent by the man's owner and names only the square; the
+  man is always the sender's own **(fixtures, [E:lgm-killers])**.
 - **Replacement.** A new man parachutes to where the tank was at the moment
   of the death **(owner; measured: landing 3–11 px from it)**. The parachute
   sets out from one of the map's start squares (`F1 04`), the same list the
