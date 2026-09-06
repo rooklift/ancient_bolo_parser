@@ -35,7 +35,7 @@
  * ways -- rated well but interpolating badly, and the reverse -- since
  * those are where either detector's next bug is hiding.
  *
- * Usage: node tools/measure-network-agreement.cjs [corpus-root]
+ * Usage: node tools/measure-network-agreement.cjs [corpus-root] [--workers=N] [--json=rows.json]
  *        (--workers=N; default half the machine's cores)
  */
 "use strict";
@@ -137,7 +137,7 @@ function measure_file(engines, file) {
 
 	if (shells < MIN_SHELLS || segments < MIN_SEGMENTS) return null;
 	return {
-		rating: net.rating, quiet: net.quiet, stall: net.stall,
+		rating: net.rating, quiet: net.quiet, stall: net.stall, cycle: net.cycle,
 		shell_unmatched: 100 * (shells - shells_matched) / shells,
 		terminal_unmatched: terminals
 			? 100 * (terminals - terminals_matched) / terminals : null,
@@ -215,10 +215,16 @@ function run_worker() {
 
 function main() {
 	let workers = null;
+	let json_out = null;
 	let args = process.argv.slice(2).filter(arg => {
 		let match = arg.match(/^--workers=(\d+)$/);
 		if (match) {
 			workers = Math.max(1, parseInt(match[1], 10));
+			return false;
+		}
+		match = arg.match(/^--json=(.+)$/);
+		if (match) {
+			json_out = match[1];
 			return false;
 		}
 		return true;
@@ -232,7 +238,11 @@ function main() {
 
 	let rows = [];
 	let done = 0;
-	let finish = () => report(rows, corpus);
+	let finish = () => {
+		report(rows, corpus);
+		/* the per-log rows, for anyone re-cutting the bands against them */
+		if (json_out) fs.writeFileSync(json_out, JSON.stringify(rows, null, "\t") + "\n");
+	};
 
 	let worker_count = Math.min(files.length,
 		workers || Math.max(1, Math.floor(os.cpus().length / 2)));
@@ -293,6 +303,7 @@ function report(rows, corpus) {
 	const SIGNALS = [
 		["quiet", row => row.quiet],
 		["stall", row => row.stall],
+		["cycle", row => row.cycle],
 	];
 
 	console.log("network signal vs pipeline failure rate, across logs:");
