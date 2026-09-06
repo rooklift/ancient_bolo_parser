@@ -239,7 +239,10 @@ function ex_fmt_duration(seconds) {
 /* ---------- the export itself ---------- */
 
 async function export_video(start_tick) {
-	if (!game || exporting) return;
+	/* `loading`: a log is being replaced under the menu's feet; the export
+	 * would otherwise start on the old game and have the new one swapped
+	 * in beneath it when the load finished. */
+	if (!game || exporting || loading) return;
 	if (!window.api) {
 		show_error("Cannot export video", "video export needs the desktop app");
 		return;
