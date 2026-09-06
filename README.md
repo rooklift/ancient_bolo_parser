@@ -38,16 +38,11 @@ cd viewer
 npx electron .
 ```
 
-The same files also run as a plain web page: open `viewer/index.html` in a
-browser, or serve the `viewer/` directory with any static file server. The web
-version has no application menu, so it cannot export video, and its toggle
-shortcuts are bare keys (D, I, F, L, G, M, B, R, T) rather than Ctrl+key.
+The same files also run as a plain web page: open `viewer/index.html` in a browser, or serve the `viewer/` directory with any static file server. The web version has no application menu, so it cannot export video, and its toggle shortcuts are bare keys (D, I, F, L, G, M, B, R, T) rather than Ctrl+key.
 
 ### Tauri edition (Windows)
 
-`viewer/tauri/` hosts the same viewer in a [Tauri](https://tauri.app) shell:
-a small Rust program around the WebView2 engine Windows already ships, so
-the app is a few MB instead of the ~200 MB Electron folder.
+`viewer/tauri/` hosts the same viewer in a [Tauri](https://tauri.app) shell: a small Rust program around the WebView2 engine Windows already ships, so the app is a few MB instead of the ~200 MB Electron folder. We build this on GitHub and add it to the releases.
 
 ## Status
 
