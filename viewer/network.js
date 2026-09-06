@@ -8,23 +8,9 @@ const TICKS_PER_SECOND = 50;
 
 /* One verdict on how the game's networking held up, for the header.
  *
- * Three readings of the record stream, taken from what the log cannot
- * help recording -- when packets arrived, and which turns of the ring
- * went by with nothing logged:
- *
- *   LOSS -- a name kept for the code, though what it counts is QUIET
- *   SLOTS. The payload's sequence number is a ring slot counter, stepped
- *   once by every node as the packet passes, so consecutive records
- *   normally step by 1. A step of n means n-1 nodes took their turn and
- *   logged nothing: a parked tank between restatements, a dead one, the
- *   recorder itself as readily as anyone. It is not a lost packet:
- *   over ten games logged on two machines at once, none of 38,318
- *   missing slots was a record the other machine had; over a thousand
- *   logs, 16 of 1.6 million fall on a moving tank, all of them crawling
- *   (a tank under way restates every cycle, and none of the sixteen was
- *   fast); and the ring turns through a hole at full pace
- *   (tools/compare-recordings.cjs, tools/measure-seq-holes.cjs)
- *   [E:seq-loss]. A step of 0 is a duplicate.
+ * Two readings of the record stream rate it, taken from what the log
+ * cannot help recording -- when packets arrived -- and a third is
+ * reported alongside them without a say in the verdict:
  *
  *   STALL. The share of elapsed time spent in gaps where nothing at all
  *   arrived for over half a second -- a freeze the viewer shows whatever
@@ -38,16 +24,34 @@ const TICKS_PER_SECOND = 50;
  *   march by 1) and need never freeze for the half second STALL wants;
  *   it just delivers everything slowly.
  *
- * Both are read only over the stretch of SETTLED PLAY, and that qualifier
- * carries most of the accuracy here. While the game is still gathering --
- * the map being handed to joiners, nodes arriving -- the ring turns at full
- * speed but the logging machine records only a fraction of it, so the
- * sequence number races ahead and every packet it skips is counted as lost.
- * The join ramp therefore reads as catastrophic loss without a single
+ *   QUIET SLOTS, shown but not rated. The payload's sequence number is a
+ *   ring slot counter, stepped once by every node as the packet passes,
+ *   so consecutive records normally step by 1. A step of n means n-1
+ *   nodes took their turn and logged nothing: a parked tank between
+ *   restatements, a dead one, the recorder itself as readily as anyone.
+ *   It is not a lost packet: over ten games logged on two machines at
+ *   once, none of 38,318 missing slots was a record the other machine
+ *   had; over a thousand logs, 16 of 1.6 million fall on a moving tank,
+ *   all of them crawling (a tank under way restates every cycle, and
+ *   none of the sixteen was fast); and the ring turns through a hole at
+ *   full pace (tools/compare-recordings.cjs, tools/measure-seq-holes.cjs)
+ *   [E:seq-loss]. A step of 0 is a duplicate. The figure was rated as
+ *   packet loss until that was established; it measures how idle the
+ *   game was, rising with player count because more players means more
+ *   of them parked or dead at any moment, and its correlation with what
+ *   the viewer can make of the stream is player count in disguise (see
+ *   below). It stays in the tooltip as a description of the game.
+ *
+ * All three are read only over the stretch of SETTLED PLAY, and that
+ * qualifier carries most of the accuracy here. While the game is still
+ * gathering -- the map being handed to joiners, nodes arriving -- the ring
+ * turns at full speed but the logging machine records only a fraction of
+ * it, so the sequence number races ahead and every slot it skips reads as
+ * quiet. The join ramp therefore reads as catastrophic without a single
  * packet having gone astray. It is short in absolute terms (a median 56 s
  * of a 22-minute log) but so extreme that averaging it in dominates
  * everything else: over the corpus, the share of a log spent gathering
- * predicts its untrimmed loss figure at r = 0.83, and once that stretch is
+ * predicts its untrimmed quiet figure at r = 0.83, and once that stretch is
  * excluded the relationship vanishes entirely (r = -0.03). The tail after
  * the first quit is cut for the same reason, though it matters far less.
  *
@@ -59,7 +63,7 @@ const TICKS_PER_SECOND = 50;
  * minority of logs, declaring the plateau reached at the very first block
  * of a game that had not started; those logs kept their artefact and landed
  * among the worst in the corpus. Switching to the capture marker cuts the
- * worst loss figure from 69.8% to 49.5% and the 99th percentile from 46.9%
+ * worst quiet figure from 69.8% to 49.5% and the 99th percentile from 46.9%
  * to 28.5%, and it measures no less consistently for the change: half-to-
  * half disagreement falls (p90 of |A-B| from 3.13 to 2.76 points) even as
  * the raw split-half correlation falls with it, that correlation having
@@ -68,44 +72,45 @@ const TICKS_PER_SECOND = 50;
  * -- there is no such log in the 445-log corpus, so the path is untravelled
  * in practice but cheap to keep.
  *
- * What survives the correction: loss still rises with player count, a ring
- * gaining a hop per player (median 5.2% at two, 6.6% at four, 7.4% at six),
- * and the readings disagree often enough to be worth keeping all three
- * -- a game can be steadily choppy without ever freezing, or laggy
- * without dropping a thing -- so the verdict is the worst of them. What
- * does NOT survive: the apparent year-on-year improvement from 2001 to
- * 2005 was almost entirely faster map transfers shortening the gathering
- * phase; in settled play the median barely moves (6.6% to 5.7%)
- * [E:seq-loss].
+ * What survives the correction: the quiet share still rises with player
+ * count (median 5.2% at two, 6.6% at four, 7.4% at six), which is what
+ * settled its reading as idleness rather than loss; and stall and cycle
+ * disagree often enough to be worth keeping both -- a game can be laggy
+ * without ever freezing, or freeze on a ring that otherwise turns fast --
+ * so the verdict is the worse of the two. What does NOT survive: the
+ * apparent year-on-year improvement from 2001 to 2005 was almost entirely
+ * faster map transfers shortening the gathering phase; in settled play
+ * the median barely moves (6.6% to 5.7%) [E:seq-loss].
  *
  * The cycle reading earns its place by predicting what the viewer can
  * actually make of the stream. Across the corpus, the share of shell
  * observations the motion code fails to chain forward tracks cycle p90
- * at rho = 0.76, against 0.41 for stall and 0.25 for loss -- and the
- * loss figure's correlation is mostly player count in disguise: held to
- * four-player logs it collapses to 0.02 while cycle keeps 0.71. A slow
- * ring undersamples every shell in flight, and no amount of counting
- * dropped packets will see it; the poster child is a log with 2.7% loss
- * whose ring turned every 0.3 s, giving the corpus's worst shell
- * interpolation on nearly its cleanest loss figure. The cycle bands
+ * at rho = 0.76, against 0.41 for stall and 0.25 for the quiet share --
+ * and the quiet share's correlation is mostly player count in disguise:
+ * held to four-player logs it collapses to 0.02 while cycle keeps 0.71.
+ * A slow ring undersamples every shell in flight, and no amount of
+ * counting quiet slots will see it; the poster child is a log with 2.7%
+ * quiet whose ring turned every 0.3 s, giving the corpus's worst shell
+ * interpolation on nearly its cleanest quiet figure. The cycle bands
  * alone stage the corpus at median 0.2% / 0.7% / 2.4% / 7.4% of shells
- * unchained, which is the gradient neither other signal produces. All
- * of it reproduces with tools/measure-network-agreement.cjs.
+ * unchained, which is the gradient neither other signal produces. That
+ * is why the quiet share was dropped from the verdict: at its old bands
+ * (6 / 11 / 22%) it moved about half the corpus off "good" on a figure
+ * that says how many tanks were parked. All of it reproduces with
+ * tools/measure-network-agreement.cjs.
  *
  * Scoring interleaved half-minute blocks as if they were separate games
- * gives r = 0.88 on loss, 0.94 on stall and 0.99 on cycle time, so this
- * is a property of a session rather than of the moment sampled, and fair
- * to state once for a whole game. The thresholds below place the corpus at roughly 38% good,
- * 46% fair, 13% bad, 4% awful. All of it reproduces with
- * tools/measure-network-conditions.cjs. */
+ * gives r = 0.88 on the quiet share, 0.94 on stall and 0.99 on cycle
+ * time, so this is a property of a session rather than of the moment
+ * sampled, and fair to state once for a whole game. All of it reproduces
+ * with tools/measure-network-conditions.cjs. */
 
 const STALL_GAP_TICKS = TICKS_PER_SECOND / 2;  /* silence that reads as a freeze */
-const SEQ_TRUST_TICKS = 250;    /* 5s: past this a step is a rejoin, not loss */
+const SEQ_TRUST_TICKS = 250;    /* 5s: past this a step is a rejoin, not quiet */
 const ABSENCE_TICKS = 1500;     /* 30s: nobody home, not a stalled network */
 const SETTLE_BLOCK_TICKS = 500; /* 10s: the grain the join ramp is found on */
 const SETTLE_SHARE = 0.7;       /* of a typical block, to count as up to speed */
 const MIN_SETTLED_RECORDS = 500;
-const LOSS_BANDS = [6, 11, 22];         /* percent of ring slots missing */
 const STALL_BANDS = [2, 7, 18];         /* percent of elapsed time frozen */
 const CYCLE_BANDS = [14, 19, 26];       /* ticks per ring cycle, at p90 */
 const CYCLE_QUANTILE = 0.9;
@@ -207,7 +212,7 @@ const BURST_MIN_VOTES = 20;     /* below this the log is too short to say */
 const BURST_MARGIN = 3;         /* winner must lead the runner-up this much */
 
 function burst_final_player(records) {
-	/* Read over settled play, like the loss figure and for the same
+	/* Read over settled play, like the network readings and for the same
 	 * reason: while the log is racing to catch up with the ring, burst
 	 * structure means nothing. BoloViewer's attached-log pseudo-records
 	 * are inserts by the viewer, not ring traffic, so they get no vote. */
@@ -247,9 +252,9 @@ function recorder(records) {
 
 /* The band a pair of readings falls in, exposed so that measurement tools
  * can rate a stretch of records without going back through the trimmer. */
-function network_rating(loss, stall, cycle = 0) {
-	return CONDITION_NAMES[Math.max(band_of(loss, LOSS_BANDS),
-		band_of(stall, STALL_BANDS), band_of(cycle, CYCLE_BANDS))];
+function network_rating(stall, cycle = 0) {
+	return CONDITION_NAMES[Math.max(band_of(stall, STALL_BANDS),
+		band_of(cycle, CYCLE_BANDS))];
 }
 
 /* Ring cycle time over a stretch of records: for each player slot, the
@@ -280,7 +285,7 @@ function network_conditions(records) {
 	let elapsed = span[span.length - 1].time - span[0].time;
 	if (elapsed <= 0) return null;
 
-	let missing = 0;     /* ring slots whose packet never arrived */
+	let missing = 0;     /* ring slots on which a node logged nothing */
 	let slots = 0;       /* ring slots accounted for either way */
 	let frozen = 0;      /* ticks spent hearing nothing at all */
 
@@ -290,7 +295,7 @@ function network_conditions(records) {
 		if (gap > STALL_GAP_TICKS && gap <= ABSENCE_TICKS) frozen += gap;
 		if (step === 0 || gap > SEQ_TRUST_TICKS) {
 			/* a duplicate, or a hole long enough that the 7-bit counter may
-			 * have wrapped right round it -- one slot, no loss claimed */
+			 * have wrapped right round it -- one slot, none of it quiet */
 			slots++;
 			continue;
 		}
@@ -298,11 +303,11 @@ function network_conditions(records) {
 		slots += step;
 	}
 
-	let loss = 100 * missing / Math.max(1, slots);
+	let quiet = 100 * missing / Math.max(1, slots);
 	let stall = 100 * frozen / elapsed;
 	let cycle = ring_cycle_ticks(span);
 	return {
-		rating: network_rating(loss, stall, cycle), loss, stall, cycle,
+		rating: network_rating(stall, cycle), quiet, stall, cycle,
 		from: span[0].time, to: span[span.length - 1].time,
 	};
 }

@@ -31,7 +31,7 @@
  * distributions are skewed, so ranks are the honest headline); the
  * pipeline medians inside each verdict band, which is the table a human
  * should sanity-check ("awful" games ought to read worse down every
- * column); a walk up the loss range; and the most discordant logs both
+ * column); a walk up the quiet-slot range; and the most discordant logs both
  * ways -- rated well but interpolating badly, and the reverse -- since
  * those are where either detector's next bug is hiding.
  *
@@ -137,7 +137,7 @@ function measure_file(engines, file) {
 
 	if (shells < MIN_SHELLS || segments < MIN_SEGMENTS) return null;
 	return {
-		rating: net.rating, loss: net.loss, stall: net.stall,
+		rating: net.rating, quiet: net.quiet, stall: net.stall,
 		shell_unmatched: 100 * (shells - shells_matched) / shells,
 		terminal_unmatched: terminals
 			? 100 * (terminals - terminals_matched) / terminals : null,
@@ -291,7 +291,7 @@ function report(rows, corpus) {
 		["tank unbridged %", row => row.tank_unbridged],
 	];
 	const SIGNALS = [
-		["loss", row => row.loss],
+		["quiet", row => row.quiet],
 		["stall", row => row.stall],
 	];
 
@@ -330,12 +330,12 @@ function report(rows, corpus) {
 			cells.join(""));
 	}
 
-	console.log("\na walk up the loss range:");
-	let sorted = rows.slice().sort((a, b) => a.loss - b.loss);
+	console.log("\na walk up the quiet-slot range:");
+	let sorted = rows.slice().sort((a, b) => a.quiet - b.quiet);
 	for (let i = 0; i < sorted.length; i += Math.ceil(sorted.length / 12)) {
 		let row = sorted[i];
 		console.log(`  ${row.rating.padEnd(6)} ` +
-			`loss=${row.loss.toFixed(1).padStart(5)}% ` +
+			`quiet=${row.quiet.toFixed(1).padStart(5)}% ` +
 			`stall=${row.stall.toFixed(1).padStart(5)}%  ` +
 			`shell=${row.shell_unmatched.toFixed(2).padStart(5)}% ` +
 			`term=${row.terminal_unmatched === null ? "    -"
@@ -348,12 +348,12 @@ function report(rows, corpus) {
 	 * the pipeline's, and surface the widest disagreements both ways.
 	 * These are the logs to open by hand -- either the verdict flattered
 	 * a mess or the pipeline stumbled on a clean stream. */
-	let loss_rank = ranks(rows.map(row => row.loss));
+	let quiet_rank = ranks(rows.map(row => row.quiet));
 	let fail_rank = ranks(rows.map(row => row.shell_unmatched));
 	let scored = rows.map((row, i) =>
-		({ row, residual: (loss_rank[i] - fail_rank[i]) / rows.length }));
+		({ row, residual: (quiet_rank[i] - fail_rank[i]) / rows.length }));
 	let describe = ({ row, residual }) =>
-		`  ${row.rating.padEnd(6)} loss=${row.loss.toFixed(1).padStart(5)}% ` +
+		`  ${row.rating.padEnd(6)} quiet=${row.quiet.toFixed(1).padStart(5)}% ` +
 		`shell unmatched=${row.shell_unmatched.toFixed(2)}% ` +
 		`(rank gap ${(100 * residual).toFixed(0)})  ${row.file}`;
 	scored.sort((a, b) => a.residual - b.residual);

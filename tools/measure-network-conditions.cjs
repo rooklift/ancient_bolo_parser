@@ -2,14 +2,19 @@
 /* What do Bolo logs say about the network the game was played on, and where
  * should "good / fair / bad / awful" be cut?
  *
- * Two signals, both free -- a log cannot help recording when packets arrived
- * and how many the machine never saw.
+ * Three signals, all free -- a log cannot help recording when packets
+ * arrived and which turns of the ring went by with nothing logged.
  *
- * LOSS: the payload's sequence number is bumped by every node a packet
- * passes, so consecutive records step by 1 when nothing is missed.  A step
- * of n means n-1 packets never reached the logging machine.  A step of 0 is
- * a duplicate.  Steps across a gap over 5 s are discarded: a rejoining node
- * can advance the 7-bit counter right round, and a wrapped step is a lie.
+ * QUIET: the payload's sequence number is a ring slot counter, stepped by
+ * every node as the packet passes, so consecutive records step by 1 when
+ * every node had something to say.  A step of n means n-1 nodes took their
+ * turn and logged nothing -- a parked or dead tank, the recorder itself.
+ * It was read as packet loss when this script was written and is still
+ * measured here for what it tracks (player count, and the gathering ramp),
+ * but it is not a network reading and network.js no longer rates on it
+ * [E:seq-loss].  A step of 0 is a duplicate.  Steps across a gap over 5 s
+ * are discarded: a rejoining node can advance the 7-bit counter right
+ * round, and a wrapped step is a lie.
  *
  * STALL: the share of elapsed time in gaps where nothing at all arrived for
  * over half a second.  No ring cycles that slowly at any player count, so
@@ -25,12 +30,12 @@
  * THE GATHERING PHASE is the thing that has to be got right.  While a game
  * is still gathering, the ring turns at full speed but the logging machine
  * records only a fraction of it, so the sequence number races ahead and
- * every packet it skips is charged as loss -- a catastrophic reading with
- * no packet actually lost.  It is short but so extreme that averaging it in
- * swamps the rest of the game, which is why the shipped metric reads only
- * the settled span, from the first base capture to the first quit.  The
- * script measures the damage directly, by correlating each log's loss
- * figure against the share of it spent gathering, trimmed and untrimmed.
+ * every slot it skips is charged as quiet -- a catastrophic reading with
+ * nothing wrong.  It is short but so extreme that averaging it in swamps
+ * the rest of the game, which is why the shipped metric reads only the
+ * settled span, from the first base capture to the first quit.  The script
+ * measures the damage directly, by correlating each log's quiet figure
+ * against the share of it spent gathering, trimmed and untrimmed.
  *
  * The script reports, over a corpus:
  *   -- the distribution of each signal, trimmed and untrimmed;
@@ -117,7 +122,7 @@ function raw_readings(recs) {
 	cycle_gaps.sort((a, b) => a - b);
 	let cycle = cycle_gaps.length
 		? cycle_gaps[Math.floor(0.9 * (cycle_gaps.length - 1))] : 0;
-	return { loss: 100 * missing / Math.max(1, slots), stall: 100 * frozen / Math.max(1, elapsed), cycle };
+	return { quiet: 100 * missing / Math.max(1, slots), stall: 100 * frozen / Math.max(1, elapsed), cycle };
 }
 
 function correlation(xs, ys) {
@@ -191,18 +196,18 @@ if (rows.length === 0) {
 
 console.log(`${rows.length} logs scored\n`);
 
-console.log(spread("loss %", rows.map(r => r.whole.loss)));
+console.log(spread("quiet %", rows.map(r => r.whole.quiet)));
 console.log(spread("stall %", rows.map(r => r.whole.stall)));
 console.log(spread("cycle t", rows.map(r => r.whole.cycle)));
-console.log("loss/stall correlation: r = " +
-	correlation(rows.map(r => r.whole.loss), rows.map(r => r.whole.stall)).toFixed(3));
-console.log("loss/cycle correlation: r = " +
-	correlation(rows.map(r => r.whole.loss), rows.map(r => r.whole.cycle)).toFixed(3));
+console.log("quiet/stall correlation: r = " +
+	correlation(rows.map(r => r.whole.quiet), rows.map(r => r.whole.stall)).toFixed(3));
+console.log("quiet/cycle correlation: r = " +
+	correlation(rows.map(r => r.whole.quiet), rows.map(r => r.whole.cycle)).toFixed(3));
 console.log("stall/cycle correlation: r = " +
 	correlation(rows.map(r => r.whole.stall), rows.map(r => r.whole.cycle)).toFixed(3));
 
 console.log("\nuntrimmed, for comparison -- the same logs read end to end:");
-console.log(spread("loss %", rows.map(r => r.untrimmed.loss)));
+console.log(spread("quiet %", rows.map(r => r.untrimmed.quiet)));
 console.log(spread("stall %", rows.map(r => r.untrimmed.stall)));
 console.log(`trimmed away: median ${quantile(rows.map(r => r.trimmedShare).sort((a, b) => a - b), .5).toFixed(1)}% ` +
 	`of a log, of which the gathering phase is ` +
@@ -212,15 +217,15 @@ console.log(`trimmed away: median ${quantile(rows.map(r => r.trimmedShare).sort(
  * how much of the log was spent gathering, it will track that share -- and
  * the trimmed figure, if the correction works, will not track it at all. */
 console.log("\nthe gathering confound:");
-console.log(`  untrimmed loss vs gathering share: r = ` +
-	correlation(rows.map(r => r.rampShare), rows.map(r => r.untrimmed.loss)).toFixed(3));
-console.log(`  settled   loss vs gathering share: r = ` +
-	correlation(rows.map(r => r.rampShare), rows.map(r => r.whole.loss)).toFixed(3));
+console.log(`  untrimmed quiet vs gathering share: r = ` +
+	correlation(rows.map(r => r.rampShare), rows.map(r => r.untrimmed.quiet)).toFixed(3));
+console.log(`  settled   quiet vs gathering share: r = ` +
+	correlation(rows.map(r => r.rampShare), rows.map(r => r.whole.quiet)).toFixed(3));
 
 /* Do the signals track the two things outside the log that ought to move
  * them?  A ring gains a hop per player; and the world got broadband, which
  * is the claim the trimming turns out to refute. */
-console.log("\nby player count (a longer ring should lose more):");
+console.log("\nby player count (more players, more of them parked or dead):");
 let by_players = new Map();
 for (let row of rows) {
 	if (!by_players.has(row.players)) by_players.set(row.players, []);
@@ -229,15 +234,15 @@ for (let row of rows) {
 for (let n of [...by_players.keys()].sort((x, y) => x - y)) {
 	let group = by_players.get(n);
 	if (group.length < 8) continue;
-	let loss = group.map(r => r.whole.loss).sort((x, y) => x - y);
-	let raw = group.map(r => r.untrimmed.loss).sort((x, y) => x - y);
+	let quiet = group.map(r => r.whole.quiet).sort((x, y) => x - y);
+	let raw = group.map(r => r.untrimmed.quiet).sort((x, y) => x - y);
 	let stall = group.map(r => r.whole.stall).sort((x, y) => x - y);
 	let cycle = group.map(r => r.whole.cycle).sort((x, y) => x - y);
 	console.log(`  ${n} players  n=${String(group.length).padStart(3)}  ` +
-		`loss p50=${quantile(loss, .5).toFixed(1).padStart(5)}  ` +
+		`quiet p50=${quantile(quiet, .5).toFixed(1).padStart(5)}  ` +
 		`stall p50=${quantile(stall, .5).toFixed(1).padStart(5)}  ` +
 		`cycle p50=${quantile(cycle, .5).toFixed(1).padStart(5)}` +
-		`   (untrimmed loss p50=${quantile(raw, .5).toFixed(1).padStart(5)})`);
+		`   (untrimmed quiet p50=${quantile(raw, .5).toFixed(1).padStart(5)})`);
 }
 
 console.log("\nby year -- untrimmed this looks like dial-up giving way to");
@@ -251,21 +256,21 @@ for (let row of rows) {
 for (let y of [...by_year.keys()].sort()) {
 	let group = by_year.get(y);
 	if (group.length < 8) continue;
-	let loss = group.map(r => r.whole.loss).sort((a, b) => a - b);
-	let raw = group.map(r => r.untrimmed.loss).sort((a, b) => a - b);
+	let quiet = group.map(r => r.whole.quiet).sort((a, b) => a - b);
+	let raw = group.map(r => r.untrimmed.quiet).sort((a, b) => a - b);
 	console.log(`  ${y}  n=${String(group.length).padStart(3)}  ` +
 		`untrimmed p50=${quantile(raw, .5).toFixed(1).padStart(5)}  ` +
-		`->  settled p50=${quantile(loss, .5).toFixed(1).padStart(5)}`);
+		`->  settled p50=${quantile(quiet, .5).toFixed(1).padStart(5)}`);
 }
 
 console.log("\nsplit-half reliability (is one verdict per game honest?):");
-console.log(`  loss  r = ${correlation(rows.map(r => r.a.loss), rows.map(r => r.b.loss)).toFixed(3)}`);
+console.log(`  quiet r = ${correlation(rows.map(r => r.a.quiet), rows.map(r => r.b.quiet)).toFixed(3)}`);
 console.log(`  stall r = ${correlation(rows.map(r => r.a.stall), rows.map(r => r.b.stall)).toFixed(3)}`);
 console.log(`  cycle r = ${correlation(rows.map(r => r.a.cycle), rows.map(r => r.b.cycle)).toFixed(3)}`);
-let dl = rows.map(r => Math.abs(r.a.loss - r.b.loss)).sort((a, b) => a - b);
+let dl = rows.map(r => Math.abs(r.a.quiet - r.b.quiet)).sort((a, b) => a - b);
 let ds = rows.map(r => Math.abs(r.a.stall - r.b.stall)).sort((a, b) => a - b);
 let dc = rows.map(r => Math.abs(r.a.cycle - r.b.cycle)).sort((a, b) => a - b);
-console.log(`  |loss A - loss B|   p50=${quantile(dl, .5).toFixed(2)} p90=${quantile(dl, .9).toFixed(2)}`);
+console.log(`  |quiet A - quiet B| p50=${quantile(dl, .5).toFixed(2)} p90=${quantile(dl, .9).toFixed(2)}`);
 console.log(`  |stall A - stall B| p50=${quantile(ds, .5).toFixed(2)} p90=${quantile(ds, .9).toFixed(2)}`);
 console.log(`  |cycle A - cycle B| p50=${quantile(dc, .5).toFixed(2)} p90=${quantile(dc, .9).toFixed(2)}`);
 
@@ -275,8 +280,8 @@ let counts = new Map(NAMES.map(n => [n, 0]));
 let same = 0;
 for (let row of rows) {
 	counts.set(row.whole.rating, counts.get(row.whole.rating) + 1);
-	if (BoloNetwork.network_rating(row.a.loss, row.a.stall, row.a.cycle) ===
-		BoloNetwork.network_rating(row.b.loss, row.b.stall, row.b.cycle)) same++;
+	if (BoloNetwork.network_rating(row.a.stall, row.a.cycle) ===
+		BoloNetwork.network_rating(row.b.stall, row.b.cycle)) same++;
 }
 for (let name of NAMES) {
 	let c = counts.get(name);
@@ -285,10 +290,10 @@ for (let name of NAMES) {
 console.log(`  the two halves of a log agree on the band ${(100 * same / rows.length).toFixed(1)}% of the time`);
 
 console.log("\na walk up the range:");
-let sorted = rows.slice().sort((a, b) => a.whole.loss - b.whole.loss);
+let sorted = rows.slice().sort((a, b) => a.whole.quiet - b.whole.quiet);
 for (let i = 0; i < sorted.length; i += Math.ceil(sorted.length / 12)) {
 	let r = sorted[i];
-	console.log(`  ${r.whole.rating.padEnd(6)} loss=${r.whole.loss.toFixed(1).padStart(5)}% ` +
+	console.log(`  ${r.whole.rating.padEnd(6)} quiet=${r.whole.quiet.toFixed(1).padStart(5)}% ` +
 		`stall=${r.whole.stall.toFixed(1).padStart(5)}% ` +
 		`cycle=${String(r.whole.cycle).padStart(2)}t ${r.players}p  ${r.file}`);
 }

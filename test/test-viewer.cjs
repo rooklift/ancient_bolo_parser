@@ -66,8 +66,10 @@ if (!fs.existsSync(log1)) {
 	check("bases", game.final.bases.length, 16);
 	check("starts", game.final.starts.length, 8);
 	check("chat entries", game.chat.length > 100, true);
-	check("network conditions rating", game.network.rating, "fair");
-	check("network conditions loss %", game.network.loss.toFixed(2), "6.84");
+	// Stall and cycle both sit in the good band; the quiet share (6.84%)
+	// would have made this "fair" when it was rated as packet loss.
+	check("network conditions rating", game.network.rating, "good");
+	check("network conditions quiet slots %", game.network.quiet.toFixed(2), "6.84");
 	check("network conditions stall %", game.network.stall.toFixed(2), "0.04");
 	// The verdict is read from settled play, so the ramp at the start is
 	// outside the measured span.
@@ -2824,49 +2826,51 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	check("truncated run flagged", seed.badRuns, 1);
 }
 
-// Network conditions: a sequence step of n leaves n-1 packets unaccounted
-// for, gaps over half a second count as freezes, and the verdict is the
-// worse of the two readings.
+// Network conditions: gaps over half a second count as freezes, the ring's
+// turn time is read per player, and the verdict is the worse of those two.
+// A sequence step of n leaves n-1 slots quiet (a node with nothing to log);
+// that share is reported but has no say in the verdict.
 {
 	// A clean ring: every step 1, every gap 2 ticks.
 	let clean = [];
 	for (let i = 0; i < 2000; i++) clean.push({ time: 1000 + i * 2, seq: i & 0x7f, subpackets: [] });
 	let net = BoloNetwork.network_conditions(clean);
-	check("clean ring loses nothing", net.loss, 0);
+	check("clean ring has no quiet slots", net.quiet, 0);
 	check("clean ring never freezes", net.stall, 0);
 	check("clean ring rates good", net.rating, "good");
 
-	// Every other packet missed: half the ring's slots are holes.
-	let lossy = [];
-	for (let i = 0; i < 2000; i++) lossy.push({ time: 1000 + i * 4, seq: (i * 2) & 0x7f, subpackets: [] });
-	check("every other packet missed reads as 50% loss",
-		Math.round(BoloNetwork.network_conditions(lossy).loss), 50);
-	check("50% loss rates awful", BoloNetwork.network_conditions(lossy).rating, "awful");
+	// Every other slot quiet: half the ring's turns logged nothing.
+	let idle = [];
+	for (let i = 0; i < 2000; i++) idle.push({ time: 1000 + i * 4, seq: (i * 2) & 0x7f, subpackets: [] });
+	check("every other slot quiet reads as 50%",
+		Math.round(BoloNetwork.network_conditions(idle).quiet), 50);
 
-	// Loss alone can damn a log the freeze reading would pass: these arrive
-	// steadily, 2 ticks apart, so nothing is ever silent for half a second.
-	check("steady choppiness never stalls", BoloNetwork.network_conditions(lossy).stall, 0);
+	// Quiet slots say nothing about the network: these arrive steadily, 4
+	// ticks apart, so nothing is ever silent for half a second and the ring
+	// turns fast. Half the ring parked is still a good connection.
+	check("an idle ring never stalls", BoloNetwork.network_conditions(idle).stall, 0);
+	check("quiet slots do not move the verdict", BoloNetwork.network_conditions(idle).rating, "good");
 
-	// Freezes alone can damn one the loss reading would pass. Steps stay at
-	// 1 throughout; a third of the time is spent waiting.
+	// Freezes damn a log whatever the quiet share. Steps stay at 1
+	// throughout; a third of the time is spent waiting.
 	let frozen = [];
 	for (let i = 0, t = 1000; i < 2000; i++) {
 		frozen.push({ time: t, seq: i & 0x7f, subpackets: [] });
 		t += i % 10 === 9 ? 60 : 2;   /* a 1.2 s freeze every tenth packet */
 	}
 	let net2 = BoloNetwork.network_conditions(frozen);
-	check("freezes with no loss still lose nothing", net2.loss, 0);
+	check("freezes leave no quiet slots", net2.quiet, 0);
 	check("freezes are counted as lost time", net2.stall > 25, true);
 	check("freezes alone can rate awful", net2.rating, "awful");
 
-	// Lag alone can damn one the other two readings would pass: a ring
-	// turning slowly drops nothing and none of its gaps reach the half
-	// second a stall needs, but everyone's updates arrive at a crawl.
+	// Lag alone can damn one the freeze reading would pass: a ring turning
+	// slowly has no gap reaching the half second a stall needs, but
+	// everyone's updates arrive at a crawl.
 	let laggy = [];
 	for (let i = 0; i < 2000; i++)
 		laggy.push({ time: 1000 + i * 20, seq: i & 0x7f, subpackets: [] });
 	let net3 = BoloNetwork.network_conditions(laggy);
-	check("a slow ring loses nothing", net3.loss, 0);
+	check("a slow ring has no quiet slots", net3.quiet, 0);
 	check("a slow ring never freezes", net3.stall, 0);
 	check("the cycle reading is the p90 turn time", net3.cycle, 20);
 	check("lag alone can rate bad", net3.rating, "bad");
@@ -2880,16 +2884,17 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	check("cycle time is per player, not per record",
 		BoloNetwork.network_conditions(pair).cycle, 20);
 
-	// A duplicate (step 0) is not a loss, and a step across a long silence
-	// is a rejoin whose 7-bit counter may have wrapped: neither is charged.
-	check("a duplicate is not a loss", BoloNetwork.network_conditions([
+	// A duplicate (step 0) is not a quiet slot, and a step across a long
+	// silence is a rejoin whose 7-bit counter may have wrapped: neither is
+	// charged.
+	check("a duplicate is not a quiet slot", BoloNetwork.network_conditions([
 		{ time: 1000, seq: 5, subpackets: [] }, { time: 1002, seq: 5, subpackets: [] },
 		{ time: 1004, seq: 6, subpackets: [] },
-	]).loss, 0);
-	check("a step across a long silence is not a loss", BoloNetwork.network_conditions([
+	]).quiet, 0);
+	check("a step across a long silence is not a quiet slot", BoloNetwork.network_conditions([
 		{ time: 1000, seq: 5, subpackets: [] }, { time: 9000, seq: 40, subpackets: [] },
 		{ time: 9002, seq: 41, subpackets: [] },
-	]).loss, 0);
+	]).quiet, 0);
 
 	// Too little to say anything about.
 	check("no records, no verdict", BoloNetwork.network_conditions([]), null);
@@ -2899,7 +2904,7 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	]), null);
 
 	// The gathering phase -- the ring at full speed while the logger catches
-	// only a fraction of it -- must not be charged as loss. Two minutes of
+	// only a fraction of it -- must not be charged as quiet. Two minutes of
 	// one-in-five recorded, then a clean ring; the first base capture marks
 	// where the game proper begins.
 	function gathering(mark_capture) {
@@ -2914,13 +2919,13 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	}
 	let capped = gathering(true);
 	let ramp = BoloNetwork.network_conditions(capped);
-	check("gathering is not charged as loss", ramp.loss, 0);
+	check("gathering is not charged as quiet", ramp.quiet, 0);
 	check("the span starts at the first base capture", ramp.from, capped[1200].time);
 	check("a slow-starting log still rates on its settled play", ramp.rating, "good");
 
 	// With no base capture anywhere, the record rate has to stand in for it.
 	let uncapped = BoloNetwork.network_conditions(gathering(false));
-	check("no capture: the rate plateau stands in", uncapped.loss, 0);
+	check("no capture: the rate plateau stands in", uncapped.quiet, 0);
 	check("no capture: gathering still left outside the span",
 		uncapped.from > gathering(false)[0].time, true);
 
@@ -2944,7 +2949,7 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 		quitting.push({ time: quitAt + i * 20, seq: (i * 9) & 0x7f, subpackets: [] });
 	let ending = BoloNetwork.network_conditions(quitting);
 	check("the span ends at the first quit", ending.to, quitAt);
-	check("the exodus after it is not charged as loss", ending.loss, 0);
+	check("the exodus after it is not charged as quiet", ending.quiet, 0);
 }
 
 // Recorder identification: records land in same-tick bursts, one per ring
