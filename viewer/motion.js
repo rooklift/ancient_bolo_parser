@@ -5122,18 +5122,18 @@ function* build_shell_positions_steps(records, terminals, pillbox_sources_by_rec
 	}
 	let total_snapshots = snapshots.reduce((n, c) => n + c.length, 0) || 1;
 	let done_snapshots = 0;
-	let reported = RECORD_LOOP_SHARE;
 	for (let client_snapshots of snapshots) {
-		let stitch = () => stitch_shell_chains(client_snapshots);
-		let resolve = () => resolve_residual_shell_fates(client_snapshots);
-		let claim = () => claim_unseen_pillbox_births(client_snapshots, pill_states);
 		let passes = [
-			stitch, resolve, claim,
+			() => stitch_shell_chains(client_snapshots),
+			() => resolve_residual_shell_fates(client_snapshots),
+			() => claim_unseen_pillbox_births(client_snapshots, pill_states),
 			/* Every pin is in; let the vote indict, and give the freed
 			 * pieces the joining passes once more, under the election. */
 			() => {
 				if (sweep_contradicted_links(client_snapshots)) {
-					passes.splice(4, 0, stitch, resolve, claim);
+					stitch_shell_chains(client_snapshots);
+					resolve_residual_shell_fates(client_snapshots);
+					claim_unseen_pillbox_births(client_snapshots, pill_states);
 				}
 			},
 			() => slide_compressed_chain_tails(client_snapshots),
@@ -5143,12 +5143,9 @@ function* build_shell_positions_steps(records, terminals, pillbox_sources_by_rec
 		];
 		for (let i = 0; i < passes.length; i++) {
 			passes[i]();
-			/* The sweep's insertions lengthen the list mid-loop, which
-			 * would nudge the fraction back a little; never report less. */
 			let client_done = client_snapshots.length * (i + 1) / passes.length;
-			reported = Math.max(reported, RECORD_LOOP_SHARE + (1 - RECORD_LOOP_SHARE) *
-				(done_snapshots + client_done) / total_snapshots);
-			yield reported;
+			yield RECORD_LOOP_SHARE + (1 - RECORD_LOOP_SHARE) *
+				(done_snapshots + client_done) / total_snapshots;
 		}
 		done_snapshots += client_snapshots.length;
 	}
