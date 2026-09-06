@@ -1150,7 +1150,7 @@ function loading_stage(label, progress) {
 		ctx.fillStyle = "#006644";
 		ctx.fillRect(x, y, bar_width * progress, bar_height);
 		ctx.strokeStyle = "#000000";
-		ctx.lineWidth = 2;
+		ctx.lineWidth = 4;
 		ctx.strokeRect(x, y, bar_width, bar_height);
 		ctx.fillStyle = "#ffffff";
 		ctx.font = "600 17px system-ui, sans-serif";
