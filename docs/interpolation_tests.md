@@ -1360,8 +1360,11 @@ links are made by the stitcher instead of the pairwise pass, and one
 list member at step 7 carries the three bradians its own box admits
 instead of the one a rival candidate's story had narrowed it to. The
 fast-ring fixture is byte-identical. No headline rate moves, so no new
-row in the table below. The corpus was not available for this change
-and has not been measured.
+row in the table below. Corpus: `82531bc` in
+[`interpolation_tests_corpus.md`](interpolation_tests_corpus.md) --
+52 links gained, 53 pop-outs and 37 phantom births fewer, vouched
+links +210 with contradictions unchanged, three headline records by
+the smallest of margins.
 
 ## Findings at the close of the ten-run table -- `926f391`
 
