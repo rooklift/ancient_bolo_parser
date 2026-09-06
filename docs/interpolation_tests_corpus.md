@@ -161,6 +161,7 @@ Constant at all ten commits, and worth having once:
 | `7801209` | the contradiction sweep | 0.997101 | 0.001218 | 0.835250 | 237,818 | 13,163 | 1,230 | **14** |
 | `63d3acb` | a base is damaged only by tank shells | 0.997103 | 0.001217 | 0.835260 | 237,875 | 13,163 | 1,230 | **14** |
 | `4f0aa06` | a turning tank's shell carries the nibble's sector | **0.997166** | **0.001176** | **0.835572** | **238,130** | 13,188 | 1,224 | **14** |
+| `82531bc` | a dilated candidate outlives the on-schedule consensus | **0.997171** | **0.001175** | **0.835573** | 238,128 | 13,188 | 1,224 | **14** |
 
 The three right-hand columns are lower-is-better counts from the drawn
 audit and the vouched-link score, added so that a drawing-only commit
@@ -2900,6 +2901,59 @@ shells gain a tank source, and the `T` classes up by the shells now
 named. The pop-in figure is the visible one: over two thousand shells
 that used to appear from nothing a few pixels ahead of a tank now
 leave its barrel.
+
+## A dilated candidate outlives the on-schedule consensus -- `82531bc`
+
+The fixture doc's section of the same name has the scene: a stalled
+recorder clock puts a pill's whole roster nine steps on in an
+eight-tick pair, every true continuation dilated, and a neighbouring
+bradian's ordinary four-step hop lands in a trailer's quantisation
+box. Ambiguity propagation trusted the alias alone, the constraint
+pass pruned the true dilated candidate against it, and the roster
+vote then evicted the alias too, leaving the observation orphaned and
+its stale provenance minted as a stream birth. The constraint pass now
+leaves a dilated candidate alone when it shares no state with the
+target; narrowing on agreement stands.
+
+Corpus, `82531bc-report.txt` and `82531bc-audit.txt` against
+`bdb9fc3` (443 files, zero failures, same corpus; the input hash
+alternates between two values across the archive as it did between
+`810ef2c` and `c860d9b`, with the file count and every unaffected
+line identical):
+
+* `shells_matched_to_snapshot` 8,163,146 -> 8,163,198 (+52),
+  `shells_unmatched_forward` 27,825 -> 27,772 (-53),
+  `shells_unlinked` 11,543 -> 11,536 (-7), `flow_components`
+  132,772 -> 132,729
+* `shell_births` 1,629,687 -> 1,629,650 (-37), all of it
+  `shells_from_pillbox` (971,728 -> 971,691): `shells_stream_birth`
+  1,014 -> 989 (-25) and `shells_unseen_pillbox_birth` 3,534 -> 3,521
+  (-13), the phantoms the scene drew from the muzzle; `shells_visual_joins`
+  1,221 -> 1,201 (-20); `shells_with_pillbox_source` +91 and
+  `links_no_pill_source` -72, provenance carried down the chains the
+  links now complete
+* `terminals_matched` +1 (`pillbox_damage` +2, `shell_falls` +1,
+  `tank_hit` -2), `terminals_unseen_pillbox_source` 167,501 ->
+  167,499
+* the truth axis moves the right way: `links_pill_vouched` 2,917,120
+  -> 2,917,330 (+210), `links_pill_unvouched` -31,
+  `links_pill_unpinned` 2,836 -> 2,801 (-35), `links_pill_contradicted`
+  14 unchanged; `roster_votes_passed` 563,044 -> 563,197 (+153) with
+  `stood_down` -117 and `unvoted` -26 -- the chains that now run
+  through pin more sources, so more elections can be held
+* Audit: `pop_outs` 27,639 -> 27,586 (-53), `pop_ins` 24,528 ->
+  24,513 (-15), `pops_paired_forward` 3,010 -> 3,002, backwards pops
+  1,224 unchanged; `rush_links` 7,476 -> 7,472 and
+  `rush_links_timed` 1,534 -> 1,530, hovers 2,448 -> 2,450; seam
+  jumps still zero. `rate_links_steady` 0.966810 -> 0.966807: the
+  new links land mostly in the 2.2-2.5 px/tick bucket (+46, against
+  +28 in 1.8-2.2 and -11 in 2.5-3.0), a link made under a clock lie
+  being re-timed by the smoother a shade fast
+
+Three headline records at once, by the smallest margins in the table;
+every other column within a handful. The change is exactly as wide as
+the scene that motivated it: about fifty stalled-clock volleys across
+443 logs, each losing a pop-out and a phantom birth.
 
 ## Findings
 
