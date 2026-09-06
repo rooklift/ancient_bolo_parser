@@ -127,6 +127,29 @@ if (!fs.existsSync(log1)) {
 		[orbit_births.unseen, orbit_births.stream, orbit_births.sound],
 		[7, 3, true]);
 
+	/* Turning-tank sector correction: a fresh muzzle shell listed one
+	 * sector from its own fire nibble carries the nibble as `sector`,
+	 * one step from its label, and the chain below it inherits the
+	 * field; the count and how many of them claim their birth are
+	 * frozen. */
+	let sectors = { shells: 0, births: 0, sound: true };
+	for (let snapshots of game.shell_positions) {
+		for (let snapshot of snapshots) {
+			for (let shell of snapshot.shells) {
+				if (shell.sector === undefined) continue;
+				sectors.shells++;
+				if (shell.birth_time !== undefined) sectors.births++;
+				let step = Math.abs(shell.sector - shell.direction) % 16;
+				if (Math.min(step, 16 - step) !== 1) sectors.sound = false;
+				if (shell.next_shell && shell.next_shell.sector !== shell.sector) {
+					sectors.sound = false;
+				}
+			}
+		}
+	}
+	check("fixture turning-tank shells carry the nibble's sector",
+		[sectors.shells, sectors.births, sectors.sound], [44, 44, true]);
+
 	/* Terminal-failure diagnostics: read-only classification of every
 	 * terminal that ends the pipeline with no matched shell and no
 	 * unseen-source attribution. The census must reconcile exactly with
@@ -173,10 +196,10 @@ if (!fs.existsSync(log1)) {
 			described, described === unexplained, reasons_sound,
 			classes.get("explosion:no_candidate:-"),
 			classes.get("pillbox_damage:end_continued:T"),
-		], [1008, true, true, 240, 88]);
+		], [1009, true, true, 240, 88]);
 		check("fixture same-record unseen shots claimed without cost", [
 			matched, unseen.pill, unseen.tank,
-		], [20728, 1217, 1122]);
+		], [20732, 1217, 1117]);
 
 		/* The end-side mirror: every chain end with no forward story gets
 		 * a class; the census must equal the unmatched-forward count less
@@ -205,7 +228,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture end-side census reconciles", [
 			ends_described, ends_described === unfated, end_reasons_sound,
 			fate_open,
-		], [261, true, true, 22]);
+		], [258, true, true, 22]);
 	}
 
 	/* The truth axis: every pill link scored against the statement-roster
@@ -230,7 +253,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture pill links scored against the roster vote", [
 			score.links, score.vouched, score.contradicted, score.unvouched,
 			score.unpinned, score.restated, [...score.clients],
-		], [52764, 20088, 0, 12873, 5, 0, []]);
+		], [52763, 20088, 0, 12873, 5, 0, []]);
 		/* The elections themselves: most pills cannot vote at all (under
 		 * three pinned sources), and of those that can, a vote inside the
 		 * margin stands down. The scene that motivated abstention is
@@ -2958,7 +2981,7 @@ if (!fs.existsSync(log2)) {
 	}
 	check("fast-ring fixture pill links: re-sends excluded, no contradictions", [
 		score.links, score.restated, score.vouched, score.contradicted,
-	], [80429, 1679, 27006, 0]);
+	], [80428, 1679, 27006, 0]);
 }
 
 process.exit(failures ? 1 : 0);
