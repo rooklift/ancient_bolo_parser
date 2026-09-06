@@ -7,8 +7,13 @@
  * hit and shot building to rubble in four more. This tool reads those
  * rules off the logs so GAMEPLAY.md can carry them with a measurement:
  *
- *   transitions   every `7T` shell impact that names a new terrain, tallied
- *                 as (terrain before -> terrain after), mines ignored
+ *   transitions   every `7T` impact that names a new terrain other than a
+ *                 crater, tallied as (terrain before -> terrain after), mines
+ *                 ignored: these are shells ending against something
+ *   craters       the `7 3` events by the terrain under them, mine bit
+ *                 kept, and apart because they are not simply shell impacts:
+ *                 on a mined square a mine going off, under a tank or a
+ *                 shell; on an unmined one a dying tank's terminal crater
  *   no-change     every `7B` impact (explosion, terrain unchanged), tallied
  *                 by the terrain under it
  *   shot building the number of `7B` impacts a shot building takes between
@@ -48,11 +53,16 @@ function terrain_name(t) {
 	return TERRAIN_NAMES[base_terrain(t)] || `t${t}`;
 }
 
+function mined_terrain_name(t) {
+	return (t >= 10 && t <= 15 ? "mined " : "") + terrain_name(t);
+}
+
 function bump(map, key, by = 1) {
 	map.set(key, (map.get(key) || 0) + by);
 }
 
-let transitions = new Map();      /* "before -> after" -> count */
+let transitions = new Map();      /* "before -> after" -> count, craters apart */
+let craters = new Map();          /* terrain under a `7 3` -> count */
 let no_change = new Map();        /* terrain under a `7B` -> count */
 let falls = new Map();            /* terrain under an `FB` -> count */
 let shot_building_hits = new Map(); /* hits between creation and rubble -> count */
@@ -96,7 +106,8 @@ function scan(file, recs) {
 					}
 					continue;
 				}
-				bump(transitions, `${terrain_name(before)} -> ${terrain_name(sub.code)}`);
+				if (sub.code === 3) bump(craters, mined_terrain_name(before));
+				else bump(transitions, `${terrain_name(before)} -> ${terrain_name(sub.code)}`);
 				if (sub.code === 8 && base_terrain(before) === 0) {
 					shot_building_since.set(i, { hits: 0, record: null, this_record: 0, burst: false });
 				} else if (sub.code === 6 && base_terrain(before) === 8 && shot_building_since.has(i)) {
@@ -136,6 +147,7 @@ function print_table(title, map, order) {
 function report() {
 	console.log(`\n${logs_scanned} log(s)`);
 	print_table("shell impacts that change terrain (before -> after)", transitions);
+	print_table("cratering events (`7 3`), by terrain under them: on a mined square a mine going off under a tank or a shell, on an unmined one a dying tank's crater", craters);
 	print_table("shell impacts with no terrain change (`7B`), by terrain under them", no_change);
 	print_table("`7B` hits a shot building took between its creation and its turning to rubble", shot_building_hits,
 		(a, b) => a[0] - b[0]);
