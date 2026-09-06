@@ -73,7 +73,13 @@ function measure_file(recs, BoloGame, tally, examples, label) {
 	for (let rec of recs) {
 		if (rec.tankStatus === 0x0f) continue;
 		let pl = rec.player;
-		let tank = rec.subpackets.find(sub => sub.type === "tank_position");
+		/* the square a tank occupies is the one holding its centre, +8 px
+		 * from the logged top-left corner [E:centre-square] */
+		let position = rec.subpackets.find(sub => sub.type === "tank_position");
+		let tank = position ? {
+			x: (position.x * 16 + position.pixelX + 8) >> 4,
+			y: (position.y * 16 + position.pixelY + 8) >> 4,
+		} : null;
 		if (tank) visited[pl].add(tank.y * 256 + tank.x);
 		for (let sub of rec.subpackets) {
 			if (sub.type === "pill_pickup") {
