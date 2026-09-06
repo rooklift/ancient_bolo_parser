@@ -1289,6 +1289,31 @@ fast-ring fixture is byte-identical. Corpus: `63d3acb` in
 47 base hits released from pill shells, tank hits +57, unexplained
 impacts -46, pop-outs -18, every truth axis unchanged.
 
+## A turning tank's shell carries the nibble's sector -- `4f0aa06`
+
+A tank shell born as its tank crossed a sector boundary is listed a
+sector off its true heading for its whole flight, and its `5d` nibble
+is the true one (FORMAT.md [E:shell-birth-sector]). Such a shell now
+carries the nibble as `sector`, read wherever a direction becomes
+geometry, while its list label still matches its restatements.
+
+Fixture, against `63d3acb`: 44 shells corrected, every one claiming
+its birth (`shells_from_tank` 9,062 -> 9,074); `terminals_matched`
+20,728 -> 20,732; `shells_unlinked` 118 -> 117;
+`shells_unmatched_forward` 261 -> 258; `terminals_unseen_tank_source`
+1,122 -> 1,117; one pairwise link undone (52,764 -> 52,763), a
+corrected shell's proper heading refusing a successor its stale sector
+had accepted. The fast-ring fixture moves the same way: tank births
++25, terminals 4,309 -> 4,317 with `tank_hit` +4, unlinked 28 -> 25,
+one link undone. The three rates below. Corpus: `4f0aa06` in
+[`interpolation_tests_corpus.md`](interpolation_tests_corpus.md) --
+impacts +608, unlinked -402, pop-outs -620, pop-ins -2,248, three
+headline records, pill links untouched.
+
+Pinned in `test/test-viewer.cjs` ("fixture turning-tank shells carry
+the nibble's sector"): the count, that every sector is one step from
+its label, and that the field rides down the chain.
+
 ## Findings at the close of the ten-run table -- `926f391`
 
 Written when `926f391` was the branch's head and the table above ended
@@ -1373,6 +1398,7 @@ all on the fixture, all from the sections above:
 | tank births follow the record gap | 0.996380 | 0.001681 | 0.860727 |
 | pill births follow the record gap | 0.996448 | 0.001613 | 0.860935 |
 | a base is damaged only by tank shells | 0.996461 | 0.001600 | 0.860976 |
+| a turning tank's shell carries the nibble's sector | 0.996502 | 0.001586 | 0.861142 |
 
 * **Every headline record is held by the current head.** Unlinked
   shells are down to 128, roughly a tenth of the branch point's rate; forward

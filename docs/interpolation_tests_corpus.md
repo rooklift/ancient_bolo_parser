@@ -155,11 +155,12 @@ Constant at all ten commits, and worth having once:
 | `ccc8ec3` | stale tank box, either box per step | 0.996914 | 0.001379 | 0.834069 | 237,709 | 82,149 | 1,356 | 92 |
 | `30d5351` | stale tank box, track first refusal | 0.996882 | 0.001384 | 0.833914 | 237,399 | 13,108 | 1,360 | 94 |
 | `1f70a58` | tank births follow the gap | 0.996964 | 0.001324 | 0.834427 | 237,436 | 13,116 | 1,228 | 94 |
-| `9115ab4` | pill births follow the gap | **0.997117** | **0.001201** | 0.835183 | 237,788 | 13,132 | **1,169** | 92 |
+| `9115ab4` | pill births follow the gap | 0.997117 | 0.001201 | 0.835183 | 237,788 | 13,132 | **1,169** | 92 |
 | `cee58aa` | dilated joins bounded by the measured lie | 0.997095 | 0.001222 | 0.835199 | 237,799 | 13,130 | 1,236 | 92 |
 | `810ef2c` | orbit states below a stitch | 0.997095 | 0.001222 | 0.835202 | 237,804 | 13,154 | 1,236 | 140 |
 | `7801209` | the contradiction sweep | 0.997101 | 0.001218 | 0.835250 | 237,818 | 13,163 | 1,230 | **14** |
-| `63d3acb` | a base is damaged only by tank shells | 0.997103 | 0.001217 | **0.835260** | **237,875** | 13,163 | 1,230 | **14** |
+| `63d3acb` | a base is damaged only by tank shells | 0.997103 | 0.001217 | 0.835260 | 237,875 | 13,163 | 1,230 | **14** |
+| `4f0aa06` | a turning tank's shell carries the nibble's sector | **0.997166** | **0.001176** | **0.835572** | **238,130** | 13,188 | 1,224 | **14** |
 
 The three right-hand columns are lower-is-better counts from the drawn
 audit and the vouched-link score, added so that a drawing-only commit
@@ -2840,6 +2841,64 @@ Every coverage axis moves in the rule's favour and no truth axis
 moves against it, which is what a fact about the game rather than a
 tuning should look like. The fixture's share is in
 [`interpolation_tests.md`](interpolation_tests.md).
+
+## A turning tank's shell carries the nibble's sector -- `4f0aa06`
+
+Osterwald's claim that a shell can be listed under a direction other
+than its `5d` nibble is true, and the list is the wrong side: the list
+direction is the tank's facing from the tick before the shot, the
+nibble and the shell's velocity are from the shot tick, and when the
+turn crossed a sector boundary in that tick the shell flies the
+nibble's sector while staying listed a sector off for life
+(FORMAT.md's fourth Bolo bug, evidence in FORMAT.notes.md
+[E:shell-birth-sector], `15d15a4-shell-sector.txt`). Run through the
+`7801209` engine those shells linked forward as well as any, but only
+2.7% got a birth against 98.8% for exact-match fresh shells, and 24.6%
+ended as pop-outs against 1.8%: every tank hit refused for direction,
+since the `FC` packet carries the true sector, and single sightings
+aiming their terminal ray a sector off. A fresh muzzle shell listed one
+sector from a same-record fire nibble while the sender's header facing
+changed now carries the nibble as `sector`; the label stays
+`direction`, which consecutive restatements share, and every place a
+direction becomes geometry reads the sector.
+
+Corpus, `bdb9fc3-report.txt`, `bdb9fc3-audit.txt` and
+`bdb9fc3-links.txt` against `c860d9b` (443 files, zero failures, same
+corpus; `bdb9fc3` is the docs commit two above the engine commit
+`4f0aa06`, engine identical):
+
+* `terminals_matched` 1,625,782 -> 1,626,390 (+608): `tank_hit`
+  237,875 -> 238,130 (+255), `explosion` +156, `pillbox_damage` +98,
+  `base_damage` +86, `shell_falls` +13
+* `shells_from_tank` 655,721 -> 657,959 (+2,238), `shell_births`
+  +2,236, `shells_with_birth` +14,974 down the chains;
+  `terminals_unseen_tank_source` 77,999 -> 77,313 (-686): the fires
+  that used to be count-forced onto a nearby impact as unseen shots
+  now claim the shell they fired, and the impact that shell reaches
+* `shells_unlinked` 11,945 -> 11,543 (-402), `shells_matched_forward`
+  +620, `flow_components` 133,282 -> 132,772
+* unexplained terminals (the census total) 75,210 -> 75,276 (+66):
+  the 686 unseen attributions withdrawn exceed the 608 impacts
+  matched, so about seventy impacts that had been credited to an unseen
+  tank shot stand open, since the shot was seen after all and its shell
+  ends elsewhere. That is the honest reading; the phantom attribution
+  was never drawn
+* `links_pill_contradicted` 14, the same fourteen; `links_pill_vouched`
+  unchanged; every pill count within 3
+* Audit: `pop_outs` 28,259 -> 27,639 (-620), `pop_ins` 26,776 ->
+  24,528 (-2,248, a birth being the muzzle rather than a pop),
+  `pops_paired_forward` 3,017 -> 3,010, `pops_paired_backwards` 1,230
+  -> 1,224, hovers 2,451 -> 2,448, `terminal_links_rushed_timed`
+  13,163 -> 13,188, seam jumps still zero
+
+Three headline records at once -- forward matching, unlinked shells,
+terminals matched -- and the drawn-motion audit's pop columns with
+them. The census moves as the mechanism says: `tank_hit:direction:?`
+340 -> 301, the unknown-kind ray misses down in every class as the
+shells gain a tank source, and the `T` classes up by the shells now
+named. The pop-in figure is the visible one: over two thousand shells
+that used to appear from nothing a few pixels ahead of a tank now
+leave its barrel.
 
 ## Findings
 
