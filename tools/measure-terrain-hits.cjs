@@ -20,7 +20,11 @@
  *                 the hit that made it and the hit that turns it to rubble,
  *                 split by whether every record carried one hit on the
  *                 square or some carried several (an angry pillbox's fire,
- *                 simulated and logged by the pill's target)
+ *                 simulated and logged by the pill's target); and, for the
+ *                 lives where a second `7 8` arrived on the already shot
+ *                 building (a shell landing before its client had applied
+ *                 the first), the hits taken after that repeat, to see
+ *                 whether the repeat restarts the count
  *   tanks         the terrain under every live tank's centre square: the
  *                 ground a tank can drive on
  *   shell falls   the terrain under every `FB` shell fall, the terminal
@@ -68,6 +72,8 @@ let falls = new Map();            /* terrain under an `FB` -> count */
 let shot_building_hits = new Map(); /* hits between creation and rubble -> count */
 let shot_building_hits_single = new Map(); /* the same, lives hit one shell per record */
 let shot_building_hits_burst = new Map();  /* the same, some record carrying several */
+let shot_building_repeats = 0;             /* lives that saw a second `7 8` */
+let shot_building_hits_after_repeat = new Map(); /* `7B` hits after the last repeat -> count */
 let shot_buildings_unfinished = 0;  /* shot buildings never seen to become rubble */
 let under_tanks = new Map();        /* terrain under a live tank's centre square -> count */
 let logs_scanned = 0;
@@ -100,6 +106,7 @@ function scan(file, recs) {
 					let life = shot_building_since.get(i);
 					if (life) {
 						life.hits++;
+						life.since_repeat++;
 						life.this_record = life.record === rec ? life.this_record + 1 : 1;
 						life.record = rec;
 						life.burst = life.burst || life.this_record > 1;
@@ -109,11 +116,19 @@ function scan(file, recs) {
 				if (sub.code === 3) bump(craters, mined_terrain_name(before));
 				else bump(transitions, `${terrain_name(before)} -> ${terrain_name(sub.code)}`);
 				if (sub.code === 8 && base_terrain(before) === 0) {
-					shot_building_since.set(i, { hits: 0, record: null, this_record: 0, burst: false });
+					shot_building_since.set(i, { hits: 0, since_repeat: 0, repeats: 0, record: null, this_record: 0, burst: false });
+				} else if (sub.code === 8 && base_terrain(before) === 8 && shot_building_since.has(i)) {
+					let life = shot_building_since.get(i);
+					life.repeats++;
+					life.since_repeat = 0;
 				} else if (sub.code === 6 && base_terrain(before) === 8 && shot_building_since.has(i)) {
 					let life = shot_building_since.get(i);
 					bump(shot_building_hits, life.hits);
 					bump(life.burst ? shot_building_hits_burst : shot_building_hits_single, life.hits);
+					if (life.repeats) {
+						shot_building_repeats++;
+						bump(shot_building_hits_after_repeat, life.since_repeat);
+					}
 					shot_building_since.delete(i);
 				}
 			} else if (sub.type === "terrain_change") {
@@ -156,6 +171,8 @@ function report() {
 	print_table("  of which lives where some record carried several", shot_building_hits_burst,
 		(a, b) => a[0] - b[0]);
 	console.log(`  (${shot_buildings_unfinished} shot building(s) created but not seen turned to rubble)`);
+	print_table(`  of which lives with a repeated \`7 8\` on the shot building (${shot_building_repeats}): \`7B\` hits after the last repeat`,
+		shot_building_hits_after_repeat, (a, b) => a[0] - b[0]);
 	print_table("terrain under `FB` shell falls (the ground a shell flies over)", falls);
 	print_table("terrain under live tanks' centre squares (the ground a tank drives on)", under_tanks);
 }

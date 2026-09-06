@@ -291,7 +291,10 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   building absorbs a hit unchanged once in 25,443. Whether the extra hits
   are real, or one hit logged more than once, is open. A shell also sets
   off a mine it lands on, cratering the square, but a crater event alone
-  does not say whether a shell, a tank or a dying tank made it.
+  does not say whether a shell, a tank or a dying tank made it. A shell
+  fired from a boat at the shore turns the grass it lands on into swamp
+  **(owner; corpus: 5 grass-to-swamp impacts, the one on the fixtures
+  from a tank in a boat, [E:terrain-hits])**.
 - **Mines** can lie on swamp, crater, road, forest, rubble and grass
   **(corpus, the mined codes of FORMAT.md's terrain table)**. A tank
   driving onto one takes 3 armour with the floor described under Tanks;
@@ -366,4 +369,7 @@ What the corpus run left unsettled.
    four-more-hits rule says, but up to seventeen in the rest, mostly where
    an angry pillbox logged two or three hits a record into one wall.
    Whether those are real hits or one hit logged more than once needs a
-   shell-level attribution (`tools/measure-terrain-hits.cjs`).
+   shell-level attribution, and whether a second `7 8` on an already shot
+   building, a hit announced by a client a record behind, restarts the
+   count is a table `tools/measure-terrain-hits.cjs` now prints and the
+   corpus has not yet been run for.
