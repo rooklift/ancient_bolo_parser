@@ -25,6 +25,14 @@
  * sector. `still_listed_under_stale_dir` counts cases re-found later
  * under the list direction they were born with.
  *
+ * LAG. How long before the shot the list's facing was sampled is bounded
+ * by the rate: among fresh shells fired in records where the sender's
+ * header facing changed, the share listed a sector off is tallied by the
+ * record gap and by how many sectors the facing moved. A facing sampled
+ * a fixed L ticks before the shot puts the boundary inside that window
+ * for about L/gap of the shots, so the share should fall as the gap
+ * grows; a facing from the previous packet would hold near 100%.
+ *
  * Usage:
  *   node tools/measure-shell-birth-sector.cjs [replay-or-directory]
  *       (no arguments: the whole corpus, via BOLO_CORPUS/corpus.json,
@@ -119,6 +127,15 @@ function empty_tally() {
 		differs_shell_prev_dir_nibble_tank_dir: 0,
 		differs_sign_plus: 0,
 		differs_sign_minus: 0,
+		turning_fresh: 0,
+		turning_one_sector_cases: 0,
+		turning_gap_1_4_fresh: 0, turning_gap_1_4_cases: 0,
+		turning_gap_5_8_fresh: 0, turning_gap_5_8_cases: 0,
+		turning_gap_9_16_fresh: 0, turning_gap_9_16_cases: 0,
+		turning_gap_17_up_fresh: 0, turning_gap_17_up_cases: 0,
+		turning_by_1_sector_fresh: 0, turning_by_1_sector_cases: 0,
+		turning_by_2_sectors_fresh: 0, turning_by_2_sectors_cases: 0,
+		turning_by_3_up_fresh: 0, turning_by_3_up_cases: 0,
 		flight_decided: 0,
 		flight_follows_list_dir: 0,
 		flight_follows_nibble: 0,
@@ -155,6 +172,23 @@ function measure_file(recs, tally, logs, label) {
 			let e1 = next ? next.time - rec.time : 0;
 			let e2 = after ? after.time - rec.time : 0;
 			let can_follow = later1 && later2 && e1 > 0 && e1 <= 40 && e2 <= 80;
+			let turning = rec.tankDir !== prev.tankDir;
+			let gap = rec.time - prev.time;
+			let turn = circular_distance(rec.tankDir, prev.tankDir);
+			let gap_key = gap <= 4 ? "1_4" : gap <= 8 ? "5_8"
+				: gap <= 16 ? "9_16" : "17_up";
+			let turn_key = turn <= 1 ? "1_sector" : turn === 2 ? "2_sectors"
+				: "3_up";
+			let count_turning = (is_case) => {
+				if (!turning) return;
+				tally.turning_fresh++;
+				tally[`turning_gap_${gap_key}_fresh`]++;
+				tally[`turning_by_${turn_key}_fresh`]++;
+				if (!is_case) return;
+				tally.turning_one_sector_cases++;
+				tally[`turning_gap_${gap_key}_cases`]++;
+				tally[`turning_by_${turn_key}_cases`]++;
+			};
 			let score = (shell, list_direction, alternative) => {
 				if (!can_follow) return null;
 				let a = residual(shell, later1, e1, shell.direction, list_direction) +
@@ -182,6 +216,7 @@ function measure_file(recs, tally, logs, label) {
 				tally.muzzle_fresh++;
 				if (nibbles_same.includes(shell.direction)) {
 					tally.fresh_nibble_exact_same_record++;
+					count_turning(false);
 					let verdict = score(shell, shell.direction, (shell.direction + 1) % 16);
 					if (verdict) {
 						tally.control_decided++;
@@ -192,6 +227,7 @@ function measure_file(recs, tally, logs, label) {
 				}
 				if (nibbles_adjacent.includes(shell.direction)) {
 					tally.fresh_nibble_exact_adjacent_record++;
+					count_turning(false);
 					continue;
 				}
 				let all = [...nibbles_same, ...nibbles_adjacent];
@@ -204,7 +240,7 @@ function measure_file(recs, tally, logs, label) {
 				if (circular_distance(nibble, shell.direction) !== 1) continue;
 				tally.differs_by_one_sector++;
 				logs.set(label, (logs.get(label) || 0) + 1);
-				let turning = rec.tankDir !== prev.tankDir;
+				count_turning(true);
 				if (turning) tally.differs_while_turning++;
 				if (turning && shell.direction === prev.tankDir &&
 					nibble === rec.tankDir) {
