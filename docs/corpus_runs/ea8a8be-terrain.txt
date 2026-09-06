@@ -1,0 +1,101 @@
+[I deleted the list of logs scanned.]
+
+443 log(s)
+
+shell impacts that change terrain (before -> after)
+  forest -> grass                 93355
+  building -> shot building       25442
+  shot building -> rubble         24503
+  road -> crater                  9054
+  grass -> crater                 6464
+  boat -> river                   3381
+  grass -> grass                  849
+  crater -> crater                430
+  rubble -> rubble                424
+  forest -> crater                396
+  rubble -> crater                265
+  shot building -> shot building  207
+  river -> crater                 128
+  boat -> crater                  45
+  swamp -> crater                 20
+  crater -> grass                 9
+  grass -> swamp                  5
+  river -> river                  5
+  road -> river                   5
+  road -> grass                   4
+  crater -> shot building         2
+  deep sea -> crater              2
+  swamp -> river                  2
+  crater -> river                 1
+
+shell impacts with no terrain change (`7B`), by terrain under them
+  shot building  75382
+  grass          53
+  swamp          8
+  rubble         2
+  crater         1
+  building       1
+
+`7B` hits a shot building took between its creation and its turning to rubble
+  3   13866
+  4   2674
+  5   809
+  6   347
+  7   115
+  8   42
+  9   17
+  10  10
+  11  5
+  12  5
+  14  3
+  17  1
+
+  of which lives whose every record carried one hit on the square
+  3   11208
+  4   429
+  5   209
+  6   181
+  7   30
+  8   12
+  9   5
+  10  3
+  11  1
+
+  of which lives where some record carried several
+  3   2658
+  4   2245
+  5   600
+  6   166
+  7   85
+  8   30
+  9   12
+  10  7
+  11  4
+  12  5
+  14  3
+  17  1
+  (5065 shot building(s) created but not seen turned to rubble)
+
+terrain under `FB` shell falls (the ground a shell flies over)
+  road      386071
+  grass     203295
+  rubble    9533
+  crater    8558
+  deep sea  3436
+  river     1790
+  swamp     561
+  forest    23
+  building  14
+
+terrain under live tanks' centre squares (the ground a tank drives on)
+  road           5108274
+  grass          2517324
+  forest         608732
+  deep sea       384898
+  river          66329
+  crater         59796
+  rubble         58313
+  swamp          5428
+  boat           3959
+  building       35
+  shot building  8
