@@ -183,7 +183,10 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   every player's 1000-tick timer adds 1 to every base's three stocks
   **(corpus, [E:base-tick])**. A shell hit removes 5 armour (`An`); a shell
   or mine refuel removes 1 of that stock and an armour refuel removes 5
-  **(measured, [E:base-capture])**.
+  **(measured, [E:base-capture])**. Only a tank shell damages a base: a
+  pillbox shot never produces an `An` **(owner)**, and the interpolation
+  engine refuses a base hit as the fate of any shell it has put at a pill
+  (INTERPOLATION.md).
 - **Capture.** A neutral base is captured by driving over it, at any armour
   **(owner; measured: 6,973 of 6,975 neutral captures at 90)**. A hostile
   base must first be shot down to armour 9 or less **(owner: "near zero";
