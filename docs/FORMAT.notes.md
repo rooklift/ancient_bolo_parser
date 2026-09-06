@@ -648,7 +648,7 @@ Across the corpus the transferred map carries real terrain under every base — 
 
 ### [E:terrain-hits] — what a shell flies over, what stops it, and what it does to the ground
 
-FORMAT.md's Terrain section carried from the start, untagged, the rules that shells pass over open ground and are stopped by building, forest, shot building and boat, that tanks are blocked by building and shot building, and that one hit fells a tree, one turns a building into a shot building and four more turn that to rubble; the owner confirms the last as the rule of the game. Those are rules of the game rather than of the log, so they now live in GAMEPLAY.md, and this entry reads them off the two fixture logs: `node tools/measure-terrain-hits.cjs fixtures`. Squares under a base are excluded throughout, since a base's square is road whatever lies beneath ([E:base-road]). Not run over the corpus.
+The terrain rules in GAMEPLAY.md, read off the two fixture logs: which ground a shell flies over and which stops it, which blocks a tank, and how many hits fell a tree, shoot a building and flatten a shot building. `node tools/measure-terrain-hits.cjs fixtures`. Squares under a base are excluded throughout, since a base's square is road whatever lies beneath ([E:base-road]). Not run over the corpus.
 
 **What a shell flies over.** An `FB` is the terminal point of a shell that flew its full range ([E:shell-fall-terminal]), so the ground under it is ground a shell crosses. All 9,940 fixture falls end on road (6,260), grass (3,026), rubble (345), crater (227), river (69) or deep sea (13), and none on forest, building, shot building or boat. Swamp is on neither fixture map, so it is unmeasured.
 
