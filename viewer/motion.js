@@ -5318,6 +5318,7 @@ function shell_position_at(game, player, shell, index, tick) {
 	let packet_position = () => ({
 		x: pixel_x / 16 + 0.5,
 		y: pixel_y / 16 + 0.5,
+		direction: shell.direction,
 	});
 	let snapshots = game.shell_positions && game.shell_positions[player];
 	if (!snapshots || shell.position_time === undefined) return packet_position();
@@ -5339,9 +5340,13 @@ function shell_position_at(game, player, shell, index, tick) {
 		position.tank_exact_pixel_x ?? pixel_x;
 	pixel_y = position.smooth_pixel_y ?? position.pillbox_orbit_pixel_y ??
 		position.tank_exact_pixel_y ?? pixel_y;
+	/* The sprite points the way the shell flies, which for a shell born
+	 * on a sector boundary is its corrected sector, not its list label. */
+	let direction = shell_sector(position);
 	let exact_position = () => ({
 		x: pixel_x / 16 + 0.5,
 		y: pixel_y / 16 + 0.5,
+		direction,
 	});
 	/* No forward story: a shell is either in flight at 2 px/tick or gone,
 	 * so holding it at its last restatement until the sender's next record
@@ -5360,7 +5365,7 @@ function shell_position_at(game, player, shell, index, tick) {
 	let target_y = position.smooth_next_pixel_y ?? position.next_pixel_y;
 	pixel_x += (target_x - pixel_x) * amount;
 	pixel_y += (target_y - pixel_y) * amount;
-	return { x: pixel_x / 16 + 0.5, y: pixel_y / 16 + 0.5 };
+	return { x: pixel_x / 16 + 0.5, y: pixel_y / 16 + 0.5, direction };
 }
 
 function shell_birth_positions_at(game, player, tick) {
