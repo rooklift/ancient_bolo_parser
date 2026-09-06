@@ -1,32 +1,38 @@
-[I deleted the list of logs scanned.]
-
 443 log(s)
 
 shell impacts that change terrain (before -> after)
   forest -> grass                 93355
   building -> shot building       25442
   shot building -> rubble         24503
-  road -> crater                  9054
-  grass -> crater                 6464
   boat -> river                   3381
   grass -> grass                  849
-  crater -> crater                430
   rubble -> rubble                424
-  forest -> crater                396
-  rubble -> crater                265
   shot building -> shot building  207
-  river -> crater                 128
-  boat -> crater                  45
-  swamp -> crater                 20
   crater -> grass                 9
   grass -> swamp                  5
   river -> river                  5
   road -> river                   5
   road -> grass                   4
   crater -> shot building         2
-  deep sea -> crater              2
   swamp -> river                  2
   crater -> river                 1
+
+cratering events (`7 3`), by terrain under them: on a mined square a mine going off under a tank or a shell, on an unmined one a dying tank's crater
+  mined road    4627
+  road          4427
+  grass         4331
+  mined grass   2133
+  crater        282
+  rubble        206
+  mined forest  200
+  forest        196
+  mined crater  148
+  river         128
+  mined rubble  59
+  boat          45
+  swamp         14
+  mined swamp   6
+  deep sea      2
 
 shell impacts with no terrain change (`7B`), by terrain under them
   shot building  75382
