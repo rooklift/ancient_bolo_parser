@@ -2846,12 +2846,12 @@ tuning should look like. The fixture's share is in
 
 Osterwald's claim that a shell can be listed under a direction other
 than its `5d` nibble is true, and the list is the wrong side: the list
-direction is the tank's facing from the tick before the shot, the
-nibble and the shell's velocity are from the shot tick, and when the
-turn crossed a sector boundary in that tick the shell flies the
+direction is a facing the tank held a tick or two before the shot,
+the nibble and the shell's velocity are from the shot itself, and when
+the turn crossed a sector boundary in between the shell flies the
 nibble's sector while staying listed a sector off for life
 (FORMAT.md's fourth Bolo bug, evidence in FORMAT.notes.md
-[E:shell-birth-sector], `15d15a4-shell-sector.txt`). Run through the
+[E:shell-birth-sector], `654c5e8-shell-sector.txt`). Run through the
 `7801209` engine those shells linked forward as well as any, but only
 2.7% got a birth against 98.8% for exact-match fresh shells, and 24.6%
 ended as pop-outs against 1.8%: every tank hit refused for direction,

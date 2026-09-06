@@ -1,5 +1,5 @@
 # GENERATED - fresh tank shells against their 5d nibble; nothing written to disk.
-commit	15d15a4
+commit	654c5e8
 files	443
 files_failed	0
 records_with_tank	9914126
@@ -15,6 +15,22 @@ differs_while_turning	2006
 differs_shell_prev_dir_nibble_tank_dir	1749
 differs_sign_plus	1058
 differs_sign_minus	966
+turning_fresh	9909
+turning_one_sector_cases	2006
+turning_gap_1_4_fresh	816
+turning_gap_1_4_cases	518
+turning_gap_5_8_fresh	4786
+turning_gap_5_8_cases	1087
+turning_gap_9_16_fresh	3884
+turning_gap_9_16_cases	374
+turning_gap_17_up_fresh	423
+turning_gap_17_up_cases	27
+turning_by_1_sector_fresh	9118
+turning_by_1_sector_cases	1750
+turning_by_2_sectors_fresh	753
+turning_by_2_sectors_cases	243
+turning_by_3_up_fresh	38
+turning_by_3_up_cases	13
 flight_decided	513
 flight_follows_list_dir	3
 flight_follows_nibble	510

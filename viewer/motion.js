@@ -1428,9 +1428,10 @@ function mark_new_pillbox_shells(previous, next) {
 }
 
 /* The coarse direction a shell really flies. A tank shell's list direction
- * is the tank's facing from the tick BEFORE the shot; the `5d` nibble, and
- * the shell's velocity, are from the shot tick. They part only when the
- * facing crossed a sector boundary in that tick, and the shell then flies
+ * is a facing the tank held shortly before the shot -- a tick or two, by
+ * the way the disagreement rate falls with the record gap -- while the `5d`
+ * nibble and the shell's velocity are from the shot itself. They part only
+ * when the facing crossed a sector boundary in between, and the shell then flies
  * the nibble's sector while staying listed under the stale one for its
  * whole flight (corpus: 657 of 663 decided flights follow the nibble, and
  * 1,966 of 2,006 such shells are re-found under the stale label later;
