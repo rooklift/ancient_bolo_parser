@@ -142,7 +142,7 @@ if (!fs.existsSync(log1)) {
 		let known_reasons = new Set(["edge_unforced", "end_continued",
 			"end_claimed_other_fate", "creation_unforced", "timing_lag",
 			"timing_lead", "window_expired", "orbit_miss", "ray_miss",
-			"direction", "no_candidate"]);
+			"direction", "weapon", "no_candidate"]);
 		let unexplained = 0;
 		let matched = 0;
 		let unseen = { pill: 0, tank: 0 };
@@ -173,10 +173,10 @@ if (!fs.existsSync(log1)) {
 			described, described === unexplained, reasons_sound,
 			classes.get("explosion:no_candidate:-"),
 			classes.get("pillbox_damage:end_continued:T"),
-		], [1012, true, true, 240, 89]);
+		], [1008, true, true, 240, 88]);
 		check("fixture same-record unseen shots claimed without cost", [
 			matched, unseen.pill, unseen.tank,
-		], [20727, 1217, 1119]);
+		], [20728, 1217, 1122]);
 
 		/* The end-side mirror: every chain end with no forward story gets
 		 * a class; the census must equal the unmatched-forward count less
@@ -185,7 +185,7 @@ if (!fs.existsSync(log1)) {
 		 * frozen. */
 		let end_known = new Set(["fate_open", "fate_unseen", "fate_taken",
 			"timing_lag", "timing_lead", "window_expired", "orbit_miss",
-			"ray_miss", "direction", "no_candidate"]);
+			"ray_miss", "direction", "weapon", "no_candidate"]);
 		let unfated = 0;
 		let ends_described = 0;
 		let end_reasons_sound = true;
@@ -205,7 +205,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture end-side census reconciles", [
 			ends_described, ends_described === unfated, end_reasons_sound,
 			fate_open,
-		], [262, true, true, 22]);
+		], [261, true, true, 22]);
 	}
 
 	/* The truth axis: every pill link scored against the statement-roster
