@@ -1,5 +1,5 @@
 # GENERATED - pill plants against the carry model; nothing written to disk.
-commit	bdb9fc3
+commit	4cd75a4
 files	443
 files_failed	0
 plants	28132
@@ -8,9 +8,9 @@ plants_nothing_carried	0
 plants_nothing_carried_with_visited_dead_pill	0
 plants_confirmed_by_later_pickup_on_square	0
 plants_confirmed_by_later_pill_list	0
-pickup_on_model_square	9279
-pickup_adjacent_to_model_square	25841
-pickup_far_from_model_square	3
+pickup_on_model_square	35108
+pickup_adjacent_to_model_square	15
+pickup_far_from_model_square	0
 pickup_of_pill_model_holds_carried	13
 pickup_no_tank_position	0
 pickup_unknown_pill	0
