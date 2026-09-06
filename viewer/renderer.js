@@ -661,6 +661,7 @@ function update_chat(tick = clock) {
 let draw_queued = false;
 function request_draw() {
 	if (exporting) return; /* the export drives draw() itself, synchronously */
+	if (loading) return;   /* the loading bar owns the canvas until the load ends */
 	if (draw_queued) return;
 	draw_queued = true;
 	requestAnimationFrame(() => {
@@ -1105,6 +1106,38 @@ function lgm_death_burst(e) {
 const MAX_LOG_BYTES = 64 << 20;   /* larger than any plausible real log */
 const MAX_RECORDS = 2_000_000;    /* ~16x the 2h sample; caps memory */
 
+/* Loading-bar shares: parsing is a small fraction of a load, reconstruction
+ * nearly all of it. The bar repaints at most every LOADING_REPAINT_MS so
+ * the work loops, which yield every few milliseconds, spend most of their
+ * time working rather than waiting on frames. */
+const PARSE_SHARE = 0.08, BUILD_SHARE = 0.9, LOADING_REPAINT_MS = 100;
+let loading_painted_at = -Infinity;
+/* Loads yield to the event loop many times, so a log dropped during a
+ * load starts a second one: each load takes a generation, and an older
+ * load abandons itself at its next yield once a newer one has begun. */
+let load_generation = 0;
+const SUPERSEDED = Symbol("superseded");
+/* The viewer state as it was before the first of the pending loads, for
+ * the last of them to restore if it fails: a later load would otherwise
+ * capture the paused, hint-hidden state the earlier one left. Null when
+ * no load is pending. */
+let before_load = null;
+/* True while a load is pending. A load yields to the event loop many
+ * times, so menu commands arrive during it: the export refuses to start
+ * while this holds, and draw requests are dropped so the loading bar keeps
+ * the canvas, as the export does with `exporting`. */
+let loading = false;
+
+/* Repaint the loading bar if it is due, otherwise return at once. */
+async function loading_progress(label, progress) {
+	if (performance.now() - loading_painted_at < LOADING_REPAINT_MS) return;
+	await loading_stage(label, progress);
+	loading_painted_at = performance.now();
+}
+
+/* Paint the loading bar and resolve once it has reached the screen. The
+ * timeout, rather than a second animation frame, lets the work resume as
+ * soon as the frame is painted instead of waiting out the next one. */
 function loading_stage(label, progress) {
 	return new Promise(resolve => requestAnimationFrame(() => {
 		let { w, h } = css_size();
@@ -1114,10 +1147,10 @@ function loading_stage(label, progress) {
 		ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
 		ctx.fillStyle = "#161b26";
 		ctx.fillRect(x, y, bar_width, bar_height);
-		ctx.fillStyle = "#5b8def";
+		ctx.fillStyle = "#006644";
 		ctx.fillRect(x, y, bar_width * progress, bar_height);
 		ctx.strokeStyle = "#000000";
-		ctx.lineWidth = 2;
+		ctx.lineWidth = 4;
 		ctx.strokeRect(x, y, bar_width, bar_height);
 		ctx.fillStyle = "#ffffff";
 		ctx.font = "600 17px system-ui, sans-serif";
@@ -1125,7 +1158,7 @@ function loading_stage(label, progress) {
 		ctx.textBaseline = "middle";
 		ctx.fillText(label, w / 2, h / 2);
 		ctx.restore();
-		requestAnimationFrame(resolve);
+		setTimeout(resolve, 0);
 	}));
 }
 
@@ -1133,13 +1166,24 @@ async function load_log(bytes, name) {
 	if (exporting) return; /* the export owns the viewer state until done */
 	/* Parse fully before touching viewer state, so a malformed file leaves
 	 * any currently loaded replay running. */
-	let was_playing = playing;
-	let had_drop_hint = !drop_hint.classList.contains("hidden");
+	if (!loading) {
+		loading = true;
+		before_load = {
+			playing,
+			drop_hint: !drop_hint.classList.contains("hidden"),
+		};
+	}
 	let header, recs, new_game;
+	let generation = ++load_generation;
+	let progress = async (label, fraction) => {
+		await loading_progress(label, fraction);
+		if (generation !== load_generation) throw SUPERSEDED;
+	};
 	set_playing(false);
 	drop_hint.classList.add("hidden");
 	try {
-		await loading_stage("Parsing log…", 1 / 3);
+		loading_painted_at = -Infinity;
+		await progress("Parsing log…", 0);
 		if (bytes.length > MAX_LOG_BYTES) {
 			throw new Error(`${bytes.length} bytes; not a Bolo log`);
 		}
@@ -1150,24 +1194,39 @@ async function load_log(bytes, name) {
 				throw new Error(`more than ${MAX_RECORDS} records; refusing`);
 			}
 			recs.push(rec);
+			if (recs.length % 1000 === 0) {
+				await progress("Parsing log…", PARSE_SHARE * rec.offset / bytes.length);
+			}
 		}
 		if (recs.length === 0) {
 			throw new Error("no valid records in file");
 		}
-		await loading_stage("Reconstructing game…", 2 / 3);
-		new_game = BoloGame.build(recs);
+		let steps = BoloGame.build_steps(recs);
+		let step = steps.next();
+		while (!step.done) {
+			await progress("Reconstructing game…", PARSE_SHARE + BUILD_SHARE * step.value);
+			step = steps.next();
+		}
+		new_game = step.value;
 		await loading_stage("Opening replay…", 1);
+		if (generation !== load_generation) throw SUPERSEDED;
 	} catch (err) {
+		if (err === SUPERSEDED) return; /* the newer load owns the viewer now */
+		let restore = before_load;
+		loading = false;
+		before_load = null;
 		if (cur) draw();
 		else {
 			ctx.setTransform(1, 0, 0, 1, 0, 0);
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 		}
-		if (had_drop_hint) drop_hint.classList.remove("hidden");
-		set_playing(was_playing);
+		if (restore.drop_hint) drop_hint.classList.remove("hidden");
+		set_playing(restore.playing);
 		show_error("Could not load log", String(err.message || err));
 		return;
 	}
+	loading = false;
+	before_load = null;
 	game = new_game;
 	player_locked = false;
 	update_lock_indicator();

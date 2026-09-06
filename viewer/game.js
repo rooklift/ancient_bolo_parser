@@ -1106,6 +1106,17 @@ function recorder_identity(records) {
 
 /* Build a seekable game from parsed records. */
 function build(records) {
+	return BoloMotion.drain(build_steps(records));
+}
+
+/* Generator form of build: yields overall progress as a fraction in
+ * [0, 1] between slices of work no longer than a few tens of
+ * milliseconds, and returns the game. The viewer steps this between
+ * loading-bar repaints; build() runs it straight through. Shares are
+ * from timing the sample logs: the record loop is about a fifth of the
+ * work, shell matching most of the rest. */
+function* build_steps(records) {
+	const RECORD_LOOP_SHARE = 0.2, SHELL_SHARE = 0.7, PROGRESS_EVERY = 1000;
 	const effects = [];
 	const chat = [];
 	const keyframes = []; /* {index, state} — state BEFORE records[index] */
@@ -1126,6 +1137,7 @@ function build(records) {
 	let s = initial_state(seed);
 
 	for (let i = 0; i < records.length; i++) {
+		if (i % PROGRESS_EVERY === 0) yield RECORD_LOOP_SHARE * i / records.length;
 		if (i % KEYFRAME_EVERY === 0) {
 			keyframes.push({ index: i, state: clone_state(s) });
 		}
@@ -1183,16 +1195,27 @@ function build(records) {
 			last_pill_key = pill_key;
 		}
 	}
-	let shell_positions = BoloMotion.build_shell_positions(records, shell_terminals,
+	let shell_steps = BoloMotion.build_shell_positions_steps(records, shell_terminals,
 		pillbox_sources_by_record, tank_sources_by_record, tank_positions,
 		pill_states);
+	let shell_step = shell_steps.next();
+	while (!shell_step.done) {
+		yield RECORD_LOOP_SHARE + SHELL_SHARE * shell_step.value;
+		shell_step = shell_steps.next();
+	}
+	let shell_positions = shell_step.value;
+	let after_shells = RECORD_LOOP_SHARE + SHELL_SHARE;
+	yield after_shells;
 	let shell_births = BoloMotion.build_shell_births(shell_positions);
+	yield after_shells + (1 - after_shells) / 4;
 	let shell_fall_segments = BoloMotion.build_shell_fall_segments(shell_positions);
+	yield after_shells + (1 - after_shells) / 2;
 	/* After shell matching: tank-hit boxes and birth refinement read the
 	 * tracks through track_pixel_at, which stays on packet coordinates;
 	 * the smoothing feeds only the drawing accessor. */
 	BoloMotion.smooth_track_positions(tank_positions);
 	BoloMotion.smooth_track_positions(lgm_positions);
+	yield after_shells + (1 - after_shells) * 3 / 4;
 	effects.sort((a, b) => a.time - b.time);
 
 	return {
@@ -1264,7 +1287,7 @@ const BoloGame = {
 	MAX_POSITION_INTERPOLATION_TICKS: BoloMotion.MAX_POSITION_INTERPOLATION_TICKS,
 	MAX_SHELL_INTERPOLATION_TICKS: BoloMotion.MAX_SHELL_INTERPOLATION_TICKS,
 	MAX_DIRECTION_INTERPOLATION_TICKS: BoloMotion.MAX_DIRECTION_INTERPOLATION_TICKS,
-	initial_state, clone_state, apply_record, build, state_at, team_of,
+	initial_state, clone_state, apply_record, build, build_steps, state_at, team_of,
 	classify_node_joins,
 	adjacent_change_time,
 	tank_position_at: BoloMotion.tank_position_at,
