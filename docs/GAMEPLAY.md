@@ -106,11 +106,17 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   ammo sinks, which any ammo-integration model should allow for. Deep sea is
   instant death for a tank not in a boat and harmless in a boat **(owner)**;
   the log reports it as `F9` code 3.
+- **Obstacles.** Building and shot building block a tank; every other
+  terrain can be driven onto, water included, river slowly and deep sea
+  fatally **(fixtures, [E:terrain-hits]: of 130,540 live tank centre squares
+  none is a building or shot building, while road, grass, forest, rubble,
+  crater, river and deep sea all occur)**. The death dump's search refuses
+  exactly building, shot building and boat, and no other terrain
+  **(corpus, [E:dump-terrain])**.
 - **Bases as obstacles.** A hostile base is impassable to an enemy tank
   until its armour is down to 9 or less, at which point driving on captures
-  it **(owner; measured, see Bases)**. FORMAT.md's "tank movement is blocked
-  by building and shot building" is about terrain; live hostile bases block
-  too.
+  it **(owner; measured, see Bases)**. Terrain is not the only obstacle:
+  a live hostile base blocks too.
 - **Death and respawn.** The wreck's explosion tiers, forest clearance and
   pill dump are corpus-established (FORMAT.md). The respawn follows 5.0–6.8 s
   later **(corpus, [E:respawn-gap])**, at a square of the start list that is
@@ -137,10 +143,19 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
 - A shell detonates a mine it lands on **(owner)**. The explosion is evented
   (`7T`).
 - A shell destroys a boat, whether or not a tank is in it **(owner)**. The
-  square reverts to river.
-- Shells are blocked by, and damage, building, forest and shot building
-  **(corpus, FORMAT.md Terrain)**. The opening frame of a shot does not fell
-  the tree under the firer **(corpus, [E:muzzle])**.
+  square reverts to river **(fixtures: 179 boat-to-river impacts,
+  [E:terrain-hits])**.
+- **What a shell flies over, and what stops it.** A shell passes over
+  river, crater, road, rubble and grass, mined or not, and over deep sea;
+  it is stopped by, and damages, building, shot building, forest and boat
+  **(fixtures, [E:terrain-hits]: all 9,940 shell falls end on road, grass,
+  rubble, crater, river or deep sea, and every impact that changes the
+  ground to something other than a crater is a felling, a shot building, a
+  rubble or a sunk boat, two stale-model cases aside)**.
+  Swamp is on neither fixture map and is presumed open ground. A tank, a
+  live pillbox and a hostile base with armour to spare stop a shell too, as
+  above. The opening frame of a shot does not fell the tree under the firer
+  **(corpus, [E:muzzle])**.
 
 ## Pillboxes
 
@@ -266,9 +281,20 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
 
 ## Terrain
 
+- **What a shell does to the ground.** One hit fells a tree, forest to
+  grass; one hit turns a building into a shot building; a shot building
+  then absorbs hits without changing, usually three, so that the fourth
+  further hit flattens it to rubble, but sometimes more **(fixtures,
+  [E:terrain-hits]: 536 fellings, 398 shot buildings and 445 rubbles; of
+  310 shot buildings followed from creation to rubble, 193 fell on the
+  fourth further hit and none earlier, while the rest absorbed up to a
+  dozen, most of them under bursts of pillbox fire)**. A building never
+  absorbs a hit unchanged. Whether the extra hits are counted once per
+  tick, or a shot building's damage is not a simple count, is open.
 - **Mines** can lie on swamp, crater, road, forest, rubble and grass
-  **(corpus, FORMAT.md Terrain)**. A tank driving onto one takes 3 armour
-  with the floor described under Tanks; the square craters (7,187 of 7,348
+  **(corpus, the mined codes of FORMAT.md's terrain table)**. A tank
+  driving onto one takes 3 armour with the floor described under Tanks;
+  the square craters (7,187 of 7,348
   corpus detonations) or, rarely, is left as grass **(measured)**. Whether
   a mine set off by a shell hurts a tank standing on the square, and
   whether the blast reaches neighbouring squares, is not known: the corpus
@@ -334,3 +360,8 @@ What the corpus run left unsettled.
 5. The respawn and parachute start choice: neither nearest nor farthest from
    enemies; WinBolo draws at random.
 6. The pill and base history string in `F1 Cn` [E:history].
+7. How many hits a shot building takes before falling to rubble: four in
+   most fixture lives and never fewer, but up to a dozen in the rest, mostly
+   where several pillboxes fired into one wall at once. Whether hits in one
+   tick count once, or the damage is not a count, needs the corpus and a
+   shell-level attribution (`tools/measure-terrain-hits.cjs`).
