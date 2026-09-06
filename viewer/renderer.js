@@ -185,6 +185,7 @@ let coordinate_tile_el = document.getElementById("coordinateTile");
 let coordinate_pixel_el = document.getElementById("coordinatePixel");
 let drop_hint = document.getElementById("dropHint");
 let drop_hint_text = document.getElementById("dropHintText");
+let drop_hint_link = document.getElementById("dropHintLink");
 let map_name_el = document.getElementById("mapName");
 let game_meta_el = document.getElementById("gameMeta");
 let network_meta_el = document.getElementById("networkMeta");
@@ -210,6 +211,12 @@ const PAGE_SHORTCUTS = WEB || !!window.api.page_shortcuts;
 drop_hint_text.textContent = WEB
 	? "Open a Bolo game log (drop it here, click to choose one, or press Ctrl+O)."
 	: "Open a Bolo game log (File → Open, drop it here, or click to choose one).";
+
+/* The web page points at the repo; the apps ship with their own docs. The
+ * whole hint is the open button, so a click on the link must not also
+ * open the file picker. */
+drop_hint_link.hidden = !WEB;
+drop_hint_link.querySelector("a").addEventListener("click", e => e.stopPropagation());
 
 /* Toggle shortcuts: Cmd/Ctrl+key in Electron (mirroring the menu's
  * accelerators), the bare key on the web. */
