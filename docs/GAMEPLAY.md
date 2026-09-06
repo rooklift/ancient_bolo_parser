@@ -288,8 +288,12 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   fourth further hit and none earlier, and 93% of those hit one shell a
   record did, while the rest logged more unchanged hits, up to seventeen,
   mostly from an angry pillbox logging two or three hits a record)**. A
-  building absorbs a hit unchanged once in 25,443. Whether the extra hits
-  are real, or one hit logged more than once, is open. A shell also sets
+  building absorbs a hit unchanged once in 25,443. A second shell arriving
+  a record behind the first can be announced as shooting the building
+  again, and that restarts the count: the wall takes three more unchanged
+  hits from there **(corpus, 28 decisive lives, [E:terrain-hits])**.
+  Whether the burst hits are real, or one hit logged more than once, is
+  open. A shell also sets
   off a mine it lands on, cratering the square, but a crater event alone
   does not say whether a shell, a tank or a dying tank made it. A shell
   fired from a boat at the shore turns the grass it lands on into swamp
@@ -369,7 +373,5 @@ What the corpus run left unsettled.
    four-more-hits rule says, but up to seventeen in the rest, mostly where
    an angry pillbox logged two or three hits a record into one wall.
    Whether those are real hits or one hit logged more than once needs a
-   shell-level attribution; and whether a second `7 8` on an already shot
-   building, a hit announced by a client a record behind, restarts the
-   count turns on the few lives with hits before the repeat, which
-   `tools/measure-terrain-hits.cjs` now tabulates.
+   shell-level attribution (`tools/measure-terrain-hits.cjs`). The other
+   source of excess, a repeated `7 8` restarting the count, is settled.
