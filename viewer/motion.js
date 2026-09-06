@@ -1149,9 +1149,25 @@ function ordinary_shell_position_variants(shell) {
  * can justify from the record gap; ordinary matching passes nothing and
  * keeps the strict window. Lead matches carry the dilated penalty so an
  * in-window story is always preferred. */
+/* Only a tank shell damages a base: an `An` never follows a pillbox shot
+ * (owner; GAMEPLAY.md). So a base-damage terminal is no fate for a shell
+ * the engine has already put at a pill, seen or unseen, and its geometry
+ * is never consulted for one. */
+function terminal_takes_pillbox_shell(terminal) {
+	return terminal.event_type !== "base_damage";
+}
+
+function shell_from_pillbox(shell) {
+	return shell.pillbox_source_x !== undefined ||
+		Boolean(shell.pillbox_orbit_states);
+}
+
 function shell_terminal_match(previous, terminal, duration, start_time,
 	lead_pixels = 0, pillbox_lead_pixels = lead_pixels) {
 	if (terminal.direction !== null && terminal.direction !== previous.direction) return null;
+	if (!terminal_takes_pillbox_shell(terminal) && shell_from_pillbox(previous)) {
+		return null;
+	}
 	/* The caller's lead allowance extends to orbit-tracked shells too: their
 	 * distances are discrete, but a chain end reached through a dilated link
 	 * carries the very timestamp lie the lead exists to forgive, so its
@@ -1238,6 +1254,7 @@ function pillbox_source_terminal_entry(source, terminal) {
 	if (terminal.direction !== null && terminal.direction !== source.direction) {
 		return null;
 	}
+	if (!terminal_takes_pillbox_shell(terminal)) return null;
 	let best = null;
 	let origins = [[source.pixel_x, source.pixel_y]];
 	if (source.alternate_pixel_x !== undefined) {
@@ -4441,6 +4458,7 @@ const TERMINAL_FAILURE_RANK = new Map([
 	"orbit_miss",             /* orbit-tracked ends nearby; no orbit enters */
 	"ray_miss",               /* ordinary ends nearby; every ray misses */
 	"direction",              /* only wrong-direction ends nearby */
+	"weapon",                 /* only pill shells near a tank-only impact */
 	"no_candidate",           /* nothing at all to probe */
 ].map((reason, rank) => [reason, rank]));
 
@@ -4454,6 +4472,9 @@ function terminal_candidate_geometry(shell, end_time, gap, terminal,
 	if (terminal.direction !== null && terminal.direction !== undefined &&
 		terminal.direction !== shell.direction) {
 		return "direction";
+	}
+	if (!terminal_takes_pillbox_shell(terminal) && shell_from_pillbox(shell)) {
+		return "weapon";
 	}
 	let lead_pixels = Math.min(gap, MAX_POSITION_INTERPOLATION_TICKS) *
 		SHELL_SPEED_PIXELS_PER_TICK;
@@ -4490,8 +4511,7 @@ function classify_terminal_candidate(shell, end_time, gap, terminal,
 }
 
 function terminal_candidate_kind(shell) {
-	if (shell.pillbox_source_x !== undefined ||
-		shell.pillbox_orbit_states) return "P";
+	if (shell_from_pillbox(shell)) return "P";
 	if (shell.starts_at_tank || shell.birth_time !== undefined) return "T";
 	return "?";
 }
@@ -4641,7 +4661,7 @@ function describe_unmatched_terminals(snapshots) {
 const END_FATE_RANK = new Map([
 	"fate_open", "fate_unseen", "fate_taken",
 	"timing_lag", "timing_lead", "window_expired",
-	"orbit_miss", "ray_miss", "direction", "no_candidate",
+	"orbit_miss", "ray_miss", "direction", "weapon", "no_candidate",
 ].map((reason, rank) => [reason, rank]));
 
 function describe_end_failure(snapshots, index, shell, gap) {
