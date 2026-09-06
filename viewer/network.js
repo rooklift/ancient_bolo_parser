@@ -102,8 +102,11 @@ const TICKS_PER_SECOND = 50;
  * Scoring interleaved half-minute blocks as if they were separate games
  * gives r = 0.88 on the quiet share, 0.94 on stall and 0.99 on cycle
  * time, so this is a property of a session rather than of the moment
- * sampled, and fair to state once for a whole game. All of it reproduces
- * with tools/measure-network-conditions.cjs. */
+ * sampled, and fair to state once for a whole game. The stall and cycle
+ * bands place the corpus at 69.7% good, 20.4% fair, 7.9% bad, 2.0%
+ * awful, the two halves of a log agreeing on the band 96.8% of the time
+ * (docs/corpus_runs/dcc6491-conditions.txt). All of it reproduces with
+ * tools/measure-network-conditions.cjs. */
 
 const STALL_GAP_TICKS = TICKS_PER_SECOND / 2;  /* silence that reads as a freeze */
 const SEQ_TRUST_TICKS = 250;    /* 5s: past this a step is a rejoin, not quiet */

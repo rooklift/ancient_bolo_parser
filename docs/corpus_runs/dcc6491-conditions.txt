@@ -1,0 +1,62 @@
+442 logs scored
+
+quiet %   min=  1.3 p10=  3.9 p25=  4.9 p50=  6.3 p75=  8.2 p90= 11.2 p99= 28.5 max= 49.5
+stall %   min=  0.0 p10=  0.0 p25=  0.0 p50=  0.3 p75=  1.5 p90=  5.5 p99= 22.6 max= 44.8
+cycle t   min=  6.0 p10=  6.0 p25=  7.0 p50=  9.0 p75= 12.0 p90= 16.0 p99= 23.0 max= 27.0
+quiet/stall correlation: r = 0.692
+quiet/cycle correlation: r = 0.150
+stall/cycle correlation: r = 0.259
+
+untrimmed, for comparison -- the same logs read end to end:
+quiet %   min=  2.7 p10=  5.8 p25=  8.0 p50= 11.8 p75= 17.4 p90= 26.9 p99= 49.5 max= 61.1
+stall %   min=  0.1 p10=  1.0 p25=  2.2 p50=  4.9 p75= 10.2 p90= 18.8 p99= 44.8 max= 52.5
+trimmed away: median 6.8% of a log, of which the gathering phase is 4.3%
+
+the gathering confound:
+  untrimmed quiet vs gathering share: r = 0.834
+  settled   quiet vs gathering share: r = -0.033
+
+by player count (more players, more of them parked or dead):
+  2 players  n=130  quiet p50=  5.2  stall p50=  0.3  cycle p50=  7.0   (untrimmed quiet p50=  7.7)
+  3 players  n=  9  quiet p50=  5.9  stall p50=  0.5  cycle p50=  8.0   (untrimmed quiet p50= 10.1)
+  4 players  n=252  quiet p50=  6.6  stall p50=  0.3  cycle p50= 10.0   (untrimmed quiet p50= 12.8)
+  5 players  n= 21  quiet p50=  8.1  stall p50=  1.2  cycle p50= 13.0   (untrimmed quiet p50= 17.6)
+  6 players  n= 28  quiet p50=  7.4  stall p50=  1.4  cycle p50= 14.0   (untrimmed quiet p50= 16.9)
+
+by year -- untrimmed this looks like dial-up giving way to
+broadband; in settled play the improvement mostly evaporates,
+so what got faster was the map transfer, not the game:
+  2001  n=130  untrimmed p50= 13.1  ->  settled p50=  6.6
+  2002  n=104  untrimmed p50= 12.5  ->  settled p50=  6.2
+  2003  n= 52  untrimmed p50= 10.5  ->  settled p50=  5.9
+  2004  n=122  untrimmed p50=  9.9  ->  settled p50=  6.1
+  2005  n= 34  untrimmed p50=  9.1  ->  settled p50=  5.7
+
+split-half reliability (is one verdict per game honest?):
+  quiet r = 0.885
+  stall r = 0.946
+  cycle r = 0.993
+  |quiet A - quiet B| p50=0.88 p90=2.76
+  |stall A - stall B| p50=0.12 p90=0.82
+  |cycle A - cycle B| p50=0.00 p90=1.00
+
+bands as shipped:
+  good    308  69.7%
+  fair     90  20.4%
+  bad      35  7.9%
+  awful     9  2.0%
+  the two halves of a log agree on the band 96.8% of the time
+
+a walk up the range:
+  good   quiet=  1.3% stall=  0.0% cycle= 7t 2p  20041227.5~9e2cd9
+  good   quiet=  3.8% stall=  0.0% cycle= 9t 4p  20040812.8~3dfcb7
+  good   quiet=  4.5% stall=  0.1% cycle=10t 4p  20030430.2~5b694a
+  good   quiet=  4.9% stall=  0.7% cycle=10t 4p  20021012.6~3bb408
+  good   quiet=  5.3% stall=  0.4% cycle=10t 4p  20021012.10~044ddc
+  good   quiet=  5.8% stall=  0.2% cycle=12t 4p  20040304.6~3e772e
+  good   quiet=  6.3% stall=  0.4% cycle=11t 4p  20021108.1~89a060
+  fair   quiet=  6.8% stall=  1.2% cycle=15t 5p  20010625~f97bb1
+  good   quiet=  7.3% stall=  0.0% cycle=11t 4p  20030314.1
+  good   quiet=  8.2% stall=  0.6% cycle= 6t 2p  20020911~1f7b70
+  fair   quiet=  9.4% stall=  6.5% cycle=14t 4p  20010530.1~a22552
+  good   quiet= 12.9% stall=  0.0% cycle= 7t 4p  20041206.1~d64046
