@@ -1581,8 +1581,25 @@ if (window.api) {
 }
 
 /* ---------- canvas sizing ---------- */
+
+/* The view is stored by its top-left corner, so a resize would otherwise
+ * keep that corner fixed and let the centre drift. Shifting the corner by
+ * half the size change keeps the camera centred, as zoom_to keeps its
+ * anchor. The startup call sees a zero-sized canvas and the ResizeObserver
+ * fires first with the real size, so the shift waits for a known size.
+ * Video export swaps view for its own camera, so the shift is skipped
+ * while exporting and last_size is left alone, letting the live camera
+ * catch up on the next resize after the export. */
+let last_size = { w: 0, h: 0 };
 function resize() {
 	let w = canvas.clientWidth, h = canvas.clientHeight;
+	if (!exporting) {
+		if (last_size.w && last_size.h) {
+			view.ox += (last_size.w - w) / (2 * view.zoom);
+			view.oy += (last_size.h - h) / (2 * view.zoom);
+		}
+		last_size = { w, h };
+	}
 	canvas.width = Math.max(1, Math.round(w * devicePixelRatio));
 	canvas.height = Math.max(1, Math.round(h * devicePixelRatio));
 	request_draw();
