@@ -1141,7 +1141,7 @@ function loading_stage(label, progress) {
 		ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
 		ctx.fillStyle = "#161b26";
 		ctx.fillRect(x, y, bar_width, bar_height);
-		ctx.fillStyle = "#5b8def";
+		ctx.fillStyle = "#006644";
 		ctx.fillRect(x, y, bar_width * progress, bar_height);
 		ctx.strokeStyle = "#000000";
 		ctx.lineWidth = 2;
