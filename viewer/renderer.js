@@ -1105,6 +1105,28 @@ function lgm_death_burst(e) {
 const MAX_LOG_BYTES = 64 << 20;   /* larger than any plausible real log */
 const MAX_RECORDS = 2_000_000;    /* ~16x the 2h sample; caps memory */
 
+/* Loading-bar shares: parsing is a small fraction of a load, reconstruction
+ * nearly all of it. The bar repaints at most every LOADING_REPAINT_MS so
+ * the work loops, which yield every few milliseconds, spend most of their
+ * time working rather than waiting on frames. */
+const PARSE_SHARE = 0.08, BUILD_SHARE = 0.9, LOADING_REPAINT_MS = 100;
+let loading_painted_at = -Infinity;
+/* Loads yield to the event loop many times, so a log dropped during a
+ * load starts a second one: each load takes a generation, and an older
+ * load abandons itself at its next yield once a newer one has begun. */
+let load_generation = 0;
+const SUPERSEDED = Symbol("superseded");
+
+/* Repaint the loading bar if it is due, otherwise return at once. */
+async function loading_progress(label, progress) {
+	if (performance.now() - loading_painted_at < LOADING_REPAINT_MS) return;
+	await loading_stage(label, progress);
+	loading_painted_at = performance.now();
+}
+
+/* Paint the loading bar and resolve once it has reached the screen. The
+ * timeout, rather than a second animation frame, lets the work resume as
+ * soon as the frame is painted instead of waiting out the next one. */
 function loading_stage(label, progress) {
 	return new Promise(resolve => requestAnimationFrame(() => {
 		let { w, h } = css_size();
@@ -1125,7 +1147,7 @@ function loading_stage(label, progress) {
 		ctx.textBaseline = "middle";
 		ctx.fillText(label, w / 2, h / 2);
 		ctx.restore();
-		requestAnimationFrame(resolve);
+		setTimeout(resolve, 0);
 	}));
 }
 
@@ -1136,10 +1158,16 @@ async function load_log(bytes, name) {
 	let was_playing = playing;
 	let had_drop_hint = !drop_hint.classList.contains("hidden");
 	let header, recs, new_game;
+	let generation = ++load_generation;
+	let progress = async (label, fraction) => {
+		await loading_progress(label, fraction);
+		if (generation !== load_generation) throw SUPERSEDED;
+	};
 	set_playing(false);
 	drop_hint.classList.add("hidden");
 	try {
-		await loading_stage("Parsing log…", 1 / 3);
+		loading_painted_at = -Infinity;
+		await progress("Parsing log…", 0);
 		if (bytes.length > MAX_LOG_BYTES) {
 			throw new Error(`${bytes.length} bytes; not a Bolo log`);
 		}
@@ -1150,14 +1178,24 @@ async function load_log(bytes, name) {
 				throw new Error(`more than ${MAX_RECORDS} records; refusing`);
 			}
 			recs.push(rec);
+			if (recs.length % 1000 === 0) {
+				await progress("Parsing log…", PARSE_SHARE * rec.offset / bytes.length);
+			}
 		}
 		if (recs.length === 0) {
 			throw new Error("no valid records in file");
 		}
-		await loading_stage("Reconstructing game…", 2 / 3);
-		new_game = BoloGame.build(recs);
+		let steps = BoloGame.build_steps(recs);
+		let step = steps.next();
+		while (!step.done) {
+			await progress("Reconstructing game…", PARSE_SHARE + BUILD_SHARE * step.value);
+			step = steps.next();
+		}
+		new_game = step.value;
 		await loading_stage("Opening replay…", 1);
+		if (generation !== load_generation) throw SUPERSEDED;
 	} catch (err) {
+		if (err === SUPERSEDED) return; /* the newer load owns the viewer now */
 		if (cur) draw();
 		else {
 			ctx.setTransform(1, 0, 0, 1, 0, 0);

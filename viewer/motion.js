@@ -5039,8 +5039,33 @@ function sweep_contradicted_links(snapshots) {
 	return unlinked;
 }
 
+/* Records between progress yields in the long record loops. About ten
+ * milliseconds of work: fine enough that a caller can repaint a loading
+ * bar on its own schedule without the generator ever holding the thread
+ * for long. */
+const PROGRESS_EVERY = 1000;
+
+/* Run a step generator to completion on the calling thread. */
+function drain(steps) {
+	let step;
+	do step = steps.next(); while (!step.done);
+	return step.value;
+}
+
 function build_shell_positions(records, terminals, pillbox_sources_by_record,
 	tank_sources_by_record, tank_positions = null, pill_states = []) {
+	return drain(build_shell_positions_steps(records, terminals,
+		pillbox_sources_by_record, tank_sources_by_record, tank_positions,
+		pill_states));
+}
+
+/* Generator form of build_shell_positions: yields its progress as a
+ * fraction in [0, 1] and returns the snapshots. The record loop is about
+ * three fifths of the work and each client's stitching passes the rest,
+ * weighted by that client's snapshot count. */
+function* build_shell_positions_steps(records, terminals, pillbox_sources_by_record,
+	tank_sources_by_record, tank_positions = null, pill_states = []) {
+	const RECORD_LOOP_SHARE = 0.6;
 	if (tank_positions) {
 		for (let terminal of terminals) {
 			if (terminal.event_type === "tank_hit" &&
@@ -5059,7 +5084,11 @@ function build_shell_positions(records, terminals, pillbox_sources_by_record,
 		}
 		record_terminals.push(terminal);
 	}
-	for (let rec of records) {
+	for (let i = 0; i < records.length; i++) {
+		if (i % PROGRESS_EVERY === 0) {
+			yield RECORD_LOOP_SHARE * i / records.length;
+		}
+		let rec = records[i];
 		let map_node_only = rec.subpackets.length > 0 &&
 			rec.subpackets.every(sub => MAP_NODE_TYPES.has(sub.type));
 		let shell_lists = rec.subpackets.filter(sub => sub.type === "shells");
@@ -5091,21 +5120,37 @@ function build_shell_positions(records, terminals, pillbox_sources_by_record,
 		mark_new_tank_shells(previous, snapshot);
 		client_snapshots.push(snapshot);
 	}
+	let total_snapshots = snapshots.reduce((n, c) => n + c.length, 0) || 1;
+	let done_snapshots = 0;
+	let reported = RECORD_LOOP_SHARE;
 	for (let client_snapshots of snapshots) {
-		stitch_shell_chains(client_snapshots);
-		resolve_residual_shell_fates(client_snapshots);
-		claim_unseen_pillbox_births(client_snapshots, pill_states);
-		/* Every pin is in; let the vote indict, and give the freed
-		 * pieces the joining passes once more, under the election. */
-		if (sweep_contradicted_links(client_snapshots)) {
-			stitch_shell_chains(client_snapshots);
-			resolve_residual_shell_fates(client_snapshots);
-			claim_unseen_pillbox_births(client_snapshots, pill_states);
+		let stitch = () => stitch_shell_chains(client_snapshots);
+		let resolve = () => resolve_residual_shell_fates(client_snapshots);
+		let claim = () => claim_unseen_pillbox_births(client_snapshots, pill_states);
+		let passes = [
+			stitch, resolve, claim,
+			/* Every pin is in; let the vote indict, and give the freed
+			 * pieces the joining passes once more, under the election. */
+			() => {
+				if (sweep_contradicted_links(client_snapshots)) {
+					passes.splice(4, 0, stitch, resolve, claim);
+				}
+			},
+			() => slide_compressed_chain_tails(client_snapshots),
+			() => smooth_shell_chains(client_snapshots),
+			() => reconcile_link_targets(client_snapshots),
+			() => slide_compressed_chain_heads(client_snapshots),
+		];
+		for (let i = 0; i < passes.length; i++) {
+			passes[i]();
+			/* The sweep's insertions lengthen the list mid-loop, which
+			 * would nudge the fraction back a little; never report less. */
+			let client_done = client_snapshots.length * (i + 1) / passes.length;
+			reported = Math.max(reported, RECORD_LOOP_SHARE + (1 - RECORD_LOOP_SHARE) *
+				(done_snapshots + client_done) / total_snapshots);
+			yield reported;
 		}
-		slide_compressed_chain_tails(client_snapshots);
-		smooth_shell_chains(client_snapshots);
-		reconcile_link_targets(client_snapshots);
-		slide_compressed_chain_heads(client_snapshots);
+		done_snapshots += client_snapshots.length;
 	}
 	return snapshots;
 }
@@ -5428,7 +5473,8 @@ const BoloMotion = {
 	append_shell_list, add_shell_point_terminal, add_shell_box_terminal,
 	build_tank_positions, build_tank_directions, build_lgm_positions, track_pixel_at,
 	smooth_track_positions,
-	build_shell_positions, build_shell_births, build_shell_fall_segments,
+	build_shell_positions, build_shell_positions_steps, drain,
+	build_shell_births, build_shell_fall_segments,
 	tank_position_at, tank_direction_at, lgm_position_at, shell_position_at,
 	shell_birth_positions_at, shell_fall_positions_at,
 	describe_unmatched_terminals, describe_unfated_ends, score_pill_links,
