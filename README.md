@@ -29,8 +29,7 @@ for (const rec of records(new Uint8Array(fs.readFileSync(file)))) {
 
 # Ancient Bolo Log Viewer
 
-`viewer/` is the Ancient Bolo Log Viewer — an Electron app that plays logs back. Featuring gameplay, alliances, messages, seeking, speeds up to
-64×, and a viewpoint selector choosing whose side draws as friendly.
+`viewer/` is the Ancient Bolo Log Viewer — an [Electron](https://www.electronjs.org/) app that plays logs back. Featuring gameplay, alliances, messages, seeking, speeds up to 64×, and a viewpoint selector choosing whose side draws as friendly.
 
 <img width="1280" height="860" alt="viewer screenshot" src="https://raw.githubusercontent.com/rooklift/ancient_bolo_parser/refs/heads/main/docs/viewer.png" />
 
@@ -48,37 +47,7 @@ shortcuts are bare keys (D, I, F, L, G, M, B, R, T) rather than Ctrl+key.
 
 `viewer/tauri/` hosts the same viewer in a [Tauri](https://tauri.app) shell:
 a small Rust program around the WebView2 engine Windows already ships, so
-the app is a few MB instead of the ~200 MB Electron folder. The page files
-are shared with the Electron and web versions (`tauri/stage.mjs` copies them
-in at build time); only the window, menu, dialogs and file access are
-reimplemented, in `tauri/src/main.rs`, with `viewer/tauri_api.js` giving the
-page the same `window.api` the Electron preload script does.
-
-Nothing needs installing to build it: the release workflow
-(`.github/workflows/release-builds.yml`) builds it on a GitHub Windows
-runner beside the Electron apps, attaching
-`ancient-bolo-log-viewer-<version>-windows-tauri.zip`, a zip holding the
-single `.exe`, to the release. The workflow can also be started by hand
-from the Actions tab. For a build to test without releasing, a second
-workflow (`.github/workflows/tauri-test-build.yml`, "Tauri test build")
-builds just the Tauri app from whichever branch is picked in the Actions
-tab, leaving the `.exe` as a downloadable artifact on the run's page. To
-build locally instead, with Rust and Node installed:
-
-```
-cd viewer/tauri
-npx --yes @tauri-apps/cli@2.11.4 build
-```
-
-The executable is then `viewer/tauri/target/release/ancient-bolo-log-viewer.exe`.
-
-Differences from the Electron app: the menu shows the shortcuts but the page
-handles the keys itself (as the web version does), and dropped files arrive
-through the window rather than the page. Everything else, including video
-export, works the same way. Only Windows is set up so far; the Rust side
-avoids anything Windows-specific except the sleep hold during video export,
-and the menu's shortcut hints (label text after a tab), so other platforms
-mostly need icons, bundle settings and testing.
+the app is a few MB instead of the ~200 MB Electron folder.
 
 ## Status
 
