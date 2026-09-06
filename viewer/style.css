@@ -63,6 +63,8 @@ body {
 	cursor: pointer; /* the whole hint is the open button */
 }
 #dropHint h1 { font-size: 20px; margin-bottom: 8px; color: #cfd6e4; }
+#dropHintLink { margin-top: 8px; }
+#dropHintLink a { color: #5b8def; }
 #dropHint.hidden { display: none; }
 
 #transport {
