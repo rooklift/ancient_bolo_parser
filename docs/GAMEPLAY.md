@@ -108,10 +108,10 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   the log reports it as `F9` code 3.
 - **Obstacles.** Building and shot building block a tank; every other
   terrain can be driven onto, water included, river slowly and deep sea
-  fatally **(fixtures, [E:terrain-hits]: of 130,540 live tank centre squares
-  none is a building or shot building, while road, grass, forest, rubble,
-  crater, river and deep sea all occur)**. The death dump's search refuses
-  exactly building, shot building and boat, and no other terrain
+  fatally **(corpus, [E:terrain-hits]: of 8.8 million live tank centre
+  squares, 43 are a building or shot building, the model a record behind,
+  while every other terrain occurs in bulk)**. The death dump's search
+  refuses exactly building, shot building and boat, and no other terrain
   **(corpus, [E:dump-terrain])**.
 - **Bases as obstacles.** A hostile base is impassable to an enemy tank
   until its armour is down to 9 or less, at which point driving on captures
@@ -143,17 +143,16 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
 - A shell detonates a mine it lands on **(owner)**. The explosion is evented
   (`7T`).
 - A shell destroys a boat, whether or not a tank is in it **(owner)**. The
-  square reverts to river **(fixtures: 179 boat-to-river impacts,
+  square reverts to river **(corpus: 3,381 boat-to-river impacts,
   [E:terrain-hits])**.
 - **What a shell flies over, and what stops it.** A shell passes over
-  river, crater, road, rubble and grass, mined or not, and over deep sea;
-  it is stopped by, and damages, building, shot building, forest and boat
-  **(fixtures, [E:terrain-hits]: all 9,940 shell falls end on road, grass,
-  rubble, crater, river or deep sea, and every impact that changes the
-  ground to something other than a crater is a felling, a shot building, a
-  rubble or a sunk boat, two stale-model cases aside)**.
-  Swamp is on neither fixture map and is presumed open ground. A tank, a
-  live pillbox and a hostile base with armour to spare stop a shell too, as
+  river, swamp, crater, road, rubble and grass, mined or not, and over deep
+  sea; it is stopped by, and damages, building, shot building, forest and
+  boat **(corpus, [E:terrain-hits]: 613,281 shell falls end on the open
+  terrains, all but 37, and every impact that changes the ground to
+  something other than a crater is a felling, a shot building, a rubble or
+  a sunk boat, a few dozen stale-model cases aside)**. A tank, a live
+  pillbox and a hostile base with armour to spare stop a shell too, as
   above. The opening frame of a shot does not fell the tree under the firer
   **(corpus, [E:muzzle])**.
 
@@ -283,13 +282,23 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
 
 - **What a shell does to the ground.** One hit fells a tree, forest to
   grass; one hit turns a building into a shot building; four more hits
-  turn the shot building to rubble **(owner; fixtures, [E:terrain-hits]:
-  536 fellings, 398 shot buildings and 445 rubbles; of 310 shot buildings
-  followed from creation to rubble, 193 fell on the fourth further hit and
-  none earlier, while the rest logged more unchanged hits, up to a dozen,
-  most of them from an angry pillbox logging two or three hits a record)**.
-  A building never absorbs a hit unchanged. Whether the extra hits are
-  real, or one hit logged more than once, is open.
+  turn the shot building to rubble **(owner; corpus, [E:terrain-hits]:
+  93,355 fellings, 25,442 shot buildings and 24,503 rubbles; of 17,894
+  shot buildings followed from creation to rubble, 13,866 fell on the
+  fourth further hit and none earlier, and 93% of those hit one shell a
+  record did, while the rest logged more unchanged hits, up to seventeen,
+  mostly from an angry pillbox logging two or three hits a record)**. A
+  building absorbs a hit unchanged once in 25,443. A second shell arriving
+  a record behind the first can be announced as shooting the building
+  again, and that restarts the count: the wall takes three more unchanged
+  hits from there **(corpus, 28 decisive lives, [E:terrain-hits])**.
+  Whether the burst hits are real, or one hit logged more than once, is
+  open. A shell also sets
+  off a mine it lands on, cratering the square, but a crater event alone
+  does not say whether a shell, a tank or a dying tank made it. A shell
+  fired from a boat at the shore turns the grass it lands on into swamp
+  **(owner; corpus: 5 grass-to-swamp impacts, the one on the fixtures
+  from a tank in a boat, [E:terrain-hits])**.
 - **Mines** can lie on swamp, crater, road, forest, rubble and grass
   **(corpus, the mined codes of FORMAT.md's terrain table)**. A tank
   driving onto one takes 3 armour with the floor described under Tanks;
@@ -360,8 +369,9 @@ What the corpus run left unsettled.
    enemies; WinBolo draws at random.
 6. The pill and base history string in `F1 Cn` [E:history].
 7. The unchanged hits a shot building logs before falling to rubble: three
-   in most fixture lives and never fewer, as the owner's four-more-hits rule
-   says, but up to a dozen in the rest, mostly where an angry pillbox logged
-   two or three hits a record into one wall. Whether those are real hits or
-   one hit logged more than once needs the corpus and a shell-level
-   attribution (`tools/measure-terrain-hits.cjs`).
+   in 13,866 of 17,894 corpus lives and never fewer, as the owner's
+   four-more-hits rule says, but up to seventeen in the rest, mostly where
+   an angry pillbox logged two or three hits a record into one wall.
+   Whether those are real hits or one hit logged more than once needs a
+   shell-level attribution (`tools/measure-terrain-hits.cjs`). The other
+   source of excess, a repeated `7 8` restarting the count, is settled.
