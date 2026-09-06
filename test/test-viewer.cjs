@@ -41,6 +41,27 @@ if (!fs.existsSync(log1)) {
 	require("../viewer/motion.js").set_roster_vote_recording(true);
 	const game = BoloGame.build(recs);
 	check("map name", game.final.gameInfo.mapName, "Fly Swatter IV");
+
+	/* The viewer's loading bar steps build_steps; its yields must be a
+	 * monotone [0, 1] fraction, frequent enough to repaint between, and
+	 * the returned game the same as build()'s. */
+	{
+		let steps = BoloGame.build_steps(recs);
+		let fractions = [];
+		let step = steps.next();
+		while (!step.done) {
+			fractions.push(step.value);
+			step = steps.next();
+		}
+		let monotone = fractions.every((f, i) => f >= 0 && f <= 1 && (i === 0 || f >= fractions[i - 1]));
+		check("build_steps yields monotone fractions", monotone, true);
+		check("build_steps yields often", fractions.length > 200, true);
+		check("build_steps yields from the start", fractions[0], 0);
+		let summary = g => [g.effects.length, g.chat.length, g.keyframes.length,
+			g.shell_positions.map(c => c.length), g.shell_births.map(b => b.length),
+			g.network.rating, g.t0, g.t1];
+		check("build_steps returns build()'s game", summary(step.value), summary(game));
+	}
 	check("pills", game.final.pills.length, 16);
 	check("bases", game.final.bases.length, 16);
 	check("starts", game.final.starts.length, 8);
