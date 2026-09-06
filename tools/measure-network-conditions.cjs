@@ -52,7 +52,7 @@
  *   -- how the chosen bands fall over the corpus, and how often the two
  *      halves of a log land in the same band.
  *
- * Usage: node tools/measure-network-conditions.cjs [corpus-root]
+ * Usage: node tools/measure-network-conditions.cjs [corpus-root] [--json=rows.json]
  */
 const fs = require("fs");
 const path = require("path");
@@ -62,6 +62,8 @@ const BoloNetwork = require(path.join(__dirname, "..", "viewer", "network.js"));
 
 const args = process.argv.slice(2).filter(a => !a.startsWith("--"));
 const ROOT = args[0] || require("./corpus.cjs").corpus_root();
+/* --json=path writes the per-log rows out, for re-cutting the bands */
+const JSON_OUT = (process.argv.find(a => a.startsWith("--json=")) || "").slice(7) || null;
 const BLOCK = 1500;             /* ticks per split-half block (30 s) */
 const MIN_RECORDS = 2000;       /* below this a log says too little to score */
 const MIN_TICKS = 3000;         /* and likewise below a minute of play */
@@ -195,6 +197,7 @@ if (rows.length === 0) {
 }
 
 console.log(`${rows.length} logs scored\n`);
+if (JSON_OUT) fs.writeFileSync(JSON_OUT, JSON.stringify(rows, null, "\t") + "\n");
 
 console.log(spread("quiet %", rows.map(r => r.whole.quiet)));
 console.log(spread("stall %", rows.map(r => r.whole.stall)));
