@@ -33,8 +33,23 @@
  * for about L/gap of the shots, so the share should fall as the gap
  * grows; a facing from the previous packet would hold near 100%.
  *
+ * PIN (--pin; runs the viewer's full build per replay, so about three
+ * times the cost). Is the fault deterministic? The engine pins most tank
+ * shells to an exact bradian, and the tank turns at a known rate, so a
+ * shell's bradian distance `e` (0..15) into the NIBBLE's sector from the
+ * boundary the turn entered by says how long before the shot the facing
+ * crossed. For every fresh shell fired in a record whose header facing
+ * moved one sector, with a chain the engine pins to one bradian, the
+ * share labelled a sector off is tallied by `e`, split by whether the
+ * sender's facing was still changing in its next record (the tank was
+ * certainly mid-turn at the shot) and by the record gap (a tank that
+ * halted its turn just past a boundary has a facing inside the window
+ * but nothing stale to sample, and a longer gap gives it more time to
+ * have halted). An always-stale label puts the mid-turn cell near 100%
+ * and every `e` beyond the window at zero.
+ *
  * Usage:
- *   node tools/measure-shell-birth-sector.cjs [replay-or-directory]
+ *   node tools/measure-shell-birth-sector.cjs [--pin] [replay-or-directory]
  *       (no arguments: the whole corpus, via BOLO_CORPUS/corpus.json,
  *       falling back to the committed fixtures when neither is set)
  */
@@ -145,6 +160,120 @@ function empty_tally() {
 		control_follows_list_dir: 0,
 		control_follows_neighbour: 0,
 	};
+}
+
+function empty_pin_tally() {
+	let cell = () => ({ n: 0, stale: 0 });
+	return {
+		pin_candidates: 0,
+		pin_pinned: 0,
+		pin_steady: cell(),
+		pin_by_e: Array.from({ length: 16 }, cell),
+		pin_turning_e0_1: cell(),
+		pin_turning_e2_3: cell(),
+		pin_stopped_gap_1_4_e0_1: cell(),
+		pin_stopped_gap_5_8_e0_1: cell(),
+		pin_stopped_gap_9_up_e0_1: cell(),
+		pin_e4_up: cell(),
+	};
+}
+
+/* The fresh shells of one replay fired in a one-sector turn (or on a
+ * steady heading, as a control), for the pin phase. Mirrors the census
+ * predicates; bursts are kept off the case side. */
+function pin_candidates(recs) {
+	let out = [];
+	let streams = new Map();
+	for (let rec of recs) {
+		if (rec.tankStatus === 0x0f) continue;
+		let stream = streams.get(rec.player);
+		if (!stream) streams.set(rec.player, stream = []);
+		stream.push(rec);
+	}
+	for (let stream of streams.values()) {
+		for (let i = 1; i < stream.length; i++) {
+			let rec = stream[i], prev = stream[i - 1], next = stream[i + 1] || null;
+			let tank = rec.subpackets.find(sub => sub.type === "tank_position");
+			if (!tank) continue;
+			let nibbles_same = nibbles_of(rec);
+			if (!nibbles_same.length) continue;
+			let nibbles_adjacent = [...nibbles_of(prev), ...nibbles_of(next)];
+			let tx = tank.x * 16 + tank.pixelX, ty = tank.y * 16 + tank.pixelY;
+			let back = 2 * Math.max(0, rec.time - prev.time);
+			let prev_shells = shells_of(prev);
+			let turn = (rec.tankDir - prev.tankDir + 16) % 16;
+			let continues = next !== null &&
+				((next.tankDir - rec.tankDir + 16) % 16) === turn;
+			for (let shell of shells_of(rec)) {
+				let dx = shell.px - tx, dy = shell.py - ty;
+				let distance = Math.hypot(dx, dy);
+				if (distance > MUZZLE || distance === 0) continue;
+				let [hx, hy] = heading(shell.direction);
+				if ((dx * hx + dy * hy) / distance <= 0.5) continue;
+				let was_x = shell.px - hx * back, was_y = shell.py - hy * back;
+				if (prev_shells.some(other => other.direction === shell.direction &&
+					Math.hypot(other.px - was_x, other.py - was_y) <=
+						FRESH_PIXELS + back * FRESH_SLOPE)) continue;
+				let exact = nibbles_same.includes(shell.direction);
+				if (!exact && nibbles_adjacent.includes(shell.direction)) continue;
+				let nibble = exact ? shell.direction
+					: nibbles_same.find(n => circular_distance(n, shell.direction) === 1);
+				if (nibble === undefined) continue;
+				if (!exact && nibbles_same.length > 1) continue;
+				out.push({ player: rec.player, time: rec.time, px: shell.px,
+					py: shell.py, direction: shell.direction, nibble,
+					stale: !exact, turn, continues, gap: rec.time - prev.time });
+			}
+		}
+	}
+	return out;
+}
+
+function measure_pins(recs, BoloGame, tally) {
+	let wanted = pin_candidates(recs);
+	if (!wanted.length) return;
+	tally.pin_candidates += wanted.length;
+	let game = BoloGame.build(recs);
+	let index = new Map();
+	for (let player = 0; player < game.shell_positions.length; player++) {
+		for (let snapshot of game.shell_positions[player] || []) {
+			for (let shell of snapshot.shells) {
+				let key = `${player}:${snapshot.time}:${shell.pixel_x}:` +
+					`${shell.pixel_y}:${shell.direction}`;
+				if (!index.has(key)) index.set(key, shell);
+			}
+		}
+	}
+	for (let w of wanted) {
+		let shell = index.get(`${w.player}:${w.time}:${w.px}:${w.py}:${w.direction}`);
+		if (!shell) continue;
+		/* the chain's last bradian set; pinned when one bradian survives */
+		let node = shell, states = shell.tank_bradian_states, hops = 0;
+		while (node.next_shell && hops++ < 10000) {
+			node = node.next_shell;
+			if (node.tank_bradian_states) states = node.tank_bradian_states;
+		}
+		if (!states || !states.length) continue;
+		let bradians = new Set(states.map(state => state.bradian));
+		if (bradians.size !== 1) continue;
+		let bradian = [...bradians][0];
+		/* 0..15 within the nibble's sector, 0 at its low boundary */
+		let q = ((bradian - 16 * w.nibble + 8) % 256 + 256) % 256;
+		if (q > 15) continue;
+		tally.pin_pinned++;
+		let count = (cell) => { cell.n++; if (w.stale) cell.stale++; };
+		if (w.turn === 0) { count(tally.pin_steady); continue; }
+		if (w.turn !== 1 && w.turn !== 15) continue;
+		let e = w.turn === 1 ? q : 15 - q;
+		count(tally.pin_by_e[e]);
+		if (e >= 4) count(tally.pin_e4_up);
+		else if (w.continues) count(e <= 1 ? tally.pin_turning_e0_1 : tally.pin_turning_e2_3);
+		else if (e <= 1) {
+			count(w.gap <= 4 ? tally.pin_stopped_gap_1_4_e0_1
+				: w.gap <= 8 ? tally.pin_stopped_gap_5_8_e0_1
+				: tally.pin_stopped_gap_9_up_e0_1);
+		}
+	}
 }
 
 function measure_file(recs, tally, logs, label) {
@@ -281,9 +410,14 @@ function repo_commit() {
 function main() {
 	const BoloLog = require(path.join(ROOT, "viewer", "logparse.js"));
 	const corpus = require(path.join(ROOT, "tools", "corpus.cjs"));
+	let args = process.argv.slice(2);
+	let pin = args.includes("--pin");
+	args = args.filter(arg => arg !== "--pin");
+	const BoloGame = pin ? require(path.join(ROOT, "viewer", "game.js")) : null;
+	let pin_tally = pin ? empty_pin_tally() : null;
 	let target;
-	if (process.argv[2]) {
-		target = path.resolve(process.argv[2]);
+	if (args[0]) {
+		target = path.resolve(args[0]);
 	} else {
 		let root = null;
 		try {
@@ -306,6 +440,7 @@ function main() {
 			continue;
 		}
 		measure_file(recs, tally, logs, corpus.replay_label(file));
+		if (pin) measure_pins(recs, BoloGame, pin_tally);
 	}
 	let lines = [
 		"# GENERATED - fresh tank shells against their 5d nibble; nothing written to disk.",
@@ -315,6 +450,18 @@ function main() {
 	];
 	for (let [key, value] of Object.entries(tally)) lines.push(`${key}\t${value}`);
 	lines.push(`logs_with_one_sector_cases\t${logs.size}`);
+	if (pin) {
+		let cell = (key, value) => lines.push(`${key}_n\t${value.n}`, `${key}_stale\t${value.stale}`);
+		lines.push(`pin_candidates\t${pin_tally.pin_candidates}`,
+			`pin_pinned\t${pin_tally.pin_pinned}`);
+		cell("pin_steady", pin_tally.pin_steady);
+		for (let e = 0; e < 16; e++) cell(`pin_e${e}`, pin_tally.pin_by_e[e]);
+		for (let key of ["pin_turning_e0_1", "pin_turning_e2_3",
+			"pin_stopped_gap_1_4_e0_1", "pin_stopped_gap_5_8_e0_1",
+			"pin_stopped_gap_9_up_e0_1", "pin_e4_up"]) {
+			cell(key, pin_tally[key]);
+		}
+	}
 	console.log(lines.join("\n"));
 }
 
