@@ -282,15 +282,14 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
 ## Terrain
 
 - **What a shell does to the ground.** One hit fells a tree, forest to
-  grass; one hit turns a building into a shot building; a shot building
-  then absorbs hits without changing, usually three, so that the fourth
-  further hit flattens it to rubble, but sometimes more **(fixtures,
-  [E:terrain-hits]: 536 fellings, 398 shot buildings and 445 rubbles; of
-  310 shot buildings followed from creation to rubble, 193 fell on the
-  fourth further hit and none earlier, while the rest absorbed up to a
-  dozen, most of them under bursts of pillbox fire)**. A building never
-  absorbs a hit unchanged. Whether the extra hits are counted once per
-  tick, or a shot building's damage is not a simple count, is open.
+  grass; one hit turns a building into a shot building; four more hits
+  turn the shot building to rubble **(owner; fixtures, [E:terrain-hits]:
+  536 fellings, 398 shot buildings and 445 rubbles; of 310 shot buildings
+  followed from creation to rubble, 193 fell on the fourth further hit and
+  none earlier, while the rest logged more unchanged hits, up to a dozen,
+  most of them from an angry pillbox logging two or three hits a record)**.
+  A building never absorbs a hit unchanged. Whether the extra hits are
+  real, or one hit logged more than once, is open.
 - **Mines** can lie on swamp, crater, road, forest, rubble and grass
   **(corpus, the mined codes of FORMAT.md's terrain table)**. A tank
   driving onto one takes 3 armour with the floor described under Tanks;
@@ -360,8 +359,9 @@ What the corpus run left unsettled.
 5. The respawn and parachute start choice: neither nearest nor farthest from
    enemies; WinBolo draws at random.
 6. The pill and base history string in `F1 Cn` [E:history].
-7. How many hits a shot building takes before falling to rubble: four in
-   most fixture lives and never fewer, but up to a dozen in the rest, mostly
-   where several pillboxes fired into one wall at once. Whether hits in one
-   tick count once, or the damage is not a count, needs the corpus and a
-   shell-level attribution (`tools/measure-terrain-hits.cjs`).
+7. The unchanged hits a shot building logs before falling to rubble: three
+   in most fixture lives and never fewer, as the owner's four-more-hits rule
+   says, but up to a dozen in the rest, mostly where an angry pillbox logged
+   two or three hits a record into one wall. Whether those are real hits or
+   one hit logged more than once needs the corpus and a shell-level
+   attribution (`tools/measure-terrain-hits.cjs`).

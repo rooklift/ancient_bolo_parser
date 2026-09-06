@@ -14,8 +14,8 @@
  *   shot building the number of `7B` impacts a shot building takes between
  *                 the hit that made it and the hit that turns it to rubble,
  *                 split by whether every record carried one hit on the
- *                 square or some carried several (a burst of pillbox fire,
- *                 simulated and logged by the pills' target)
+ *                 square or some carried several (an angry pillbox's fire,
+ *                 simulated and logged by the pill's target)
  *   tanks         the terrain under every live tank's centre square: the
  *                 ground a tank can drive on
  *   shell falls   the terrain under every `FB` shell fall, the terminal
