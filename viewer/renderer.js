@@ -972,7 +972,7 @@ function draw_shells() {
 			 * verified against 3k muzzle samples (shell vs firing tank) */
 			let position = BoloGame.shell_position_at(game, p, sh, i, clock);
 			if (!position) continue;
-			draw_shell(position, sh.direction);
+			draw_shell(position, position.direction ?? sh.direction);
 		}
 		for (let birth of BoloGame.shell_birth_positions_at(game, p, clock)) {
 			draw_shell(birth, birth.direction);
