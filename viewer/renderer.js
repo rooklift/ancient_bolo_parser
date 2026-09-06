@@ -1116,6 +1116,11 @@ let loading_painted_at = -Infinity;
  * load abandons itself at its next yield once a newer one has begun. */
 let load_generation = 0;
 const SUPERSEDED = Symbol("superseded");
+/* The viewer state as it was before the first of the pending loads, for
+ * the last of them to restore if it fails: a later load would otherwise
+ * capture the paused, hint-hidden state the earlier one left. Null when
+ * no load is pending. */
+let before_load = null;
 
 /* Repaint the loading bar if it is due, otherwise return at once. */
 async function loading_progress(label, progress) {
@@ -1155,8 +1160,12 @@ async function load_log(bytes, name) {
 	if (exporting) return; /* the export owns the viewer state until done */
 	/* Parse fully before touching viewer state, so a malformed file leaves
 	 * any currently loaded replay running. */
-	let was_playing = playing;
-	let had_drop_hint = !drop_hint.classList.contains("hidden");
+	if (!before_load) {
+		before_load = {
+			playing,
+			drop_hint: !drop_hint.classList.contains("hidden"),
+		};
+	}
 	let header, recs, new_game;
 	let generation = ++load_generation;
 	let progress = async (label, fraction) => {
@@ -1201,11 +1210,13 @@ async function load_log(bytes, name) {
 			ctx.setTransform(1, 0, 0, 1, 0, 0);
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 		}
-		if (had_drop_hint) drop_hint.classList.remove("hidden");
-		set_playing(was_playing);
+		if (before_load.drop_hint) drop_hint.classList.remove("hidden");
+		set_playing(before_load.playing);
+		before_load = null;
 		show_error("Could not load log", String(err.message || err));
 		return;
 	}
+	before_load = null;
 	game = new_game;
 	player_locked = false;
 	update_lock_indicator();
