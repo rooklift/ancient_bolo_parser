@@ -158,7 +158,8 @@ Constant at all ten commits, and worth having once:
 | `9115ab4` | pill births follow the gap | **0.997117** | **0.001201** | 0.835183 | 237,788 | 13,132 | **1,169** | 92 |
 | `cee58aa` | dilated joins bounded by the measured lie | 0.997095 | 0.001222 | 0.835199 | 237,799 | 13,130 | 1,236 | 92 |
 | `810ef2c` | orbit states below a stitch | 0.997095 | 0.001222 | 0.835202 | 237,804 | 13,154 | 1,236 | 140 |
-| `7801209` | the contradiction sweep | 0.997101 | 0.001218 | **0.835250** | **237,818** | 13,163 | 1,230 | **14** |
+| `7801209` | the contradiction sweep | 0.997101 | 0.001218 | 0.835250 | 237,818 | 13,163 | 1,230 | **14** |
+| `63d3acb` | a base is damaged only by tank shells | 0.997103 | 0.001217 | **0.835260** | **237,875** | 13,163 | 1,230 | **14** |
 
 The three right-hand columns are lower-is-better counts from the drawn
 audit and the vouched-link score, added so that a drawing-only commit
@@ -2783,6 +2784,62 @@ builder's own comment left as measured. `score_pill_links` keys by
 snapshot index for exactly that reason. Keying the joining passes'
 reference by index too is the obvious next look, and would either
 close the remaining 14 or show them to be something else.
+
+## A base is damaged only by tank shells -- `63d3acb`
+
+A rule from the owner that the engine had never been told: an `An` is
+always a tank shell's, a pillbox shot never damages a base. The base
+terminal was built like any other object box, so a pill shell whose
+orbit crossed a base tile could take the `An` as its fate, and a pill's
+F4 with no shell-list position could be count-forced onto one. Both
+are now refused before any geometry (`terminal_takes_pillbox_shell`,
+in the shared terminal matcher and in the orbit entry test that serves
+the unseen-shot edges), and the diagnostics name the refusal `weapon`,
+beside `direction`, the other kind-based veto. The change is a single
+field test per candidate, so no timing comparison is given.
+
+Corpus, `c860d9b-report.txt`, `c860d9b-audit.txt` and
+`c860d9b-links.txt` against `7801209` (443 files, zero failures, same
+corpus; `c860d9b` is the docs commit on top of the engine commit
+`63d3acb`, engine identical, and a fresh run of `7801209`'s engine on
+this machine first reproduced the archived report's `content_hash`):
+
+* `terminals_matched` 1,625,764 -> 1,625,782 (+18): `base_damage`
+  61,368 -> 61,321 (-47, the pill matches released), `tank_hit`
+  237,818 -> 237,875 (+57), `pillbox_damage` +6, `explosion` +2
+* `terminals_unseen_tank_source` 77,958 -> 77,999 (+41),
+  `terminals_unseen_pillbox_source` 167,506 -> 167,493 (-13): with no
+  pill source competing, the freed base hits are count-forced onto
+  the tank shots that fired them
+* unexplained terminals (the census total) 75,256 -> 75,210 (-46);
+  `shells_unlinked` 11,955 -> 11,945; `shells_matched_forward` +18;
+  `flow_components` 133,252 -> 133,282
+* `links_pill_vouched` +7, `links_pill_unvouched` -8;
+  `links_pill_contradicted` 14, the same fourteen links
+* Audit: `pop_outs` 28,277 -> 28,259, `pop_ins` 26,776 unchanged,
+  `pops_paired_forward` 3,017 and `pops_paired_backwards` 1,230
+  unchanged, hovers 2,451 unchanged, `terminal_links_rushed_timed`
+  13,163 unchanged (static +16, instant -1), seam jumps still zero
+
+The base-damage census says where the 47 went. Every `P` class under
+`base_damage` is gone -- `orbit_miss:P` 240, the `end_continued` and
+`end_claimed_other_fate` `P` classes 71 between them, `timing_lead:P`
+17, `window_expired:P` 14, `timing_lag:P` 5, `edge_unforced:P` 2 --
+and `weapon:P` 226 takes their place: base hits whose nearest story
+was a pill shell now say so outright. The `T` and `?` classes grow by
+the difference (`ray_miss:T` 123 -> 198, `end_claimed_other_fate:T`
+1,296 -> 1,316, `end_continued.short+clps:T` 1,536 -> 1,553,
+`window_expired:T` 168 -> 178, `no_candidate` 960 -> 965): with the
+pill shell struck off, the tank shell that was second-nearest is
+named, and its own constraint with it. On the tank-hit side
+`end_continued.short+reb:P` 1,162 -> 1,128 and `edge_unforced:P` 132
+-> 125 are the pill shells that had been continued onto a base and
+now end on the tank hit they were always aimed at.
+
+Every coverage axis moves in the rule's favour and no truth axis
+moves against it, which is what a fact about the game rather than a
+tuning should look like. The fixture's share is in
+[`interpolation_tests.md`](interpolation_tests.md).
 
 ## Findings
 

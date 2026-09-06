@@ -1270,6 +1270,25 @@ pinned shells at steps 10, 12, 15 and 16 restated two steps on, three
 linked to their true successors and the fourth one stream-mate too
 far; the sweep undoes the fourth alone.
 
+## A base is damaged only by tank shells -- `63d3acb`
+
+An `An` never follows a pillbox shot (owner; GAMEPLAY.md). The engine
+had built the base-damage terminal like any other object box, so a
+pill shell crossing a base tile could take the hit as its fate and a
+pill's F4 could be count-forced onto one. Both are refused before any
+geometry (`terminal_takes_pillbox_shell`), and the diagnostics name
+the refusal `weapon`.
+
+Fixture, against `7801209`: `terminals_matched:base_damage` 1,132 ->
+1,130, the two pill matches released; `tank_hit` 3,213 -> 3,216;
+`terminals_matched` 20,727 -> 20,728; `terminals_unseen_tank_source`
+1,119 -> 1,122; `shells_unlinked` 119 -> 118;
+`shells_unmatched_forward` 262 -> 261. The three rates below. The
+fast-ring fixture is byte-identical. Corpus: `63d3acb` in
+[`interpolation_tests_corpus.md`](interpolation_tests_corpus.md) --
+47 base hits released from pill shells, tank hits +57, unexplained
+impacts -46, pop-outs -18, every truth axis unchanged.
+
 ## Findings at the close of the ten-run table -- `926f391`
 
 Written when `926f391` was the branch's head and the table above ended
@@ -1353,6 +1372,7 @@ all on the fixture, all from the sections above:
 | `30d5351`, the stale-box walk | 0.996298 | 0.001736 | 0.860478 |
 | tank births follow the record gap | 0.996380 | 0.001681 | 0.860727 |
 | pill births follow the record gap | 0.996448 | 0.001613 | 0.860935 |
+| a base is damaged only by tank shells | 0.996461 | 0.001600 | 0.860976 |
 
 * **Every headline record is held by the current head.** Unlinked
   shells are down to 128, roughly a tenth of the branch point's rate; forward

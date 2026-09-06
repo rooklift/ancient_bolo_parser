@@ -153,8 +153,12 @@ are:
 2. **Terminals** — authoritative shot-ending events converted to geometry:
    `shell_falls` (FB) is an exact terminal point; tank hits (FC), pillbox
    damage (9n), base damage (An) and shot-attributable explosions (7T) are
-   16 px boxes the shell centre must enter. The ordinary ray test uses
-   a tank-hit box as the packet states it. A pill shell on a pinned
+   16 px boxes the shell centre must enter. A base is damaged only by a
+   tank shell (GAMEPLAY.md), so a base-damage terminal is refused, before
+   any geometry, for a shell already put at a pill -- an orbit-tracked or
+   pill-sourced shell in every matching pass, and a pill's F4 in the
+   unseen-shot edges (`terminal_takes_pillbox_shell`). The ordinary ray
+   test uses a tank-hit box as the packet states it. A pill shell on a pinned
    orbit gets two walks (`pillbox_shell_terminal_match`): first against
    the *interpolated* tank track at the shell's arrival time, and only
    if that whole walk finds nothing, again against the packet box,
