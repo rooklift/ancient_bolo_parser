@@ -1258,9 +1258,7 @@ async function load_log(bytes, name) {
 	network_meta_el.title = net ?
 		`${net.stall.toFixed(1)}% of the time spent frozen, ` +
 		`a ring cycle taking ${(net.cycle / TPS).toFixed(2)}s at the slow end; ` +
-		`measured over settled play, ${fmt_time(net.from)} to ${fmt_time(net.to)}. ` +
-		`Not rated: ${net.quiet.toFixed(1)}% of ring slots quiet ` +
-		`(a node with nothing to log -- how idle the game was, not the network)` : "";
+		`measured over settled play, ${fmt_time(net.from)} to ${fmt_time(net.to)}` : "";
 
 	/* When the game started and whose machine wrote the file. The date is
 	 * the host's, from the game id in the game info: seconds since the

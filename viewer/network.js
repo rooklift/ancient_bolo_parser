@@ -24,11 +24,12 @@ const TICKS_PER_SECOND = 50;
  *   march by 1) and need never freeze for the half second STALL wants;
  *   it just delivers everything slowly.
  *
- *   QUIET SLOTS, shown but not rated. The payload's sequence number is a
- *   ring slot counter, stepped once by every node as the packet passes,
- *   so consecutive records normally step by 1. A step of n means n-1
- *   nodes took their turn and logged nothing: a parked tank between
- *   restatements, a dead one, the recorder itself as readily as anyone.
+ *   QUIET SLOTS, computed but neither rated nor shown. The payload's
+ *   sequence number is a ring slot counter, stepped once by every node
+ *   as the packet passes, so consecutive records normally step by 1. A
+ *   step of n means n-1 nodes took their turn and logged nothing: a
+ *   parked tank between restatements, a dead one, the recorder itself
+ *   as readily as anyone.
  *   It is not a lost packet: over ten games logged on two machines at
  *   once, none of 38,318 missing slots was a record the other machine
  *   had; over a thousand logs, 16 of 1.6 million fall on a moving tank,
@@ -40,7 +41,7 @@ const TICKS_PER_SECOND = 50;
  *   game was, rising with player count because more players means more
  *   of them parked or dead at any moment, and its correlation with what
  *   the viewer can make of the stream is player count in disguise (see
- *   below). It stays in the tooltip as a description of the game.
+ *   below). It is kept in the result for the measurement tools.
  *
  * All three are read only over the stretch of SETTLED PLAY, and that
  * qualifier carries most of the accuracy here. While the game is still
