@@ -84,6 +84,12 @@ const TANK_BRADIAN_MAX_OFFSET = 11;
  * matcher's existing eight-pixel distance tolerance, and measured best on
  * the fixture: one update vetoed a handful of real, merely-laggy links. */
 const TANK_BRADIAN_UPDATE_JITTER = 2;
+/* A shell's first restatement sits 6-9 px from the tank centre
+ * [E:muzzle]; the freshness test forgives the chained-offset quantisation
+ * plus a slope for the sub-pixel drift over the record gap. */
+const TURNING_SHELL_MUZZLE_PIXELS = 10;
+const TURNING_SHELL_FRESH_PIXELS = 4;
+const TURNING_SHELL_FRESH_SLOPE = 0.15;
 const TICKS_PER_SHELL_UPDATE = 2;
 /* Chain stitching bounds. A fragment gap can exceed the ordinary shell
  * interpolation window when the sender lagged, but never the shell's own
@@ -516,7 +522,7 @@ function shell_match_cost(previous, next, duration) {
 	let heading_x = previous.heading_x;
 	let heading_y = previous.heading_y;
 	if (heading_x === undefined) {
-		let angle = previous.direction * Math.PI / 8;
+		let angle = shell_sector(previous) * Math.PI / 8;
 		heading_x = Math.sin(angle);
 		heading_y = -Math.cos(angle);
 	}
@@ -1164,7 +1170,8 @@ function shell_from_pillbox(shell) {
 
 function shell_terminal_match(previous, terminal, duration, start_time,
 	lead_pixels = 0, pillbox_lead_pixels = lead_pixels) {
-	if (terminal.direction !== null && terminal.direction !== previous.direction) return null;
+	if (terminal.direction !== null &&
+		terminal.direction !== shell_sector(previous)) return null;
 	if (!terminal_takes_pillbox_shell(terminal) && shell_from_pillbox(previous)) {
 		return null;
 	}
@@ -1202,7 +1209,7 @@ function shell_terminal_match(previous, terminal, duration, start_time,
 			let heading_x = variant.heading_x;
 			let heading_y = variant.heading_y;
 			if (heading_x === undefined) {
-				let angle = previous.direction * Math.PI / 8;
+				let angle = shell_sector(previous) * Math.PI / 8;
 				heading_x = Math.sin(angle);
 				heading_y = -Math.cos(angle);
 			}
@@ -1420,6 +1427,65 @@ function mark_new_pillbox_shells(previous, next) {
 		.map(group => ({ ...group, count: group.capacity - group.assigned }));
 }
 
+/* The coarse direction a shell really flies. A tank shell's list direction
+ * is the tank's facing from the tick BEFORE the shot; the `5d` nibble, and
+ * the shell's velocity, are from the shot tick. They part only when the
+ * facing crossed a sector boundary in that tick, and the shell then flies
+ * the nibble's sector while staying listed under the stale one for its
+ * whole flight (corpus: 657 of 663 decided flights follow the nibble, and
+ * 1,966 of 2,006 such shells are re-found under the stale label later;
+ * FORMAT.notes.md [E:shell-birth-sector]). `sector` is the true coarse
+ * direction and is read wherever a direction becomes geometry; `direction`
+ * stays the list label, which is what consecutive restatements share. */
+function shell_sector(shell) {
+	return shell.sector !== undefined ? shell.sector : shell.direction;
+}
+
+function sector_distance(a, b) {
+	let d = Math.abs(a - b) % 16;
+	return Math.min(d, 16 - d);
+}
+
+/* A fresh shell at the sender's muzzle, listed one sector from a fire
+ * nibble of the same record while the sender's header facing changed since
+ * its previous record, is that shot: give it the nibble's sector. Fresh
+ * means outbound along its own heading and absent from the previous
+ * record where a 2 px/tick flight would have put it. A shell whose own
+ * label is among the record's nibbles is left alone, so a turning burst's
+ * other shot cannot lend its nibble. */
+function correct_turning_shell_sectors(previous, next) {
+	if (!previous || previous.tank_direction === next.tank_direction ||
+		!next.tank_sources.length) return;
+	let nibbles = new Set(next.tank_sources.map(source => source.direction));
+	let back = Math.max(0, next.time - previous.time) *
+		SHELL_SPEED_PIXELS_PER_TICK;
+	for (let shell of next.shells) {
+		if (nibbles.has(shell.direction)) continue;
+		let sources = next.tank_sources.filter(source =>
+			sector_distance(source.direction, shell.direction) === 1);
+		if (!sources.length) continue;
+		let source = sources.find(item =>
+			item.direction === next.tank_direction) || sources[0];
+		let delta_x = shell.pixel_x - source.pixel_x;
+		let delta_y = shell.pixel_y - source.pixel_y;
+		let distance = Math.hypot(delta_x, delta_y);
+		if (distance === 0 || distance > TURNING_SHELL_MUZZLE_PIXELS) continue;
+		let angle = shell.direction * Math.PI / 8;
+		let heading_x = Math.sin(angle), heading_y = -Math.cos(angle);
+		if ((delta_x * heading_x + delta_y * heading_y) / distance <= 0.5) {
+			continue;
+		}
+		let was_x = shell.pixel_x - heading_x * back;
+		let was_y = shell.pixel_y - heading_y * back;
+		let old = previous.shells.some(other =>
+			other.direction === shell.direction &&
+			Math.hypot(other.pixel_x - was_x, other.pixel_y - was_y) <=
+				TURNING_SHELL_FRESH_PIXELS + back * TURNING_SHELL_FRESH_SLOPE);
+		if (old) continue;
+		shell.sector = source.direction;
+	}
+}
+
 function mark_new_tank_shells(previous, next) {
 	let duration = previous ? next.time - previous.time : 0;
 	/* A shot logged in this record was fired since the sender's previous
@@ -1454,7 +1520,7 @@ function mark_new_tank_shells(previous, next) {
 		let coarse_y = -Math.cos(angle);
 		for (let shell of next.shells) {
 			if (shell.starts_at_pillbox || shell.matched_from_previous ||
-				shell.direction !== group.direction) continue;
+				shell_sector(shell) !== group.direction) continue;
 			let delta_x = shell.pixel_x - group.pixel_x;
 			let delta_y = shell.pixel_y - group.pixel_y;
 			let distance = Math.hypot(delta_x, delta_y);
@@ -2185,6 +2251,9 @@ function link_stale_restatements(previous, next) {
 		twin.next_shell = target;
 		target.matched_from_previous = true;
 		target.stale_restatement = true;
+		if (twin.sector !== undefined && target.sector === undefined) {
+			target.sector = twin.sector;
+		}
 		if (twin.pillbox_source_x !== undefined) {
 			target.pillbox_source_x = twin.pillbox_source_x;
 			target.pillbox_source_y = twin.pillbox_source_y;
@@ -2469,6 +2538,9 @@ function match_shell_snapshots(previous, next) {
 
 			let new_shell = best.target;
 			new_shell.matched_from_previous = true;
+			if (old_shell.sector !== undefined && new_shell.sector === undefined) {
+				new_shell.sector = old_shell.sector;
+			}
 			if (old_shell.pillbox_source_x !== undefined) {
 				new_shell.pillbox_source_x = old_shell.pillbox_source_x;
 				new_shell.pillbox_source_y = old_shell.pillbox_source_y;
@@ -2784,7 +2856,7 @@ function dilated_join_candidate(end, start, reference = null) {
 	let heading_x = end_shell.heading_x;
 	let heading_y = end_shell.heading_y;
 	if (heading_x === undefined) {
-		let angle = end_shell.direction * Math.PI / 8;
+		let angle = shell_sector(end_shell) * Math.PI / 8;
 		heading_x = Math.sin(angle);
 		heading_y = -Math.cos(angle);
 	}
@@ -2857,6 +2929,9 @@ function propagate_identity_down_chain(origin_shell, first_shell) {
 	let hops = 0;
 	for (let walk = first_shell; walk && hops < MAX_CHAIN_WALK;
 		walk = walk.next_shell, hops++) {
+		if (origin_shell.sector !== undefined && walk.sector === undefined) {
+			walk.sector = origin_shell.sector;
+		}
 		if (origin_shell.pillbox_source_x !== undefined &&
 			walk.pillbox_source_x === undefined) {
 			walk.pillbox_source_x = origin_shell.pillbox_source_x;
@@ -3698,7 +3773,7 @@ function creation_start_match(creation, start) {
 	let duration = start.time - creation.time;
 	if (duration < 0 || duration > MAX_STITCH_GAP_TICKS) return null;
 	let shell = start.shell;
-	if (shell.direction !== creation.direction) return null;
+	if (shell_sector(shell) !== creation.direction) return null;
 	let origins = [[creation.pixel_x, creation.pixel_y]];
 	if (creation.alternate_pixel_x !== undefined) {
 		origins.push([creation.alternate_pixel_x, creation.alternate_pixel_y]);
@@ -4470,7 +4545,7 @@ function terminal_candidate_geometry(shell, end_time, gap, terminal,
 	terminal_time) {
 	let duration = terminal_time - end_time;
 	if (terminal.direction !== null && terminal.direction !== undefined &&
-		terminal.direction !== shell.direction) {
+		terminal.direction !== shell_sector(shell)) {
 		return "direction";
 	}
 	if (!terminal_takes_pillbox_shell(terminal) && shell_from_pillbox(shell)) {
@@ -4590,7 +4665,7 @@ function describe_terminal_failure(snapshots, index, terminal) {
 function end_continued_detail(shell, terminal) {
 	let heading_x = shell.heading_x, heading_y = shell.heading_y;
 	if (heading_x === undefined) {
-		let angle = shell.direction * Math.PI / 8;
+		let angle = shell_sector(shell) * Math.PI / 8;
 		heading_x = Math.sin(angle);
 		heading_y = -Math.cos(angle);
 	}
@@ -5006,9 +5081,11 @@ function build_shell_positions(records, terminals, pillbox_sources_by_record,
 			terminals: terminals_by_record.get(rec) || [],
 			pillbox_sources: pillbox_sources_by_record.get(rec) || [],
 			tank_sources: tank_sources_by_record.get(rec) || [],
+			tank_direction: rec.tankDir,
 		};
 		let client_snapshots = snapshots[rec.player];
 		let previous = client_snapshots[client_snapshots.length - 1];
+		correct_turning_shell_sectors(previous, snapshot);
 		if (previous) match_shell_snapshots(previous, snapshot);
 		mark_new_tank_shells(previous, snapshot);
 		client_snapshots.push(snapshot);
@@ -5085,7 +5162,7 @@ function build_shell_births(shell_positions) {
 					pixel_y,
 					heading_x,
 					heading_y,
-					direction: shell.direction,
+					direction: shell_sector(shell),
 				});
 			}
 		}
@@ -5122,7 +5199,7 @@ function build_shell_fall_segments(shell_positions) {
 						shell.tank_exact_pixel_y ?? shell.pixel_y,
 					to_x: shell.smooth_next_pixel_x ?? shell.next_pixel_x,
 					to_y: shell.smooth_next_pixel_y ?? shell.next_pixel_y,
-					direction: shell.direction,
+					direction: shell_sector(shell),
 				});
 			}
 		}
