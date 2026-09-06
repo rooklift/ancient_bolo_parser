@@ -1808,6 +1808,27 @@ function propagate_ambiguous_pillbox_orbits(target_groups, by_next,
 	return changed;
 }
 
+/* A dilated candidate that shares no state with the target is left
+ * alone rather than removed. The target's states are the story its
+ * ON-SCHEDULE candidates agree on (propagate_ambiguous_pillbox_orbits
+ * takes no others), and a dilated candidate disagreeing with all of
+ * them is by construction the alternative to that story, so pruning it
+ * against them is circular. Where the two agree on some state the
+ * narrowing stands: both stories say so. The exemption is inert while
+ * an on-schedule candidate survives -- a dilated one never competes,
+ * and reaches selection only as the lone continuation on both of its
+ * sides -- and matters exactly when the lockstep votes evict every
+ * on-schedule story. Under a stalled recorder clock they do: a record
+ * stamped a dozen ticks late puts a pill's whole roster nine steps on
+ * in eight ticks, every true continuation dilated, while a
+ * neighbouring-bradian leader's ordinary four-step hop lands inside a
+ * trailer's quantisation box (bradians 239 and 241 share a pixel box
+ * at step 22). That alias was the trusted story, the trailer's true
+ * candidate was pruned against it, and the roster vote then evicted
+ * the alias too -- leaving the observation with no candidate at all,
+ * its stale provenance later minted as a stream birth drawn from the
+ * muzzle, and the trailer popping out mid-air (replay a52e7c28, pill
+ * at 2240,1920, ticks 332342-332350). */
 function constrain_pillbox_candidates_to_targets(by_previous, by_next) {
 	let removed = new Set();
 	let changed = false;
@@ -1820,8 +1841,9 @@ function constrain_pillbox_candidates_to_targets(by_previous, by_next) {
 				`${state.bradian}:${state.step}`));
 			let states = candidate.pillbox_orbit_states.filter(state =>
 				allowed.has(`${state.bradian}:${state.step}`));
-			if (!states.length) removed.add(candidate);
-			else if (states.length < candidate.pillbox_orbit_states.length) {
+			if (!states.length) {
+				if (!candidate.dilated) removed.add(candidate);
+			} else if (states.length < candidate.pillbox_orbit_states.length) {
 				candidate.pillbox_orbit_states = states;
 				changed = true;
 			}

@@ -348,7 +348,17 @@ filtering over a finite state space:
 - Even when several same-stream predecessors are possible, the shared
   pillbox provenance and the union of orbit states propagate forward
   without claiming any one shell-to-shell identity, so a later frame can
-  narrow the orbit and resume interpolation.
+  narrow the orbit and resume interpolation. That propagated set is
+  taken from the on-schedule candidates alone and constrains the
+  target's other candidates
+  (`constrain_pillbox_candidates_to_targets`), but it never evicts a
+  dilated candidate sharing no state with it: that candidate is by
+  construction the alternative to the on-schedule story, and under a
+  stalled recorder clock -- every true continuation dilated, a
+  neighbouring bradian's ordinary hop landing in the same quantisation
+  box -- it is the truth the roster vote goes on to elect (the fixture
+  doc's "dilated candidate outlives the on-schedule consensus"
+  section has the scene).
 
 History note: the first attempt at using the orbit data made the statistics
 *worse* (see the `ad6a3b6` era in `docs/interpolation_tests.md`), because

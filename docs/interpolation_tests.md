@@ -1314,6 +1314,55 @@ Pinned in `test/test-viewer.cjs` ("fixture turning-tank shells carry
 the nibble's sector"): the count, that every sector is one step from
 its label, and that the field rides down the chain.
 
+## A dilated candidate outlives the on-schedule consensus
+
+A scene from a replay outside the fixtures (`a52e7c28`, Daputa,
+2002-08-24): pill at pixel (2240,1920) fires nine shells NNW from tick
+332284, and the recorder stalls for 19 ticks so that every sender's
+next record is stamped 332342 -- about ten ticks after the positions
+inside it. Over the eight-tick pair 332342 -> 332350 the pill's whole
+roster therefore advances nine steps, every true continuation dilated,
+while the shell on bradian 241 at step 18 lands its ordinary four-step
+hop (241@22) inside the fourth list member's quantisation box, which
+also holds 239@22 -- the true occupant, the nine-step landing of the
+bradian-239 shell at step 13. `propagate_ambiguous_pillbox_orbits`
+trusted the alias alone, `constrain_pillbox_candidates_to_targets`
+pruned the true dilated candidate against it, and only then did the
+roster vote (advance 9, seven to five) evict the alias as well. The
+observation was left with no candidate and a stale 241@22 provenance,
+later minted as a stream birth drawn 48 ticks from the muzzle; the
+bradian-239 chain popped out mid-air; and its next restatement was
+claimed as an unseen shot with a 56-tick birth segment -- two phantom
+shells and a vanish, in one volley whose other eight chains drew
+perfectly.
+
+The constraint pass now leaves a dilated candidate alone when it
+shares no state with the target: the target's states are the
+on-schedule candidates' own story, and the dilated candidate is by
+construction the alternative to it, already barred from competing and
+reaching selection only as the lone continuation on both sides.
+Narrowing on agreement stands.
+
+The replay: links 27,285 -> 27,287, `shells_unlinked` 17 -> 16,
+pop-outs 47 -> 45, `shells_stream_birth` 1 -> 0,
+`shells_unseen_pillbox_birth` 4 -> 3, `shell_births` 6,861 -> 6,859
+(the two phantoms), vouched links 9,832 -> 9,839 with unvouched
+6,497 -> 6,492 and contradictions still 0, steady links 0.975334 ->
+0.975483. All nine chains of the volley now run muzzle to splash. A
+second scene in the same replay (pill 2288,1984, ticks 400040-400051)
+gains two pairwise links the stitcher had been repairing.
+
+Fixture: every line of the rates report identical, every pinned count
+in `test/test-viewer.cjs` holding; the drawn-motion audit moves one
+link from the 2.5-3.0 bucket into 1.8-2.2 (steady 0.978811 ->
+0.978830). Three shells change mechanism without changing story: two
+links are made by the stitcher instead of the pairwise pass, and one
+list member at step 7 carries the three bradians its own box admits
+instead of the one a rival candidate's story had narrowed it to. The
+fast-ring fixture is byte-identical. No headline rate moves, so no new
+row in the table below. The corpus was not available for this change
+and has not been measured.
+
 ## Findings at the close of the ten-run table -- `926f391`
 
 Written when `926f391` was the branch's head and the table above ended
