@@ -661,6 +661,7 @@ function update_chat(tick = clock) {
 let draw_queued = false;
 function request_draw() {
 	if (exporting) return; /* the export drives draw() itself, synchronously */
+	if (loading) return;   /* the loading bar owns the canvas until the load ends */
 	if (draw_queued) return;
 	draw_queued = true;
 	requestAnimationFrame(() => {
@@ -1121,6 +1122,11 @@ const SUPERSEDED = Symbol("superseded");
  * capture the paused, hint-hidden state the earlier one left. Null when
  * no load is pending. */
 let before_load = null;
+/* True while a load is pending. A load yields to the event loop many
+ * times, so menu commands arrive during it: the export refuses to start
+ * while this holds, and draw requests are dropped so the loading bar keeps
+ * the canvas, as the export does with `exporting`. */
+let loading = false;
 
 /* Repaint the loading bar if it is due, otherwise return at once. */
 async function loading_progress(label, progress) {
@@ -1160,7 +1166,8 @@ async function load_log(bytes, name) {
 	if (exporting) return; /* the export owns the viewer state until done */
 	/* Parse fully before touching viewer state, so a malformed file leaves
 	 * any currently loaded replay running. */
-	if (!before_load) {
+	if (!loading) {
+		loading = true;
 		before_load = {
 			playing,
 			drop_hint: !drop_hint.classList.contains("hidden"),
@@ -1205,17 +1212,20 @@ async function load_log(bytes, name) {
 		if (generation !== load_generation) throw SUPERSEDED;
 	} catch (err) {
 		if (err === SUPERSEDED) return; /* the newer load owns the viewer now */
+		let restore = before_load;
+		loading = false;
+		before_load = null;
 		if (cur) draw();
 		else {
 			ctx.setTransform(1, 0, 0, 1, 0, 0);
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 		}
-		if (before_load.drop_hint) drop_hint.classList.remove("hidden");
-		set_playing(before_load.playing);
-		before_load = null;
+		if (restore.drop_hint) drop_hint.classList.remove("hidden");
+		set_playing(restore.playing);
 		show_error("Could not load log", String(err.message || err));
 		return;
 	}
+	loading = false;
 	before_load = null;
 	game = new_game;
 	player_locked = false;
