@@ -1,0 +1,26 @@
+# GENERATED - fresh tank shells against their 5d nibble; nothing written to disk.
+commit	15d15a4
+files	443
+files_failed	0
+records_with_tank	9914126
+muzzle_shells	86307
+muzzle_inbound_skipped	28522
+muzzle_fresh	53150
+fresh_nibble_exact_same_record	50572
+fresh_nibble_exact_adjacent_record	504
+fresh_no_nibble_any_record	47
+fresh_nibble_differs	2027
+differs_by_one_sector	2024
+differs_while_turning	2006
+differs_shell_prev_dir_nibble_tank_dir	1749
+differs_sign_plus	1058
+differs_sign_minus	966
+flight_decided	513
+flight_follows_list_dir	3
+flight_follows_nibble	510
+still_listed_under_stale_dir	1620
+relisted_under_nibble_dir	2
+control_decided	32282
+control_follows_list_dir	32272
+control_follows_neighbour	10
+logs_with_one_sector_cases	378
