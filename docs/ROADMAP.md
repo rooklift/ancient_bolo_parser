@@ -248,7 +248,7 @@ births -27%, every audit lie metric down. What remains is mostly the
 stitching pass reading the time-keyed vote table on same-time pairs
 (item 12). See `docs/interpolation_tests.md`.
 
-## 12. The vote table keyed by snapshot index -- measured null, REVERTED
+## 12. The vote table keyed by snapshot index -- measured null twice, DROPPED
 
 The `0bfd71d` links run's residue looked like the same-time key
 collision noted when the scorer was built: 29 of the 89 surviving
@@ -263,6 +263,28 @@ the scorer's yardstick being wrong there, not wrong links. On the
 shelf: a per-link record of which pass made it (pairwise, stitch,
 dilated, residual, absorption -- `stitched` is one flag set by
 several), which would settle it in one run.
+
+Revisited once more after the contradiction sweep (`7801209`) left 14
+links standing, and dropped, but with the reading corrected. The
+yardstick was wrong for a reason now known: a same-tick snapshot is
+often the sender's list re-sent, its roster identical to the last, and
+the election cannot elect zero (it starts at one), so on a near-regular
+ladder it elects the fire cadence -- an alias -- and every span
+composed across that hop carries it. On the fast-ring fixture 240
+adjacent hops restate a pill's roster unchanged and 32 of them had
+elected an advance of 3 to 8. That is what the index keys fed the
+gates in `84c4605`, and the 8 terminals and 22 pops it paid. Keying by
+index together with counting an identical roster as a zero-advance hop
+(`344eb2c`, corpus run archived as `344eb2c-*`) costs nothing -- every
+other line a wash, that cost gone -- but is still a null on its
+target: the same 14 links. They are absorbed observations:
+`absorb_intermediate_observations` threads a join's on-path
+restatements on orbit membership and the clock alone and never
+consults the election, so the sweep's second round re-threads them.
+Fourteen links corpus-wide on dense pill streams, none visible. Not
+worth a dial; if it ever is, gate each absorption on the elected
+advance, and add the per-link provenance record above first -- it
+would have named them in one run.
 
 ## Ideas shelf
 
