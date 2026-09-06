@@ -149,7 +149,17 @@ are:
    angular error against the shell's heading. The 4-bit logged direction
    only defines a sector, so a finer heading is continuously refined from
    the whole trusted track (fixed origin at the weapon source or first
-   sighting, not the noisy first displacement).
+   sighting, not the noisy first displacement). The sector itself is not
+   always the list's: a tank shell born as its tank crossed a sector
+   boundary is listed a sector off its true heading for its whole flight,
+   and its `5d` nibble is the true one (FORMAT.md [E:shell-birth-sector]).
+   A fresh muzzle shell listed one sector from a same-record fire nibble,
+   while the sender's header facing changed since its previous record,
+   carries the nibble as `sector` (`correct_turning_shell_sectors`); the
+   list label stays `direction`, which consecutive restatements share and
+   are matched by, and every place a direction becomes geometry -- the
+   heading fallback, the bradian window, the birth claim, the tank-hit
+   direction check -- reads `shell_sector` instead.
 2. **Terminals** — authoritative shot-ending events converted to geometry:
    `shell_falls` (FB) is an exact terminal point; tank hits (FC), pillbox
    damage (9n), base damage (An) and shot-attributable explosions (7T) are
