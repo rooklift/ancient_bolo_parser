@@ -23,8 +23,9 @@
  *                 simulated and logged by the pill's target); and, for the
  *                 lives where a second `7 8` arrived on the already shot
  *                 building (a shell landing before its client had applied
- *                 the first), the hits taken after that repeat, to see
- *                 whether the repeat restarts the count
+ *                 the first), the hits taken before and after that repeat:
+ *                 if the repeat restarts the count the hits after it sit at
+ *                 three whatever came before, and if not the two add to three
  *   tanks         the terrain under every live tank's centre square: the
  *                 ground a tank can drive on
  *   shell falls   the terrain under every `FB` shell fall, the terminal
@@ -36,6 +37,7 @@
  *
  * Usage: node tools/measure-terrain-hits.cjs [file | directory ...]
  * With no argument the corpus root from corpus.json / BOLO_CORPUS is read.
+ * Every log scanned feeds one set of tables.
  */
 "use strict";
 
@@ -43,7 +45,7 @@ const fs = require("fs");
 const path = require("path");
 const BoloLog = require(path.join(__dirname, "..", "viewer", "logparse.js"));
 const BoloGame = require(path.join(__dirname, "..", "viewer", "game.js"));
-const {corpus_root, replay_label} = require("./corpus.cjs");
+const {corpus_root} = require("./corpus.cjs");
 
 const TERRAIN_NAMES = ["building", "river", "swamp", "crater", "road", "forest",
 	"rubble", "grass", "shot building", "boat"];
@@ -73,7 +75,7 @@ let shot_building_hits = new Map(); /* hits between creation and rubble -> count
 let shot_building_hits_single = new Map(); /* the same, lives hit one shell per record */
 let shot_building_hits_burst = new Map();  /* the same, some record carrying several */
 let shot_building_repeats = 0;             /* lives that saw a second `7 8` */
-let shot_building_hits_after_repeat = new Map(); /* `7B` hits after the last repeat -> count */
+let shot_building_hits_around_repeat = new Map(); /* "before/after the last repeat" -> count */
 let shot_buildings_unfinished = 0;  /* shot buildings never seen to become rubble */
 let under_tanks = new Map();        /* terrain under a live tank's centre square -> count */
 let logs_scanned = 0;
@@ -127,7 +129,7 @@ function scan(file, recs) {
 					bump(life.burst ? shot_building_hits_burst : shot_building_hits_single, life.hits);
 					if (life.repeats) {
 						shot_building_repeats++;
-						bump(shot_building_hits_after_repeat, life.since_repeat);
+						bump(shot_building_hits_around_repeat, `${life.hits - life.since_repeat}/${life.since_repeat}`);
 					}
 					shot_building_since.delete(i);
 				}
@@ -148,7 +150,6 @@ function scan(file, recs) {
 	}
 	shot_buildings_unfinished += shot_building_since.size;
 	logs_scanned++;
-	console.log(`scanned ${replay_label(file)}`);
 }
 
 function print_table(title, map, order) {
@@ -171,8 +172,8 @@ function report() {
 	print_table("  of which lives where some record carried several", shot_building_hits_burst,
 		(a, b) => a[0] - b[0]);
 	console.log(`  (${shot_buildings_unfinished} shot building(s) created but not seen turned to rubble)`);
-	print_table(`  of which lives with a repeated \`7 8\` on the shot building (${shot_building_repeats}): \`7B\` hits after the last repeat`,
-		shot_building_hits_after_repeat, (a, b) => a[0] - b[0]);
+	print_table(`  of which lives with a repeated \`7 8\` on the shot building (${shot_building_repeats}): \`7B\` hits before/after the last repeat`,
+		shot_building_hits_around_repeat, (a, b) => a[1] === b[1] ? a[0].localeCompare(b[0]) : b[1] - a[1]);
 	print_table("terrain under `FB` shell falls (the ground a shell flies over)", falls);
 	print_table("terrain under live tanks' centre squares (the ground a tank drives on)", under_tanks);
 }

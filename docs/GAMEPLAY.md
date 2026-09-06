@@ -369,7 +369,7 @@ What the corpus run left unsettled.
    four-more-hits rule says, but up to seventeen in the rest, mostly where
    an angry pillbox logged two or three hits a record into one wall.
    Whether those are real hits or one hit logged more than once needs a
-   shell-level attribution, and whether a second `7 8` on an already shot
+   shell-level attribution; and whether a second `7 8` on an already shot
    building, a hit announced by a client a record behind, restarts the
-   count is a table `tools/measure-terrain-hits.cjs` now prints and the
-   corpus has not yet been run for.
+   count turns on the few lives with hits before the repeat, which
+   `tools/measure-terrain-hits.cjs` now tabulates.
