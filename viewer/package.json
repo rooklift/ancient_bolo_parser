@@ -1,6 +1,6 @@
 {
 	"name": "ancient-bolo-log-viewer",
-	"version": "1.1.9",
+	"version": "1.2.0",
 	"description": "Ancient Bolo Log Viewer: replays of classic Mac Bolo game logs",
 	"main": "main.js",
 	"scripts": {
