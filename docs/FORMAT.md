@@ -12,13 +12,7 @@ Bolo time runs at exactly 50 ticks per second.
 
 0: building, 1: river, 2: swamp, 3: crater, 4: road, 5: forest, 6: rubble, 7: grass, 8: shot building, 9: boat, 10: mined swamp, 11: mined crater, 12: mined road, 13: mined forest, 14: mined rubble, 15: mined grass
 
-Shells pass over: river, swamp, crater, road, rubble, grass (and their mined equivalents).
-
-Shells are blocked by (and do damage to): building, forest (including mined forest), shot building, boat. Also by tanks, pillboxes (if not dead), and enemy bases that have armour above a certain threshold.
-
-Tank movement is blocked by building and shot building, and by a hostile base with armour above 9, the level at which it can be captured (see [GAMEPLAY.md](GAMEPLAY.md), [E:base-capture]).
-
-One hit from a shot converts forest to grass. One hit from a shot converts building to shot building. Four more hits convert shot building to rubble.
+These are the codes the map transfer (`F3`) and the terrain events (`6T`, `7T`) use; a mined variant is its base terrain plus 8, and only the six terrains with a mined code can hold a mine. What each terrain does to shells, tanks and the man — which ones block them, and how many hits fell a tree or flatten a building — is a rule of the game rather than of the log, and is in [GAMEPLAY.md](GAMEPLAY.md) under Shells, Tanks and Terrain.
 
 ## File header (72 bytes, not encrypted)
 
