@@ -163,6 +163,8 @@ Constant at all ten commits, and worth having once:
 | `4f0aa06` | a turning tank's shell carries the nibble's sector | **0.997166** | **0.001176** | **0.835572** | **238,130** | 13,188 | 1,224 | **14** |
 | `82531bc` | a dilated candidate outlives the on-schedule consensus | **0.997171** | **0.001175** | **0.835573** | 238,128 | 13,188 | 1,224 | **14** |
 | `de80622` | distance order scored (no engine change) | 0.997171 | 0.001175 | 0.835573 | 238,128 | 13,188§ | 1,224§ | **14** |
+| `cb51fb3` | a stall subtracted from the link (one reading) | **0.997469** | **0.001026** | **0.836053** | **238,407** | 13,248 | **737** | **12** |
+| `04d67cf` | a stalled pair carries two readings | **0.997594** | **0.000989** | **0.836892** | **238,598** | 13,206 | 856 | 14 |
 
 The three right-hand columns are lower-is-better counts from the drawn
 audit and the vouched-link score, added so that a drawing-only commit
