@@ -1516,6 +1516,89 @@ the engine see the section after it.
   shells that left are index 1+ tank shots that no longer claim a confident
   origin.
 
+## A stall of the ring, and the two readings of the pair that spans it -- `cb51fb3`, `04d67cf`
+
+Ring records arrive in bursts, one per cycle, so the gap between
+consecutive records of any sender is normally one ring cycle. The ten
+games logged on two machines at once (`fixtures/pairs/`,
+`tools/audit-paired-reconstruction.cjs --gaps`; the corpus results
+file has the measurement) showed what a delayed link looks like from
+one log: the log that stamped it longer has a whole-stream gap of two
+cycles or more inside the link's span where the other log has one,
+and after the delayed record the sender's cadence resumes at one
+cycle in nine cases of ten -- the ring was held up, the cadence
+shifted, and every stamp after the stall reads late by the excess.
+
+The first cut (`cb51fb3`) read every such gap as a lie of the stamps
+and shortened the pairwise matcher's duration by the excess. The
+corpus said half of that was wrong (the `cb51fb3` section of the
+corpus file): coverage and the backwards pops improved, but the pill
+distance-order inversions rose by half and some 23,000 links drew
+slow. Two things were behind it, and both are now in.
+
+*The stall has two kinds, and one log cannot place it.* Held up
+between the sender and the recorder, the packet's contents were
+computed on the sender's cadence and only the stamp is late; held up
+before the sender, the sender's simulation ran on through the wait and
+the contents advanced the whole stamped interval. Reading the drawn
+distance of every stalled link on the pairs against the two intervals,
+the kinds come about half and half -- what a recorder at a random
+point of the ring would see. Under one reading a candidate at the
+other kind's distance is 18 px off the expected flight on a nine-tick
+cycle, past the 8 px the matcher allows, so it was refused and the
+shell went to a trailing candidate or a pop-out; hence the inversions.
+So a pair that spans a stall now carries two readings of its interval,
+the sender's cadence (the stamps less the excess) and the stamps, and
+every candidate -- successor or terminal, orbit step or tank bradian
+-- is scored against whichever it fits better
+(`nearest_expected_distance`); the stamps remain the upper bound on
+flight and on the roster vote's window, the cadence gates the
+interpolation window, and the vote arbitrates between the two advances
+as it was built to.
+
+*On a fast ring two cycles is jitter.* The two-player fixture's cycle
+is two ticks and its stamps bunch (dt = 1, 3, 1, 3), so the cycle
+rule alone read a stall into 27% of its shell pairs and halved their
+durations. The excess must also clear `STALL_MIN_EXCESS_TICKS`, six
+ticks, three shell updates: above the matcher's tolerance and the
+stamp jitter's outer edge on the pairs. That leaves 0.2% of the
+fixture's pairs stalled and every metric of that fixture where it was.
+
+The pairs, the metric the change was built against (`04d67cf-paired-audit.txt`,
+`04d67cf-pairs-report.txt`, `04d67cf-pairs-audit.txt`): the two builds of
+a game disagreed on 803 forward stories at the baseline, 633 under
+the single reading, 693 under two (the second reading admits more
+candidates, and where two stories fit the two builds can still part).
+Coverage over the twenty pair logs against the baseline:
+`shells_matched_forward` 258,487 -> **258,906** (+419; the single
+reading gave +270), `shells_unlinked` 526 -> **352**,
+`terminals_matched` 54,487 -> **54,815** (+328), `rate_terminals_matched`
+0.822619 -> 0.827571; the drawn audit's `pop_outs` 1,202 -> **783**,
+`pops_paired_backwards` 54 -> 26, `pairs_pill_order_inverted` 5 -> 6.
+
+The drawn speed. A link across a stall of the stamp-lie kind is now
+joined to the nearer restatement and drawn over the stamps, which read
+longer than the sender's cadence ran, so it draws slow by construction
+-- as the tanks around it do, whose positions are interpolated over
+the same stamps. The drawn audit counts these apart (`links_stalled`,
+`hover_links_stalled`, and the `_unstalled` rates for everything
+else): on the pairs `rate_links_steady` 0.961922 -> 0.960062 but
+`rate_links_steady_unstalled` 0.961516, and 110 of the 191 hover
+links span a stall. Whether the drawing should follow the cadence
+instead was settled by eye (`tools/find-changed-scenes.cjs` finds the
+scenes): across a stall of seconds the tanks are held and the shells
+creep, where the old engine had them vanish, and the creep reads as
+what it is, the net choking. The drawing keeps the stamps.
+
+The committed fixtures: `040601.6` byte-identical to the baseline;
+`n20021018.2` `shells_matched_forward` 73,495 -> 73,497 (two
+`shell_falls`), `roster_votes_unvoted` 9,954 -> 9,956. Corpus:
+`04d67cf` in [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md)
+-- against the baseline matched forward +4,152, unlinked -1,828,
+terminals +2,569, pop-outs -15%, the order inversions back at 188
+against 191, the steady rate over unstalled links within 0.0002 of the
+baseline's.
+
 ## Where the line stands -- `30d5351`
 
 The same three headline rates at the points a reader is likely to want,
@@ -1532,15 +1615,19 @@ all on the fixture, all from the sections above:
 | pill births follow the record gap | 0.996448 | 0.001613 | 0.860935 |
 | a base is damaged only by tank shells | 0.996461 | 0.001600 | 0.860976 |
 | a turning tank's shell carries the nibble's sector | 0.996502 | 0.001586 | 0.861142 |
+| a stalled pair carries two readings | 0.996529 | 0.001586 | 0.861225 |
 
 * **Every headline record is held by the current head.** Unlinked
-  shells are down to 128, roughly a tenth of the branch point's rate; forward
+  shells are down to 117, roughly a tenth of the branch point's rate; forward
   matching has closed nine tenths of the gap the branch point left;
-  terminals matched is 4.3 points above it, `tank_hit` 2,826 -> 3,212.
+  terminals matched is 4.4 points above it, `tank_hit` 2,826 -> 3,217.
+  The stall reading barely touches this fixture -- a clean game, sixteen
+  stalls in 137 minutes, no link spanning one -- and its row is here for
+  the record; the corpus file has its measure.
 * **The truth axes agree with the coverage axes**, which they were
   built to be able to refuse to do. Pill-link contradictions 6 -> 0
   since the metric was introduced; drawn-motion pop-outs 1,465 at the
-  pre-branch state -> 273; steady links 0.787 -> 0.9787; seam jumps 0
+  pre-branch state -> 256; steady links 0.787 -> 0.9788; seam jumps 0
   at every state ever audited. Nothing on the fixture's books is a
   match rate bought with a rendering lie. The corpus is a shade less
   clean (94 contradictions at `30d5351`, per the corpus file), and that is where

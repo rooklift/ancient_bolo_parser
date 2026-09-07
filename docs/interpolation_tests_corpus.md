@@ -163,6 +163,8 @@ Constant at all ten commits, and worth having once:
 | `4f0aa06` | a turning tank's shell carries the nibble's sector | **0.997166** | **0.001176** | **0.835572** | **238,130** | 13,188 | 1,224 | **14** |
 | `82531bc` | a dilated candidate outlives the on-schedule consensus | **0.997171** | **0.001175** | **0.835573** | 238,128 | 13,188 | 1,224 | **14** |
 | `de80622` | distance order scored (no engine change) | 0.997171 | 0.001175 | 0.835573 | 238,128 | 13,188§ | 1,224§ | **14** |
+| `cb51fb3` | a stall subtracted from the link (one reading) | **0.997469** | **0.001026** | **0.836053** | **238,407** | 13,248 | **737** | **12** |
+| `04d67cf` | a stalled pair carries two readings | **0.997594** | **0.000989** | **0.836892** | **238,598** | 13,206 | 856 | 14 |
 
 The three right-hand columns are lower-is-better counts from the drawn
 audit and the vouched-link score, added so that a drawing-only commit
@@ -3135,6 +3137,217 @@ the corpus runs and the report's two sweep counters stay. If the
 vouched-link meter's blind third is ever worth closing, the cheap
 form is to let the scorer alone consult the sender's advance, so the
 meter sees what the engine does not act on.
+
+## The two logs of one game -- `ea2dd0e`, measurement only
+
+The ten games of `fixtures/pairs/` were logged on two machines at once,
+and the two logs of each carry the same ring records byte for byte
+([E:two-recorders]); only the stamps differ, each machine's clock at
+the moment the packet arrived. `tools/audit-paired-reconstruction.cjs`
+builds both logs of each pair, aligns them record by record with the
+compare tool's alignment, and compares every shell observation's
+story: its successor or fate, its birth, its weapon, and the roster
+election over its pair. Where the two builds disagree, the stamps
+decided it, not the packets. This is evidence of a different kind from
+the roster vote and the distance-order scorer, which are the matcher's
+readings of its own output: agreement here proves nothing, since both
+builds read near-identical input, but a disagreement is a scene where
+a few ticks changed the matcher's mind. `ea2dd0e-paired-audit.txt`
+lists every one.
+
+Each link is binned by how its own stamped duration differs between
+the two logs: jitter (four ticks or fewer, the matcher's tolerance),
+delay (more, up to the 50-tick window; median 8 ticks, at most 38), or
+a stall (beyond the window). No terminal ever sat in another sender's
+record -- the shooter's machine reports its own shells' impacts -- so
+the cross-sender bin the tool keeps is empty. Observations within 100
+ticks of either end of the shared stretch are left out.
+
+Over the ten pairs, 190,593 snapshots and 129,251 shell observations:
+
+* forward stories: agree 128,410 (99.35%; 361 of them both silent),
+  A abstains 189, B abstains 157, conflict 457
+* jitter: 127,572 links, 400 disagreements (0.31%): 219 conflicts,
+  181 abstentions. 47 of the 400 have identical stamps on their own
+  link and were decided by a neighbour's stamps in the same component
+* delay: 1,570 links, 332 disagreements (21%)
+* stall: 71 links, every one an abstention on the stalled side; no
+  conflicts, and nothing joined across a stall on both sides
+* births: 48,055 agree, 262 A only, 291 B only. Weapons: 90,637 agree,
+  139 attributed on one side only, 5 conflicts (a pill against its
+  neighbour one square over, in two scenes)
+* roster elections: 31,893 compared, 90 differ, every one a passed
+  election against a stood-down or unvoted one; no election ever
+  settled on two different advances
+
+The 457 conflicts by shape: 167 successor against successor, mostly
+two shells of one list swapping successors; 147 the same kind of fate
+at two different terminals (pillbox_damage 63, shell_falls 31,
+explosion 31, tank_hit 18, base_damage 4); the rest a fate on one side
+against a successor on the other.
+
+What it says. Under the jitter regime the matcher is stable to three
+parts in a thousand, and the 400 jitter scenes are the marginal
+decisions worth reading, each balanced on the tolerance. Under the
+delay regime the two logs genuinely disagree about timing and one link
+in five flips, which is the cost of a late packet, not of the matcher.
+The vote never elects two advances, which is what keying it by the
+roster promised; it differs only in whether it passed, as which
+members hold a terminal candidate moves with the stamps. Nothing was
+changed on the strength of this; the scenes are for reading.
+
+**The delayed link is one missed burst, and it shows from one log**
+(`1ad7e7d-paired-gaps.txt`, the tool's `--gaps`). Ring records arrive in
+bursts, one per cycle, so the widest gap between consecutive records
+of any sender inside a link's span is normally one ring cycle: it is
+one cycle on 84% of jitter links and never more than 1.5 on 99.4%. On
+every delay link the log that stamped the link longer shows a widest
+gap of 1.5 to 2 cycles (two cycles on 42%, more on a further 15%)
+where the other log shows one cycle over the same span, and the stamp
+difference itself clusters at half a cycle to one cycle: the packet
+missed a burst and came with the next. A stall detector reading one
+log -- the widest whole-stream gap inside the link at least 1.5 cycles
+-- fires on 83% of delay links (91% of those that flip) and on 3.4% of
+jitter links; at two cycles, 46% and 0.4%. What it could do with the
+knowledge is less clear: on delay links the early side abstains more
+often than the late side (54 to 40), so the late stamp is not simply
+where the matcher fails, and of the 238 delayed conflicts 58 have the
+late side taking a fate the early side gives to a successor against 21
+the other way. Only under a stall proper (beyond the window) is the
+picture one-sided: all 71 abstentions are the late side's. The lead,
+untried: a record that arrives after a gap of two cycles or more could
+be re-stamped a cycle earlier before matching, and this audit would
+say whether the two builds then agree more.
+
+## A stall of the ring subtracted from the link that spans it -- `cb51fb3`
+
+The fixture doc's section of the same name has the change: every gap
+of two ring cycles or more between consecutive records of any sender
+is read as the ring held up, and the pairwise matcher's duration is
+the stamps' interval less the excess accumulated between its two
+records (`stall_excess_by_record`); drawing, terminal arrival and the
+stitching passes keep the stamps. Built against the paired audit
+above, where it took the two builds' disagreements from 803 to 633.
+
+Corpus, `dfc7534-report.txt` and `dfc7534-audit.txt` against
+`82531bc` (443 files, zero failures, same input hash; the order lines
+against `de80622`, which added them without moving a matching metric):
+
+* coverage: `shells_matched_forward` 9,789,589 -> **9,792,518**
+  (+2,929, every one off `shells_unmatched_forward`), `shells_unlinked`
+  11,536 -> **10,069** (-1,467), `terminals_matched` 1,626,391 ->
+  **1,627,327** (+936: `shell_falls` +411, `tank_hit` +279, `explosion`
+  +232, `pillbox_damage` +61, `base_damage` -47),
+  `rate_terminals_matched` 0.835573 -> **0.836053**,
+  `rate_shells_unlinked` 0.001175 -> **0.001026**. Every headline record
+  moves on.
+* the drawn audit's identity lines with it: `pop_outs` 27,586 ->
+  **24,657** (-2,929), `pop_ins` 24,513 -> 22,744, `pops_paired_forward`
+  3,002 -> 2,088, `pops_paired_backwards` 1,224 -> **737** (-40%),
+  `rate_pop_outs` 0.002810 -> 0.002512
+* the truth axes split: `links_pill_contradicted` 14 -> **12**, but
+  `pairs_pill_order_inverted` 191 -> **285** (+94 over 8,623,761 pairs;
+  `blurred` 8 unchanged), `links_pill_unpinned` 2,801 -> 2,894,
+  `rate_links_pill_vouched` 0.570067 -> 0.569960
+* the drawn speed goes the wrong way: `rate_links_steady` 0.966807 ->
+  0.964066, some 23,000 links moved out of the 1.8-2.2 px/tick bucket
+  into the slow ones (`link_speed:1.5-1.8` +11,190, `1.0-1.5` +8,903,
+  `0.5-1.0` +1,770, `0.0-0.5` +1,083), `hover_links` 2,450 -> **5,303**;
+  rushes flat (`rush_links` +12, `terminal_links_rushed` +206)
+* `shells_with_birth` +2,105, `shells_unseen_pillbox_birth` 3,521 ->
+  3,045, `terminals_unseen_pillbox_source` -294,
+  `terminals_unseen_tank_source` +251, `shells_visual_joins` 1,201 ->
+  1,171, `flow_components` +1,366
+
+Reading. The identity side is what the pairs promised: links refused
+or mis-taken across a stall are now joined to the nearer restatement,
+and the backwards pops -- the vanish-and-reappear-behind shape -- fall
+by two fifths. The two lines that worsen are the two limits named when
+the change was made. The slow links are the drawing keeping the
+stamps: a link the matcher now reads as one cycle of flight is still
+drawn over the two the recorder stamped, at half speed, and the
+smoothing passes do not take it up; the fix is to hand the drawn
+timeline the same de-stalled clock, or to slide the chain across the
+stall the way a late head is slid. The order inversions are the stall
+the single log cannot place: a stall upstream of the sender delays
+its packet with the sender's simulation running on, so the contents
+did advance the two cycles the stamps say, and the shortened duration
+then favours a trailing shell as the successor. The pairs never show
+that kind, since it reaches both recorders alike. The one instrument
+that can tell the two kinds apart from one log is the roster vote,
+which elects the advance in orbit steps whatever the stamps claim:
+letting the elected advance, rather than the gap, set the duration of
+a stalled pair would keep the gain and give back the inversions. Both
+are follow-ups; the change stands as measured.
+
+Followed up on the pairs before the next corpus run (the fixture doc's
+section has the design): reading every stalled link's drawn distance
+against the two intervals shows the two stall kinds about half and
+half, so a stalled pair now carries both readings and each candidate
+is scored against the one it fits better, with the stamps the upper
+bound; and a floor of six ticks on the excess keeps a fast ring's
+jitter from reading as stalls (the two-player fixture had 27% of its
+pairs stalled under the cycle rule alone). On the pairs that takes the
+gain further than the single reading did and leaves the order
+inversions where they were.
+
+## A stalled pair carries two readings -- `04d67cf`
+
+The fixture doc's section of the same name has the change: a pair
+that spans a stall of the ring is scored under both readings of its
+interval, the sender's cadence and the stamps, each candidate against
+the one it fits better, the stamps the upper bound; and the stall
+excess must clear six ticks, so a fast ring's jitter is not read as
+stalls. Built against the pairs after the `cb51fb3` run above showed
+the single reading half wrong.
+
+Corpus, `8741bb6-report.txt` and `8741bb6-audit.txt` against `82531bc`
+(443 files, zero failures, same input hash), with the `cb51fb3`
+single-reading run (`dfc7534-*`) in the middle column:
+
+* coverage, further than the single reading on every line:
+  `shells_matched_forward` 9,789,589 -> 9,792,518 -> **9,793,741**
+  (+4,152 on the baseline, every one off `shells_unmatched_forward`),
+  `shells_unlinked` 11,536 -> 10,069 -> **9,708**, `terminals_matched`
+  1,626,391 -> 1,627,327 -> **1,628,960** (+2,569: `shell_falls` +1,108,
+  `pillbox_damage` +625, `tank_hit` +470, `explosion` +326,
+  `base_damage` +40 where the single reading had lost 47),
+  `rate_terminals_matched` 0.835573 -> 0.836053 -> **0.836892**,
+  `rate_shells_unlinked` 0.001175 -> 0.001026 -> **0.000989**. Every
+  headline record moves on again.
+* the truth axes come back: `pairs_pill_order_inverted` 191 -> 285 ->
+  **188** (`blurred` 8 -> 7), `links_pill_contradicted` 14 -> 12 ->
+  **14**, `rate_links_pill_vouched` 0.570067 -> 0.569960 -> 0.570032,
+  `links_pill_unpinned` 2,801 -> 2,894 -> 2,746
+* the drawn audit: `pop_outs` 27,586 -> 24,657 -> **23,434** (-15% on
+  the baseline), `pop_ins` 24,513 -> 22,846, `pops_paired_backwards`
+  1,224 -> 737 -> **856** (the one line the second reading gives some
+  of back, still -30% on the baseline), `rate_pop_outs` 0.002810 ->
+  0.002387
+* the drawn speed, now read apart: `links_stalled` 19,582, of which
+  11,742 draw steady over the stamps (the stall before the sender:
+  the contents advanced the whole interval) and 545 would over the
+  cadence; `hover_links` 2,450 -> 5,303 -> 4,824, of which 1,766 span a
+  stall; `rate_links_steady` 0.966807 -> 0.964066 -> 0.965741 and
+  `rate_links_steady_unstalled` **0.966621**, within 0.0002 of the
+  baseline's steady rate; `rate_hover_links_unstalled` 0.000375
+  against the baseline's 0.000300; rushes unchanged
+* `flow_components` 132,729 -> 134,095 -> 130,489, `shells_with_birth`
+  +1,640, `shells_unseen_pillbox_birth` 3,521 -> 3,010,
+  `terminals_unseen_pillbox_source` -399, `shells_visual_joins` 1,201 ->
+  1,146
+
+Reading. The two kinds of stall were the whole story of the `cb51fb3`
+regression: with both readings on the table the inversions return to
+the baseline and every coverage line goes further than the single
+reading took it. On the corpus the stall before the sender is the
+commoner kind, six links in ten, not the half the pairs showed. The
+slow-drawn links that remain are the other kind drawn over the stamps,
+as the tanks around them are; the unstalled hover rate a quarter above
+the baseline (0.000375 against 0.000300, some 600 links) is the one
+drawn-speed cost not yet named, presumably chains that continue past a
+stalled link. The backwards pops give back 119 of the 487 the single
+reading had recovered. The change stands as measured.
 
 ## Findings
 

@@ -220,10 +220,10 @@ if (!fs.existsSync(log1)) {
 			described, described === unexplained, reasons_sound,
 			classes.get("explosion:no_candidate:-"),
 			classes.get("pillbox_damage:end_continued:T"),
-		], [1009, true, true, 240, 88]);
+		], [1007, true, true, 240, 88]);
 		check("fixture same-record unseen shots claimed without cost", [
 			matched, unseen.pill, unseen.tank,
-		], [20732, 1217, 1117]);
+		], [20734, 1217, 1117]);
 
 		/* The end-side mirror: every chain end with no forward story gets
 		 * a class; the census must equal the unmatched-forward count less
@@ -252,7 +252,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture end-side census reconciles", [
 			ends_described, ends_described === unfated, end_reasons_sound,
 			fate_open,
-		], [258, true, true, 22]);
+		], [256, true, true, 22]);
 	}
 
 	/* The truth axis: every pill link scored against the statement-roster
@@ -298,7 +298,7 @@ if (!fs.existsSync(log1)) {
 			scene.verdict, scene.advance, scene.score, scene.runner_up,
 			scene.full_score, scene.full_runner_up, scene.sources,
 			scene.landings,
-		], [9954, 1993, 3717, "passed", 8, 5, 3, 5, 4,
+		], [9956, 1993, 3717, "passed", 8, 5, 3, 5, 4,
 			"6,9,11,14,17,19d,22d", "14,17,19,22,25"]);
 		/* The distance-order axis (score_pill_order): same-pill pairs
 		 * linked into one later snapshot, scored on whether the leader
@@ -778,7 +778,7 @@ if (!fs.existsSync(log1)) {
 	]);
 	let corner_graze_shell = corner_graze.shell_positions[0][1].shells[0];
 	check("subpixel corner graze matches a box impact",
-		[corner_graze_shell.next_terminal,
+		[!!corner_graze_shell.next_terminal,
 			rounded(Math.hypot(corner_graze_shell.next_pixel_x + 8 - 2048,
 				corner_graze_shell.next_pixel_y + 8 - 1824))], [true, 0.4097]);
 
@@ -1021,12 +1021,17 @@ if (!fs.existsSync(log1)) {
 	 * the step-28 shell its identity and orbit state. The step-31 shell
 	 * used to keep only its quantised reconstruction -- no state, no exact
 	 * pixel -- because identity propagated down the chain and states did
-	 * not. The state walk re-derives it from the link's own duration. */
+	 * not. The state walk re-derives it from the link's own duration.
+	 * The setup records sit thirty ticks apart so the scene's median
+	 * cadence is thirty: the 52-tick silence is then under two cycles
+	 * and is not read as a stall of the ring (STALL_GAP_CYCLES), which
+	 * would bring the pair inside the pairwise window and leave no
+	 * stitch. */
 	let stitched_states = BoloGame.build([
-		record(80, [{ type: "pillbox_list", items: [{
+		record(40, [{ type: "pillbox_list", items: [{
 			x: 133, y: 127, owner: 1, armour: 15, speed: 100,
 		}] }]),
-		record(90, [{
+		record(70, [{
 			type: "tank_position", x: 120, y: 120,
 			pixelX: 0, pixelY: 0, direction: 4,
 			inBoat: false, hidden: false, dying: false,
@@ -1868,7 +1873,7 @@ if (!fs.existsSync(log1)) {
 	]);
 	let tank_stream = ordered_tank_impacts.shell_positions[0][3].shells;
 	check("ordered tank impact leaves younger successor intact",
-		[tank_stream[0].next_terminal,
+		[!!tank_stream[0].next_terminal,
 			!!tank_stream[1].next_terminal,
 			tank_stream[1].next_pixel_x], [true, false, 1862]);
 
@@ -1955,7 +1960,7 @@ if (!fs.existsSync(log1)) {
 	let lockstep_leader_end = lockstep_end(lockstep_at(100).shells[0]);
 	let lockstep_trailer_end = lockstep_end(lockstep_at(100).shells[1]);
 	check("earlier pill shot falls first",
-		[lockstep_leader_end.next_terminal, lockstep_trailer_end.next_terminal,
+		[!!lockstep_leader_end.next_terminal, !!lockstep_trailer_end.next_terminal,
 			lockstep_leader_end.next_time < lockstep_trailer_end.next_time],
 		[true, true, true]);
 	/* The distance-order scorer (score_pill_order) reads the same
@@ -2133,7 +2138,7 @@ if (!fs.existsSync(log1)) {
 			rounded(position(quantised_pill_orbits, 160, 0, 1).y)],
 		[2.875, 7.5]);
 	check("quantised pill streams reach their distinct range expiries",
-		quantised_streams.map(shell => [shell.next_terminal,
+		quantised_streams.map(shell => [!!shell.next_terminal,
 			shell.next_pixel_x, shell.next_pixel_y]), [
 			[true, 36, 106],
 			[true, 34, 111],
