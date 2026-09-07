@@ -310,6 +310,23 @@ function centre_locked_player() {
 	return true;
 }
 
+/* Snap the view origin to whole device pixels. The lock's recentring, a
+ * resize's half-size shift, a zoom about a fractional anchor and pointer
+ * panning can all leave the origin a fraction of a device pixel off the
+ * grid, and with smoothing off the canvas then resamples the sprites
+ * unevenly (doubled or dropped columns at 16x and up). The terrain atlas
+ * rounds each tile edge itself, so only the object sprites showed it.
+ * Idempotent, so panning from a snapped origin stays snapped; the lock
+ * still recentres every frame, leaving the tank within half a device
+ * pixel of centre. Uses render_dpr(): the video export renders its own
+ * view at a DPR of 1 and snapping it to the live DPR would misplace its
+ * frames. */
+function snap_view() {
+	let unit = view.zoom * render_dpr();
+	view.ox = Math.round(view.ox * unit) / unit;
+	view.oy = Math.round(view.oy * unit) / unit;
+}
+
 function clamp_view() {
 	let { w, h } = css_size();
 	let tw = w / view.zoom, th = h / view.zoom;
@@ -676,6 +693,7 @@ function world_y(o) { return o.y + (o.py ?? 0) / 16 + 0.5; }
 function draw() {
 	if (!cur) return;
 	centre_locked_player();
+	snap_view();
 	let { w, h } = css_size();
 	let z = view.zoom;
 
@@ -1675,9 +1693,11 @@ window.addEventListener("resize", resize);
 let loaded_name = null;
 let loaded_version = null;
 
-/* tiny hooks for headless tests: centre the view on a tank or a square */
+/* tiny hooks for headless tests: centre the view on a tank or a square,
+ * and read the camera back */
 window.ABV = {
 	get filename() { return loaded_name; },
+	get view() { return { zoom: view.zoom, ox: view.ox, oy: view.oy, dpr: render_dpr() }; },
 	centre_on(p) {
 		if (!cur || !cur.tanks[p]) return false;
 		return this.centre_at(world_x(cur.tanks[p]), world_y(cur.tanks[p]));
