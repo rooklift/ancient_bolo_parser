@@ -1585,7 +1585,10 @@ the same stamps. The drawn audit counts these apart (`links_stalled`,
 else): on the pairs `rate_links_steady` 0.961922 -> 0.960062 but
 `rate_links_steady_unstalled` 0.961516, and 110 of the 191 hover
 links span a stall. Whether the drawing should follow the cadence
-instead is a separate choice, not taken here.
+instead was settled by eye (`tools/find-changed-scenes.cjs` finds the
+scenes): across a stall of seconds the tanks are held and the shells
+creep, where the old engine had them vanish, and the creep reads as
+what it is, the net choking. The drawing keeps the stamps.
 
 The committed fixtures: `040601.6` byte-identical to the baseline;
 `n20021018.2` `shells_matched_forward` 73,495 -> 73,497 (two
