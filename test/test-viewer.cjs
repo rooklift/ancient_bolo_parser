@@ -3017,8 +3017,9 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	check("no records, no recorder", BoloNetwork.recorder([]), null);
 }
 // The distance-order scorer on hand-built snapshots: an identity swap
-// across a link is an inversion when both gaps exceed the equal-step
-// spread, a flip inside that spread is blurred, and a swap on the
+// across a link is an inversion when both gaps exceed the orbits'
+// distance-to-step spread, a flip inside that spread is blurred (closer
+// than two live shells of one pill can be), and a swap on the
 // unpinned chained-offset members widens the tolerance by their
 // one-sided uncertainty.
 {
@@ -3044,7 +3045,7 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	check("distance order kept", tally(pair([32, 24], [48, 40])), [1, 1, 0, 0]);
 	check("distance order inverted", tally(pair([32, 24], [40, 48])),
 		[1, 0, 0, 1]);
-	check("distance order flip inside the equal-step spread is blurred",
+	check("distance order flip inside the distance-to-step spread is blurred",
 		tally(pair([26, 24], [40, 42])), [1, 0, 1, 0]);
 	let inverted = pair([32, 24], [40, 48]);
 	let example = BoloMotion.score_pill_order(inverted).examples[0];

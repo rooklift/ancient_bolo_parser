@@ -500,9 +500,11 @@ distance from it -- a trailer never passes its leader while both fly.
 The lockstep passes enforce that only where steps are well-defined;
 the scorer reads it off final state for every pair of one pill's
 shells whose links land in one later snapshot, calling a flip inverted
-when it exceeds what the positions can lie by (the equal-step spread
-between bradians, about three pixels, plus any chained-offset
-uncertainty) and blurred when it sits within that. The rates tool
+when it exceeds what the positions can lie by (the spread of the
+orbits' distance-to-step mapping across bradians, about three pixels,
+plus any chained-offset uncertainty) and blurred when it sits within
+that -- closer than two live shells of one pill can be, since a pill
+fires no faster than every two or three steps. The rates tool
 reports `pairs_pill_order*` and `rate_pairs_pill_order_inverted`, with
 every inversion printed as a scene under `--describe-links`; inverted
 is a regression alarm, and the fixture's three (all stitched links

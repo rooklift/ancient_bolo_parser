@@ -58,12 +58,18 @@ const PILLBOX_ORBITS_BY_DIRECTION = Array.from({ length: 16 }, () => []);
 for (let orbit of PILLBOX_ORBITS) {
 	PILLBOX_ORBITS_BY_DIRECTION[orbit.coarse_direction].push(orbit);
 }
-/* How far apart two pill shells at the same orbit step can be from the
- * pill: the sine table's rounding gives every bradian its own slightly
- * different speed, so equal-step shells on two bradians differ by up to
- * this much (about three pixels), while a one-step gap can be as narrow
- * as a pixel. Distance order therefore proves step order only beyond
- * this spread; score_pill_order uses it as its tolerance. */
+/* How loosely a shell's distance from its pill maps to its orbit step:
+ * the sine table's rounding gives every bradian its own slightly
+ * different speed, so across the 128 orbits the distance at one step
+ * spans about three pixels, and the fastest orbit at one step comes
+ * within a pixel of the slowest at the next (on one orbit a step is
+ * three to five pixels). Distance order therefore proves step order
+ * only beyond this spread. Two live shells of one pill are never at
+ * the same step -- a pill fires no faster than every five or six
+ * ticks, two or three steps -- and at two steps apart the nearest any
+ * two orbits come is over five pixels, so a same-pill pair inside the
+ * spread is not two rightly placed shells at all; score_pill_order
+ * uses the spread as its tolerance for exactly that reason. */
 const PILLBOX_EQUAL_STEP_SPREAD_PIXELS = (() => {
 	let spread = 0;
 	for (let step = 0; step <= 32; step++) {
@@ -5089,11 +5095,15 @@ function sweep_contradicted_links(snapshots) {
  * pairs those passes skip. For each snapshot and each pill, every two
  * of its shells whose links both land in one later snapshot make a
  * pair: kept when the order holds (a tie counts as holding), inverted
- * when it flips by more than
- * the positions can lie -- the equal-step spread of the orbits at each
- * end, widened by the chained-offset uncertainty of any member not
- * pinned to an exact orbit pixel -- and blurred when it flips within
- * that, which equal steps on two bradians do legitimately. Visual joins
+ * when it flips by more than the positions can lie -- the spread of
+ * the orbits' distance-to-step mapping at each end
+ * (PILLBOX_EQUAL_STEP_SPREAD_PIXELS), widened by the chained-offset
+ * uncertainty of any member not pinned to an exact orbit pixel -- and
+ * blurred when it flips within that. A blurred pair is not two rightly
+ * placed shells: two live shells of one pill are at least two steps and
+ * over five pixels apart, so one of its positions or provenances is
+ * wrong, and the bucket is kept apart from inverted because that is a
+ * different complaint from a crossing. Visual joins
  * and verbatim re-sends are left out as score_pill_links leaves them
  * out, and a pair whose links land in different snapshots is not
  * comparable. Every inversion is kept as an example. */

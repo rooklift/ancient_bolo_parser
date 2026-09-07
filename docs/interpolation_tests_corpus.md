@@ -2967,9 +2967,11 @@ while both fly. The scorer reads that off final state for every pair
 of one pill's shells whose links land in one later snapshot, needing
 no pinned step, so it also covers the pairs the lockstep passes skip.
 A flip counts as inverted only beyond what the positions can lie by
-(the equal-step spread between bradians, about three pixels, plus any
-chained-offset uncertainty on an unpinned member); a flip within that
-is blurred.
+(the spread of the orbits' distance-to-step mapping across bradians,
+about three pixels, plus any chained-offset uncertainty on an unpinned
+member); a flip within that is blurred -- closer than two live shells
+of one pill can be, a pill firing no faster than every two or three
+steps, so one of the pair's positions or provenances is wrong.
 
 Corpus, `de80622-links.txt` (443 files, zero failures; the input hash
 is `82531bc`'s, and every line the earlier report has is byte-identical
@@ -2978,8 +2980,8 @@ columns carried rather than re-measured):
 
 * `pairs_pill_order` 8,621,797; `pairs_pill_order_kept` 8,621,598;
   `pairs_pill_order_inverted` **191** (`rate` 0.000022);
-  `pairs_pill_order_blurred` 8 -- the tolerance is placed where the
-  ambiguous cases nearly vanish
+  `pairs_pill_order_blurred` 8 -- same-pill pairs closer than two
+  rightly placed shells can be, eight corpus-wide
 * the 191 scenes fall on 169 distinct record pairs: one wrong link
   often crosses two or three stream-mates at once
 

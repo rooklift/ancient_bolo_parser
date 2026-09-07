@@ -73,10 +73,14 @@ and packaging, so v1.0.8's numbers are still `main`'s.
   different bradians). A pair is two shells of one pill in one snapshot
   whose links both land in one later snapshot (visual joins and verbatim
   re-sends excluded): kept when the order holds, inverted when it flips by
-  more than the positions can lie -- the spread between equal-step orbits
-  on different bradians, about three pixels, widened by the chained-offset
-  uncertainty of any member not pinned to an exact orbit pixel -- and
-  blurred when it flips within that. Inverted is a regression alarm like
+  more than the positions can lie -- the spread of the orbits' distance-
+  to-step mapping across bradians, about three pixels, widened by the
+  chained-offset uncertainty of any member not pinned to an exact orbit
+  pixel -- and blurred when it flips within that. A pill fires no faster
+  than every five or six ticks, so two of its live shells are at least
+  two steps and over five pixels apart: a blurred pair is closer than two
+  rightly placed shells can be, one of its positions or provenances
+  wrong, a different complaint from a crossing. Inverted is a regression alarm like
   contradicted, not a coverage figure; `--describe-links` prints every
   inversion as an `order_example` scene (record times, pill, and each
   shell's distance, step and bradians at both ends of its link, with the
