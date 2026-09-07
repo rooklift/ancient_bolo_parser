@@ -75,6 +75,15 @@ candidates, not measured contributions. Dilation as "simulation stalls
 while stamps count" is the explanation that fits the consistently-slow
 chains; nothing rules out a different mechanism producing the same shape.
 
+How much the stamps decide is measured directly. Ten games in
+`fixtures/pairs/` were logged on two machines at once, with the same
+packets under two sets of stamps, and
+`tools/audit-paired-reconstruction.cjs` builds both logs of each and
+compares every shell's story: a difference there was decided by the
+stamps, not the packets. Over the ten pairs the two builds agree on
+99.3% of forward stories; see the corpus results file for the
+disagreements, binned by the regime of stamp difference each sat on.
+
 ## Tanks and LGMs
 
 `build_tank_positions`, `build_tank_directions` and `build_lgm_positions`

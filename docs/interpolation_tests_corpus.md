@@ -3136,6 +3136,64 @@ vouched-link meter's blind third is ever worth closing, the cheap
 form is to let the scorer alone consult the sender's advance, so the
 meter sees what the engine does not act on.
 
+## The two logs of one game -- `ea2dd0e`, measurement only
+
+The ten games of `fixtures/pairs/` were logged on two machines at once,
+and the two logs of each carry the same ring records byte for byte
+([E:two-recorders]); only the stamps differ, each machine's clock at
+the moment the packet arrived. `tools/audit-paired-reconstruction.cjs`
+builds both logs of each pair, aligns them record by record with the
+compare tool's alignment, and compares every shell observation's
+story: its successor or fate, its birth, its weapon, and the roster
+election over its pair. Where the two builds disagree, the stamps
+decided it, not the packets. This is evidence of a different kind from
+the roster vote and the distance-order scorer, which are the matcher's
+readings of its own output: agreement here proves nothing, since both
+builds read near-identical input, but a disagreement is a scene where
+a few ticks changed the matcher's mind. `ea2dd0e-paired-audit.txt`
+lists every one.
+
+Each link is binned by how its own stamped duration differs between
+the two logs: jitter (four ticks or fewer, the matcher's tolerance),
+delay (more, up to the 50-tick window; median 8 ticks, at most 38), or
+a stall (beyond the window). No terminal ever sat in another sender's
+record -- the shooter's machine reports its own shells' impacts -- so
+the cross-sender bin the tool keeps is empty. Observations within 100
+ticks of either end of the shared stretch are left out.
+
+Over the ten pairs, 190,593 snapshots and 129,251 shell observations:
+
+* forward stories: agree 128,410 (99.35%; 361 of them both silent),
+  A abstains 189, B abstains 157, conflict 457
+* jitter: 127,572 links, 400 disagreements (0.31%): 219 conflicts,
+  181 abstentions. 47 of the 400 have identical stamps on their own
+  link and were decided by a neighbour's stamps in the same component
+* delay: 1,570 links, 332 disagreements (21%)
+* stall: 71 links, every one an abstention on the stalled side; no
+  conflicts, and nothing joined across a stall on both sides
+* births: 48,055 agree, 262 A only, 291 B only. Weapons: 90,637 agree,
+  139 attributed on one side only, 5 conflicts (a pill against its
+  neighbour one square over, in two scenes)
+* roster elections: 31,893 compared, 90 differ, every one a passed
+  election against a stood-down or unvoted one; no election ever
+  settled on two different advances
+
+The 457 conflicts by shape: 167 successor against successor, mostly
+two shells of one list swapping successors; 147 the same kind of fate
+at two different terminals (pillbox_damage 63, shell_falls 31,
+explosion 31, tank_hit 18, base_damage 4); the rest a fate on one side
+against a successor on the other.
+
+What it says. Under the jitter regime the matcher is stable to three
+parts in a thousand, and the 400 jitter scenes are the marginal
+decisions worth reading, each balanced on the tolerance. Under the
+delay regime the two logs genuinely disagree about timing and one link
+in five flips, which is the cost of a late packet, not of the matcher.
+The vote never elects two advances, which is what keying it by the
+roster promised; it differs only in whether it passed, as which
+members hold a terminal candidate moves with the stamps. Nothing was
+changed on the strength of this; the scenes are for reading.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
