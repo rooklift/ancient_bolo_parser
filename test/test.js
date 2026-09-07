@@ -8,10 +8,11 @@ import { parseHeader, records } from "../src/parse.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-/* fixtures/n20021018.2 is an ANONYMIZED log (names, hostnames, chat
- * mentions and IP addresses substituted same-length; replay bytes
- * otherwise identical) and is committed. Raw logs stay local-only in
- * samples/, which is gitignored. */
+/* fixtures/n20021018.2 is an ANONYMIZED log (names, hostnames and IP
+ * addresses substituted same-length, the chat replaced line for line
+ * with invented dialogue of the same lengths; replay bytes otherwise
+ * identical) and is committed. Raw logs stay local-only in samples/,
+ * which is gitignored. */
 const log1 = join(root, "fixtures", "n20021018.2");
 const log2 = join(root, "samples", "n20020306.1");
 const buf = new Uint8Array(readFileSync(log1));
