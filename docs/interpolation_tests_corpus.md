@@ -163,7 +163,6 @@ Constant at all ten commits, and worth having once:
 | `4f0aa06` | a turning tank's shell carries the nibble's sector | **0.997166** | **0.001176** | **0.835572** | **238,130** | 13,188 | 1,224 | **14** |
 | `82531bc` | a dilated candidate outlives the on-schedule consensus | **0.997171** | **0.001175** | **0.835573** | 238,128 | 13,188 | 1,224 | **14** |
 | `de80622` | distance order scored (no engine change) | 0.997171 | 0.001175 | 0.835573 | 238,128 | 13,188§ | 1,224§ | **14** |
-| `1ffc4d0` | the sender's lockstep | 0.997169 | **0.001174** | **0.835597** | **238,146** | 13,191 | 1,225 | **14** |
 
 The three right-hand columns are lower-is-better counts from the drawn
 audit and the vouched-link score, added so that a drawing-only commit
@@ -3028,16 +3027,18 @@ orbit can place (52); the pairwise distance-order veto (13). The 14
 contradicted links are all stitched as well, so the first may clear
 some of them.
 
-## The sender's lockstep -- `1ffc4d0`
+## The sender's lockstep -- `1ffc4d0`, measured, reverted
 
 The fixture doc's section of the same name has the change: a client
 steps every shell of every pill firing at it in one update pass, and
 the `78797d3` measurement (`78797d3-cross-pill.txt`) found no pair in
 the corpus where two pills of one sender elected different advances,
-so both vote sites now lend the sender's advance -- one pill's
-election, or the pooled election where none passed -- to every pill of
-the sender that could not elect its own, and the stitching and
-residual reference composes the sender's hops the same way.
+so both vote sites were made to lend the sender's advance -- one
+pill's election, or the pooled election where none passed -- to every
+pill of the sender that could not elect its own, with the stitching
+and residual reference composing the sender's hops the same way. Two
+corpus runs, then reverted; no row in the headline table, as for
+`f970ce7`.
 
 Corpus, `1ffc4d0-report.txt` and `1ffc4d0-audit.txt` against
 `82531bc` (443 files, zero failures, same corpus and input hash; the
@@ -3107,24 +3108,33 @@ expected residue rather than a fault: a link the sender's statements
 contradict whose stream-mate's true landing was never recorded or
 never pinned has nothing to rejoin to, and by the project's own rule
 an unmatched pop is safer than a drawn crossing. The number to watch
-is the 79; the fix, if one is ever wanted, is for the sweep to indict
-only against a pill's own election, at the cost of the crossings a
-lent advance alone can see.
+is the 79.
 
-The audit's `build_ms` 339,778 -> 380,698 (+12%) is the change's
-running cost, and larger than it needs to be. Profiled on the
-fast-ring fixture, the reference builder had more than doubled its
-share -- scoring every pill's roster through a Map of advances, and
-writing every pill's span in full where the sender's span now
-carries the same number -- and the matcher's vote was pinning every
-target against every sparse pill afresh on each of its passes over a
-pair. The commit after this run scores by roster gaps into an array,
-writes a pill's span only where it diverges from the sender's, and
-caches the pinned landings per pair across the passes: on the
-fixtures the overhead against `8e40b11` falls from 8-24% to about 5%,
-inside the run-to-run noise, with both reports byte-identical. The
-sender's spans exist on far more hops than the per-pill spans did,
-and that residue is the feature's own.
+The audit's `build_ms` 339,778 -> 380,698 (+12%) was the change's
+running cost. Profiled on the fast-ring fixture, the reference
+builder had more than doubled its share -- scoring every pill's
+roster through a Map of advances, and writing every pill's span in
+full where the sender's span carried the same number -- and the
+matcher's vote was pinning every target against every sparse pill
+afresh on each of its passes over a pair. Scoring by roster gaps into
+an array, writing a pill's span only where it diverged from the
+sender's, and caching the pinned landings per pair (`d903faf`)
+brought the fixture overhead against `8e40b11` from 8-24% down to
+about 5%, inside run-to-run noise, with both reports byte-identical.
+
+Reverted with that in hand. The reading: the sender's lockstep is
+true, and the vote could use it, but what it buys is almost entirely
+on the meter -- 422 thousand links vouched by a statement roster that
+were drawn exactly the same way before -- while what it changes in the
+drawing is a few dozen scenes each way across 443 logs, a wash, plus
+a chain broken for good wherever a lent advance vetoed a link nothing
+replaced. That is not worth its weight in the two most intricate
+functions of the engine, nor the build time. The engine and the pinned
+counts are back at `8e40b11`; the measurement tool, [E:sender-lockstep],
+the corpus runs and the report's two sweep counters stay. If the
+vouched-link meter's blind third is ever worth closing, the cheap
+form is to let the scorer alone consult the sender's advance, so the
+meter sees what the engine does not act on.
 
 ## Findings
 

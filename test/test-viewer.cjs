@@ -277,33 +277,28 @@ if (!fs.existsSync(log1)) {
 		check("fixture pill links scored against the roster vote", [
 			score.links, score.vouched, score.contradicted, score.unvouched,
 			score.unpinned, score.restated, [...score.clients],
-		], [52763, 21512, 0, 11449, 5, 0, []]);
+		], [52763, 20088, 0, 12873, 5, 0, []]);
 		/* The elections themselves: most pills cannot vote at all (under
 		 * three pinned sources), and of those that can, a vote inside the
-		 * margin stands down -- unless another pill of the same sender
-		 * elected, or the sender's pills pooled elect, in which case the
-		 * advance is lent (the sender's lockstep; vouched links rose
-		 * 20,088 -> 21,512 when it was, contradictions staying at zero).
-		 * The scene that motivated abstention is pinned in full: the
-		 * confident vote elects 8 by 5 to 3 where the full roster -- the
-		 * two dying members marked "d" voting -- had it 5 to 4, one short
-		 * of the margin. */
-		let votes = { unvoted: 0, stood_down: 0, passed: 0, lent: 0 };
+		 * margin stands down. The scene that motivated abstention is
+		 * pinned in full: the confident vote elects 8 by 5 to 3 where the
+		 * full roster -- the two dying members marked "d" voting -- had it
+		 * 5 to 4, one short of the margin. */
+		let votes = { unvoted: 0, stood_down: 0, passed: 0 };
 		for (let snapshots of game.shell_positions) {
 			let part = BoloMotion.score_pill_links(snapshots);
 			votes.unvoted += part.votes_unvoted;
 			votes.stood_down += part.votes_stood_down;
 			votes.passed += part.votes_passed;
-			votes.lent += part.votes_lent;
 		}
 		let scene = game.shell_positions[2].find(s => s.time === 9726685)
 			.roster_votes.get("1872:2272");
 		check("fixture roster elections and the abstention scene", [
-			votes.unvoted, votes.stood_down, votes.passed, votes.lent,
+			votes.unvoted, votes.stood_down, votes.passed,
 			scene.verdict, scene.advance, scene.score, scene.runner_up,
 			scene.full_score, scene.full_runner_up, scene.sources,
 			scene.landings,
-		], [9198, 1794, 3717, 955, "passed", 8, 5, 3, 5, 4,
+		], [9954, 1993, 3717, "passed", 8, 5, 3, 5, 4,
 			"6,9,11,14,17,19d,22d", "14,17,19,22,25"]);
 		/* The distance-order axis (score_pill_order): same-pill pairs
 		 * linked into one later snapshot, scored on whether the leader
@@ -3105,7 +3100,7 @@ if (!fs.existsSync(log2)) {
 	}
 	check("fast-ring fixture pill links: re-sends excluded, no contradictions", [
 		score.links, score.restated, score.vouched, score.contradicted,
-	], [80428, 1679, 30141, 0]);
+	], [80428, 1679, 27006, 0]);
 }
 
 process.exit(failures ? 1 : 0);

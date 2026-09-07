@@ -244,9 +244,6 @@ function empty_totals() {
 		roster_votes_unvoted: null,
 		roster_votes_stood_down: null,
 		roster_votes_passed: null,
-		/* Lent: a pill that could not elect its own advance took the
-		 * sender's, shared by every pill the sender simulates. */
-		roster_votes_lent: null,
 		/* Same-pill shell pairs linked into one later snapshot, scored on
 		 * whether their order of distance from the pill survives the link
 		 * (see score_pill_order in viewer/motion.js): a trailer can never
@@ -337,7 +334,6 @@ function count_pill_links(totals, engines, game) {
 			add(totals, "roster_votes_unvoted", score.votes_unvoted);
 			add(totals, "roster_votes_stood_down", score.votes_stood_down);
 			add(totals, "roster_votes_passed", score.votes_passed);
-			add(totals, "roster_votes_lent", score.votes_lent);
 		}
 	}
 	return scores;
@@ -728,9 +724,6 @@ function link_class_report(diagnostics) {
 		let vote_text = vote === null || vote === undefined ? "-"
 			: vote.verdict === "unvoted"
 				? `unvoted${vote.unpinned ? `(${vote.unpinned} unpinned)` : ""}`
-			: vote.verdict === "lent"
-				? `lent:sender@${vote.advance}(own ${vote.own_advance}:` +
-					`${vote.score}v${vote.runner_up})`
 			: `${vote.verdict}${vote.by ? `:${vote.by}` : ""}` +
 				`${vote.unpinned ? `(${vote.unpinned} unpinned)` : ""}` +
 				`@${vote.advance}(${vote.score}v${vote.runner_up}` +

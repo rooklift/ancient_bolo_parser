@@ -340,21 +340,14 @@ filtering over a finite state space:
   impossible under the truth unless a source went unpinned. The
   fixture doc's "doubtful voters" and "symmetric election" sections
   have the scenes and the corpus reading that motivated each.
-  The advance is the sender's, not the pill's: a client steps every
-  shell of every pill firing at it in one update pass, and the corpus
-  never shows two pills of one sender electing different advances
-  ([E:sender-lockstep]). So where exactly one advance won any pill's
-  election it is lent to every pill of the sender that could not elect
-  its own -- too few pinned shells, or a vote inside the margin -- and
-  where none passed, the pooled election (every pill's scores summed,
-  under the same gates) stands in. A lent advance prunes and claims
-  exactly as an elected one; two pills electing different advances is
-  a conflict nothing is lent across. The stitching and residual
-  reference (`build_pill_lockstep_reference`) composes the sender's
-  hops the same way, each pill's own election taking precedence over
-  its span. The fixture doc's "sender's lockstep" section has the
-  numbers: about a fifth more vouched links, contradictions unmoved
-  at zero, every coverage line and the drawn-motion audit identical.
+  The advance is in fact the sender's, not the pill's -- a client steps
+  every shell of every pill firing at it in one update pass, and the
+  corpus never shows two pills of one sender electing different
+  advances ([E:sender-lockstep]) -- but the vote stays per pill:
+  lending the sender's advance to the pills that could not elect their
+  own was tried and reverted, a large gain on the vouched-link meter
+  for no gain in what is drawn; the corpus results file has the
+  account.
 - When the surviving states all agree on one pixel, the shell's **exact
   true position** in the underlying simulation is recovered
   (`pillbox_orbit_pixel_x/y`) — usually there is only one possibility —
