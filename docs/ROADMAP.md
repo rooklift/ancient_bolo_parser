@@ -324,6 +324,39 @@ arc but deliberately not started.
   engine's own table still uses them -- a quirk on the books). Corpus: 5,089,285 scored, 0.569 vouched, 423
   contradicted (0.000083), every matching metric byte-identical. See
   `docs/interpolation_tests.md` and the corpus file.
+* **Cross-pill evidence sharing -- measured; the wiring tried and reverted.** The
+  roster vote elects one advance per pill per sender record pair, so a
+  pill with fewer than three pinned shells in flight never votes and
+  its links stand on cost margins alone. But every list of one record
+  is one sampling instant ([E:shell-list-skew]) and the sender steps
+  every shell it simulates in one update pass, so the advance is the
+  sender transition's, not the pill's: a rich pill can lend it to a
+  sparse one, and the votes of all a sender's pills can be pooled.
+  `tools/measure-cross-pill-agreement.cjs` replicates the vote's gates
+  and reports, per sender pair, whether independently elected pills
+  agree, whether a sparse pill's pinned sources land at the rich
+  pill's advance (against a control of how many some other advance
+  could land), and how many more pairs a pooled election passes. The
+  corpus run (`docs/corpus_runs/78797d3-cross-pill.txt`, 443 logs) is
+  unanimous: 10,434 of 10,434 double elections agree; 99.77% of
+  100,819 sparse sources land at the elected advance where 22.9% could
+  be landed by any other; pooling elects 77,948 more pairs (+14.5%)
+  and never contradicts a per-pill winner. Pooling should also weaken
+  cadence aliasing, since pills fire on different phases, and is safe
+  under a stale record, which dilates every pill of the sender alike.
+  Recorded as [E:sender-lockstep]. Both vote sites were then made to
+  lend the sender's advance (one pill's election, or the pooled
+  election where none passed) to every pill of the sender that could
+  not elect its own, and measured on the corpus (`1ffc4d0`,
+  `6176936`): vouched links +422,129 with contradictions unchanged at
+  14 and distance inversions 191 -> 179, but the drawn picture a wash
+  -- terminals +47 and unlinked -8 against 72 links lost, 25 pop-outs
+  and 40 pill-side births gained, most of them chains the
+  contradiction sweep broke for good on a lent advance -- for a few
+  percent of build time. Reverted: a large gain on the meter for no
+  gain in what is drawn; see "The sender's lockstep" in both results
+  files. The cheap form, if the meter's blind third is ever worth
+  closing, is to let the scorer alone consult the sender's advance.
 * **The pace / drawn-speed residue.** Rushed terminal links (68,540
   corpus, 3.0+ px/tick final hops) are the one class every lockstep
   dial nudges the wrong way by a few dozen: a lockstep-verified

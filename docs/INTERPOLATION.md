@@ -340,6 +340,14 @@ filtering over a finite state space:
   impossible under the truth unless a source went unpinned. The
   fixture doc's "doubtful voters" and "symmetric election" sections
   have the scenes and the corpus reading that motivated each.
+  The advance is in fact the sender's, not the pill's -- a client steps
+  every shell of every pill firing at it in one update pass, and the
+  corpus never shows two pills of one sender electing different
+  advances ([E:sender-lockstep]) -- but the vote stays per pill:
+  lending the sender's advance to the pills that could not elect their
+  own was tried and reverted, a large gain on the vouched-link meter
+  for no gain in what is drawn; the corpus results file has the
+  account.
 - When the surviving states all agree on one pixel, the shell's **exact
   true position** in the underlying simulation is recovered
   (`pillbox_orbit_pixel_x/y`) — usually there is only one possibility —

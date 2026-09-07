@@ -1,0 +1,21 @@
+# GENERATED - cross-pill lockstep agreement tally; nothing written to disk.
+files	443
+pairs	1858801
+pairs_multi_pill	262259
+pill_elections	536479
+pairs_two_elect	10434
+pairs_two_agree	10434
+pairs_two_disagree	0
+sparse_rosters	98672
+sparse_sources	100819
+sparse_landing	100589
+sparse_landing_other	23084
+pooled_elections	603914
+pooled_only	77948
+pooled_agree	525966
+pooled_disagree	0
+rate_two_agree	1.000000
+rate_sparse_landing	0.997719
+rate_sparse_landing_other	0.228965
+rate_pooled_gain	0.145296
+elected_advances	1:114293 2:58309 3:145654 4:93617 5:54643 6:36036 7:15713 8:11134 9:4376 10:1467 11:781 12:224 13:88 14:64 15:33 16:24 17:7 18:7 19:5 20:2 21:1 22:1
