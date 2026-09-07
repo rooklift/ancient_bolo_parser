@@ -3194,6 +3194,29 @@ roster promised; it differs only in whether it passed, as which
 members hold a terminal candidate moves with the stamps. Nothing was
 changed on the strength of this; the scenes are for reading.
 
+**The delayed link is one missed burst, and it shows from one log**
+(`1ad7e7d-paired-gaps.txt`, the tool's `--gaps`). Ring records arrive in
+bursts, one per cycle, so the widest gap between consecutive records
+of any sender inside a link's span is normally one ring cycle: it is
+one cycle on 84% of jitter links and never more than 1.5 on 99.4%. On
+every delay link the log that stamped the link longer shows a widest
+gap of 1.5 to 2 cycles (two cycles on 42%, more on a further 15%)
+where the other log shows one cycle over the same span, and the stamp
+difference itself clusters at half a cycle to one cycle: the packet
+missed a burst and came with the next. A stall detector reading one
+log -- the widest whole-stream gap inside the link at least 1.5 cycles
+-- fires on 83% of delay links (91% of those that flip) and on 3.4% of
+jitter links; at two cycles, 46% and 0.4%. What it could do with the
+knowledge is less clear: on delay links the early side abstains more
+often than the late side (54 to 40), so the late stamp is not simply
+where the matcher fails, and of the 238 delayed conflicts 58 have the
+late side taking a fate the early side gives to a successor against 21
+the other way. Only under a stall proper (beyond the window) is the
+picture one-sided: all 71 abstentions are the late side's. The lead,
+untried: a record that arrives after a gap of two cycles or more could
+be re-stamped a cycle earlier before matching, and this audit would
+say whether the two builds then agree more.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
