@@ -45,6 +45,15 @@
  *       [--workers=N] [--max-files=N] [--describe-backwards]
  *       [--engine=DIR]
  *
+ * links_stalled counts the snapshot links that span a stall of the ring
+ * (viewer/motion.js, stall_excess_by_record): drawn over the stamps,
+ * which read longer than the sender's cadence ran, they draw slow by
+ * construction, as the tanks around them do. links_stalled_steady is
+ * how many of them still fall in the steady bucket over the stamps,
+ * links_stalled_steady_by_cadence how many would over the cadence, and
+ * the _unstalled rates read the rest of the links without them. An
+ * engine without the stall reading counts none.
+ *
  * --engine=DIR measures the engine in another checkout (a git worktree
  * of an older commit, say) with this tool, and reports that checkout's
  * commit, so a historical baseline can be re-measured under a newer
@@ -146,6 +155,10 @@ function empty_metrics() {
 		terminal_links_static: 0,
 		terminal_links_instant: 0,
 		hover_links: 0,
+		links_stalled: 0,
+		links_stalled_steady: 0,
+		links_stalled_steady_by_cadence: 0,
+		hover_links_stalled: 0,
 		rush_links: 0,
 		rush_links_timed: 0,
 		links_static: 0,
@@ -175,6 +188,12 @@ function analyze_file(file, engines, metrics, examples = null) {
 		if (!Array.isArray(snapshots)) continue;
 		let previous_pop_outs = [];
 		let previous_time = null;
+		/* each shell's snapshot, to read the stall excess between a link's
+		 * two ends (viewer/motion.js stall_excess_by_record) */
+		let snapshot_of = new Map();
+		for (let snapshot of snapshots) {
+			for (let shell of snapshot.shells) snapshot_of.set(shell, snapshot);
+		}
 		for (let index = 0; index < snapshots.length; index++) {
 			let snapshot = snapshots[index];
 			let final = index === snapshots.length - 1;
@@ -207,6 +226,27 @@ function analyze_file(file, engines, metrics, examples = null) {
 						metrics.link_speeds[bucket] =
 							(metrics.link_speeds[bucket] || 0) + 1;
 						if (speed < HOVER_SPEED) metrics.hover_links++;
+						/* A link spanning a stall of the ring is drawn over the
+						 * stamps, which read longer than the sender's cadence
+						 * ran, so it draws slow by construction -- as the tanks
+						 * around it do. Counted apart, with how it would read
+						 * over the cadence. */
+						let next_snapshot = shell.next_shell
+							? snapshot_of.get(shell.next_shell) : null;
+						let stall = next_snapshot &&
+							next_snapshot.stall_excess !== undefined
+							? next_snapshot.stall_excess - (snapshot.stall_excess || 0)
+							: 0;
+						if (stall > 0) {
+							metrics.links_stalled++;
+							if (bucket === "1.8-2.2") metrics.links_stalled_steady++;
+							if (speed < HOVER_SPEED) metrics.hover_links_stalled++;
+							let cadence_speed = duration - stall > 0
+								? distance / (duration - stall) : Infinity;
+							if (speed_bucket(cadence_speed) === "1.8-2.2") {
+								metrics.links_stalled_steady_by_cadence++;
+							}
+						}
 						if (speed > RUSH_SPEED) metrics.rush_links++;
 						if (timed) metrics.rush_links_timed++;
 						if (static_link) metrics.links_static++;
@@ -398,7 +438,9 @@ function print_report(metrics, input, engine_root) {
 		"terminal_links_static", "terminal_links_instant",
 		"hover_links", "rush_links", "rush_links_timed", "links_static",
 		"links_instant", "seam_jumps", "pop_outs", "pop_ins",
-		"pops_paired_forward", "pops_paired_backwards"]) {
+		"pops_paired_forward", "pops_paired_backwards", "links_stalled",
+		"links_stalled_steady", "links_stalled_steady_by_cadence",
+		"hover_links_stalled"]) {
 		lines.push(`${key}\t${metrics[key]}`);
 	}
 	lines.push(`seam_jump_max\t${metrics.seam_jump_max.toFixed(2)}`);
@@ -407,7 +449,13 @@ function print_report(metrics, input, engine_root) {
 	}
 	lines.push(`rate_links_steady\t` +
 		`${rate(metrics.link_speeds["1.8-2.2"] || 0, metrics.links)}`);
+	lines.push(`rate_links_steady_unstalled\t` +
+		`${rate((metrics.link_speeds["1.8-2.2"] || 0) - metrics.links_stalled_steady,
+			metrics.links - metrics.links_stalled)}`);
 	lines.push(`rate_hover_links\t${rate(metrics.hover_links, metrics.links)}`);
+	lines.push(`rate_hover_links_unstalled\t` +
+		`${rate(metrics.hover_links - metrics.hover_links_stalled,
+			metrics.links - metrics.links_stalled)}`);
 	lines.push(`rate_rush_links\t${rate(metrics.rush_links, metrics.links)}`);
 	lines.push(`rate_pop_outs\t` +
 		`${rate(metrics.pop_outs, metrics.shell_observations)}`);

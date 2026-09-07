@@ -1516,7 +1516,7 @@ the engine see the section after it.
   shells that left are index 1+ tank shots that no longer claim a confident
   origin.
 
-## A stall of the ring is subtracted from the link that spans it -- `cb51fb3`
+## A stall of the ring, and the two readings of the pair that spans it -- `cb51fb3` and after
 
 Ring records arrive in bursts, one per cycle, so the gap between
 consecutive records of any sender is normally one ring cycle. The ten
@@ -1527,36 +1527,70 @@ one log: the log that stamped it longer has a whole-stream gap of two
 cycles or more inside the link's span where the other log has one,
 and after the delayed record the sender's cadence resumes at one
 cycle in nine cases of ten -- the ring was held up, the cadence
-shifted, and every stamp after the stall reads late by the excess
-while the sender's simulation ran on. So the engine now reads the
-whole stream once (`stall_excess_by_record`): every gap of
-`STALL_GAP_CYCLES` (two) cycles or more contributes the gap less one
-cycle to a running excess, each snapshot carries the excess before
-its record, and the pairwise matcher's duration is the stamps'
-interval less the excess between the two records, floored at zero.
-Drawing times, terminal arrival times, the stale-restatement bound
-and the stitching passes keep the stamps as they are.
+shifted, and every stamp after the stall reads late by the excess.
 
-The pairs, which are the metric the change was built against
-(`cb51fb3-paired-audit.txt`): the two
-builds of a game disagreed on 803 forward stories before and 633
-after. By bin, delay 332 -> 193 (of 1,570 links), stall 71 -> 27 (and
-52 stalled links now joined on both sides where none were), jitter
-400 -> 413. Births differing 553 -> 479; roster elections differing
-90 -> 95.
+The first cut (`cb51fb3`) read every such gap as a lie of the stamps
+and shortened the pairwise matcher's duration by the excess. The
+corpus said half of that was wrong (the `cb51fb3` section of the
+corpus file): coverage and the backwards pops improved, but the pill
+distance-order inversions rose by half and some 23,000 links drew
+slow. Two things were behind it, and both are now in.
 
-The committed fixtures. `040601.6` (the fast ring): `shells_matched_forward`
-84,745 -> 84,749, `shells_unlinked` 25 -> 15, `terminals_matched` 4,317 ->
-4,319 (`pillbox_damage` +3, `base_damage` -1), `shells_with_birth` 33,821
--> 33,751 as ten chain starts joined their predecessors,
-`links_pill_vouched` 27,006 -> 27,000, `rate_terminals_matched` 0.893789
--> 0.894203; two pins moved with it. `n20021018.2`: `roster_votes_unvoted`
-9,954 -> 9,956, nothing else. Corpus: `cb51fb3` in
-[`interpolation_tests_corpus.md`](interpolation_tests_corpus.md) --
-matched forward +2,929, unlinked -1,467, terminals +936, backwards
-pops -40%; against that, 23,000 links drawn slow under the stamps the
-drawing still keeps, and the pill distance-order inversions 191 ->
-285, the stall upstream of the sender that one log cannot place.
+*The stall has two kinds, and one log cannot place it.* Held up
+between the sender and the recorder, the packet's contents were
+computed on the sender's cadence and only the stamp is late; held up
+before the sender, the sender's simulation ran on through the wait and
+the contents advanced the whole stamped interval. Reading the drawn
+distance of every stalled link on the pairs against the two intervals,
+the kinds come about half and half -- what a recorder at a random
+point of the ring would see. Under one reading a candidate at the
+other kind's distance is 18 px off the expected flight on a nine-tick
+cycle, past the 8 px the matcher allows, so it was refused and the
+shell went to a trailing candidate or a pop-out; hence the inversions.
+So a pair that spans a stall now carries two readings of its interval,
+the sender's cadence (the stamps less the excess) and the stamps, and
+every candidate -- successor or terminal, orbit step or tank bradian
+-- is scored against whichever it fits better
+(`nearest_expected_distance`); the stamps remain the upper bound on
+flight and on the roster vote's window, the cadence gates the
+interpolation window, and the vote arbitrates between the two advances
+as it was built to.
+
+*On a fast ring two cycles is jitter.* The two-player fixture's cycle
+is two ticks and its stamps bunch (dt = 1, 3, 1, 3), so the cycle
+rule alone read a stall into 27% of its shell pairs and halved their
+durations. The excess must also clear `STALL_MIN_EXCESS_TICKS`, six
+ticks, three shell updates: above the matcher's tolerance and the
+stamp jitter's outer edge on the pairs. That leaves 0.2% of the
+fixture's pairs stalled and every metric of that fixture where it was.
+
+The pairs, the metric the change was built against: the two builds of
+a game disagreed on 803 forward stories at the baseline, 633 under
+the single reading, 693 under two (the second reading admits more
+candidates, and where two stories fit the two builds can still part).
+Coverage over the twenty pair logs against the baseline:
+`shells_matched_forward` 258,487 -> **258,906** (+419; the single
+reading gave +270), `shells_unlinked` 526 -> **352**,
+`terminals_matched` 54,487 -> **54,815** (+328), `rate_terminals_matched`
+0.822619 -> 0.827571; the drawn audit's `pop_outs` 1,202 -> **783**,
+`pops_paired_backwards` 54 -> 26, `pairs_pill_order_inverted` 5 -> 6.
+
+The drawn speed. A link across a stall of the stamp-lie kind is now
+joined to the nearer restatement and drawn over the stamps, which read
+longer than the sender's cadence ran, so it draws slow by construction
+-- as the tanks around it do, whose positions are interpolated over
+the same stamps. The drawn audit counts these apart (`links_stalled`,
+`hover_links_stalled`, and the `_unstalled` rates for everything
+else): on the pairs `rate_links_steady` 0.961922 -> 0.960062 but
+`rate_links_steady_unstalled` 0.961516, and 110 of the 191 hover
+links span a stall. Whether the drawing should follow the cadence
+instead is a separate choice, not taken here.
+
+The committed fixtures: `040601.6` byte-identical to the baseline;
+`n20021018.2` `shells_matched_forward` 73,495 -> 73,497 (two
+`shell_falls`), `roster_votes_unvoted` 9,954 -> 9,956. The corpus run
+of this state is the holder's, to follow; the `cb51fb3` run in the
+corpus file measured the single reading without the floor.
 
 ## Where the line stands -- `30d5351`
 

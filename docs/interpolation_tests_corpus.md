@@ -3278,6 +3278,17 @@ letting the elected advance, rather than the gap, set the duration of
 a stalled pair would keep the gain and give back the inversions. Both
 are follow-ups; the change stands as measured.
 
+Followed up on the pairs before the next corpus run (the fixture doc's
+section has the design): reading every stalled link's drawn distance
+against the two intervals shows the two stall kinds about half and
+half, so a stalled pair now carries both readings and each candidate
+is scored against the one it fits better, with the stamps the upper
+bound; and a floor of six ticks on the excess keeps a fast ring's
+jitter from reading as stalls (the two-player fixture had 27% of its
+pairs stalled under the cycle rule alone). On the pairs that takes the
+gain further than the single reading did and leaves the order
+inversions where they were.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch

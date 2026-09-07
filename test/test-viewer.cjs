@@ -220,10 +220,10 @@ if (!fs.existsSync(log1)) {
 			described, described === unexplained, reasons_sound,
 			classes.get("explosion:no_candidate:-"),
 			classes.get("pillbox_damage:end_continued:T"),
-		], [1009, true, true, 240, 88]);
+		], [1007, true, true, 240, 88]);
 		check("fixture same-record unseen shots claimed without cost", [
 			matched, unseen.pill, unseen.tank,
-		], [20732, 1217, 1117]);
+		], [20734, 1217, 1117]);
 
 		/* The end-side mirror: every chain end with no forward story gets
 		 * a class; the census must equal the unmatched-forward count less
@@ -252,7 +252,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture end-side census reconciles", [
 			ends_described, ends_described === unfated, end_reasons_sound,
 			fate_open,
-		], [258, true, true, 22]);
+		], [256, true, true, 22]);
 	}
 
 	/* The truth axis: every pill link scored against the statement-roster
@@ -1021,12 +1021,17 @@ if (!fs.existsSync(log1)) {
 	 * the step-28 shell its identity and orbit state. The step-31 shell
 	 * used to keep only its quantised reconstruction -- no state, no exact
 	 * pixel -- because identity propagated down the chain and states did
-	 * not. The state walk re-derives it from the link's own duration. */
+	 * not. The state walk re-derives it from the link's own duration.
+	 * The setup records sit thirty ticks apart so the scene's median
+	 * cadence is thirty: the 52-tick silence is then under two cycles
+	 * and is not read as a stall of the ring (STALL_GAP_CYCLES), which
+	 * would bring the pair inside the pairwise window and leave no
+	 * stitch. */
 	let stitched_states = BoloGame.build([
-		record(80, [{ type: "pillbox_list", items: [{
+		record(40, [{ type: "pillbox_list", items: [{
 			x: 133, y: 127, owner: 1, armour: 15, speed: 100,
 		}] }]),
-		record(90, [{
+		record(70, [{
 			type: "tank_position", x: 120, y: 120,
 			pixelX: 0, pixelY: 0, direction: 4,
 			inBoat: false, hidden: false, dying: false,
@@ -3100,7 +3105,7 @@ if (!fs.existsSync(log2)) {
 	}
 	check("fast-ring fixture pill links: re-sends excluded, no contradictions", [
 		score.links, score.restated, score.vouched, score.contradicted,
-	], [80430, 1679, 27000, 0]);
+	], [80428, 1679, 27006, 0]);
 }
 
 process.exit(failures ? 1 : 0);

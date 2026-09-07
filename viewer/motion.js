@@ -188,13 +188,30 @@ const DILATED_UPDATE_SLACK = 8;
  * link whose two logs disagree by more than the matcher's tolerance
  * sits on such a gap in the log that stamped it longer, and the
  * sender's next gap after the delayed record is one cycle in nine
- * cases of ten. So a link that spans a stall is read as the excess
- * shorter than its stamps say: the sender's simulation did not wait
- * with the packet. Only the pairwise matcher's duration is corrected;
- * drawing times, terminal arrival times and the stitching passes keep
- * the stamps. See tools/audit-paired-reconstruction.cjs --gaps and
- * docs/interpolation_tests_corpus.md. */
+ * cases of ten. But one log cannot place the stall on the ring. Held
+ * up between the sender and the recorder, the packet's contents were
+ * computed on the sender's cadence and only the stamp is late; held
+ * up before the sender, the sender's simulation ran on through the
+ * wait and the contents advanced the whole stamped interval. On the
+ * pairs the two kinds come about half and half, as a recorder at a
+ * random point of the ring would see. So a pair that spans a stall
+ * carries two readings of its interval, the sender's cadence (the
+ * stamps less the excess) and the stamps, and the pairwise matcher
+ * scores every candidate against whichever it fits better, the
+ * stamps remaining the upper bound on flight; the roster vote then
+ * arbitrates between the two advances as it was built to. Drawing
+ * times and the stitching passes keep the stamps. See
+ * tools/audit-paired-reconstruction.cjs --gaps and
+ * docs/interpolation_tests_corpus.md.
+ *
+ * On a fast ring the cycle is a couple of ticks and the stamps bunch
+ * (dt = 1, 3, 1, 3 around a true 2), so two cycles is ordinary jitter
+ * there: on the two-player fixture the cycle rule alone read a stall
+ * into a quarter of all shell pairs. The excess must also clear a
+ * floor in ticks, four shell updates -- twice the matcher's tolerance
+ * and the outer edge of the stamp jitter measured on the pairs. */
 const STALL_GAP_CYCLES = 2;
+const STALL_MIN_EXCESS_TICKS = 8;
 
 /* Standalone map/node records carry no player state or motion. */
 const MAP_NODE_TYPES = new Set([
@@ -289,7 +306,8 @@ function ring_cycle(records) {
 
 /* Per record, the stall excess accumulated before it: over every gap
  * of STALL_GAP_CYCLES cycles or more between consecutive records of
- * the whole stream, the gap less one cycle. The difference between two
+ * the whole stream whose excess over one cycle clears
+ * STALL_MIN_EXCESS_TICKS, that excess. The difference between two
  * records' entries is how much longer their stamps read than the
  * sender's cadence ran between them. */
 function stall_excess_by_record(records) {
@@ -299,10 +317,22 @@ function stall_excess_by_record(records) {
 	let total = 0;
 	for (let i = 1; i < records.length; i++) {
 		let gap = records[i].time - records[i - 1].time;
-		if (gap >= STALL_GAP_CYCLES * cycle) total += gap - cycle;
+		if (gap >= STALL_GAP_CYCLES * cycle &&
+			gap - cycle >= STALL_MIN_EXCESS_TICKS) total += gap - cycle;
 		excess[i] = total;
 	}
 	return excess;
+}
+
+/* Under a stall a pair carries two readings of its interval (see
+ * STALL_GAP_CYCLES): the flight a candidate's distance is scored
+ * against is whichever reading it fits better. */
+function nearest_expected_distance(distance, duration, stamped_duration) {
+	let cadence = duration * SHELL_SPEED_PIXELS_PER_TICK;
+	if (stamped_duration === duration) return cadence;
+	let stamped = stamped_duration * SHELL_SPEED_PIXELS_PER_TICK;
+	return Math.abs(distance - stamped) < Math.abs(distance - cadence)
+		? stamped : cadence;
 }
 
 function build_tank_positions(records) {
@@ -567,9 +597,11 @@ function track_pixel_at(track, tick) {
 	};
 }
 
-function shell_match_cost(previous, next, duration) {
+function shell_match_cost(previous, next, duration,
+	stamped_duration = duration) {
 	if (previous.direction !== next.direction) return null;
-	let orbit_states = pillbox_shell_successor_states(previous, next, duration);
+	let orbit_states = pillbox_shell_successor_states(previous, next, duration,
+		stamped_duration);
 	if (orbit_states && !orbit_states.length) return null;
 	if (orbit_states) {
 		let cost = Math.min(...orbit_states.map(state => state.cost));
@@ -585,7 +617,8 @@ function shell_match_cost(previous, next, duration) {
 		return match;
 	}
 
-	let tank_states = tank_shell_successor_states(previous, next, duration);
+	let tank_states = tank_shell_successor_states(previous, next, duration,
+		stamped_duration);
 	if (tank_states && !tank_states.length) return null;
 
 	let previous_pixel_x = previous.tank_exact_pixel_x ?? previous.pixel_x;
@@ -593,7 +626,8 @@ function shell_match_cost(previous, next, duration) {
 	let delta_x = next.pixel_x - previous_pixel_x;
 	let delta_y = next.pixel_y - previous_pixel_y;
 	let distance = Math.hypot(delta_x, delta_y);
-	let expected_distance = duration * SHELL_SPEED_PIXELS_PER_TICK;
+	let expected_distance = nearest_expected_distance(distance, duration,
+		stamped_duration);
 	let distance_error = Math.abs(distance - expected_distance);
 	if (distance_error > SHELL_MATCH_ERROR_PIXELS || distance === 0) return null;
 	let heading_x = previous.heading_x;
@@ -755,14 +789,15 @@ function advance_bradian_axis(lo, hi, velocity, obs_lo, obs_hi, m_lo, m_hi) {
  * for a marginal gain in pruning. `undefined` means the shell predates
  * bradian tracking; an empty array proves the proposed continuation
  * physically impossible. */
-function tank_shell_successor_states(previous, next, duration) {
+function tank_shell_successor_states(previous, next, duration,
+	stamped_duration = duration) {
 	if (!previous.tank_bradian_states) return undefined;
 	let uncertainty = next.position_uncertainty || 0;
 	let [obs_lo_x, obs_hi_x] = shell_internal_bounds(next.pixel_x, uncertainty);
 	let [obs_lo_y, obs_hi_y] = shell_internal_bounds(next.pixel_y, uncertainty);
 	let m_lo = Math.max(0, Math.floor(duration / TICKS_PER_SHELL_UPDATE) -
 		TANK_BRADIAN_UPDATE_JITTER);
-	let m_hi = Math.ceil(duration / TICKS_PER_SHELL_UPDATE) +
+	let m_hi = Math.ceil(stamped_duration / TICKS_PER_SHELL_UPDATE) +
 		TANK_BRADIAN_UPDATE_JITTER;
 	let states = [];
 	for (let state of previous.tank_bradian_states) {
@@ -896,15 +931,15 @@ function refine_pillbox_orbits_from_shell_lists(snapshot) {
 	return changed;
 }
 
-function pillbox_shell_successor_states(previous, next, duration) {
+function pillbox_shell_successor_states(previous, next, duration,
+	stamped_duration = duration) {
 	if (!previous.pillbox_orbit_states) return undefined;
 	let relative_x = next.pixel_x - previous.pillbox_source_x;
 	let relative_y = next.pixel_y - previous.pillbox_source_y;
-	let expected_distance = duration * SHELL_SPEED_PIXELS_PER_TICK;
 	/* Dilated fallback window, the widen-in-time-only principle
 	 * `pill_states_reachable` uses: a lying record clock can put a
 	 * restatement off the uniform-time schedule, but never off its orbit. */
-	let step_window = Math.ceil(duration / TICKS_PER_SHELL_UPDATE) +
+	let step_window = Math.ceil(stamped_duration / TICKS_PER_SHELL_UPDATE) +
 		DILATED_UPDATE_SLACK;
 	let states_by_key = new Map();
 	for (let previous_state of previous.pillbox_orbit_states) {
@@ -918,7 +953,8 @@ function pillbox_shell_successor_states(previous, next, duration) {
 				next.position_uncertainty)) continue;
 			let distance = Math.hypot(position[0] - previous_position[0],
 				position[1] - previous_position[1]);
-			let cost = Math.abs(distance - expected_distance);
+			let cost = Math.abs(distance - nearest_expected_distance(distance,
+				duration, stamped_duration));
 			let dilated = cost > SHELL_MATCH_ERROR_PIXELS;
 			if (dilated) {
 				if (step - previous_state.step > step_window) continue;
@@ -948,7 +984,8 @@ function pillbox_shell_successor_states(previous, next, duration) {
 }
 
 function pillbox_shell_terminal_match(previous, terminal, duration, start_time,
-	lead_pixels = 0) {
+	lead_pixels = 0,
+	stamped_duration = duration) {
 	if (!previous.pillbox_orbit_states) return undefined;
 	let matches = [];
 	for (let previous_state of previous.pillbox_orbit_states) {
@@ -1053,7 +1090,7 @@ function pillbox_shell_terminal_match(previous, terminal, duration, start_time,
 		}
 		if (match) matches.push(match);
 	}
-	let expected_distance = duration * SHELL_SPEED_PIXELS_PER_TICK;
+	let stamped_distance = stamped_duration * SHELL_SPEED_PIXELS_PER_TICK;
 	for (let match of matches) {
 		match.pixel_x = previous.pillbox_source_x + match.position[0];
 		match.pixel_y = previous.pillbox_source_y + match.position[1];
@@ -1061,16 +1098,17 @@ function pillbox_shell_terminal_match(previous, terminal, duration, start_time,
 			match.distance = Math.hypot(match.pixel_x - previous.pixel_x,
 				match.pixel_y - previous.pixel_y);
 		}
-		match.cost = Math.abs(match.distance - expected_distance);
+		match.cost = Math.abs(match.distance - nearest_expected_distance(
+			match.distance, duration, stamped_duration));
 		/* Same rule as the ordinary branch below: a match only reachable
 		 * through the lead allowance carries the dilated penalty, so an
-		 * in-window story is always preferred. */
-		if (match.distance > expected_distance + SHELL_MATCH_ERROR_PIXELS) {
+		 * in-window story is always preferred. The stamps bound the flight. */
+		if (match.distance > stamped_distance + SHELL_MATCH_ERROR_PIXELS) {
 			match.cost += DILATED_JOIN_PENALTY_PIXELS;
 		}
 	}
 	matches = matches.filter(match =>
-		match.distance <= expected_distance + SHELL_MATCH_ERROR_PIXELS +
+		match.distance <= stamped_distance + SHELL_MATCH_ERROR_PIXELS +
 			lead_pixels);
 	if (!matches.length) return null;
 	matches.sort((a, b) => a.cost - b.cost);
@@ -1246,7 +1284,8 @@ function shell_from_pillbox(shell) {
 }
 
 function shell_terminal_match(previous, terminal, duration, start_time,
-	lead_pixels = 0, pillbox_lead_pixels = lead_pixels) {
+	lead_pixels = 0, pillbox_lead_pixels = lead_pixels,
+	stamped_duration = duration) {
 	if (terminal.direction !== null &&
 		terminal.direction !== shell_sector(previous)) return null;
 	if (!terminal_takes_pillbox_shell(terminal) && shell_from_pillbox(previous)) {
@@ -1259,9 +1298,11 @@ function shell_terminal_match(previous, terminal, duration, start_time,
 	 * no lead and keeps the strict window for both branches; the diagnostics
 	 * still pass the two leads separately to relax one constraint at a time. */
 	let pillbox_match = pillbox_shell_terminal_match(previous, terminal, duration,
-		start_time, pillbox_lead_pixels);
+		start_time, pillbox_lead_pixels, stamped_duration);
 	if (pillbox_match !== undefined) return pillbox_match;
-	let expected_distance = duration * SHELL_SPEED_PIXELS_PER_TICK;
+	/* the stamps bound the flight; the cost reads against the nearer of
+	 * the pair's two readings */
+	let stamped_distance = stamped_duration * SHELL_SPEED_PIXELS_PER_TICK;
 	/* A recovered exact trajectory can miss an authoritative object hit by
 	 * about a pixel and a half, the same phenomenon SHELL_TANK_HIT_TOLERANCE
 	 * covers where an exact pill orbit meets a reconstructed tank: the tile
@@ -1299,10 +1340,12 @@ function shell_terminal_match(previous, terminal, duration, start_time,
 				pixel_x: terminal.pixel_x, pixel_y: terminal.pixel_y, distance,
 			};
 		}
-		if (endpoint.distance > expected_distance +
+		if (endpoint.distance > stamped_distance +
 			SHELL_MATCH_ERROR_PIXELS + lead_pixels) continue;
-		let lead_penalty = endpoint.distance > expected_distance +
+		let lead_penalty = endpoint.distance > stamped_distance +
 			SHELL_MATCH_ERROR_PIXELS ? DILATED_JOIN_PENALTY_PIXELS : 0;
+		let expected_distance = nearest_expected_distance(endpoint.distance,
+			duration, stamped_duration);
 		matches.push({
 			cost: lead_penalty +
 				Math.abs(endpoint.distance - expected_distance) +
@@ -2389,9 +2432,12 @@ function link_stale_restatements(previous, next) {
  * constraints; accepted displacements continuously refine a finer heading
  * from the track's first trusted point or weapon source. */
 function match_shell_snapshots(previous, next) {
-	/* the stamps' interval, less any stall of the ring between the two
-	 * records (STALL_GAP_CYCLES) */
-	let duration = Math.max(0, next.time - previous.time -
+	/* The pair's two readings (STALL_GAP_CYCLES): the stamps' interval,
+	 * and that less any stall of the ring between the two records, the
+	 * sender's cadence. They coincide without a stall. The cadence gates
+	 * the window and the stamps bound the flight. */
+	let stamped_duration = next.time - previous.time;
+	let duration = Math.max(0, stamped_duration -
 		((next.stall_excess ?? 0) - (previous.stall_excess ?? 0)));
 	/* A zero gap is real on a fast ring: two of the sender's packets can
 	 * land inside one recorder tick, the second a step further along.
@@ -2400,7 +2446,7 @@ function match_shell_snapshots(previous, next) {
 	 * step and exact geometry whatever the stamps claim -- so a tied
 	 * stamp is matched rather than fragmenting every chain that crosses
 	 * it. Negative durations stay refused. */
-	if (duration < 0 || duration > MAX_SHELL_INTERPOLATION_TICKS) return;
+	if (stamped_duration < 0 || duration > MAX_SHELL_INTERPOLATION_TICKS) return;
 	link_stale_restatements(previous, next);
 	mark_new_pillbox_shells(previous, next);
 
@@ -2418,9 +2464,10 @@ function match_shell_snapshots(previous, next) {
 			if (target.terminal) {
 				if (duration > MAX_POSITION_INTERPOLATION_TICKS) continue;
 				match = shell_terminal_match(previous.shells[previous_index], target,
-					duration, previous.time);
+					duration, previous.time, 0, 0, stamped_duration);
 			} else {
-				match = shell_match_cost(previous.shells[previous_index], target, duration);
+				match = shell_match_cost(previous.shells[previous_index], target,
+					duration, stamped_duration);
 				if (match) {
 					match.pixel_x = target.pixel_x;
 					match.pixel_y = target.pixel_y;
@@ -2487,7 +2534,7 @@ function match_shell_snapshots(previous, next) {
 		if (enforce_pillbox_lockstep_candidates(previous.shells, by_previous,
 			by_next)) changed = true;
 		if (enforce_roster_lockstep_candidates(previous.shells, target_groups,
-			by_previous, by_next, duration, next)) changed = true;
+			by_previous, by_next, stamped_duration, next)) changed = true;
 		if (!changed) break;
 		for (let choices of by_previous) choices.sort((a, b) => a.cost - b.cost);
 		for (let choices of by_next) choices.sort((a, b) => a.cost - b.cost);
