@@ -352,11 +352,13 @@ arc but deliberately not started.
   0; see "The sender's lockstep" in `docs/interpolation_tests.md`.
   Corpus (`1ffc4d0`): vouched links +422,129 with contradictions
   unchanged at 14, distance inversions 191 -> 179, terminals +47,
-  unlinked -8, against 72 links lost and 25 pop-outs gained -- about
-  70 chains broken by a veto nothing replaced, which the report's new
-  `shells_sweep_unlinked` / `shells_sweep_rejoined` lines will
-  apportion on the next run. The sender's own tank shells step in the
-  same pass and are a possible third voter later.
+  unlinked -8, against 72 links lost and 25 pop-outs gained. The
+  `6176936` run apportions the losses: the contradiction sweep now
+  undoes 142 links and 79 of the freed starts rejoin nothing (37 at
+  `7801209`), the rest being the matcher's own lent pruning -- the
+  expected residue of vetoed crossings whose true landing was never
+  recorded, left as measured. The sender's own tank shells step in
+  the same pass and are a possible third voter later.
 * **The pace / drawn-speed residue.** Rushed terminal links (68,540
   corpus, 3.0+ px/tick final hops) are the one class every lockstep
   dial nudges the wrong way by a few dozen: a lockstep-verified

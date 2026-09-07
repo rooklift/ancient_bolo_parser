@@ -3093,6 +3093,24 @@ the matcher's own pruning; the fixtures have none of either. Three
 records move on by small margins and one is returned by two
 millionths; the truth axis moves by a tenth of its range.
 
+The next run (`6176936-report.txt`, `6176936-audit.txt`: the counters
+only, every other line byte-identical to `1ffc4d0`) apportions them.
+`shells_sweep_unlinked` 142, `shells_sweep_rejoined` 63: the sweep
+now undoes 142 links and the second round links 79 of the freed
+starts to nothing. At `7801209` the sweep undid 126 and left 37
+broken (89 remade or replaced, a slightly wider count than rejoined,
+which asks only whether the freed start was linked again). So the
+lent reference adds about 16 indictments and about 42 permanent
+breaks, which is most of the 72 links lost; the rest is the matcher's
+own lent pruning. Read against the measurement, the breaks are the
+expected residue rather than a fault: a link the sender's statements
+contradict whose stream-mate's true landing was never recorded or
+never pinned has nothing to rejoin to, and by the project's own rule
+an unmatched pop is safer than a drawn crossing. The number to watch
+is the 79; the fix, if one is ever wanted, is for the sweep to indict
+only against a pill's own election, at the cost of the crossings a
+lent advance alone can see.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
