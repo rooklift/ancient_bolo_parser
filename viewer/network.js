@@ -119,13 +119,29 @@ const TICKS_PER_SECOND = 50;
  *   for a good 2003 connection, the words can only rank games against
  *   each other, and the cuts should spread them.
  *
- *   The STALL cuts are felt-time levels, chosen by judgement: 2 / 7 / 18%
- *   is roughly one, four and eleven seconds frozen per minute. They
- *   cannot be anchored to the pipeline, which barely notices a stall
- *   once the cycle is held: among rings under 14 ticks the median
- *   shell-unchained rate is flat (0.19% to 0.43%) from no stall to over
- *   25%. A frozen game is plain to a viewer whether or not the shells
- *   chain, which is the reading's justification.
+ *   The STALL cuts are felt-time levels, chosen by judgement: 2 / 4 / 8%
+ *   is roughly one, two and five seconds frozen per minute, the freezes
+ *   counted being silences of over half a second each. They cannot be
+ *   anchored to the pipeline, which barely notices a stall once the
+ *   cycle is held: among rings under 14 ticks the median shell-unchained
+ *   rate is flat (0.19% to 0.43%) from no stall to over 25%. A frozen
+ *   game is plain to a viewer whether or not the shells chain, which is
+ *   the reading's justification. The upper two were first set at 7 and
+ *   18, four and eleven seconds a minute, far out in a reading whose
+ *   corpus quartiles are 0.1 / 0.7 / 2.9%: a game frozen a tenth of the
+ *   time was not yet "awful". Lowering them moves 10% of the corpus's
+ *   verdicts, 50 logs into "bad" and 52 into "awful", and the share of
+ *   verdicts the stall reading sets over the cycle's rises from 12.5%
+ *   to 16.2%. The logs moved read, by the pipeline, like the band they
+ *   leave (median 4.7% of segments unbridged among those moved into
+ *   "bad" against 4.9% for those staying "fair"; 5.6% among those
+ *   moved into "awful" against 7.3% for those staying "bad"), which is
+ *   the reading doing its job -- flagging a freeze the pipeline cannot
+ *   see -- at a price on the other two measures: the band's rank
+ *   correlation with segments unbridged falls from 0.82 to 0.78, the
+ *   per-band medians still staging in order down every column, and
+ *   half-to-half agreement on the band gives up 1.6 points (94.1% to
+ *   92.5%) to a cut nearer the reading's bulk.
  *
  * Both cuts are in ticks and percent, not corpus quantiles, so they stay
  * put as the corpus grows; Palp's logs shifted every percentile of
@@ -135,10 +151,11 @@ const TICKS_PER_SECOND = 50;
  * gives r = 0.90 on the quiet share, 0.92 on stall and 0.99 on cycle
  * time, so this is a property of a session rather than of the moment
  * sampled, and fair to state once for a whole game. The bands place both
- * collections at 32% good, 39% fair, 20% bad, 8% awful (Nemokrad's alone
- * 46 / 36 / 15 / 4), the two halves of a log agreeing on the band 94% of
- * the time, and the band's rank correlation with segments unbridged is
- * 0.82 against 0.67 at the old cuts. All of it reproduces with
+ * collections at 32% good, 34% fair, 20% bad, 13% awful (Nemokrad's alone
+ * 46 / 31 / 16 / 7), the two halves of a log agreeing on the band 92.5%
+ * of the time, and the band's rank correlation with segments unbridged
+ * is 0.78 (0.82 at stall cuts of 2 / 7 / 18, 0.67 at cycle cuts of
+ * 14 / 19 / 26). All of it reproduces with
  * tools/measure-network-conditions.cjs. */
 
 const STALL_GAP_TICKS = TICKS_PER_SECOND / 2;  /* silence that reads as a freeze */
@@ -147,7 +164,7 @@ const ABSENCE_TICKS = 1500;     /* 30s: nobody home, not a stalled network */
 const SETTLE_BLOCK_TICKS = 500; /* 10s: the grain the join ramp is found on */
 const SETTLE_SHARE = 0.7;       /* of a typical block, to count as up to speed */
 const MIN_SETTLED_RECORDS = 500;
-const STALL_BANDS = [2, 7, 18];         /* percent of elapsed time frozen */
+const STALL_BANDS = [2, 4, 8];          /* percent of elapsed time frozen */
 const CYCLE_BANDS = [10, 15, 21];       /* ticks per ring cycle, at p90 */
 const CYCLE_QUANTILE = 0.9;
 const CONDITION_NAMES = ["good", "fair", "bad", "awful"];
