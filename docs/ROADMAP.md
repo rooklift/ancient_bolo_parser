@@ -324,34 +324,32 @@ arc but deliberately not started.
   engine's own table still uses them -- a quirk on the books). Corpus: 5,089,285 scored, 0.569 vouched, 423
   contradicted (0.000083), every matching metric byte-identical. See
   `docs/interpolation_tests.md` and the corpus file.
-* **Cross-pill evidence sharing.** The roster vote elects one advance
-  per pill per sender record pair, so a pill with fewer than three
-  pinned shells in flight never votes and its links stand on cost
-  margins alone. But every list of one record is one sampling instant
-  ([E:shell-list-skew]) and the sender steps every shell it simulates
-  in one update pass, so the advance should be the sender transition's,
-  not the pill's: a rich pill could lend it to a sparse one, and the
-  votes of all a sender's pills could be pooled. The measurement comes
-  first: `tools/measure-cross-pill-agreement.cjs` replicates the vote's
-  gates and reports, per sender pair, whether independently elected
-  pills agree, whether a sparse pill's pinned sources land at the rich
+* **Cross-pill evidence sharing -- measured, not yet wired.** The
+  roster vote elects one advance per pill per sender record pair, so a
+  pill with fewer than three pinned shells in flight never votes and
+  its links stand on cost margins alone. But every list of one record
+  is one sampling instant ([E:shell-list-skew]) and the sender steps
+  every shell it simulates in one update pass, so the advance is the
+  sender transition's, not the pill's: a rich pill can lend it to a
+  sparse one, and the votes of all a sender's pills can be pooled.
+  `tools/measure-cross-pill-agreement.cjs` replicates the vote's gates
+  and reports, per sender pair, whether independently elected pills
+  agree, whether a sparse pill's pinned sources land at the rich
   pill's advance (against a control of how many some other advance
-  could land), and how many more pairs a pooled election passes. On
-  the two fixtures: 28,044 pairs, 2,864 with two or more pills; 110
-  pairs where two pills elected, all agreeing; 1,172 sparse sources
-  beside an election, 98.3% landing at its advance where 22.2% could
-  be landed by any other advance; the pooled election passes 807 pairs
-  no single pill could (+9.4%) and never contradicts a per-pill winner.
-  Expected to help against cadence aliasing too, since pills fire on
-  different phases, and safe under a stale record, which dilates every
-  pill of the sender alike. Wanting: the corpus run with its
-  disagreement scenes opened, then pooling threaded through both vote
-  sites
+  could land), and how many more pairs a pooled election passes. The
+  corpus run (`docs/corpus_runs/78797d3-cross-pill.txt`, 443 logs) is
+  unanimous: 10,434 of 10,434 double elections agree; 99.77% of
+  100,819 sparse sources land at the elected advance where 22.9% could
+  be landed by any other; pooling elects 77,948 more pairs (+14.5%)
+  and never contradicts a per-pill winner. Pooling should also weaken
+  cadence aliasing, since pills fire on different phases, and is safe
+  under a stale record, which dilates every pill of the sender alike.
+  Next: thread pooling through both vote sites
   (`build_pill_lockstep_reference` and
   `enforce_roster_lockstep_candidates`, with its abstention and
   orphan-free tiebreak), judged on the vouched and contradicted link
-  bins. The sender's own tank shells step in the same pass and are a
-  possible third voter later.
+  bins and the drawn-motion audit. The sender's own tank shells step in
+  the same pass and are a possible third voter later.
 * **The pace / drawn-speed residue.** Rushed terminal links (68,540
   corpus, 3.0+ px/tick final hops) are the one class every lockstep
   dial nudges the wrong way by a few dozen: a lockstep-verified
