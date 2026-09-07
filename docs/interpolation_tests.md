@@ -1516,7 +1516,7 @@ the engine see the section after it.
   shells that left are index 1+ tank shots that no longer claim a confident
   origin.
 
-## A stall of the ring is subtracted from the link that spans it
+## A stall of the ring is subtracted from the link that spans it -- `cb51fb3`
 
 Ring records arrive in bursts, one per cycle, so the gap between
 consecutive records of any sender is normally one ring cycle. The ten
@@ -1537,7 +1537,8 @@ interval less the excess between the two records, floored at zero.
 Drawing times, terminal arrival times, the stale-restatement bound
 and the stitching passes keep the stamps as they are.
 
-The pairs, which are the metric the change was built against: the two
+The pairs, which are the metric the change was built against
+(`cb51fb3-paired-audit.txt`): the two
 builds of a game disagreed on 803 forward stories before and 633
 after. By bin, delay 332 -> 193 (of 1,570 links), stall 71 -> 27 (and
 52 stalled links now joined on both sides where none were), jitter
