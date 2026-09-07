@@ -1516,7 +1516,7 @@ the engine see the section after it.
   shells that left are index 1+ tank shots that no longer claim a confident
   origin.
 
-## A stall of the ring, and the two readings of the pair that spans it -- `cb51fb3` and after
+## A stall of the ring, and the two readings of the pair that spans it -- `cb51fb3`, `04d67cf`
 
 Ring records arrive in bursts, one per cycle, so the gap between
 consecutive records of any sender is normally one ring cycle. The ten
@@ -1564,7 +1564,8 @@ ticks, three shell updates: above the matcher's tolerance and the
 stamp jitter's outer edge on the pairs. That leaves 0.2% of the
 fixture's pairs stalled and every metric of that fixture where it was.
 
-The pairs, the metric the change was built against: the two builds of
+The pairs, the metric the change was built against (`04d67cf-paired-audit.txt`,
+`04d67cf-pairs-report.txt`, `04d67cf-pairs-audit.txt`): the two builds of
 a game disagreed on 803 forward stories at the baseline, 633 under
 the single reading, 693 under two (the second reading admits more
 candidates, and where two stories fit the two builds can still part).
