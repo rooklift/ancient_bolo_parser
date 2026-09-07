@@ -3289,6 +3289,64 @@ pairs stalled under the cycle rule alone). On the pairs that takes the
 gain further than the single reading did and leaves the order
 inversions where they were.
 
+## A stalled pair carries two readings -- `04d67cf`
+
+The fixture doc's section of the same name has the change: a pair
+that spans a stall of the ring is scored under both readings of its
+interval, the sender's cadence and the stamps, each candidate against
+the one it fits better, the stamps the upper bound; and the stall
+excess must clear six ticks, so a fast ring's jitter is not read as
+stalls. Built against the pairs after the `cb51fb3` run above showed
+the single reading half wrong.
+
+Corpus, `8741bb6-report.txt` and `8741bb6-audit.txt` against `82531bc`
+(443 files, zero failures, same input hash), with the `cb51fb3`
+single-reading run (`dfc7534-*`) in the middle column:
+
+* coverage, further than the single reading on every line:
+  `shells_matched_forward` 9,789,589 -> 9,792,518 -> **9,793,741**
+  (+4,152 on the baseline, every one off `shells_unmatched_forward`),
+  `shells_unlinked` 11,536 -> 10,069 -> **9,708**, `terminals_matched`
+  1,626,391 -> 1,627,327 -> **1,628,960** (+2,569: `shell_falls` +1,108,
+  `pillbox_damage` +625, `tank_hit` +470, `explosion` +326,
+  `base_damage` +40 where the single reading had lost 47),
+  `rate_terminals_matched` 0.835573 -> 0.836053 -> **0.836892**,
+  `rate_shells_unlinked` 0.001175 -> 0.001026 -> **0.000989**. Every
+  headline record moves on again.
+* the truth axes come back: `pairs_pill_order_inverted` 191 -> 285 ->
+  **188** (`blurred` 8 -> 7), `links_pill_contradicted` 14 -> 12 ->
+  **14**, `rate_links_pill_vouched` 0.570067 -> 0.569960 -> 0.570032,
+  `links_pill_unpinned` 2,801 -> 2,894 -> 2,746
+* the drawn audit: `pop_outs` 27,586 -> 24,657 -> **23,434** (-15% on
+  the baseline), `pop_ins` 24,513 -> 22,846, `pops_paired_backwards`
+  1,224 -> 737 -> **856** (the one line the second reading gives some
+  of back, still -30% on the baseline), `rate_pop_outs` 0.002810 ->
+  0.002387
+* the drawn speed, now read apart: `links_stalled` 19,582, of which
+  11,742 draw steady over the stamps (the stall before the sender:
+  the contents advanced the whole interval) and 545 would over the
+  cadence; `hover_links` 2,450 -> 5,303 -> 4,824, of which 1,766 span a
+  stall; `rate_links_steady` 0.966807 -> 0.964066 -> 0.965741 and
+  `rate_links_steady_unstalled` **0.966621**, within 0.0002 of the
+  baseline's steady rate; `rate_hover_links_unstalled` 0.000375
+  against the baseline's 0.000300; rushes unchanged
+* `flow_components` 132,729 -> 134,095 -> 130,489, `shells_with_birth`
+  +1,640, `shells_unseen_pillbox_birth` 3,521 -> 3,010,
+  `terminals_unseen_pillbox_source` -399, `shells_visual_joins` 1,201 ->
+  1,146
+
+Reading. The two kinds of stall were the whole story of the `cb51fb3`
+regression: with both readings on the table the inversions return to
+the baseline and every coverage line goes further than the single
+reading took it. On the corpus the stall before the sender is the
+commoner kind, six links in ten, not the half the pairs showed. The
+slow-drawn links that remain are the other kind drawn over the stamps,
+as the tanks around them are; the unstalled hover rate a quarter above
+the baseline (0.000375 against 0.000300, some 600 links) is the one
+drawn-speed cost not yet named, presumably chains that continue past a
+stalled link. The backwards pops give back 119 of the 487 the single
+reading had recovered. The change stands as measured.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch

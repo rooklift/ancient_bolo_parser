@@ -1589,9 +1589,12 @@ instead is a separate choice, not taken here.
 
 The committed fixtures: `040601.6` byte-identical to the baseline;
 `n20021018.2` `shells_matched_forward` 73,495 -> 73,497 (two
-`shell_falls`), `roster_votes_unvoted` 9,954 -> 9,956. The corpus run
-of this state is the holder's, to follow; the `cb51fb3` run in the
-corpus file measured the single reading without the floor.
+`shell_falls`), `roster_votes_unvoted` 9,954 -> 9,956. Corpus:
+`04d67cf` in [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md)
+-- against the baseline matched forward +4,152, unlinked -1,828,
+terminals +2,569, pop-outs -15%, the order inversions back at 188
+against 191, the steady rate over unstalled links within 0.0002 of the
+baseline's.
 
 ## Where the line stands -- `30d5351`
 
