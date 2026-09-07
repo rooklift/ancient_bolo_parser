@@ -33,7 +33,12 @@
  * Usage:
  *   node tools/find-changed-scenes.cjs --engine=DIR [replay-or-directory]
  *       [--top=N] [--window=TICKS] [--kind=joined|dropped|retargeted|all]
- *       [--workers=N] [--max-files=N]
+ *       [--min-stall=TICKS] [--max-stall=TICKS] [--workers=N] [--max-files=N]
+ *
+ * --min-stall and --max-stall keep only scenes whose widest stall lies
+ * in that range: --max-stall=50 asks for the one-burst hiccups inside
+ * the interpolation window, where a shell used to flicker rather than
+ * freeze; --min-stall=100 the freezes.
  *
  * With no path the configured corpus is read (see tools/corpus.cjs).
  * Snapshots are aligned by sender and order, which both engines build
@@ -190,6 +195,7 @@ function summarize(scene, options) {
 /* ---------- report ---------- */
 
 function print_scenes(scenes, options) {
+	scenes = scenes.filter(s => s.stall >= options.min_stall && s.stall <= options.max_stall);
 	scenes.sort((a, b) => b.score - a.score || a.flips.length - b.flips.length || a.first.time - b.first.time);
 	let shown = scenes.slice(0, options.top);
 	console.log(`${scenes.length} scenes in ${options.files} replays (${options.failed} failed); ` +
@@ -234,7 +240,7 @@ function load_engines(old_root) {
 
 function parse_args(argv) {
 	let options = { target: null, workers: null, max_files: Infinity, engine_root: null,
-		top: 20, window: 100, kind: "joined", examples: 6 };
+		top: 20, window: 100, kind: "joined", examples: 6, min_stall: 0, max_stall: Infinity };
 	for (let arg of argv) {
 		let m;
 		if ((m = arg.match(/^--workers=(\d+)$/))) options.workers = Math.max(1, parseInt(m[1], 10));
@@ -243,6 +249,8 @@ function parse_args(argv) {
 		else if ((m = arg.match(/^--top=(\d+)$/))) options.top = parseInt(m[1], 10);
 		else if ((m = arg.match(/^--window=(\d+)$/))) options.window = parseInt(m[1], 10);
 		else if ((m = arg.match(/^--examples=(\d+)$/))) options.examples = parseInt(m[1], 10);
+		else if ((m = arg.match(/^--min-stall=(\d+)$/))) options.min_stall = parseInt(m[1], 10);
+		else if ((m = arg.match(/^--max-stall=(\d+)$/))) options.max_stall = parseInt(m[1], 10);
 		else if ((m = arg.match(/^--kind=(joined|dropped|retargeted|all)$/))) options.kind = m[1];
 		else if (arg.startsWith("--")) { console.error(`error: unknown option ${arg}`); process.exit(2); }
 		else if (options.target === null) options.target = path.resolve(arg);
