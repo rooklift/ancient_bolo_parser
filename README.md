@@ -29,7 +29,7 @@ for (const rec of records(new Uint8Array(fs.readFileSync(file)))) {
 
 ## Fixtures
 
-`fixtures/` holds anonymised logs: two single games, and in `fixtures/pairs/` ten games each recorded on two machines at once, named by game id with `-A` and `-B` for the two recorders. Player and machine names, chat and IP addresses are substituted byte for byte (`tools/redact-names.cjs`, `redact-chat.cjs`, `redact-addresses.cjs`); every other byte is as recorded, so the two logs of a pair still agree on every shared record.
+`fixtures/` holds anonymised logs: two single games, and in `fixtures/pairs/` ten games each recorded on two machines at once, named by date (a second number telling apart two games of one day) with `-A` and `-B` for the two recorders. Player and machine names, chat and IP addresses are substituted byte for byte (`tools/redact-names.cjs`, `redact-chat.cjs`, `redact-addresses.cjs`); every other byte is as recorded, so the two logs of a pair still agree on every shared record.
 
 # Ancient Bolo Log Viewer
 
