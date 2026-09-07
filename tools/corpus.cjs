@@ -70,11 +70,11 @@ function resolve_corpus_root() {
  * characters of the basename's SHA-256 -- enough for the corpus holder
  * to find the file (the same digest of each candidate's basename) and
  * for two scenes to be told apart, nothing more. The committed
- * fixtures' names are digits already, or a game id and a letter
- * (fixtures/pairs), and print verbatim. */
+ * fixtures' names are digits already, or a date and a letter for the
+ * recorder (fixtures/pairs), and print verbatim. */
 function replay_label(file) {
 	let name = path.basename(file);
-	if (/^n?[0-9.]+$/.test(name) || /^[0-9a-f]{16}-[A-Z]$/.test(name)) return name;
+	if (/^n?[0-9.]+$/.test(name) || /^[0-9.]+-[A-Z]$/.test(name)) return name;
 	let digest = require("node:crypto").createHash("sha256")
 		.update(name, "utf8").digest("hex").slice(0, 6);
 	return `${(name.match(/^[0-9.]*/) || [""])[0]}~${digest}`;

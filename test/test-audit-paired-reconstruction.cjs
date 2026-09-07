@@ -36,7 +36,7 @@ check("different weapons conflict", attribute("tank", "pill 2048:2096"), "confli
 // ---- a committed pair, end to end
 
 {
-	const pair = path.join(__dirname, "..", "fixtures", "pairs", "c0a81701b7a359c9");
+	const pair = path.join(__dirname, "..", "fixtures", "pairs", "20010817.1");
 	let a = compare_tool.load_log(BoloLog, pair + "-A"), b = compare_tool.load_log(BoloLog, pair + "-B");
 	let out = audit_tool.audit(a, b);
 	let c = out.counts;
