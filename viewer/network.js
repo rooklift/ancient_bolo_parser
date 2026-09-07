@@ -84,29 +84,61 @@ const TICKS_PER_SECOND = 50;
  * the median barely moves (6.6% to 5.7%) [E:seq-loss].
  *
  * The cycle reading earns its place by predicting what the viewer can
- * actually make of the stream. Across the corpus, the share of shell
- * observations the motion code fails to chain forward tracks cycle p90
- * at rho = 0.76, against 0.41 for stall and 0.25 for the quiet share --
- * and the quiet share's correlation is mostly player count in disguise:
- * held to four-player logs it collapses to 0.02 while cycle keeps 0.71.
- * A slow ring undersamples every shell in flight, and no amount of
- * counting quiet slots will see it; the poster child is a log with 2.7%
- * quiet whose ring turned every 0.3 s, giving the corpus's worst shell
- * interpolation on nearly its cleanest quiet figure. The cycle bands
- * alone stage the corpus at median 0.2% / 0.7% / 2.4% / 7.4% of shells
- * unchained, which is the gradient neither other signal produces. That
- * is why the quiet share was dropped from the verdict: at its old bands
- * (6 / 11 / 22%) it moved about half the corpus off "good" on a figure
- * that says how many tanks were parked. All of it reproduces with
- * tools/measure-network-agreement.cjs.
+ * actually make of the stream. Over both collections (1,020 logs), the
+ * share of tank track segments the motion code cannot bridge tracks
+ * cycle p90 at rho = 0.91, and shells it fails to chain forward at 0.76;
+ * with stall partialled out those hold at 0.89 and 0.70, while stall
+ * with cycle held keeps only 0.32 and 0.36, and the quiet share never
+ * rises above 0.25 -- its correlation is player count in disguise, and
+ * held to four-player logs it collapses to 0.02. A slow ring
+ * undersamples every shell in flight, and no amount of counting quiet
+ * slots will see it; the poster child is a log with 2.7% quiet whose
+ * ring turned every 0.3 s, giving the corpus's worst shell interpolation
+ * on nearly its cleanest quiet figure. That is why the quiet share was
+ * dropped from the verdict: at its old bands (6 / 11 / 22%) it moved
+ * about half the corpus off "good" on a figure that says how many tanks
+ * were parked. All of it reproduces with
+ * tools/measure-network-agreement.cjs
+ * (docs/corpus_runs/f4782bc-agreement.txt).
+ *
+ * WHERE THE BANDS ARE CUT, and on what basis. The two readings are cut
+ * on different grounds, and neither is a natural break: the pipeline's
+ * failure rates rise smoothly with the ring cycle, about half a point of
+ * unbridged track segments per tick from 6 to 30, with no knee anywhere.
+ *
+ *   The CYCLE cuts are severity levels on that continuous reading,
+ *   placed so the bands stage the outcomes and spread the corpus. The
+ *   ring's floor is 6 ticks (a two-player game on a fast link); by 10
+ *   ticks the unbridged share has risen by half, by 15 it has doubled,
+ *   by 21 tripled. Rated on cycle alone the bands run 0.15 / 0.33 / 0.62
+ *   / 2.15% of shells unchained and 3.5 / 4.9 / 7.0 / 10.9% of segments
+ *   unbridged. The cuts were first set at 14 / 19 / 26, which put 70% of
+ *   Nemokrad's logs in "good" -- a range from a LAN-speed ring to one
+ *   turning twice as slowly, across which the failure rate doubles --
+ *   and left the word saying little. Since there is no external standard
+ *   for a good 2003 connection, the words can only rank games against
+ *   each other, and the cuts should spread them.
+ *
+ *   The STALL cuts are felt-time levels, chosen by judgement: 2 / 7 / 18%
+ *   is roughly one, four and eleven seconds frozen per minute. They
+ *   cannot be anchored to the pipeline, which barely notices a stall
+ *   once the cycle is held: among rings under 14 ticks the median
+ *   shell-unchained rate is flat (0.19% to 0.43%) from no stall to over
+ *   25%. A frozen game is plain to a viewer whether or not the shells
+ *   chain, which is the reading's justification.
+ *
+ * Both cuts are in ticks and percent, not corpus quantiles, so they stay
+ * put as the corpus grows; Palp's logs shifted every percentile of
+ * Nemokrad's when they were added.
  *
  * Scoring interleaved half-minute blocks as if they were separate games
- * gives r = 0.88 on the quiet share, 0.94 on stall and 0.99 on cycle
+ * gives r = 0.90 on the quiet share, 0.92 on stall and 0.99 on cycle
  * time, so this is a property of a session rather than of the moment
- * sampled, and fair to state once for a whole game. The stall and cycle
- * bands place the corpus at 69.7% good, 20.4% fair, 7.9% bad, 2.0%
- * awful, the two halves of a log agreeing on the band 96.8% of the time
- * (docs/corpus_runs/dcc6491-conditions.txt). All of it reproduces with
+ * sampled, and fair to state once for a whole game. The bands place both
+ * collections at 32% good, 39% fair, 20% bad, 8% awful (Nemokrad's alone
+ * 46 / 36 / 15 / 4), the two halves of a log agreeing on the band 94% of
+ * the time, and the band's rank correlation with segments unbridged is
+ * 0.82 against 0.67 at the old cuts. All of it reproduces with
  * tools/measure-network-conditions.cjs. */
 
 const STALL_GAP_TICKS = TICKS_PER_SECOND / 2;  /* silence that reads as a freeze */
@@ -116,7 +148,7 @@ const SETTLE_BLOCK_TICKS = 500; /* 10s: the grain the join ramp is found on */
 const SETTLE_SHARE = 0.7;       /* of a typical block, to count as up to speed */
 const MIN_SETTLED_RECORDS = 500;
 const STALL_BANDS = [2, 7, 18];         /* percent of elapsed time frozen */
-const CYCLE_BANDS = [14, 19, 26];       /* ticks per ring cycle, at p90 */
+const CYCLE_BANDS = [10, 15, 21];       /* ticks per ring cycle, at p90 */
 const CYCLE_QUANTILE = 0.9;
 const CONDITION_NAMES = ["good", "fair", "bad", "awful"];
 

@@ -66,9 +66,10 @@ if (!fs.existsSync(log1)) {
 	check("bases", game.final.bases.length, 16);
 	check("starts", game.final.starts.length, 8);
 	check("chat entries", game.chat.length > 100, true);
-	// Stall and cycle both sit in the good band; the quiet share (6.84%)
-	// would have made this "fair" when it was rated as packet loss.
-	check("network conditions rating", game.network.rating, "good");
+	// A 13-tick ring is the fair band (10 to 14); stall is nowhere near
+	// its first cut. The quiet share (6.84%) has no say.
+	check("network conditions rating", game.network.rating, "fair");
+	check("network conditions cycle ticks", game.network.cycle, 13);
 	check("network conditions quiet slots %", game.network.quiet.toFixed(2), "6.84");
 	check("network conditions stall %", game.network.stall.toFixed(2), "0.04");
 	// The verdict is read from settled play, so the ramp at the start is
@@ -2873,7 +2874,7 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	check("a slow ring has no quiet slots", net3.quiet, 0);
 	check("a slow ring never freezes", net3.stall, 0);
 	check("the cycle reading is the p90 turn time", net3.cycle, 20);
-	check("lag alone can rate bad", net3.rating, "bad");
+	check("lag alone can rate bad", net3.rating, "bad");   /* 20 ticks: the 15-21 band */
 	check("a clean ring also cycles fast", net.cycle, 2);
 
 	// The cycle is read per player: two players' records interleaved 10
