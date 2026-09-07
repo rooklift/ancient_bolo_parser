@@ -324,7 +324,7 @@ arc but deliberately not started.
   engine's own table still uses them -- a quirk on the books). Corpus: 5,089,285 scored, 0.569 vouched, 423
   contradicted (0.000083), every matching metric byte-identical. See
   `docs/interpolation_tests.md` and the corpus file.
-* **Cross-pill evidence sharing -- measured and wired, corpus run pending.** The
+* **Cross-pill evidence sharing -- DONE.** The
   roster vote elects one advance per pill per sender record pair, so a
   pill with fewer than three pinned shells in flight never votes and
   its links stand on cost margins alone. But every list of one record
@@ -350,8 +350,13 @@ arc but deliberately not started.
   Fixture: coverage and the drawn-motion audit identical, vouched links
   20,088 -> 21,512 and 27,006 -> 30,141 on the fast ring, contradictions
   0; see "The sender's lockstep" in `docs/interpolation_tests.md`.
-  Wanting: the corpus rates and audit runs. The sender's own tank
-  shells step in the same pass and are a possible third voter later.
+  Corpus (`1ffc4d0`): vouched links +422,129 with contradictions
+  unchanged at 14, distance inversions 191 -> 179, terminals +47,
+  unlinked -8, against 72 links lost and 25 pop-outs gained -- about
+  70 chains broken by a veto nothing replaced, which the report's new
+  `shells_sweep_unlinked` / `shells_sweep_rejoined` lines will
+  apportion on the next run. The sender's own tank shells step in the
+  same pass and are a possible third voter later.
 * **The pace / drawn-speed residue.** Rushed terminal links (68,540
   corpus, 3.0+ px/tick final hops) are the one class every lockstep
   dial nudges the wrong way by a few dozen: a lockstep-verified

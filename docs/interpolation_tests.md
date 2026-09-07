@@ -1434,7 +1434,12 @@ same-ray story was the shell's, with every other line identical and
 the audit byte-identical. All three pinned counts in
 `test/test-viewer.cjs` are repinned to the new values with the lent
 count added. No headline rate moves, so no new row in the table
-below. Corpus: pending the holder's run.
+below. Corpus: `1ffc4d0` in
+[`interpolation_tests_corpus.md`](interpolation_tests_corpus.md) --
+vouched links +422,129 with contradictions unchanged at 14, distance
+inversions 191 -> 179, terminals +47 and unlinked -8 (two records and
+the unlinked record move on), against 72 links lost and 25 pop-outs
+gained.
 
 ## Findings at the close of the ten-run table -- `926f391`
 

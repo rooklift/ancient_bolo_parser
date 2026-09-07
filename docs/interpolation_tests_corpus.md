@@ -163,6 +163,7 @@ Constant at all ten commits, and worth having once:
 | `4f0aa06` | a turning tank's shell carries the nibble's sector | **0.997166** | **0.001176** | **0.835572** | **238,130** | 13,188 | 1,224 | **14** |
 | `82531bc` | a dilated candidate outlives the on-schedule consensus | **0.997171** | **0.001175** | **0.835573** | 238,128 | 13,188 | 1,224 | **14** |
 | `de80622` | distance order scored (no engine change) | 0.997171 | 0.001175 | 0.835573 | 238,128 | 13,188§ | 1,224§ | **14** |
+| `1ffc4d0` | the sender's lockstep | 0.997169 | **0.001174** | **0.835597** | **238,146** | 13,191 | 1,225 | **14** |
 
 The three right-hand columns are lower-is-better counts from the drawn
 audit and the vouched-link score, added so that a drawing-only commit
@@ -3026,6 +3027,71 @@ the 11 both-stitched too); refuse a stitch onto a landing no surviving
 orbit can place (52); the pairwise distance-order veto (13). The 14
 contradicted links are all stitched as well, so the first may clear
 some of them.
+
+## The sender's lockstep -- `1ffc4d0`
+
+The fixture doc's section of the same name has the change: a client
+steps every shell of every pill firing at it in one update pass, and
+the `78797d3` measurement (`78797d3-cross-pill.txt`) found no pair in
+the corpus where two pills of one sender elected different advances,
+so both vote sites now lend the sender's advance -- one pill's
+election, or the pooled election where none passed -- to every pill of
+the sender that could not elect its own, and the stitching and
+residual reference composes the sender's hops the same way.
+
+Corpus, `1ffc4d0-report.txt` and `1ffc4d0-audit.txt` against
+`82531bc` (443 files, zero failures, same corpus and input hash; the
+order columns against `de80622-links.txt`):
+
+* the truth axis moves by more than every earlier dial together:
+  `links_pill_vouched` 2,917,330 -> **3,339,459** (+422,129),
+  `links_pill_unvouched` 2,200,175 -> 1,778,138, `rate_links_pill_vouched`
+  0.570067 -> **0.652543**; `links_pill_contradicted` **14 unchanged**;
+  `links_pill_unpinned` 2,801 -> 2,532 (-269). `roster_votes_lent`
+  286,749, out of `unvoted` 1,730,908 -> 1,480,776 (-250,132) and
+  `stood_down` 184,057 -> 147,474 (-36,583); `passed` 563,197 ->
+  563,189
+* the distance-order alarm falls: `pairs_pill_order_inverted` 191 ->
+  **179** (-12), `blurred` 8 -> 7, over 8,621,382 pairs (-415)
+* two terminal-side records and the unlinked record move on:
+  `terminals_matched` 1,626,391 -> 1,626,438 (+47: `tank_hit` +18,
+  `pillbox_damage` +15, `shell_falls` +13, `explosion` +1),
+  `rate_terminals_matched` 0.835573 -> **0.835597**;
+  `shells_unlinked` 11,536 -> **11,528** (-8)
+* the cost: `shells_matched_to_snapshot` 8,163,198 -> 8,163,126 (-72),
+  so `shells_matched_forward` -25 net of the terminals and the
+  forward-matched rate 0.997171 -> 0.997169, two millionths under
+  `82531bc`'s record; `shells_visual_joins` 1,201 -> 1,166 (-35, the
+  lent advance deciding same-ray stories the matcher used to draw
+  without believing); `shell_births` +40, all pill-side --
+  `shells_stream_birth` 989 -> 1,008 and `shells_unseen_pillbox_birth`
+  3,521 -> 3,541 -- with `shells_with_pillbox_source` -177 and
+  `links_no_pill_source` +174: some chains lost a link and the
+  provenance below it, their freed starts minted as births
+* Audit: `pop_outs` 27,586 -> 27,611 (+25), `pop_ins` 24,513 ->
+  24,545 (+32), `pops_paired_forward` 3,002 -> 3,037 (+35) -- the
+  shape of a chain broken in two, the same shell popping out and back
+  in -- backwards pops 1,224 -> 1,225; `hover_links` 2,450 -> 2,484
+  (+34), `rush_links` 7,472 -> 7,473; `rate_links_steady` 0.966807
+  -> 0.966834, the 1.5-1.8 bucket -175 and 2.2-2.5 -134 against
+  1.8-2.2 +151; seam jumps still zero
+
+So the lent votes are doing two things at once. Where they veto a
+crossing the pairwise cost had accepted, the chain re-forms on the
+right stream-mate: the inversions, the terminals and the unlinked
+count all say so, and 422 thousand links are now vouched by a
+statement roster rather than a cost margin. Where they veto a link
+nothing replaces, the chain breaks: about 70 links across 443 logs,
+each a pop-out, a pop-in and a phantom birth. The contradiction
+column sitting at 14 says the surviving links agree with the vote;
+it cannot say whether the ~70 broken ones were crossings or true
+links vetoed by one of the 0.23% of lent advances the measurement
+found landing nowhere. The report now carries
+`shells_sweep_unlinked` / `shells_sweep_rejoined` so the next run can
+say how many of the breaks are the contradiction sweep's and how many
+the matcher's own pruning; the fixtures have none of either. Three
+records move on by small margins and one is returned by two
+millionths; the truth axis moves by a tenth of its range.
 
 ## Findings
 
