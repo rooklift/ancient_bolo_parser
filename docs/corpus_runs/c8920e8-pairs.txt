@@ -1,0 +1,408 @@
+20 logs with a game id, 10 distinct games, 10 recorded more than once
+
+=== game c0a80101b6f2cff7: c0a80101b6f2cff7-A, c0a80101b6f2cff7-B
+--- A = c0a80101b6f2cff7-A, B = c0a80101b6f2cff7-B
+game id c0a80101b6f2cff7: the same game in both logs
+ring records: A 10564, B 10417, shared 10374 (3 byte-identical matches rejected: stamped off the sender's offset with no wait in the late log to show for it)
+  A only: 0 before the shared stretch, 3 inside it, 187 after
+  B only: 40 before the shared stretch, 3 inside it, 0 after
+  runs of records in A only, inside the shared stretch, with the gap B shows across each:
+    3 records from senders 0,1,2 over 0.0 s at t=2297489 -- a hole of 132 ticks in B
+  runs of records in B only, inside the shared stretch, with the gap A shows across each:
+    3 records from senders 0,1,2 over 0.0 s at t=417154 -- a hole of 0 ticks in A
+  delivered late: 3 records stamped at one machine well after the other, each at the end of a wait in that machine's log -- the same packet, held up on its way round:
+    2.3 s late at B, after B heard nothing for 2.6 s: t=412715 seq=5 p=4 b=4 T=0 parachute_position,base_drain
+    0.5 s late at B, after B heard nothing for 0.8 s: t=416713 seq=87 p=4 b=4 T=8 pos(48,131 speed 55),parachute_position,shot_fired,shell_falls,pillbox_damage,tank_hit,shells
+    2.3 s late at A, after A heard nothing for 2.6 s: t=2297489 seq=120 p=3 b=4 T=8 pos(39,137 speed 48),parachute_position,shot_fired,shot_fired,shells
+  A's sequence holes: 936, 902 inside the shared stretch missing 1317 slots, of which 0 are records in B
+  B's sequence holes: 939, 902 inside the shared stretch missing 1317 slots, of which 0 are records in A
+clocks: B - A = -1880219 ticks; ring cycle (median) A 13 B 13; drift -20.2 ppm over 631 s (-0.64 ticks end to end)
+  sender 0: n=2102 median -1880219 (+0, group -) min -1880229 p1 -1880220 p99 -1880218 max -1880217
+  sender 1: n=2119 median -1880219 (+0, group -) min -1880229 p1 -1880220 p99 -1880218 max -1880217
+  sender 2: n=1936 median -1880219 (+0, group -) min -1880229 p1 -1880220 p99 -1880218 max -1880217
+  sender 3: n=2172 median -1880219 (+0, group -) min -1880335 p1 -1880220 p99 -1880218 max -1880217
+  sender 4: n=2045 median -1880206 (+13, group +) min -1880208 p1 -1880207 p99 -1880200 max -1880090
+ring order: 0 -> 1 -> 2 -> 4 -> 3
+recorder of A: by stamp offsets slot 4, by burst position slot 4
+recorder of B: by stamp offsets slot 2, by burst position slot 2
+start-of-log bursts: A 80 records, B 80; differing A 7, B 7
+
+=== game c0a80301b6faa310: c0a80301b6faa310-A, c0a80301b6faa310-B
+--- A = c0a80301b6faa310-A, B = c0a80301b6faa310-B
+game id c0a80301b6faa310: the same game in both logs
+ring records: A 18074, B 18113, shared 17947 (13 byte-identical matches rejected: stamped off the sender's offset with no wait in the late log to show for it)
+  A only: 2 before the shared stretch, 11 inside it, 114 after
+  B only: 155 before the shared stretch, 11 inside it, 0 after
+  runs of records in A only, inside the shared stretch, with the gap B shows across each:
+    1 record from sender 0 over 0.0 s at t=3427934 -- an absence: B heard nothing for 8.4 s
+    1 record from sender 0 over 0.0 s at t=3428185 -- an absence: B heard nothing for 5.0 s
+    1 record from sender 0 over 0.0 s at t=3428453 -- a hole of 123 ticks in B
+    1 record from sender 0 over 0.0 s at t=3428585 -- a hole of 132 ticks in B
+    1 record from sender 0 over 0.0 s at t=3431050 -- a hole of 242 ticks in B
+    1 record from sender 0 over 0.0 s at t=3431484 -- an absence: B heard nothing for 8.7 s
+    1 record from sender 0 over 0.0 s at t=3432335 -- a hole of 37 ticks in B
+    1 record from sender 0 over 0.0 s at t=3432534 -- a hole of 35 ticks in B
+    3 records from senders 2,4,5 over 0.0 s at t=3444997 -- a hole of 0 ticks in B
+  runs of records in B only, inside the shared stretch, with the gap A shows across each:
+    1 record from sender 0 over 0.0 s at t=163086 -- a hole of 0 ticks in A
+    1 record from sender 0 over 0.0 s at t=163506 -- a hole of 0 ticks in A
+    1 record from sender 0 over 0.0 s at t=163902 -- a hole of 0 ticks in A
+    1 record from sender 0 over 0.0 s at t=164025 -- a hole of 0 ticks in A
+    1 record from sender 0 over 0.0 s at t=166381 -- a hole of 0 ticks in A
+    1 record from sender 0 over 0.0 s at t=166623 -- a hole of 0 ticks in A
+    1 record from sender 0 over 0.0 s at t=167871 -- a hole of 1 ticks in A
+    1 record from sender 0 over 0.0 s at t=168070 -- a hole of 0 ticks in A
+    3 records from senders 2,4,5 over 0.0 s at t=180674 -- a hole of 115 ticks in A
+  delivered late: 12 records stamped at one machine well after the other, each at the end of a wait in that machine's log -- the same packet, held up on its way round:
+    8.2 s late at A, after A heard nothing for 8.4 s: t=3427934 seq=4 p=3 b=0 T=8 pos(142,141 speed 9),base_drain,terrain_change,pillbox_damage,pillbox_damage,shells
+    4.8 s late at A, after A heard nothing for 5.0 s: t=3428185 seq=10 p=3 b=0 T=8 pos(137,138 speed 0),pillbox_damage,pillbox_damage
+    0.5 s late at A, after A heard nothing for 0.7 s: t=3428230 seq=23 p=0 b=8 T=8 pos(111,126 speed 64),lgm_position
+    2.3 s late at A, after A heard nothing for 2.5 s: t=3428453 seq=76 p=3 b=0 T=8 pos(137,138 speed 3),shell_falls
+    2.5 s late at A, after A heard nothing for 2.6 s: t=3428585 seq=82 p=3 b=0 T=8 pos(137,138 speed 10)
+    10.2 s late at A, after A heard nothing for 10.3 s: t=3430726 seq=97 p=0 b=8 T=8 pos(113,123 speed 64),lgm_position
+    4.6 s late at A, after A heard nothing for 4.8 s: t=3431050 seq=16 p=3 b=8 T=8 pos(142,141 speed 0),lgm_position
+    8.5 s late at A, after A heard nothing for 8.7 s: t=3431484 seq=22 p=3 b=9 T=0 lgm_position,base_stock_tick,base_drain,terrain_change
+    2.2 s late at A, after A heard nothing for 2.4 s: t=3431709 seq=82 p=3 b=8 T=0 lgm_position,base_drain
+    0.5 s late at A, after A heard nothing for 0.7 s: t=3432335 seq=22 p=3 b=0 T=8 pos(150,133 speed 24)
+    0.5 s late at A, after A heard nothing for 0.7 s: t=3432534 seq=118 p=3 b=0 T=0 pillbox_damage,shells
+    2.1 s late at B, after B heard nothing for 2.3 s: t=180674 seq=80 p=1 b=4 T=8 pos(134,108 speed 41),parachute_position,pillbox_fires,pillbox_fires,pillbox_damage,shells,shells
+  A's sequence holes: 1829, 1824 inside the shared stretch missing 4854 slots, of which 0 are records in B
+  B's sequence holes: 1970, 1825 inside the shared stretch missing 4855 slots, of which 0 are records in A
+clocks: B - A = -3264437 ticks; ring cycle (median) A 9 B 9; drift 1.8 ppm over 704 s (0.06 ticks end to end)
+  sender 0: n=3042 median -3264437 (+0, group -) min -3264946 p1 -3264441 p99 -3264435 max -3264435
+  sender 1: n=3087 median -3264428 (+9, group +) min -3264430 p1 -3264430 p99 -3264427 max -3264323
+  sender 2: n=2800 median -3264428 (+9, group +) min -3264430 p1 -3264430 p99 -3264427 max -3264427
+  sender 3: n=2892 median -3264437 (+0, group -) min -3264861 p1 -3264448 p99 -3264435 max -3264435
+  sender 4: n=3112 median -3264428 (+9, group +) min -3264430 p1 -3264430 p99 -3264427 max -3264427
+  sender 5: n=3014 median -3264428 (+9, group +) min -3264430 p1 -3264430 p99 -3264427 max -3264427
+ring order: 0 -> 1 -> 2 -> 5 -> 4 -> 3
+recorder of A: by stamp offsets slot 4, by burst position slot 4
+recorder of B: by stamp offsets slot 0, by burst position slot 0
+start-of-log bursts: A 71 records, B 71; differing A 13, B 13
+
+=== game c0a80301b6faa779: c0a80301b6faa779-A, c0a80301b6faa779-B
+--- A = c0a80301b6faa779-A, B = c0a80301b6faa779-B
+game id c0a80301b6faa779: the same game in both logs
+ring records: A 15187, B 15688, shared 14870 (4 byte-identical matches rejected: stamped off the sender's offset with no wait in the late log to show for it)
+  A only: 1 before the shared stretch, 3 inside it, 313 after
+  B only: 815 before the shared stretch, 3 inside it, 0 after
+  runs of records in A only, inside the shared stretch, with the gap B shows across each:
+    3 records from senders 3,4,5 over 0.0 s at t=3481562 -- a hole of 0 ticks in B
+  runs of records in B only, inside the shared stretch, with the gap A shows across each:
+    3 records from senders 3,4,5 over 0.0 s at t=217239 -- a hole of 113 ticks in A
+  delivered late: 1 record stamped at one machine well after the other, each at the end of a wait in that machine's log -- the same packet, held up on its way round:
+    2.1 s late at B, after B heard nothing for 2.3 s: t=217239 seq=40 p=2 b=4 T=0 parachute_position,base_drain
+  A's sequence holes: 1214, 1190 inside the shared stretch missing 1915 slots, of which 0 are records in B
+  B's sequence holes: 1896, 1190 inside the shared stretch missing 1915 slots, of which 0 are records in A
+clocks: B - A = -3264436 ticks; ring cycle (median) A 8 B 8; drift 1.3 ppm over 462 s (0.03 ticks end to end)
+  sender 0: n=2491 median -3264436 (+0, group -) min -3264440 p1 -3264439 p99 -3264435 max -3264435
+  sender 1: n=2368 median -3264436 (+0, group -) min -3264441 p1 -3264439 p99 -3264435 max -3264435
+  sender 2: n=2428 median -3264428 (+8, group +) min -3264430 p1 -3264429 p99 -3264427 max -3264323
+  sender 3: n=2512 median -3264428 (+8, group +) min -3264430 p1 -3264429 p99 -3264427 max -3264424
+  sender 4: n=2573 median -3264428 (+8, group +) min -3264430 p1 -3264429 p99 -3264427 max -3264424
+  sender 5: n=2498 median -3264428 (+8, group +) min -3264430 p1 -3264429 p99 -3264427 max -3264424
+ring order: 0 -> 2 -> 3 -> 5 -> 4 -> 1
+recorder of A: by stamp offsets slot 4, by burst position slot 4
+recorder of B: by stamp offsets slot 0, by burst position slot 0
+start-of-log bursts: A 72 records, B 72; differing A 25, B 25
+
+=== game c0a80b01bb17fd29: c0a80b01bb17fd29-A, c0a80b01bb17fd29-B
+--- A = c0a80b01bb17fd29-A, B = c0a80b01bb17fd29-B
+game id c0a80b01bb17fd29: the same game in both logs
+ring records: A 18654, B 18756, shared 18644 (3 byte-identical matches rejected: stamped off the sender's offset with no wait in the late log to show for it)
+  A only: 3 before the shared stretch, 0 inside it, 7 after
+  B only: 112 before the shared stretch, 0 inside it, 0 after
+  A's sequence holes: 1007, 1004 inside the shared stretch missing 2482 slots, of which 0 are records in B
+  B's sequence holes: 1114, 1004 inside the shared stretch missing 2482 slots, of which 0 are records in A
+clocks: B - A = -4954726 ticks; ring cycle (median) A 7 B 7; drift -23.5 ppm over 823 s (-0.97 ticks end to end)
+  sender 0: n=4679 median -4954719 (+7, group +) min -4954720 p1 -4954720 p99 -4954718 max -4954708
+  sender 1: n=4620 median -4954719 (+7, group +) min -4954720 p1 -4954720 p99 -4954718 max -4954712
+  sender 2: n=4664 median -4954719 (+7, group +) min -4954720 p1 -4954720 p99 -4954718 max -4954708
+  sender 3: n=4681 median -4954726 (+0, group -) min -4954738 p1 -4954732 p99 -4954725 max -4954724
+ring order: 0 -> 2 -> 3 -> 1
+recorder of A: by stamp offsets slot 2, by burst position slot 2
+recorder of B: by stamp offsets slot 3, by burst position slot 3
+start-of-log bursts: A 73 records, B 73; differing A 17, B 17
+
+=== game c0a80f01b9a9afea: c0a80f01b9a9afea-A, c0a80f01b9a9afea-B
+--- A = c0a80f01b9a9afea-A, B = c0a80f01b9a9afea-B
+game id c0a80f01b9a9afea: the same game in both logs
+ring records: A 19730, B 19733, shared 19700 (19 byte-identical matches rejected: stamped off the sender's offset with no wait in the late log to show for it)
+  A only: 11 before the shared stretch, 19 inside it, 0 after
+  B only: 0 before the shared stretch, 19 inside it, 14 after
+  runs of records in A only, inside the shared stretch, with the gap B shows across each:
+    1 record from sender 4 over 0.0 s at t=13737200 -- a hole of 0 ticks in B
+    1 record from sender 4 over 0.0 s at t=13738460 -- a hole of 0 ticks in B
+    1 record from sender 4 over 0.0 s at t=13739652 -- a hole of 0 ticks in B
+    1 record from sender 4 over 0.0 s at t=13740115 -- a hole of 0 ticks in B
+    1 record from sender 4 over 0.0 s at t=13750072 -- a hole of 0 ticks in B
+    1 record from sender 4 over 0.0 s at t=13750928 -- a hole of 0 ticks in B
+    1 record from sender 4 over 0.0 s at t=13752888 -- a hole of 0 ticks in B
+    1 record from sender 4 over 0.0 s at t=13754122 -- a hole of 0 ticks in B
+    1 record from sender 4 over 0.0 s at t=13754856 -- a hole of 0 ticks in B
+    1 record from sender 4 over 0.0 s at t=13755455 -- a hole of 0 ticks in B
+    1 record from sender 4 over 0.0 s at t=13763378 -- a hole of 0 ticks in B
+    1 record from sender 4 over 0.0 s at t=13768767 -- a hole of 0 ticks in B
+    1 record from sender 4 over 0.0 s at t=13769925 -- a hole of 0 ticks in B
+    1 record from sender 4 over 0.0 s at t=13771000 -- a hole of 0 ticks in B
+    1 record from sender 4 over 0.0 s at t=13771049 -- a hole of 0 ticks in B
+    1 record from sender 4 over 0.0 s at t=13774338 -- a hole of 0 ticks in B
+    1 record from sender 4 over 0.0 s at t=13784350 -- a hole of 0 ticks in B
+    1 record from sender 4 over 0.0 s at t=13785564 -- a hole of 0 ticks in B
+    1 record from sender 4 over 0.0 s at t=13785815 -- a hole of 0 ticks in B
+  runs of records in B only, inside the shared stretch, with the gap A shows across each:
+    1 record from sender 4 over 0.0 s at t=1970850 -- a hole of 135 ticks in A
+    1 record from sender 4 over 0.0 s at t=1972238 -- an absence: A heard nothing for 5.2 s
+    1 record from sender 4 over 0.0 s at t=1973326 -- a hole of 158 ticks in A
+    1 record from sender 4 over 0.0 s at t=1973765 -- a hole of 135 ticks in A
+    1 record from sender 4 over 0.0 s at t=1983720 -- a hole of 131 ticks in A
+    1 record from sender 4 over 0.0 s at t=1984487 -- a hole of 42 ticks in A
+    1 record from sender 4 over 0.0 s at t=1986536 -- a hole of 132 ticks in A
+    1 record from sender 4 over 0.0 s at t=1987890 -- an absence: A heard nothing for 5.0 s
+    1 record from sender 4 over 0.0 s at t=1988503 -- a hole of 129 ticks in A
+    1 record from sender 4 over 0.0 s at t=1989214 -- a hole of 242 ticks in A
+    1 record from sender 4 over 0.0 s at t=1997017 -- a hole of 122 ticks in A
+    1 record from sender 4 over 0.0 s at t=2002418 -- a hole of 134 ticks in A
+    1 record from sender 4 over 0.0 s at t=2003826 -- an absence: A heard nothing for 7.7 s
+    1 record from sender 4 over 0.0 s at t=2004565 -- a hole of 48 ticks in A
+    1 record from sender 4 over 0.0 s at t=2004696 -- a hole of 130 ticks in A
+    1 record from sender 4 over 0.0 s at t=2007982 -- a hole of 127 ticks in A
+    1 record from sender 4 over 0.0 s at t=2017998 -- a hole of 130 ticks in A
+    1 record from sender 4 over 0.0 s at t=2019332 -- an absence: A heard nothing for 5.0 s
+    1 record from sender 4 over 0.0 s at t=2019466 -- a hole of 136 ticks in A
+  delivered late: 21 records stamped at one machine well after the other, each at the end of a wait in that machine's log -- the same packet, held up on its way round:
+    2.2 s late at B, after B heard nothing for 2.5 s: t=1968056 seq=24 p=4 b=0 T=9 pos(143,151 speed 64),terrain_change
+    2.4 s late at B, after B heard nothing for 2.7 s: t=1970850 seq=115 p=0 b=0 T=8 pos(124,138 speed 24),pillbox_fires,pillbox_fires,explosion,explosion,shells,shells,shells
+    4.9 s late at B, after B heard nothing for 5.2 s: t=1972238 seq=77 p=0 b=8 T=0 lgm_position,base_drain
+    2.9 s late at B, after B heard nothing for 3.1 s: t=1973326 seq=83 p=0 b=0 T=0 shot_fired,pillbox_fires,pillbox_fires,pillbox_damage,shells,shells
+    2.4 s late at B, after B heard nothing for 2.7 s: t=1973765 seq=81 p=0 b=0 T=9 pos(153,108 speed 0)
+    2.3 s late at B, after B heard nothing for 2.6 s: t=1983720 seq=11 p=0 b=0 T=8 pos(112,138 speed 64)
+    0.6 s late at B, after B heard nothing for 0.8 s: t=1984487 seq=55 p=0 b=c T=8 pos(112,137 speed 64),lgm_position
+    2.3 s late at B, after B heard nothing for 2.7 s: t=1986536 seq=61 p=0 b=4 T=a pos(130,144 speed 24),parachute_position
+    4.7 s late at B, after B heard nothing for 5.0 s: t=1987890 seq=5 p=0 b=4 T=8 pos(123,147 speed 40),parachute_position
+    2.3 s late at B, after B heard nothing for 2.6 s: t=1988503 seq=81 p=0 b=4 T=a pos(118,144 speed 24),parachute_position
+    4.6 s late at B, after B heard nothing for 4.8 s: t=1989214 seq=11 p=0 b=4 T=8 pos(108,139 speed 44),parachute_position
+    2.2 s late at B, after B heard nothing for 2.5 s: t=1997017 seq=115 p=0 b=c T=8 pos(118,132 speed 31),lgm_position
+    2.4 s late at B, after B heard nothing for 2.7 s: t=2002418 seq=69 p=0 b=0 T=8 pos(113,114 speed 64),shell_falls
+    7.4 s late at B, after B heard nothing for 7.7 s: t=2003826 seq=105 p=0 b=0 T=8 pos(120,119 speed 64)
+    0.7 s late at B, after B heard nothing for 0.9 s: t=2004565 seq=15 p=0 b=0 T=8 pos(109,114 speed 2)
+    2.3 s late at B, after B heard nothing for 2.6 s: t=2004696 seq=21 p=0 b=0 T=8 pos(109,114 speed 2)
+    2.3 s late at B, after B heard nothing for 2.5 s: t=2007982 seq=19 p=0 b=8 T=8 pos(112,132 speed 53),lgm_position
+    2.3 s late at B, after B heard nothing for 2.7 s: t=2017998 seq=95 p=0 b=4 T=9 pos(156,141 speed 64),parachute_position
+    4.7 s late at B, after B heard nothing for 5.0 s: t=2019332 seq=21 p=0 b=4 T=8 pos(117,140 speed 11),parachute_position,pillbox_fires,pillbox_fires,tank_hit,shells,shells
+    2.4 s late at B, after B heard nothing for 2.7 s: t=2019466 seq=27 p=0 b=5 T=7 parachute_position,base_stock_tick,tank_death,shell_falls,pillbox_damage
+    ... and 1 more
+  A's sequence holes: 1779, 1771 inside the shared stretch missing 9873 slots, of which 0 are records in B
+  B's sequence holes: 1772, 1772 inside the shared stretch missing 9978 slots, of which 0 are records in A
+clocks: B - A = -11766483 ticks; ring cycle (median) A 14 B 14; drift 2.3 ppm over 1533 s (0.18 ticks end to end)
+  sender 0: n=3285 median -11766469 (+14, group +) min -11766470 p1 -11766470 p99 -11766457 max -11766099
+  sender 1: n=3280 median -11766483 (+0, group -) min -11766490 p1 -11766487 p99 -11766482 max -11766481
+  sender 2: n=3295 median -11766483 (+0, group -) min -11766489 p1 -11766487 p99 -11766482 max -11766481
+  sender 3: n=3359 median -11766483 (+0, group -) min -11766493 p1 -11766487 p99 -11766482 max -11766481
+  sender 4: n=3279 median -11766469 (+14, group +) min -11766470 p1 -11766470 p99 -11766461 max -11766359
+  sender 5: n=3202 median -11766483 (+0, group -) min -11766493 p1 -11766487 p99 -11766482 max -11766481
+ring order: 0 -> 4 -> 3 -> 5 -> 2 -> 1
+recorder of A: by stamp offsets slot 4, by burst position slot 4
+recorder of B: by stamp offsets slot 1, by burst position slot 1
+start-of-log bursts: A 58 records, B 58; differing A 5, B 5
+
+=== game c0a81401bd62d592: c0a81401bd62d592-A, c0a81401bd62d592-B
+--- A = c0a81401bd62d592-A, B = c0a81401bd62d592-B
+game id c0a81401bd62d592: the same game in both logs
+ring records: A 33983, B 33965, shared 33938 (27 byte-identical matches rejected: stamped off the sender's offset with no wait in the late log to show for it)
+  A only: 16 before the shared stretch, 27 inside it, 2 after
+  B only: 0 before the shared stretch, 27 inside it, 0 after
+  runs of records in A only, inside the shared stretch, with the gap B shows across each:
+    1 record from sender 2 over 0.0 s at t=1168535 -- a hole of 0 ticks in B
+    2 records from senders 1,2 over 0.0 s at t=1181744 -- a hole of 0 ticks in B
+    2 records from senders 1,2 over 0.0 s at t=1183256 -- a hole of 0 ticks in B
+    2 records from senders 1,2 over 0.0 s at t=1184144 -- a hole of 0 ticks in B
+    2 records from senders 1,2 over 0.0 s at t=1184779 -- a hole of 0 ticks in B
+    2 records from senders 1,2 over 0.0 s at t=1185312 -- a hole of 0 ticks in B
+    2 records from senders 1,2 over 0.0 s at t=1188594 -- a hole of 0 ticks in B
+    2 records from senders 1,2 over 0.0 s at t=1191793 -- a hole of 0 ticks in B
+    2 records from senders 1,2 over 0.0 s at t=1192146 -- a hole of 0 ticks in B
+    2 records from senders 1,2 over 0.0 s at t=1192413 -- a hole of 0 ticks in B
+    2 records from senders 1,2 over 0.0 s at t=1192935 -- a hole of 0 ticks in B
+    2 records from senders 1,2 over 0.0 s at t=1193758 -- a hole of 0 ticks in B
+    2 records from senders 1,2 over 0.0 s at t=1204019 -- a hole of 0 ticks in B
+    2 records from senders 1,2 over 0.0 s at t=1206415 -- a hole of 0 ticks in B
+  runs of records in B only, inside the shared stretch, with the gap A shows across each:
+    1 record from sender 2 over 0.0 s at t=741596 -- a hole of 45 ticks in A
+    2 records from senders 1,2 over 0.0 s at t=754810 -- a hole of 48 ticks in A
+    2 records from senders 1,2 over 0.0 s at t=756404 -- a hole of 131 ticks in A
+    2 records from senders 1,2 over 0.0 s at t=757288 -- a hole of 130 ticks in A
+    2 records from senders 1,2 over 0.0 s at t=757914 -- a hole of 121 ticks in A
+    2 records from senders 1,2 over 0.0 s at t=758452 -- a hole of 123 ticks in A
+    2 records from senders 1,2 over 0.0 s at t=761656 -- a hole of 46 ticks in A
+    2 records from senders 1,2 over 0.0 s at t=764858 -- a hole of 49 ticks in A
+    2 records from senders 1,2 over 0.0 s at t=765299 -- a hole of 138 ticks in A
+    2 records from senders 1,2 over 0.0 s at t=765551 -- a hole of 122 ticks in A
+    2 records from senders 1,2 over 0.0 s at t=766001 -- a hole of 50 ticks in A
+    2 records from senders 1,2 over 0.0 s at t=766912 -- a hole of 139 ticks in A
+    2 records from senders 1,2 over 0.0 s at t=777080 -- a hole of 45 ticks in A
+    2 records from senders 1,2 over 0.0 s at t=779476 -- a hole of 45 ticks in A
+  delivered late: 15 records stamped at one machine well after the other, each at the end of a wait in that machine's log -- the same packet, held up on its way round:
+    0.7 s late at B, after B heard nothing for 0.9 s: t=741596 seq=109 p=0 b=8 T=8 pos(128,118 speed 63),lgm_position,shells,shells
+    0.8 s late at B, after B heard nothing for 1.0 s: t=754810 seq=121 p=0 b=0 T=9 pos(107,148 speed 24)
+    2.5 s late at B, after B heard nothing for 2.6 s: t=756404 seq=89 p=0 b=0 T=8 pos(119,133 speed 48),shells,shells
+    2.4 s late at B, after B heard nothing for 2.5 s: t=757288 seq=69 p=0 b=8 T=8 pos(119,119 speed 64),lgm_position
+    2.2 s late at B, after B heard nothing for 2.4 s: t=757914 seq=69 p=0 b=8 T=8 pos(119,119 speed 0),lgm_position
+    2.3 s late at B, after B heard nothing for 2.4 s: t=758452 seq=21 p=0 b=8 T=0 lgm_position,base_drain
+    0.7 s late at B, after B heard nothing for 0.9 s: t=761656 seq=37 p=0 b=0 T=8 pos(123,119 speed 48)
+    0.8 s late at B, after B heard nothing for 1.0 s: t=764858 seq=33 p=0 b=0 T=8 pos(124,117 speed 28)
+    2.6 s late at B, after B heard nothing for 2.7 s: t=765299 seq=57 p=0 b=c T=8 pos(125,112 speed 64),lgm_position
+    2.3 s late at B, after B heard nothing for 2.4 s: t=765551 seq=121 p=0 b=8 T=8 pos(118,119 speed 64),lgm_position
+    0.8 s late at B, after B heard nothing for 1.0 s: t=766001 seq=57 p=0 b=8 T=8 pos(110,140 speed 12),lgm_position
+    2.2 s late at B, after B heard nothing for 2.2 s: t=766120 seq=63 p=1 b=4 T=0 parachute_position
+    2.6 s late at B, after B heard nothing for 2.7 s: t=766912 seq=1 p=0 b=0 T=8 pos(113,140 speed 62)
+    0.7 s late at B, after B heard nothing for 0.9 s: t=777080 seq=29 p=0 b=8 T=8 pos(127,108 speed 37),lgm_position,shot_fired,shells,shells,shells
+    0.7 s late at B, after B heard nothing for 0.9 s: t=779476 seq=13 p=0 b=4 T=8 pos(111,139 speed 64),parachute_position
+  A's sequence holes: 2280, 2266 inside the shared stretch missing 3974 slots, of which 0 are records in B
+  B's sequence holes: 2267, 2266 inside the shared stretch missing 3974 slots, of which 0 are records in A
+clocks: B - A = -426983 ticks; ring cycle (median) A 8 B 8; drift -13.5 ppm over 1592 s (-1.07 ticks end to end)
+  sender 0: n=8406 median -426975 (+8, group +) min -426977 p1 -426976 p99 -426972 max -426846
+  sender 1: n=8323 median -426975 (+8, group +) min -426977 p1 -426976 p99 -426973 max -426866
+  sender 2: n=8977 median -426975 (+8, group +) min -426977 p1 -426976 p99 -426973 max -426954
+  sender 3: n=8232 median -426983 (+0, group -) min -426996 p1 -426985 p99 -426981 max -426981
+ring order: 0 -> 2 -> 1 -> 3
+recorder of A: by stamp offsets slot 1, by burst position slot 1
+recorder of B: by stamp offsets slot 3, by burst position slot 3
+start-of-log bursts: A 73 records, B 73; differing A 8, B 8
+
+=== game c0a81401bd62dc4f: c0a81401bd62dc4f-A, c0a81401bd62dc4f-B
+--- A = c0a81401bd62dc4f-A, B = c0a81401bd62dc4f-B
+game id c0a81401bd62dc4f: the same game in both logs
+ring records: A 30339, B 31116, shared 30315 (22 byte-identical matches rejected: stamped off the sender's offset with no wait in the late log to show for it)
+  A only: 0 before the shared stretch, 22 inside it, 2 after
+  B only: 779 before the shared stretch, 22 inside it, 0 after
+  runs of records in A only, inside the shared stretch, with the gap B shows across each:
+    2 records from senders 1,3 over 0.0 s at t=1256100 -- a hole of 0 ticks in B
+    1 record from sender 1 over 0.0 s at t=1256722 -- a hole of 0 ticks in B
+    1 record from sender 1 over 0.0 s at t=1257147 -- a hole of 0 ticks in B
+    1 record from sender 1 over 0.0 s at t=1260619 -- a hole of 0 ticks in B
+    1 record from sender 1 over 0.0 s at t=1260688 -- a hole of 0 ticks in B
+    2 records from senders 1,3 over 0.0 s at t=1262412 -- a hole of 0 ticks in B
+    2 records from senders 1,3 over 0.0 s at t=1263608 -- a hole of 0 ticks in B
+    2 records from senders 1,3 over 0.0 s at t=1273070 -- a hole of 0 ticks in B
+    1 record from sender 1 over 0.0 s at t=1275554 -- a hole of 0 ticks in B
+    2 records from senders 1,3 over 0.0 s at t=1276345 -- a hole of 0 ticks in B
+    2 records from senders 1,3 over 0.0 s at t=1279895 -- a hole of 0 ticks in B
+    1 record from sender 1 over 0.0 s at t=1280035 -- a hole of 0 ticks in B
+    2 records from senders 1,3 over 0.0 s at t=1280167 -- a hole of 0 ticks in B
+    2 records from senders 1,3 over 0.0 s at t=1285530 -- a hole of 0 ticks in B
+  runs of records in B only, inside the shared stretch, with the gap A shows across each:
+    2 records from senders 1,3 over 0.0 s at t=829240 -- a hole of 124 ticks in A
+    1 record from sender 1 over 0.0 s at t=829779 -- a hole of 42 ticks in A
+    1 record from sender 1 over 0.0 s at t=830208 -- a hole of 45 ticks in A
+    1 record from sender 1 over 0.0 s at t=833680 -- a hole of 45 ticks in A
+    1 record from sender 1 over 0.0 s at t=833833 -- a hole of 131 ticks in A
+    2 records from senders 1,3 over 0.0 s at t=835554 -- a hole of 127 ticks in A
+    2 records from senders 1,3 over 0.0 s at t=836751 -- a hole of 128 ticks in A
+    2 records from senders 1,3 over 0.0 s at t=846135 -- a hole of 49 ticks in A
+    1 record from sender 1 over 0.0 s at t=848614 -- a hole of 44 ticks in A
+    2 records from senders 1,3 over 0.0 s at t=849487 -- a hole of 127 ticks in A
+    2 records from senders 1,3 over 0.0 s at t=852956 -- a hole of 48 ticks in A
+    1 record from sender 1 over 0.0 s at t=853175 -- a hole of 125 ticks in A
+    2 records from senders 1,3 over 0.0 s at t=853316 -- a hole of 134 ticks in A
+    2 records from senders 1,3 over 0.0 s at t=858590 -- a hole of 46 ticks in A
+  delivered late: 15 records stamped at one machine well after the other, each at the end of a wait in that machine's log -- the same packet, held up on its way round:
+    2.3 s late at B, after B heard nothing for 2.5 s: t=829240 seq=72 p=0 b=8 T=8 pos(108,121 speed 48),lgm_position
+    0.7 s late at B, after B heard nothing for 0.8 s: t=829779 seq=64 p=0 b=8 T=8 pos(104,126 speed 48),lgm_position
+    0.7 s late at B, after B heard nothing for 0.9 s: t=830208 seq=120 p=0 b=0 T=8 pos(117,125 speed 48)
+    0.7 s late at B, after B heard nothing for 0.9 s: t=833680 seq=121 p=3 b=0 T=9 pos(96,147 speed 64)
+    2.4 s late at B, after B heard nothing for 2.6 s: t=833833 seq=9 p=3 b=0 T=9 pos(98,149 speed 64)
+    2.4 s late at B, after B heard nothing for 2.5 s: t=835554 seq=28 p=0 b=0 T=8 pos(121,114 speed 48)
+    2.4 s late at B, after B heard nothing for 2.6 s: t=836751 seq=40 p=0 b=0 T=8 pos(125,119 speed 61),pillbox_fires,pillbox_damage,shell_falls,tank_hit,tank_hit,shells,shells,shells,shells,shells
+    0.8 s late at B, after B heard nothing for 1.0 s: t=846135 seq=124 p=0 b=8 T=0 lgm_position
+    0.7 s late at B, after B heard nothing for 0.9 s: t=848614 seq=41 p=3 b=4 T=8 pos(118,114 speed 64),parachute_position,pillbox_fires,shells,shells
+    2.4 s late at B, after B heard nothing for 2.5 s: t=849487 seq=24 p=0 b=0 T=8 pos(119,131 speed 48),shells
+    0.7 s late at B, after B heard nothing for 0.9 s: t=852956 seq=56 p=0 b=0 T=8 pos(120,120 speed 3)
+    2.3 s late at B, after B heard nothing for 2.5 s: t=853175 seq=105 p=3 b=4 T=8 pos(128,137 speed 48),parachute_position,shell_falls
+    2.5 s late at B, after B heard nothing for 2.7 s: t=853316 seq=112 p=0 b=0 T=8 pos(120,121 speed 20)
+    0.7 s late at B, after B heard nothing for 0.9 s: t=858590 seq=112 p=0 b=0 T=9 pos(160,137 speed 55)
+    4.6 s late at A, after A heard nothing for 4.8 s: t=1291184 seq=75 p=2 b=8 T=1 lgm_position
+  A's sequence holes: 2085, 2083 inside the shared stretch missing 2821 slots, of which 0 are records in B
+  B's sequence holes: 2581, 2083 inside the shared stretch missing 2821 slots, of which 0 are records in A
+clocks: B - A = -426984 ticks; ring cycle (median) A 8 B 8; drift -17.1 ppm over 1387 s (-1.19 ticks end to end)
+  sender 0: n=7353 median -426976 (+8, group +) min -426978 p1 -426978 p99 -426969 max -426851
+  sender 1: n=7630 median -426976 (+8, group +) min -426978 p1 -426978 p99 -426969 max -426956
+  sender 2: n=7721 median -426984 (+0, group -) min -427216 p1 -426986 p99 -426983 max -426982
+  sender 3: n=7611 median -426976 (+8, group +) min -426978 p1 -426978 p99 -426970 max -426855
+ring order: 0 -> 3 -> 1 -> 2
+recorder of A: by stamp offsets slot 1, by burst position slot 1
+recorder of B: by stamp offsets slot 2, by burst position slot 2
+start-of-log bursts: A 55 records, B 55; differing A 14, B 14
+
+=== game c0a81701b7a359c9: c0a81701b7a359c9-A, c0a81701b7a359c9-B
+--- A = c0a81701b7a359c9-A, B = c0a81701b7a359c9-B
+game id c0a81701b7a359c9: the same game in both logs
+ring records: A 8003, B 7264, shared 7264
+  A only: 249 before the shared stretch, 0 inside it, 490 after
+  B only: 0 before the shared stretch, 0 inside it, 0 after
+  delivered late: 16 records stamped at one machine well after the other, each at the end of a wait in that machine's log -- the same packet, held up on its way round:
+    0.7 s late at A, after A heard nothing for 1.0 s: t=36749 seq=14 p=3 b=0 T=9 pos(142,144 speed 1)
+    0.5 s late at A, after A heard nothing for 0.8 s: t=39409 seq=76 p=3 b=0 T=8 pos(140,138 speed 0),shot_fired,pillbox_fires,explosion,shells
+    2.4 s late at A, after A heard nothing for 2.7 s: t=39964 seq=110 p=3 b=c T=8 pos(138,141 speed 64),lgm_position,tank_hit
+    0.6 s late at A, after A heard nothing for 0.9 s: t=40648 seq=14 p=3 b=0 T=8 pos(133,142 speed 64),pillbox_fires,pillbox_damage,shell_falls,shells
+    2.3 s late at A, after A heard nothing for 2.6 s: t=40818 seq=32 p=3 b=0 T=8 pos(136,138 speed 64),shell_falls,shell_falls,pillbox_damage,shell_falls,pillbox_damage,pillbox_damage,shells
+    0.7 s late at A, after A heard nothing for 0.9 s: t=40916 seq=62 p=3 b=c T=8 pos(141,138 speed 40),lgm_position
+    2.4 s late at A, after A heard nothing for 2.6 s: t=45140 seq=10 p=3 b=8 T=8 pos(140,110 speed 24),lgm_position
+    5.2 s late at A, after A heard nothing for 5.5 s: t=47141 seq=108 p=3 b=8 T=8 pos(133,147 speed 24),lgm_position,terrain_change
+    2.3 s late at A, after A heard nothing for 2.6 s: t=50250 seq=100 p=3 b=4 T=a pos(146,132 speed 0),parachute_position
+    0.6 s late at A, after A heard nothing for 0.9 s: t=51476 seq=68 p=3 b=4 T=c pos(137,126 speed 29),parachute_position,shell_falls,shells,shells,shells
+    2.3 s late at A, after A heard nothing for 2.6 s: t=53335 seq=70 p=3 b=4 T=9 pos(109,109 speed 64),parachute_position
+    2.5 s late at A, after A heard nothing for 2.8 s: t=54398 seq=70 p=3 b=4 T=8 pos(117,143 speed 48),parachute_position
+    2.5 s late at A, after A heard nothing for 2.7 s: t=54868 seq=56 p=3 b=4 T=8 pos(124,140 speed 64),parachute_position,shell_falls,shell_falls
+    3.3 s late at A, after A heard nothing for 3.5 s: t=55470 seq=78 p=3 b=0 T=8 pos(129,139 speed 64),pillbox_fires,pillbox_fires,shells,shells,shells
+    0.5 s late at A, after A heard nothing for 0.8 s: t=56005 seq=20 p=3 b=0 T=8 pos(123,124 speed 64)
+    4.3 s late at A, after A heard nothing for 4.6 s: t=56501 seq=0 p=3 b=0 T=a pos(109,119 speed 24)
+  A's sequence holes: 1006, 699 inside the shared stretch missing 1624 slots, of which 0 are records in B
+  B's sequence holes: 699, 699 inside the shared stretch missing 1624 slots, of which 0 are records in A
+clocks: B - A = 21644 ticks; ring cycle (median) A 14 B 14; drift -22.1 ppm over 614 s (-0.68 ticks end to end)
+  sender 0: n=1233 median 21658 (+14, group +) min 21656 p1 21657 p99 21659 max 21659
+  sender 1: n=1122 median 21658 (+14, group +) min 21656 p1 21657 p99 21659 max 21659
+  sender 2: n=1287 median 21658 (+14, group +) min 21656 p1 21657 p99 21659 max 21659
+  sender 3: n=1186 median 21644 (+0, group -) min 21384 p1 21611 p99 21647 max 21647
+  sender 4: n=1236 median 21658 (+14, group +) min 21656 p1 21657 p99 21659 max 21659
+  sender 5: n=1200 median 21658 (+14, group +) min 21656 p1 21657 p99 21659 max 21659
+ring order: 0 -> 5 -> 1 -> 4 -> 3 -> 2
+recorder of A: by stamp offsets slot 4, by burst position slot 4
+recorder of B: by stamp offsets slot 3, by burst position slot 3
+start-of-log bursts: A 75 records, B 75; differing A 20, B 20
+
+=== game c0a81b01baac09c2: c0a81b01baac09c2-A, c0a81b01baac09c2-B
+--- A = c0a81b01baac09c2-A, B = c0a81b01baac09c2-B
+game id c0a81b01baac09c2: the same game in both logs
+ring records: A 20819, B 20902, shared 20817 (2 byte-identical matches rejected: stamped off the sender's offset with no wait in the late log to show for it)
+  A only: 2 before the shared stretch, 0 inside it, 0 after
+  B only: 70 before the shared stretch, 0 inside it, 15 after
+  A's sequence holes: 721, 720 inside the shared stretch missing 816 slots, of which 0 are records in B
+  B's sequence holes: 793, 720 inside the shared stretch missing 816 slots, of which 0 are records in A
+clocks: B - A = -117354 ticks; ring cycle (median) A 6 B 6; drift -2.6 ppm over 704 s (-0.09 ticks end to end)
+  sender 0: n=5196 median -117348 (+6, group +) min -117350 p1 -117350 p99 -117345 max -117337
+  sender 1: n=5275 median -117354 (+0, group -) min -117369 p1 -117358 p99 -117353 max -117353
+  sender 2: n=5285 median -117354 (+0, group -) min -117369 p1 -117358 p99 -117353 max -117353
+  sender 3: n=5061 median -117354 (+0, group -) min -117369 p1 -117358 p99 -117353 max -117353
+ring order: 0 -> 1 -> 3 -> 2
+recorder of A: by stamp offsets slot 0, by burst position slot 0
+recorder of B: by stamp offsets slot 2, by burst position slot 2
+start-of-log bursts: A 73 records, B 73; differing A 13, B 13
+
+=== game c0a81b01baac0fc2: c0a81b01baac0fc2-A, c0a81b01baac0fc2-B
+--- A = c0a81b01baac0fc2-A, B = c0a81b01baac0fc2-B
+game id c0a81b01baac0fc2: the same game in both logs
+ring records: A 17424, B 17178, shared 17178
+  A only: 243 before the shared stretch, 0 inside it, 3 after
+  B only: 0 before the shared stretch, 0 inside it, 0 after
+  A's sequence holes: 1722, 1489 inside the shared stretch missing 8611 slots, of which 0 are records in B
+  B's sequence holes: 1489, 1489 inside the shared stretch missing 8611 slots, of which 0 are records in A
+clocks: B - A = -117358 ticks; ring cycle (median) A 6 B 6; drift -3.2 ppm over 1050 s (-0.17 ticks end to end)
+  sender 0: n=4374 median -117351 (+7, group +) min -117354 p1 -117353 p99 -117346 max -117339
+  sender 1: n=4240 median -117351 (+7, group +) min -117354 p1 -117353 p99 -117346 max -117339
+  sender 2: n=4244 median -117358 (+0, group -) min -117378 p1 -117361 p99 -117356 max -117356
+  sender 3: n=4320 median -117351 (+7, group +) min -117354 p1 -117353 p99 -117346 max -117339
+ring order: 0 -> 2 -> 3 -> 1
+recorder of A: by stamp offsets slot 0, by burst position slot 0
+recorder of B: by stamp offsets slot 2, by burst position slot 2
+start-of-log bursts: A 77 records, B 79; differing A 22, B 24
