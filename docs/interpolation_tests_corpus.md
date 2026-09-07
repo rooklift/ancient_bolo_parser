@@ -162,6 +162,7 @@ Constant at all ten commits, and worth having once:
 | `63d3acb` | a base is damaged only by tank shells | 0.997103 | 0.001217 | 0.835260 | 237,875 | 13,163 | 1,230 | **14** |
 | `4f0aa06` | a turning tank's shell carries the nibble's sector | **0.997166** | **0.001176** | **0.835572** | **238,130** | 13,188 | 1,224 | **14** |
 | `82531bc` | a dilated candidate outlives the on-schedule consensus | **0.997171** | **0.001175** | **0.835573** | 238,128 | 13,188 | 1,224 | **14** |
+| `de80622` | distance order scored (no engine change) | 0.997171 | 0.001175 | 0.835573 | 238,128 | 13,188§ | 1,224§ | **14** |
 
 The three right-hand columns are lower-is-better counts from the drawn
 audit and the vouched-link score, added so that a drawing-only commit
@@ -2954,6 +2955,77 @@ Three headline records at once, by the smallest margins in the table;
 every other column within a handful. The change is exactly as wide as
 the scene that motivated it: about fifty stalled-clock volleys across
 443 logs, each losing a pop-out and a phantom birth.
+
+## Distance order scored -- `de80622`
+
+No engine change: this commit adds `score_pill_order`, a third truth
+axis beside vouched/contradicted (see the fixture doc's "What the
+numbers mean"). Every live shell of one pill advances one orbit step
+per sender update, so between two statements the pill's shells keep
+their order of distance from it -- a trailer never passes its leader
+while both fly. The scorer reads that off final state for every pair
+of one pill's shells whose links land in one later snapshot, needing
+no pinned step, so it also covers the pairs the lockstep passes skip.
+A flip counts as inverted only beyond what the positions can lie by
+(the spread of the orbits' distance-to-step mapping across bradians,
+about three pixels, plus any chained-offset uncertainty on an unpinned
+member); a flip within that is blurred -- closer than two live shells
+of one pill can be, a pill firing no faster than every two or three
+steps, so one of the pair's positions or provenances is wrong.
+
+Corpus, `de80622-links.txt` (443 files, zero failures; the input hash
+is `82531bc`'s, and every line the earlier report has is byte-identical
+-- the row above repeats `82531bc`'s cells, § marking the two audit
+columns carried rather than re-measured):
+
+* `pairs_pill_order` 8,621,797; `pairs_pill_order_kept` 8,621,598;
+  `pairs_pill_order_inverted` **191** (`rate` 0.000022);
+  `pairs_pill_order_blurred` 8 -- same-pill pairs closer than two
+  rightly placed shells can be, eight corpus-wide
+* the 191 scenes fall on 169 distinct record pairs: one wrong link
+  often crosses two or three stream-mates at once
+
+Read by mechanism (the `order_class` tally splits by which link was a
+stitch; the scenes were bucketed further by hand):
+
+| mechanism | scenes |
+| --- | --- |
+| trailer's stitch advances further than the interval allows | 64 |
+| leader's stitch lands on a shell with no orbit states | 52 |
+| leader's stitch advances 1-3 steps while the trailer's pairwise link advances 6+ | 44 |
+| both links stitched | 11 |
+| leader's stitch has zero advance | 6 |
+| both links pairwise | 13 |
+
+So 177 of 191 involve a stitch. In 64 of the 65 trailer-stitch scenes
+the leader's pairwise link advanced a plausible two or three steps for
+the interval while the trailer, at step one or two in 38 of them, was
+stitched six to fifteen steps on across the same pair: the dilated
+join, which exists to let a late-stamped chain head sprint, accepting
+a jump the pill's own stream-mate in the same shell list refutes. The
+44 short-advance leader stitches are the mirror. Both share one root
+cause -- a stitch whose advance disagrees with a same-pill pairwise
+link over the same snapshot pair -- which the residual lockstep
+reference only catches when the pill's roster is unanimous. The 52
+stateless landings are a different failure: the leader's chain is
+stitched onto a shell carrying no orbit states at all, a few pixels
+on, while the trailer passes it; the likeliest reading is a leader
+that died unrecorded and a stitch that claimed an unrelated shell.
+The 13 pairwise scenes are the case a distance-order veto in the
+pairwise matcher would refuse: twelve on different bradians with no
+common advance, where the lockstep pass stood down and cost let the
+trailer jump past, several on jittered pairs (three ticks carrying
+four and eight steps).
+
+None of it is fixed here. At 191 in 8.6 million pairs the drawn
+overtakes are rare, and the alarm is now in the report to keep them
+so; the fixture's three are pinned in the test suite. If the count is
+ever worth chasing, the order is: stitch advance must agree with a
+same-pill pairwise link over the same pair (about 108 scenes, likely
+the 11 both-stitched too); refuse a stitch onto a landing no surviving
+orbit can place (52); the pairwise distance-order veto (13). The 14
+contradicted links are all stitched as well, so the first may clear
+some of them.
 
 ## Findings
 

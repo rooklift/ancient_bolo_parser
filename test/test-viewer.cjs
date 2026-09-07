@@ -300,6 +300,27 @@ if (!fs.existsSync(log1)) {
 			scene.landings,
 		], [9954, 1993, 3717, "passed", 8, 5, 3, 5, 4,
 			"6,9,11,14,17,19d,22d", "14,17,19,22,25"]);
+		/* The distance-order axis (score_pill_order): same-pill pairs
+		 * linked into one later snapshot, scored on whether the leader
+		 * stays the further from the pill. Inverted is the alarm; the
+		 * fixture carries three, each with the leader's link a stitch,
+		 * pinned as measured so a change is seen either way. */
+		let order = { pairs: 0, kept: 0, blurred: 0, inverted: 0 };
+		let inversions = [];
+		for (let snapshots of game.shell_positions) {
+			let part = BoloMotion.score_pill_order(snapshots);
+			for (let key of Object.keys(order)) order[key] += part[key];
+			inversions.push(...part.examples);
+		}
+		check("fixture pill pairs scored on distance order", [
+			order.pairs, order.kept, order.blurred, order.inverted,
+			inversions.map(record => [record.time, record.next_time,
+				record.leader_next.stitched, record.trailer_next.stitched]),
+		], [58171, 58168, 0, 3, [
+			[9355584, 9355598, true, false],
+			[9547346, 9547367, true, true],
+			[9547346, 9547367, true, false],
+		]]);
 	}
 
 	let pill_burst = { total: 0, matched: 0 };
@@ -1937,6 +1958,13 @@ if (!fs.existsSync(log1)) {
 		[lockstep_leader_end.next_terminal, lockstep_trailer_end.next_terminal,
 			lockstep_leader_end.next_time < lockstep_trailer_end.next_time],
 		[true, true, true]);
+	/* The distance-order scorer (score_pill_order) reads the same
+	 * invariant off final state: eight restated pairs, every one kept. */
+	let lockstep_order = require("../viewer/motion.js")
+		.score_pill_order(lockstep_snapshots);
+	check("pill stream lockstep scores every pair as order kept",
+		[lockstep_order.pairs, lockstep_order.kept, lockstep_order.blurred,
+			lockstep_order.inverted], [8, 8, 0, 0]);
 
 	/* A chain head whose record was received late draws a sprint: the next,
 	 * punctual restatement sits far further along the flight than the stamp
@@ -2988,6 +3016,70 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 		with_quit(ring(1000), 2).concat([{ time: 1e9, seq: 0, player: 0, tankStatus: 0x0f, subpackets: [] }])), 2);
 	check("no records, no recorder", BoloNetwork.recorder([]), null);
 }
+// The distance-order scorer on hand-built snapshots: an identity swap
+// across a link is an inversion when both gaps exceed the orbits'
+// distance-to-step spread, a flip inside that spread is blurred (closer
+// than two live shells of one pill can be), and a swap on the
+// unpinned chained-offset members widens the tolerance by their
+// one-sided uncertainty.
+{
+	const BoloMotion = require("../viewer/motion.js");
+	let shell = (distance, options = {}) => ({
+		pixel_x: 100, pixel_y: 100 + distance,
+		pillbox_source_x: 100, pillbox_source_y: 100,
+		pillbox_orbit_pixel_x: 100, pillbox_orbit_pixel_y: 100 + distance,
+		position_uncertainty: 0, ...options,
+	});
+	let pair = (before, after) => {
+		let [leader, trailer] = before.map(distance => shell(distance));
+		let [leader_next, trailer_next] = after.map(distance => shell(distance));
+		leader.next_shell = leader_next;
+		trailer.next_shell = trailer_next;
+		return [{ time: 0, shells: [leader, trailer] },
+			{ time: 8, shells: [leader_next, trailer_next] }];
+	};
+	let tally = snapshots => {
+		let score = BoloMotion.score_pill_order(snapshots);
+		return [score.pairs, score.kept, score.blurred, score.inverted];
+	};
+	check("distance order kept", tally(pair([32, 24], [48, 40])), [1, 1, 0, 0]);
+	check("distance order inverted", tally(pair([32, 24], [40, 48])),
+		[1, 0, 0, 1]);
+	check("distance order flip inside the distance-to-step spread is blurred",
+		tally(pair([26, 24], [40, 42])), [1, 0, 1, 0]);
+	let inverted = pair([32, 24], [40, 48]);
+	let example = BoloMotion.score_pill_order(inverted).examples[0];
+	check("inversion example names the leader and trailer", [
+		example.time, example.next_time, example.gap_before, example.gap_after,
+		example.leader.distance, example.leader_next.distance,
+		example.trailer.distance, example.trailer_next.distance,
+	], [0, 8, 8, 8, 32, 40, 24, 48]);
+	/* Unpinned members: the same swap on list index 3 shells is within
+	 * their widened tolerance, so it is blurred, not inverted. */
+	let unpinned = pair([32, 24], [40, 48]);
+	for (let snapshot of unpinned) {
+		for (let member of snapshot.shells) {
+			delete member.pillbox_orbit_pixel_x;
+			delete member.pillbox_orbit_pixel_y;
+			member.position_uncertainty = 3;
+		}
+	}
+	check("distance order swap on unpinned members is blurred",
+		tally(unpinned), [1, 0, 1, 0]);
+	/* A terminal-bound leader, a visual join and links landing in
+	 * different snapshots are not comparable pairs. */
+	let excluded = pair([32, 24], [40, 48]);
+	excluded[0].shells[0].next_terminal = true;
+	check("terminal-bound member makes no pair", tally(excluded), [0, 0, 0, 0]);
+	excluded = pair([32, 24], [40, 48]);
+	excluded[1].shells[1].visual_join = true;
+	check("visual join makes no pair", tally(excluded), [0, 0, 0, 0]);
+	excluded = pair([32, 24], [40, 48]);
+	excluded.push({ time: 16, shells: [excluded[1].shells.pop()] });
+	check("links into different snapshots make no pair", tally(excluded),
+		[0, 0, 0, 0]);
+}
+
 
 // The fast-ring fixture: two sender packets in one recorder tick are
 // common there, so it is where a time-keyed vote table hands a one-hop

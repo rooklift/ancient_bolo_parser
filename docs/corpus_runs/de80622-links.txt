@@ -1,0 +1,322 @@
+# GENERATED - interpolation coverage for one repo state; nothing written to disk.
+format	1
+commit	de80622
+mode	recursive
+input	sha256:81a840b9b207b6e7493b9fec9acddcad5c1a9016aaff48a67a903830d9c4cf8d
+max_position_interpolation_ticks	25
+max_shell_interpolation_ticks	50
+max_direction_interpolation_ticks	50
+files	443
+files_failed	0
+shells	9817361
+shells_in_final_snapshot	186
+shells_matched_forward	9789589
+shells_matched_to_snapshot	8163198
+shells_matched_to_terminal	1626391
+shells_unmatched_forward	27772
+shells_matched_from_previous	8163198
+shells_unlinked	11536
+shells_from_tank	657959
+shells_from_pillbox	971691
+shells_with_birth	3600573
+shells_with_pillbox_source	6112006
+terminals	1946439
+terminals_matched	1626391
+terminals_unmatched	320048
+terminals_unseen_pillbox_source	167499
+terminals_unseen_tank_source	77313
+shells_visual_joins	1201
+shells_unseen_pillbox_birth	3521
+shells_stream_birth	989
+tank_points	9914126
+tank_segments	9910559
+tank_segments_interpolated	9448359
+tank_segments_broken	104386
+tank_segments_overlong	357814
+tank_ticks	122807769
+tank_ticks_interpolated	74723880
+lgm_points	7876644
+lgm_segments	7873515
+lgm_segments_interpolated	7729059
+lgm_segments_broken	129690
+lgm_segments_overlong	14766
+lgm_ticks	112261469
+lgm_ticks_interpolated	59378916
+tank_direction_points	13040825
+tank_direction_segments	13036537
+tank_direction_segments_interpolated	12831230
+tank_direction_segments_broken	105244
+tank_direction_segments_overlong	100063
+tank_direction_ticks	122905850
+tank_direction_ticks_interpolated	102904928
+shell_births	1629650
+links_shell	8163198
+links_visual	1201
+links_no_pill_source	3021798
+links_pill_restated	19879
+links_pill_unpinned	2801
+links_pill_vouched	2917330
+links_pill_contradicted	14
+links_pill_unvouched	2200175
+roster_votes_unvoted	1730908
+roster_votes_stood_down	184057
+roster_votes_passed	563197
+pairs_pill_order	8621797
+pairs_pill_order_kept	8621598
+pairs_pill_order_blurred	8
+pairs_pill_order_inverted	191
+flow_components	132729
+flow_component_edges_max	332
+flow_components_over_cap	0
+terminals:base_damage	95959
+terminals:explosion	240538
+terminals:pillbox_damage	716235
+terminals:shell_falls	624224
+terminals:tank_hit	269483
+terminals_matched:base_damage	61407
+terminals_matched:explosion	163017
+terminals_matched:pillbox_damage	543757
+terminals_matched:shell_falls	620082
+terminals_matched:tank_hit	238128
+rate_shells_matched_forward	0.997171
+rate_shells_matched_forward_excluding_final_snapshot	0.997190
+rate_shells_unlinked	0.001175
+rate_terminals_matched	0.835573
+rate_links_pill_vouched	0.570067
+rate_links_pill_contradicted	0.000003
+rate_pairs_pill_order_inverted	0.000022
+rate_tank_segments_interpolated	0.953363
+rate_tank_ticks_interpolated	0.608462
+rate_lgm_segments_interpolated	0.981653
+rate_lgm_ticks_interpolated	0.528934
+rate_tank_direction_segments_interpolated	0.984251
+rate_tank_direction_ticks_interpolated	0.837266
+content_hash	722ca749847fa40080d09825c15cdb0c6be44eaf0c7fe591468efbd4ce607057
+link_class	stitched:+2	6
+link_class	stitched:-2	5
+link_class	stitched:+1	1
+link_class	stitched:+5	1
+link_class	stitched:-5	1
+link_example	20010326~fc6a01	t9183868->9183872	pill(736,2256)	step16->17	advance3	stitched	vote=passed:confident@3(6v3)	src=1,3,6,8,14,16,19	dst=4,6,9,11,14,17,19	final=1,3,6,8,11,14,16,19>1,4,6,11,14,17,19
+link_example	20010326~fc6a01	t9183872->9183876	pill(736,2256)	step17->21	advance2	stitched	vote=passed:confident@2(7v4)	src=1,4,6,11,14,17,19	dst=3,6,8,11,13,16,19,21	final=1,4,6,11,14,17,19>1,3,6,8,13,16,19,21
+link_example	20010326~fc6a01	t9183881->9183885	pill(736,2256)	step23->24	advance3	stitched	vote=passed:confident@3(8v5)	src=0,3,5,8,10,15,18,21	dst=3,6,8,11,13,16,18,21,24	final=0,3,5,8,10,15,18,21,23>1,3,6,8,11,16,18,21,24
+link_example	20010412.1~c4b988	t6813576->6813586	pill(1808,2096)	step10->17	advance5	stitched	vote=-	src=-	dst=-	final=2,5,7,10,15,18,21,24,27>1,4,7,10,12,15,17,20,23,26,29
+link_example	20010412.1~c4b988	t6813603->6813606	pill(1808,2096)	step23->27	advance2	stitched	vote=passed:confident@2(4v2)	src=9,15,18,28,31d	dst=11,14,17,20,22,25,27,30	final=9,12,15,18,20,23,28,31>11,14,17,20,22,27,30
+link_example	20020911~1f7b70	t269825->269831	pill(2080,2064)	step3->9	advance4	stitched	vote=-	src=-	dst=-	final=0,3,8,10,14>2,4,9,12,14,18
+link_example	20020911~1f7b70	t269831->269855	pill(2080,2064)	step9->18	advance11	stitched	vote=-	src=-	dst=-	final=2,4,9,12,14,18>2,5,8,10,13,15,18,23
+link_example	20020911~1f7b70	t269855->269866	pill(2080,2064)	step18->26	advance6	stitched	vote=-	src=-	dst=-	final=2,5,8,10,13,15,18,23>2,5,8,11,14,16,19,21,26,29
+link_example	20020911~1f7b70	t269866->269880	pill(2080,2064)	step26->30	advance6	stitched	vote=-	src=-	dst=-	final=2,5,8,11,14,16,19,21,26,29>1,5,8,11,14,17,20,22,25,27,30
+link_example	20021012.3~a2ac91	t451442->451454	pill(2000,2000)	step18->22	advance2	stitched	vote=passed:confident@2(6v2)	src=3,5,8,10,25,28,30d	dst=5,7,10,12,20,22,25,27,30	final=3,5,8,10,18,20,23,25,28,30>5,7,10,12,20,22,25,27,30
+link_example	20021012.3~a2ac91	t451454->451460	pill(2000,2000)	step22->26	advance6	stitched	vote=stood_down@6(4v3;full@1(4v4))	src=5,7,10,12,27,30d	dst=11,13,16,18,26,28,31	final=5,7,10,12,20,22,25,27,30>11,13,16,18,26,28,31
+link_example	20040729.3~b98bb1	t17572945->17572955	pill(2176,2064)	step10->14	advance3	stitched	vote=passed:confident@3(8v5;full@3(9v5))	src=3,5,8,10,13,16,18,21,23,27d,31d	dst=6,8,11,16,19,21,24,26,30	final=3,5,8,10,13,16,18,21,23,27,31>3,6,8,11,14,16,19,21,24,26,30
+link_example	20041227.5~9e2cd9	t312967->312980	pill(2288,2048)	step1->2	advance6	stitched	vote=-	src=-	dst=-	final=1,4,6,20,22,25,27>2,10,26,28
+link_example	20041227.5~9e2cd9	t312980->312985	pill(2288,2048)	step2->10	advance3	stitched	vote=passed:confident@3(3v1)	src=10,26,28	dst=2,7,10,13,29,31	final=2,10,26,28>10,13,29,31
+order_class	stitched|pairwise:2	49
+order_class	pairwise|stitched:2	37
+order_class	stitched|pairwise:3	28
+order_class	pairwise|stitched:1	20
+order_class	stitched|pairwise:1	16
+order_class	pairwise|pairwise:1	8
+order_class	stitched|pairwise:4	8
+order_class	pairwise|stitched:3	6
+order_class	stitched|stitched:3	4
+order_class	stitched|stitched:2	3
+order_class	stitched|stitched:4	3
+order_class	pairwise|pairwise:2	2
+order_class	pairwise|pairwise:4	2
+order_class	pairwise|pairwise:0	1
+order_class	pairwise|stitched:4	1
+order_class	pairwise|stitched:7	1
+order_class	stitched|pairwise:5	1
+order_class	stitched|stitched:7	1
+order_example	20010323~ed141a	t1577574->1577581	pill(1920,2144)	gap7.59->7.6	leader=20.12@s3/b211->32.65@s6/b211	trailer=12.53@s1/b211->40.25@s8/b211(stitched)
+order_example	20010403~842137	t502104->502115	pill(1968,2336)	gap9.03->7.26	leader=~29.43@s5/b179/181/183->~36.67@s7/b181/183(stitched)	trailer=~20.4@s3/b181/183->43.93@s9/b183
+order_example	20010406.1~b6fbb9	t1845972->1845995	pill(688,2320)	gap23.01->11.04	leader=75.17@s17/b3->~84.21@s?/b?(stitched)	trailer=52.15@s11/b3->95.26@s22/b3
+order_example	20010406.1~b6fbb9	t1845972->1845995	pill(688,2320)	gap11.97->24.08	leader=64.12@s14/b3->71.18@s16/b3(stitched)	trailer=52.15@s11/b3->95.26@s22/b3
+order_example	20010406.1~b6fbb9	t1845995->1846006	pill(688,2320)	gap24.08->11.04	leader=95.26@s22/b3->119.34@s28/b3	trailer=71.18@s16/b3->130.38@s31/b3(stitched)
+order_example	20010406.1~b6fbb9	t1845995->1846006	pill(688,2320)	gap13.04->20.73	leader=~84.21@s?/b?->~109.66@s?/b?	trailer=71.18@s16/b3->130.38@s31/b3(stitched)
+order_example	20010406.1~b6fbb9	t1845995->1846006	pill(688,2320)	gap12.97->11.73	leader=48.66@s10/b7->~56.72@s?/b?(stitched)	trailer=35.69@s7/b9->~68.45@s?/b?(stitched)
+order_example	20010406.1~b6fbb9	t1872288->1872300	pill(816,2208)	gap12.07->11.18	leader=96.15@s22/b19->100.62@s23/b19(stitched)	trailer=84.08@s19/b19->111.8@s26/b19
+order_example	20010410~1770d2	t109478->109485	pill(2032,1808)	gap23.76->12.08	leader=55.54@s12/b47->67.62@s15/b47	trailer=31.78@s6/b47->79.71@s18/b47(stitched)
+order_example	20010410~1770d2	t109478->109485	pill(2032,1808)	gap12.08->24.16	leader=43.86@s9/b47->55.54@s12/b47	trailer=31.78@s6/b47->79.71@s18/b47(stitched)
+order_example	20010420~8b4c07	t3734000->3734018	pill(736,2400)	gap12.04->22.74	leader=39.7@s8/b221->~41.04@s?/b?(stitched)	trailer=27.66@s5/b221->63.78@s14/b221
+order_example	20010420~8b4c07	t3734000->3734018	pill(736,2400)	gap23.42->10.7	leader=39.7@s8/b221->~41.04@s?/b?(stitched)	trailer=16.28@s2/b221/223->51.74@s11/b221
+order_example	20010420~8b4c07	t3734161->3734172	pill(736,2400)	gap19.59->18.07	leader=91.68@s21/b211->~105.1@s?/b?(stitched)	trailer=72.09@s16/b209->123.17@s29/b209
+order_example	20010424~0c0f47	t3413710->3413713	pill(1856,2000)	gap8.11->7.87	leader=40.11@s8/b189->56.14@s12/b189	trailer=32@s6/b191->64.01@s14/b191
+order_example	20010425.1~7802ec	t3917460->3917465	pill(2464,2176)	gap8.05->7.05	leader=52.15@s11/b3->60.13@s13/b3	trailer=44.1@s9/b3->67.19@s15/b3(stitched)
+order_example	20010425.3~038166	t4926900->4926920	pill(2128,1808)	gap19.79->20.52	leader=31.83@s6/b161->35.38@s7/b161(stitched)	trailer=12.04@s1/b159/161->55.9@s12/b161
+order_example	20010425.3~038166	t4882404->4882423	pill(2224,2176)	gap12.03->12.04	leader=23.43@s4/b93->~39.7@s?/b?(stitched)	trailer=11.4@s1/b91/93->51.74@s11/b93
+order_example	20010425.3~038166	t4916260->4916278	pill(2176,1920)	gap11.39->12.04	leader=90.79@s21/b35->~102.83@s?/b?(stitched)	trailer=79.4@s18/b35->114.87@s27/b35
+order_example	20010504.11~382cce	t1243715->1243720	pill(2048,1840)	gap8.6->7.79	leader=23.02@s4/b89->31.62@s6/b89	trailer=~14.42@s2/b89/91->39.41@s8/b89(stitched)
+order_example	20010504.6~a268bf	t319040->319045	pill(2144,1936)	gap8.59->8.04	leader=20.25@s3/b25->28.02@s5/b25	trailer=11.66@s1/b25->36.06@s7/b25(stitched)
+order_example	20010504.9~865982	t415173->415178	pill(2176,2080)	gap8.23->8.05	leader=20.4@s3/b199->28.44@s5/b199	trailer=12.17@s1/b197/199->36.5@s7/b199(stitched)
+order_example	20010504.9~865982	t407140->407145	pill(2272,2240)	gap8.04->8.6	leader=23.85@s4/b167->31.62@s6/b167	trailer=15.81@s2/b165/167->40.22@s8/b167(stitched)
+order_example	20010509~879826	t999380->999385	pill(1872,2208)	gap8.23->8.05	leader=20.4@s3/b199->28.44@s5/b199	trailer=12.17@s1/b197/199->36.5@s7/b199(stitched)
+order_example	20010509~879826	t999400->999405	pill(1872,2208)	gap8.23->8.05	leader=20.4@s3/b199->28.44@s5/b199	trailer=12.17@s1/b197/199->36.5@s7/b199(stitched)
+order_example	20010521~7a7eb8	t643763->643774	pill(2304,1776)	gap11.31->11.31	leader=34.66@s7/b97->55.17@s12/b97	trailer=23.35@s4/b97->66.48@s15/b97(stitched)
+order_example	20010521~7a7eb8	t672706->672717	pill(2032,2288)	gap31.3->3.58	leader=67.08@s15/b109->51.43@s11/b109	trailer=35.78@s7/b109->55.01@s12/b109
+order_example	20010521~7a7eb8	t695025->695039	pill(1792,1792)	gap12.04->11.39	leader=102.83@s24/b157->~111.29@s?/b?(stitched)	trailer=90.79@s21/b157->122.67@s29/b157
+order_example	20010521.1~6d82c7	t883312->883326	pill(1808,2064)	gap11.4->12.36	leader=87.36@s20/b203->91.48@s21/b203(stitched)	trailer=75.96@s17/b203->103.85@s24/b203
+order_example	20010521.1~6d82c7	t864010->864015	pill(2240,2128)	gap9.19->8.22	leader=19.24@s3/b121->27.29@s5/b121	trailer=~10.05@s1/b121/123->35.51@s7/b121(stitched)
+order_example	20010521.2~213a0f	t945010->945025	pill(1856,2128)	gap12->11.02	leader=111.02@s26/b193->~119.02@s?/b?(stitched)	trailer=99.02@s23/b193->130.03@s31/b193
+order_example	20010521.2~213a0f	t977763->977785	pill(1824,2016)	gap12->11	leader=99.02@s23/b193->~116.04@s?/b?(stitched)	trailer=87.02@s20/b193->127.04@s30/b193
+order_example	20010524.1~0c93c7	t3616642->3616648	pill(2288,2048)	gap12.28->6.73	leader=107.3@s25/b3->123.33@s29/b3(stitched)	trailer=95.02@s22/b1->130.06@s31/b1
+order_example	20010524.1~0c93c7	t3623310->3623315	pill(2144,2000)	gap7.21->7.21	leader=91.26@s21/b217->99.86@s23/b217	trailer=84.05@s19/b217->107.07@s25/b217(stitched)
+order_example	20010524.2~7ccea8	t3703749->3703755	pill(1856,1888)	gap11.65->12.53	leader=43.42@s9/b171->51.48@s11/b171	trailer=31.76@s6/b171->64.01@s14/b171(stitched)
+order_example	20010529.1~4c574c	t12436337->12436350	pill(1888,2176)	gap6.14->8.06	leader=28.16@s5/b5->40.2@s8/b5(stitched)	trailer=~22.02@s3/b5/7->48.26@s10/b5
+order_example	20010612~37c913	t522190->522197	pill(1936,2064)	gap8.23->8.05	leader=20.4@s3/b249->32.56@s6/b249	trailer=12.17@s1/b249/251->40.61@s8/b249(stitched)
+order_example	20010625.1~9c4d7e	t12217995->12218008	pill(2016,2144)	gap8.06->8.06	leader=27.29@s5/b85->38.95@s8/b85(stitched)	trailer=19.24@s3/b85->47.01@s10/b85
+order_example	20010626~979683	t339373->339384	pill(2112,2448)	gap8.24->9.03	leader=19.42@s3/b135->~26.48@s5/b133/135(stitched)	trailer=11.18@s1/b133/135->35.51@s7/b135
+order_example	20010627.1~8b3b14	t5069113->5069132	pill(2128,1856)	gap15.23->16.55	leader=63.16@s14/b111->~75.24@s?/b?(stitched)	trailer=47.93@s10/b111->91.79@s21/b111
+order_example	20010629~78971e	t8847329->8847337	pill(2096,2192)	gap40.31->12.08	leader=52.39@s11/b209->75.24@s17/b209	trailer=12.08@s1/b209->87.32@s20/b209(stitched)
+order_example	20010629~78971e	t8847329->8847337	pill(2096,2192)	gap14.32->51.07	leader=~26.4@s4/b205/207/209/211->36.25@s7/b209	trailer=12.08@s1/b209->87.32@s20/b209(stitched)
+order_example	20010817.2~840dad	t58667->58684	pill(2176,2192)	gap8.49->7.78	leader=24.04@s4/b33->43.84@s9/b33(stitched)	trailer=15.56@s2/b33->51.62@s11/b33
+order_example	20010817.2~840dad	t40648->40666	pill(2064,2288)	gap28.77->48.44	leader=51.79@s11/b57->66.91@s15/b57	trailer=23.02@s4/b67->115.35@s27/b67(stitched)
+order_example	20011019.1	t2892872->2892887	pill(2000,2096)	gap20.39->8.82	leader=31.58@s6/b57->~30.81@s?/b?(stitched)	trailer=11.18@s1/b57/59->39.62@s8/b57
+order_example	20011019.1	t2892897->2892910	pill(2000,2096)	gap11.99->12.17	leader=43.57@s9/b57->51.79@s11/b57(stitched)	trailer=31.58@s6/b57->63.95@s14/b57
+order_example	20011019.1	t2913298->2913319	pill(1936,2192)	gap19.8->21.89	leader=47.38@s10/b95->~53.08@s?/b?(stitched)	trailer=27.59@s5/b95->74.97@s17/b95
+order_example	20011019.1	t2913319->2913330	pill(1936,2192)	gap19.84->12.04	leader=31.24@s6/b93->39.7@s8/b93(stitched)	trailer=11.4@s1/b91/93->51.74@s11/b93
+order_example	20011206.5~484308	t1873156->1873170	pill(1824,1936)	gap7.8->8.47	leader=24.08@s4/b221->39.7@s8/b221(stitched)	trailer=16.28@s2/b221->~48.17@s?/b221
+order_example	20011206.5~484308	t1969022->1969035	pill(2016,2160)	gap7.99->7.98	leader=~31.02@s6/b67/69->55.15@s12/b67	trailer=23.02@s4/b67->63.13@s14/b67(stitched)
+order_example	20011206.5~484308	t1996340->1996351	pill(2064,1936)	gap8.45->7.81	leader=19.85@s3/b99->39.7@s8/b99	trailer=11.4@s1/b99/101->47.51@s10/b99(stitched)
+order_example	20020128.1	t15996490->15996501	pill(2096,2224)	gap9.37->8.24	leader=19.42@s3/b73->38.83@s8/b73	trailer=~10.05@s1/b73/75->47.07@s10/b73(stitched)
+order_example	20020128.2	t16061981->16061986	pill(2192,1824)	gap8.05->8.06	leader=23.09@s4/b123->31.14@s6/b123	trailer=15.03@s2/b123->39.2@s8/b123(stitched)
+order_example	20020715~fa1a84	t1051912->1051930	pill(2224,2208)	gap12.02->12.02	leader=103.04@s24/b127->119.04@s28/b127(stitched)	trailer=91.02@s21/b127->131.06@s31/b127
+order_example	20020715~fa1a84	t1059254->1059276	pill(2128,2256)	gap19.41->19.41	leader=48.27@s10/b201->56.52@s12/b201(stitched)	trailer=28.86@s5/b201->75.93@s17/b201
+order_example	20020724.1	t964035->964050	pill(2032,1968)	gap11.65->23.31	leader=27.46@s5/b41->~67.96@s?/b?(stitched)	trailer=15.81@s2/b41->91.27@s21/b41(stitched)
+order_example	20020724.1	t1021567->1021583	pill(1808,1872)	gap13.37->19.23	leader=35.85@s7/b213->60.03@s13/b213(stitched)	trailer=~22.47@s3/b211/213/215->79.26@s18/b213(stitched)
+order_example	20020724.1	t1067125->1067155	pill(2064,2112)	gap8.36->12.27	leader=39.6@s8/b33->103.25@s24/b33	trailer=31.24@s6/b29->115.52@s27/b29
+order_example	20020724.1	t1085488->1085504	pill(2016,2112)	gap15.36->16.23	leader=51.42@s11/b55->~59.67@s?/b?(stitched)	trailer=36.06@s7/b51->75.89@s17/b51
+order_example	20021009~a7f8e2	t246150->246163	pill(2192,2000)	gap29.71->28.46	leader=51.55@s11/b115->~67.36@s?/b?(stitched)	trailer=~21.84@s4/b113/115/117->95.82@s22/b115(stitched)
+order_example	20021011.1~e33b95	t93372->93389	pill(1776,2064)	gap11.4->13.34	leader=35.17@s7/b117->~46.57@s?/b?(stitched)	trailer=23.77@s4/b117->59.91@s13/b117
+order_example	20021011.1~e33b95	t87334->87350	pill(2048,2064)	gap11.39->11.7	leader=107.21@s25/b115->119.85@s28/b115(stitched)	trailer=95.82@s22/b115->131.55@s31/b115
+order_example	20021011.2~3f1e94	t159468->159485	pill(2192,2000)	gap8.06->9.84	leader=19.24@s3/b83->~33.54@s?/b?(stitched)	trailer=11.18@s1/b83/85->43.38@s9/b83
+order_example	20021011.3~c28c8c	t324165->324179	pill(2320,2256)	gap11.17->11.17	leader=67.68@s15/b247->~77.13@s?/b?(stitched)	trailer=56.52@s12/b247->88.29@s20/b247
+order_example	20021012.1~60f3de	t214743->214755	pill(2032,1904)	gap12.33->11.38	leader=111.63@s26/b205->~116.06@s?/b?(stitched)	trailer=99.3@s23/b205->127.44@s30/b205
+order_example	20021012.6~3bb408	t828608->828626	pill(2160,1920)	gap11.99->12.04	leader=63.66@s14/b31->71.45@s16/b31(stitched)	trailer=51.66@s11/b31->83.49@s19/b31
+order_example	20021012.6~3bb408	t828626->828635	pill(2160,1920)	gap12.04->12.04	leader=83.49@s19/b31->~111.76@s?/b?(stitched)	trailer=71.45@s16/b31->123.79@s29/b31(stitched)
+order_example	20021014.4~a6cc21	t187455->187461	pill(2032,2288)	gap10.88->9.22	leader=111.51@s26/b21->115.1@s27/b21(stitched)	trailer=100.62@s23/b19->124.33@s29/b19
+order_example	20021014.5~b7a9af	t295471->295485	pill(1952,2224)	gap12.07->12.07	leader=107.33@s25/b45->~110.91@s?/b?(stitched)	trailer=95.26@s22/b45->122.98@s29/b45
+order_example	20021015.1~cc786e	t225985->226001	pill(2080,2160)	gap15.52->15.52	leader=51.66@s11/b11->91.21@s21/b11	trailer=36.14@s7/b11->106.74@s25/b11(stitched)
+order_example	20021015.1~cc786e	t139095->139125	pill(2240,2192)	gap12.08->9.85	leader=40.31@s8/b239->~77.47@s?/b?(stitched)	trailer=28.23@s5/b239->87.32@s20/b239
+order_example	20021015.2~64cd16	t583564->583571	pill(1760,1888)	gap7.1->24.28	leader=20.1@s3/b253->36.12@s7/b253	trailer=~13@s1/b1/3/5->60.41@s13/b5
+order_example	20021015.2~64cd16	t555777->555788	pill(2048,1888)	gap7.98->7.98	leader=111.29@s26/b125->119.34@s28/b125(stitched)	trailer=103.31@s24/b125->127.32@s30/b125
+order_example	20021016.1~ef3ab9	t1197862->1197871	pill(1936,2272)	gap8.06->8.06	leader=24.19@s4/b197->40.31@s8/b197	trailer=16.12@s2/b197->48.37@s10/b197(stitched)
+order_example	20021021.1~499f4c	t419404->419423	pill(1936,2128)	gap12.17->12	leader=83.19@s19/b135->~99.46@s?/b?(stitched)	trailer=71.02@s16/b135->111.46@s26/b135
+order_example	20021021.1~499f4c	t464160->464178	pill(1968,2128)	gap12.02->11.02	leader=103.04@s24/b191->119.04@s28/b191(stitched)	trailer=91.02@s21/b191->130.06@s31/b191
+order_example	20021021.1~499f4c	t439825->439845	pill(2000,1968)	gap12.04->12.04	leader=99.25@s23/b35->~118.44@s?/b?(stitched)	trailer=87.21@s20/b35->130.48@s31/b35
+order_example	20021021.4~82b065	t735475->735484	pill(1856,1952)	gap8.22->8.22	leader=100.45@s23/b7->116.56@s27/b7	trailer=92.23@s21/b7->124.78@s29/b7(stitched)
+order_example	20021024.1	t29015->29025	pill(2064,1840)	gap11.68->10.77	leader=118.7@s28/b209->~120.02@s?/b?(stitched)	trailer=107.02@s25/b209->130.78@s31/b209
+order_example	20021024.2	t53860->53874	pill(2160,2048)	gap8.06->7.77	leader=19.24@s3/b59->~27.46@s?/b?(stitched)	trailer=11.18@s1/b59->35.23@s7/b59
+order_example	20021024.3	t145080->145095	pill(1056,2336)	gap16.49->28.15	leader=51.66@s11/b117->55.79@s12/b117(stitched)	trailer=35.17@s7/b117->83.93@s19/b117
+order_example	20021024.3	t145080->145095	pill(1056,2336)	gap26.17->19.9	leader=51.66@s11/b117->55.79@s12/b117(stitched)	trailer=~25.5@s5/b115/117/119->75.69@s17/b117
+order_example	20021024.3	t145080->145095	pill(1056,2336)	gap36.14->7.54	leader=51.66@s11/b117->55.79@s12/b117(stitched)	trailer=15.52@s2/b117->63.32@s14/b117
+order_example	20021030.3~d71e9c	t374398->374414	pill(2048,2208)	gap12.21->10.81	leader=99.86@s23/b231->~112.07@s?/b?(stitched)	trailer=87.66@s20/b231->122.89@s29/b231
+order_example	20021101.3~e8f1f4	t185081->185090	pill(2192,2208)	gap8.05->8.06	leader=23.09@s4/b69->39.2@s8/b69	trailer=15.03@s2/b69->47.27@s10/b69(stitched)
+order_example	20021102.1~949b2f	t220946->220959	pill(1776,2064)	gap8.06->8.06	leader=27.29@s5/b133->39.32@s8/b133(stitched)	trailer=19.24@s3/b133->47.38@s10/b133
+order_example	20021102.1~949b2f	t226275->226286	pill(2176,2448)	gap7.79->7.79	leader=20.52@s3/b223->40.31@s8/b223	trailer=12.73@s1/b223/225->48.1@s10/b223(stitched)
+order_example	20021107.1~9ac748	t266453->266465	pill(2032,1984)	gap12.02->19.21	leader=28.43@s5/b229->40.61@s8/b229(stitched)	trailer=16.4@s2/b229/231->59.82@s13/b229
+order_example	20021107.1~9ac748	t293079->293094	pill(1840,1952)	gap12.04->11.97	leader=87.21@s20/b253->95.26@s22/b253(stitched)	trailer=75.17@s17/b253->107.23@s25/b253
+order_example	20021107.1~9ac748	t315750->315755	pill(1840,1984)	gap8.05->8.06	leader=24.08@s4/b5->32.14@s6/b5	trailer=16.03@s2/b3/5->40.2@s8/b5(stitched)
+order_example	20021107.1~9ac748	t117980->117992	pill(1920,1936)	gap12.21->11.63	leader=111.25@s26/b39->~115.43@s?/b?(stitched)	trailer=99.05@s23/b39->127.06@s30/b39
+order_example	20021108.3	t5184307->5184320	pill(1968,1920)	gap8.88->8.54	leader=19.7@s3/b47/49->31.38@s6/b49(stitched)	trailer=~10.82@s1/b49/51->39.92@s8/b49
+order_example	20021108.3	t5242842->5242855	pill(1808,2352)	gap7.62->7.62	leader=28.23@s5/b175->40.31@s8/b175(stitched)	trailer=20.62@s3/b175->47.93@s10/b175
+order_example	20021109.1	t385670->385675	pill(2304,2128)	gap8.05->8.05	leader=24.33@s4/b249->32.56@s6/b249	trailer=16.28@s2/b249->40.61@s8/b249(stitched)
+order_example	20030215.2~795f5c	t658601->658611	pill(1744,1888)	gap8.2->8.54	leader=36.06@s7/b15->55.71@s12/b15	trailer=27.86@s5/b15->64.26@s14/b15(stitched)
+order_example	20030222.1~406deb	t3105375->3105382	pill(2160,2144)	gap8.24->8.05	leader=19.42@s3/b135->31.58@s6/b135	trailer=11.18@s1/b133/135->39.62@s8/b135(stitched)
+order_example	20030222.2~e963b2	t3146985->3146992	pill(1936,1952)	gap7.61->7.61	leader=24.17@s4/b173->36.67@s7/b173	trailer=16.55@s2/b173->44.28@s9/b173(stitched)
+order_example	20030222.3~1eb6e1	t3246829->3246840	pill(2288,1936)	gap8.23->8.05	leader=20.4@s3/b249->28.44@s5/b249(stitched)	trailer=12.17@s1/b249/251->36.5@s7/b249
+order_example	20030314.1	t63032->63041	pill(2064,2176)	gap7.8->7.8	leader=59.2@s13/b27->75.6@s17/b27	trailer=51.4@s11/b27->83.41@s19/b27(stitched)
+order_example	20030329.1~282f82	t334919->334926	pill(2128,2000)	gap8.06->8.06	leader=~21.21@s3/b251/253/255->~32.25@s6/b251/253	trailer=~13.15@s1/b251/253->~40.31@s8/b251/253(stitched)
+order_example	20030619.1~ada0a4	t4227517->4227522	pill(1984,2320)	gap7.76->12.03	leader=95.48@s22/b33->115.28@s27/b33	trailer=87.73@s20/b31->127.31@s30/b31
+order_example	20030619.2~bf4fb6	t4448275->4448280	pill(2336,1840)	gap7.43->11.56	leader=119.22@s28/b205->~119.54@s?/b?(stitched)	trailer=111.79@s26/b207->131.1@s31/b207
+order_example	20030620.4~f9472d	t8894234->8894250	pill(1968,1984)	gap14.04->12.04	leader=~43.1@s8/b3/5/7->52.35@s11/b5(stitched)	trailer=~29.07@s5/b3/5->64.38@s14/b5
+order_example	20030625.2~0e98e3	t787791->787804	pill(2208,2080)	gap7.56->7.28	leader=19.92@s3/b13->32.57@s6/b13(stitched)	trailer=12.37@s1/b11/13->39.85@s8/b13
+order_example	20030626.2~0d9b68	t4890195->4890202	pill(2032,1984)	gap8.05->8.05	leader=24.7@s4/b233->36.89@s7/b233	trailer=16.64@s2/b233->44.94@s9/b233(stitched)
+order_example	20030626.2~0d9b68	t5223706->5223713	pill(2096,2128)	gap11.31->13.02	leader=111.76@s26/b187->~111.76@s?/b?(stitched)	trailer=100.45@s23/b185->124.78@s29/b185
+order_example	20030715.1~ab18b3	t30576678->30576695	pill(2224,1824)	gap12.03->12.15	leader=95.63@s22/b69->~107.67@s?/b?(stitched)	trailer=83.6@s19/b69->119.82@s28/b69
+order_example	20030722.3~2c2598	t25854586->25854603	pill(2112,2352)	gap12.17->12.17	leader=84.17@s19/b185->92.23@s21/b185(stitched)	trailer=72.01@s16/b185->104.39@s24/b185
+order_example	20030722.3~2c2598	t25854586->25854603	pill(2112,2352)	gap12.15->11.16	leader=107.79@s25/b187->~116.73@s?/b?(stitched)	trailer=95.63@s22/b187->127.88@s30/b187
+order_example	20030730.1~4d1fc7	t8493602->8493611	pill(2256,2224)	gap8.05->8.06	leader=23.09@s4/b123->39.2@s8/b123	trailer=15.03@s2/b123->47.27@s10/b123(stitched)
+order_example	20030730.1~4d1fc7	t8444115->8444133	pill(2048,1904)	gap12.04->24.01	leader=95.26@s22/b253->99.25@s23/b253(stitched)	trailer=83.22@s19/b253->123.26@s29/b253
+order_example	20030730.1~4d1fc7	t8444115->8444133	pill(2048,1904)	gap24.08->12.04	leader=95.26@s22/b253->99.25@s23/b253(stitched)	trailer=71.18@s16/b253->111.29@s26/b253
+order_example	20030730.1~4d1fc7	t8497594->8497611	pill(2176,1792)	gap12.19->24.01	leader=107@s25/b27->~107.2@s?/b?(stitched)	trailer=94.81@s22/b27->131.21@s31/b27
+order_example	20030730.1~4d1fc7	t8497594->8497611	pill(2176,1792)	gap23.6->11.82	leader=107@s25/b27->~107.2@s?/b?(stitched)	trailer=83.41@s19/b27->119.02@s28/b27
+order_example	20040302.3~0fd7d0	t314862->314879	pill(2048,1936)	gap8.06->8.06	leader=19.1@s3/b69->39.2@s8/b69(stitched)	trailer=11.05@s1/b69->47.27@s10/b69
+order_example	20040302.3~0fd7d0	t333948->333964	pill(2160,1968)	gap36.12->16.26	leader=47.3@s10/b137->~71.06@s?/b?(stitched)	trailer=~11.18@s1/b137/139/141/143/145->87.32@s20/b137(stitched)
+order_example	20040302.3~0fd7d0	t333948->333964	pill(2160,1968)	gap16.02->27.66	leader=~27.2@s5/b137/139->59.67@s13/b137	trailer=~11.18@s1/b137/139/141/143/145->87.32@s20/b137(stitched)
+order_example	20040324.4~e23dd3	t3897763->3897768	pill(2048,2176)	gap8.06->8.94	leader=19.24@s3/b83->26.83@s5/b83	trailer=11.18@s1/b83->35.78@s7/b83(stitched)
+order_example	20040324.4~e23dd3	t3952217->3952229	pill(2272,1840)	gap12.16->11.04	leader=28.28@s5/b251->~29.27@s?/b?(stitched)	trailer=16.12@s2/b251->40.31@s8/b251
+order_example	20040324.4~e23dd3	t3974162->3974167	pill(1904,2000)	gap8.06->8.06	leader=24.19@s4/b197->32.25@s6/b197	trailer=16.12@s2/b195/197->40.31@s8/b197(stitched)
+order_example	20040325.2~8f09da	t4282996->4283001	pill(1920,1840)	gap8.24->8.24	leader=107.71@s25/b201->115.95@s27/b201	trailer=99.46@s23/b201->124.2@s29/b201(stitched)
+order_example	20040325.2~8f09da	t4320394->4320399	pill(1888,1920)	gap8.06->8.06	leader=20.1@s3/b5->28.16@s5/b5	trailer=12.04@s1/b5->36.22@s7/b5(stitched)
+order_example	20040331.1~db6d8d	t25437549->25437560	pill(2048,2144)	gap20.22->19.73	leader=99.25@s23/b67->103.31@s24/b67	trailer=79.03@s18/b65->123.04@s29/b65
+order_example	20040401.1~d82a03	t1330030->1330040	pill(2032,2224)	gap7.62->7.62	leader=27.31@s5/b81->47.93@s10/b81	trailer=19.7@s3/b81->55.54@s12/b81(stitched)
+order_example	20040423.4~04ba45	t3571382->3571392	pill(1952,1856)	gap11.7->10.19	leader=79.12@s18/b177->~80.99@s?/b?(stitched)	trailer=67.42@s15/b177->91.18@s21/b177
+order_example	20040503.2~2087a4	t17798285->17798299	pill(2096,2064)	gap19.68->11.65	leader=31.76@s6/b171->~31.76@s?/b?(stitched)	trailer=~12.08@s1/b169/171->43.42@s9/b171
+order_example	20040503.2~2087a4	t17791604->17791632	pill(2080,1968)	gap7.01->7.18	leader=23.77@s4/b181->64.29@s14/b181	trailer=16.76@s2/b179->71.47@s16/b179
+order_example	20040506.1~023c85	t30856973->30856984	pill(2192,1984)	gap6.06->8.06	leader=24.08@s4/b5->44.28@s9/b5	trailer=~18.03@s2/b5/7->52.35@s11/b5(stitched)
+order_example	20040517.1~790714	t7694047->7694053	pill(2192,1952)	gap8.25->7.04	leader=79.08@s18/b137->91.44@s21/b137	trailer=70.83@s16/b137->98.49@s23/b137(stitched)
+order_example	20040520.2~23468a	t323234->323246	pill(2128,2224)	gap19.64->16.5	leader=103.24@s24/b131->~107.3@s?/b?(stitched)	trailer=83.6@s19/b133->123.79@s29/b133
+order_example	20040601.1~77f665	t14582986->14582997	pill(2048,2128)	gap8.48->7.79	leader=91.97@s21/b161->111.76@s26/b161	trailer=83.49@s19/b161->119.55@s28/b161(stitched)
+order_example	20040601.1~77f665	t14615024->14615037	pill(1968,2016)	gap8.94->8.06	leader=19.24@s3/b107->30.89@s6/b107(stitched)	trailer=~10.3@s1/b105/107->38.95@s8/b107
+order_example	20040607.1~22c8e5	t35050076->35050088	pill(2336,1904)	gap12.04->12.06	leader=23.71@s4/b45->27.29@s5/b45(stitched)	trailer=11.66@s1/b43/45->39.36@s8/b45
+order_example	20040701.1~8ed269	t12998806->12998817	pill(1808,1792)	gap8.24->8.24	leader=24.52@s4/b9->43.93@s9/b9	trailer=16.28@s2/b9->52.17@s11/b9(stitched)
+order_example	20040726.1~d17b67	t11501080->11501096	pill(1744,2112)	gap12->12.02	leader=111.04@s26/b127->~119.04@s?/b?(stitched)	trailer=99.05@s23/b127->131.06@s31/b127
+order_example	20040726.1~48e8fb	t17145439->17145450	pill(2144,2048)	gap8.24->8.24	leader=23.54@s4/b119->42.95@s9/b119	trailer=15.3@s2/b119->51.2@s11/b119(stitched)
+order_example	20040727.2~8a0a19	t21721901->21721915	pill(1952,2080)	gap12->12.17	leader=75.95@s17/b249->84.17@s19/b249(stitched)	trailer=63.95@s14/b249->96.34@s22/b249
+order_example	20040727.3~fa4f16	t21763909->21763920	pill(1872,2208)	gap8.05->8.06	leader=24.08@s4/b187->44.28@s9/b187	trailer=16.03@s2/b187->52.35@s11/b187(stitched)
+order_example	20040727.3~fa4f16	t21786610->21786625	pill(2352,1872)	gap12.17->12.28	leader=32.02@s6/b155->~38.95@s?/b?(stitched)	trailer=19.85@s3/b155->51.22@s11/b155
+order_example	20040729.1~97bd6a	t30141810->30141820	pill(1904,1872)	gap13.15->12.03	leader=~29.27@s5/b251/253->28.28@s5/b251(stitched)	trailer=16.12@s2/b251/253->40.31@s8/b251
+order_example	20040729.1~97bd6a	t30108053->30108065	pill(2048,1952)	gap11.66->12.52	leader=31.38@s6/b43->~31.38@s?/b?(stitched)	trailer=19.72@s3/b43->43.91@s9/b43
+order_example	20040729.1~97bd6a	t30108071->30108085	pill(2048,1952)	gap18.82->8.06	leader=35.85@s7/b43->35.85@s7/b43(stitched)	trailer=~17.03@s?/b41/43/45->43.91@s9/b43
+order_example	20040729.1~97bd6a	t30130880->30130894	pill(2320,2048)	gap12.37->11.67	leader=119.1@s28/b11->~119.1@s?/b?(stitched)	trailer=106.74@s25/b11->130.77@s31/b11
+order_example	20040729.2~4fc426	t30263700->30263711	pill(2032,1680)	gap13.27->12.03	leader=24.04@s4/b139->~23.41@s?/b?(stitched)	trailer=~10.77@s1/b137/139->35.44@s7/b139
+order_example	20040729.3~b98bb1	t17572955->17572962	pill(2176,2064)	gap8.54->7.61	leader=111.43@s26/b15->123.13@s29/b15	trailer=102.88@s24/b15->130.74@s31/b15(stitched)
+order_example	20040729.3~b98bb1	t17572955->17572962	pill(2176,2064)	gap8.6->7.8	leader=40@s8/b27->51.4@s11/b27	trailer=31.4@s6/b27->59.2@s13/b27(stitched)
+order_example	20040729.3~b98bb1	t17580485->17580495	pill(1824,2048)	gap11.29->12.17	leader=24.33@s4/b7->24.33@s4/b7(stitched)	trailer=~13.04@s1/b5/7->36.5@s7/b7
+order_example	20040803.1~b39f9e	t52007173->52007190	pill(1888,2208)	gap12.04->12.04	leader=47.51@s10/b93->~59.55@s?/b?(stitched)	trailer=35.47@s7/b93->71.59@s16/b93
+order_example	20040803.1~b39f9e	t51985903->51985916	pill(2288,2032)	gap11.98->11.35	leader=36.5@s7/b7->48.66@s10/b7	trailer=24.52@s4/b9->~60.02@s?/b?(stitched)
+order_example	20040803.2~c5f737	t52345419->52345430	pill(2048,2112)	gap8.05->8.05	leader=23.35@s4/b57->31.58@s6/b57(stitched)	trailer=15.3@s2/b57->39.62@s8/b57
+order_example	20040803.4~82944d	t52591325->52591330	pill(2096,2240)	gap8.23->8.05	leader=20.4@s3/b199->28.44@s5/b199	trailer=12.17@s1/b197/199->36.5@s7/b199(stitched)
+order_example	20040803.4~82944d	t52567125->52567130	pill(1920,2048)	gap8.06->8.21	leader=20.22@s3/b7->28.28@s5/b7	trailer=12.17@s1/b7->36.5@s7/b7(stitched)
+order_example	20040804.6~a040d3	t678430->678439	pill(1920,1936)	gap12.2->7.23	leader=91.83@s21/b229->104.02@s24/b229	trailer=79.63@s18/b231->111.25@s26/b231
+order_example	20040804.6~a040d3	t771680->771690	pill(2032,2160)	gap12.53->11.65	leader=~28.18@s5/b21/23->28.18@s5/b21(stitched)	trailer=~15.65@s2/b21/23->39.82@s8/b21
+order_example	20040804.6~a040d3	t683173->683180	pill(1824,2176)	gap7.46->31.8	leader=91.39@s21/b77->99.93@s23/b77	trailer=83.93@s19/b75->131.73@s31/b75
+order_example	20040804.6~a040d3	t683173->683180	pill(1824,2176)	gap20.78->18.95	leader=91.39@s21/b77->99.93@s23/b77	trailer=70.61@s16/b73->118.88@s28/b73
+order_example	20040804.6~a040d3	t763542->763551	pill(2032,2144)	gap8.05->7.07	leader=108.5@s25/b185->124.78@s29/b185	trailer=100.45@s23/b185->131.85@s31/b185(stitched)
+order_example	20040805.1~7775b2	t61145219->61145225	pill(2240,2256)	gap11.36->7.49	leader=23.02@s4/b89->31.62@s6/b89	trailer=11.66@s1/b87->39.12@s8/b87
+order_example	20040805.1~7775b2	t61056895->61056902	pill(2144,2112)	gap12.16->8.05	leader=39.62@s8/b57->51.79@s11/b57	trailer=27.46@s5/b57->59.84@s13/b57(stitched)
+order_example	20040805.1~7775b2	t61104775->61104780	pill(2400,2112)	gap8.06->7.94	leader=20.22@s3/b251->28.28@s5/b251	trailer=12.17@s1/b249/251->36.22@s7/b251(stitched)
+order_example	20040809.2~8cd753	t77972282->77972288	pill(2032,1808)	gap11.94->12.42	leader=23.6@s4/b165->27.8@s5/b165	trailer=11.66@s1/b167->40.22@s8/b167
+order_example	20040809.3~806401	t78061529->78061535	pill(2256,2032)	gap8->7.02	leader=111.02@s26/b255->123.02@s29/b255	trailer=103.02@s24/b255->130.03@s31/b255(stitched)
+order_example	20040812.6~df25dd	t688846->688854	pill(2160,1888)	gap11.66->8.06	leader=32.25@s6/b213->32.25@s6/b213(stitched)	trailer=20.59@s3/b213->40.31@s8/b213
+order_example	20040812.6~df25dd	t652144->652151	pill(2032,1888)	gap8.06->8.06	leader=59.41@s13/b59->71.45@s16/b59	trailer=51.35@s11/b59->79.51@s18/b59(stitched)
+order_example	20040825.3~56a025	t34703440->34703445	pill(1904,2208)	gap8.06->8.06	leader=20.1@s3/b187->28.16@s5/b187	trailer=12.04@s1/b187->36.22@s7/b187(stitched)
+order_example	20040825.4~847441	t34816085->34816090	pill(2048,2288)	gap8.23->8.05	leader=20.4@s3/b199->28.44@s5/b199	trailer=12.17@s1/b197/199->36.5@s7/b199(stitched)
+order_example	20040827.12~4deda5	t42840733->42840743	pill(2224,2128)	gap12.01->8	leader=44.01@s9/b1->44.01@s9/b1(stitched)	trailer=32@s6/b1->52.01@s11/b1
+order_example	20040910.1~f32732	t14317370->14317375	pill(2512,2112)	gap8.24->8.24	leader=107.49@s25/b183->115.73@s27/b183	trailer=99.25@s23/b183->123.98@s29/b183(stitched)
+order_example	20040913.4~1638d7	t15932925->15932950	pill(1984,2096)	gap12.03->12.03	leader=83.45@s19/b159->~111.73@s?/b?(stitched)	trailer=71.42@s16/b159->123.76@s29/b159
+order_example	20041203.1~73cc06	t6614153->6614164	pill(1952,2224)	gap12.13->12.13	leader=27.17@s5/b123->~27.07@s?/b?(stitched)	trailer=15.03@s2/b123->39.2@s8/b123
+order_example	20041216.1~e7d715	t5119901->5119913	pill(2048,2144)	gap12.17->12.16	leader=24.33@s4/b249->28.44@s5/b249(stitched)	trailer=12.17@s1/b249->40.61@s8/b249
+order_example	20041216.1~e7d715	t5122490->5122495	pill(1872,2192)	gap7.6->7.6	leader=24.6@s4/b237->32.65@s6/b237	trailer=17@s2/b237->40.25@s8/b237(stitched)
+order_example	20041222.6~cbf438	t5767355->5767366	pill(1936,2368)	gap6.67->8.59	leader=24.7@s4/b233->31.91@s6/b233(stitched)	trailer=~18.03@s2/b233/235->40.5@s8/b233
+order_example	20050107.1~602ad1	t4401510->4401524	pill(2048,1952)	gap15.81->15.81	leader=111.25@s26/b153->~114.86@s?/b?(stitched)	trailer=95.44@s22/b153->130.67@s31/b153
+order_example	20050107.2~63cf26	t4550946->4550962	pill(1968,1920)	gap12.16->10.88	leader=28.28@s5/b197->~29.43@s?/b?(stitched)	trailer=16.12@s2/b197->40.31@s8/b197
+order_example	20050307.4~f4ca9f	t26551005->26551010	pill(2208,2016)	gap7.55->7.66	leader=67.36@s15/b77->80.01@s18/b77	trailer=59.81@s13/b79->87.66@s20/b79
+order_example	20010330~b7f48c	t210285->210290	pill(720,2256)	gap7.61->7.61	leader=111.43@s26/b113->119.97@s28/b113	trailer=103.82@s24/b113->127.58@s30/b113(stitched)
+order_example	20020730.1	t211687->211705	pill(1872,2016)	gap19.73->8.51	leader=87.21@s20/b125->~95.19@s?/b?(stitched)	trailer=67.48@s15/b123->103.7@s24/b123
+order_example	20020730.1	t211687->211705	pill(1872,2016)	gap11.67->20.66	leader=87.21@s20/b125->~95.19@s?/b?(stitched)	trailer=75.54@s17/b123->115.85@s27/b123
+order_example	20020730.1	t279836->279854	pill(2272,2288)	gap31.77->16.49	leader=48.05@s10/b183->75.71@s17/b183(stitched)	trailer=16.28@s2/b183->92.2@s21/b183(stitched)
+order_example	20020730.1	t279836->279854	pill(2272,2288)	gap15.5->31.78	leader=31.78@s6/b183->60.42@s13/b183(stitched)	trailer=16.28@s2/b183->92.2@s21/b183(stitched)
+order_example	20020730.1	t151860->151879	pill(1824,2016)	gap7.81->7.21	leader=~23.43@s4/b161/163->48.1@s10/b161(stitched)	trailer=~15.62@s2/b155/157/159/161/163->55.32@s12/b163
+order_example	20020730.1	t271287->271309	pill(1856,1952)	gap7.61->27.7	leader=44.28@s9/b173->~52.8@s?/b?(stitched)	trailer=36.67@s7/b173->80.5@s18/b173
+order_example	20020730.1	t271287->271309	pill(1856,1952)	gap20.12->19.65	leader=44.28@s9/b173->~52.8@s?/b?(stitched)	trailer=24.17@s4/b173->72.45@s16/b173
+order_example	20020730.1	t271287->271309	pill(1856,1952)	gap27.52->7.57	leader=44.28@s9/b173->~52.8@s?/b?(stitched)	trailer=~16.76@s2/b173/175->60.37@s13/b173
+order_example	20020912.6~6ec88c	t4042610->4042647	pill(2336,2032)	gap19.4->20.22	leader=71.02@s16/b121->~99.46@s?/b?(stitched)	trailer=51.62@s11/b121->119.68@s28/b121(stitched)
+order_example	20020912.6~6ec88c	t4042610->4042647	pill(2336,2032)	gap31.56->8.05	leader=71.02@s16/b121->~99.46@s?/b?(stitched)	trailer=39.46@s8/b121->107.52@s25/b121
+order_example	20020912.6~6ec88c	t4042610->4042647	pill(2336,2032)	gap8.22->32.55	leader=59.84@s13/b121->~87.13@s?/b?(stitched)	trailer=51.62@s11/b121->119.68@s28/b121(stitched)
+order_example	20020912.6~6ec88c	t4042610->4042647	pill(2336,2032)	gap20.38->20.39	leader=59.84@s13/b121->~87.13@s?/b?(stitched)	trailer=39.46@s8/b121->107.52@s25/b121
+order_example	20021018.2	t9355584->9355598	pill(1808,2064)	gap7.98->7.98	leader=103.24@s24/b253->115.28@s27/b253(stitched)	trailer=95.26@s22/b253->123.26@s29/b253
+order_example	20021018.2	t9547346->9547367	pill(2032,1856)	gap12.04->12.04	leader=56.14@s12/b189->67.19@s15/b189(stitched)	trailer=44.1@s9/b189->79.23@s18/b189(stitched)
+order_example	20021018.2	t9547346->9547367	pill(2032,1856)	gap12.04->12.04	leader=32.06@s6/b189->44.1@s9/b189(stitched)	trailer=20.02@s3/b189->56.14@s12/b189

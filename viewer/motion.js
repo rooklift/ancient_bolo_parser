@@ -58,6 +58,30 @@ const PILLBOX_ORBITS_BY_DIRECTION = Array.from({ length: 16 }, () => []);
 for (let orbit of PILLBOX_ORBITS) {
 	PILLBOX_ORBITS_BY_DIRECTION[orbit.coarse_direction].push(orbit);
 }
+/* How loosely a shell's distance from its pill maps to its orbit step:
+ * the sine table's rounding gives every bradian its own slightly
+ * different speed, so across the 128 orbits the distance at one step
+ * spans about three pixels, and the fastest orbit at one step comes
+ * within a pixel of the slowest at the next (on one orbit a step is
+ * three to five pixels). Distance order therefore proves step order
+ * only beyond this spread. Two live shells of one pill are never at
+ * the same step -- a pill fires no faster than every five or six
+ * ticks, two or three steps -- and at two steps apart the nearest any
+ * two orbits come is over five pixels, so a same-pill pair inside the
+ * spread is not two rightly placed shells at all; score_pill_order
+ * uses the spread as its tolerance for exactly that reason. */
+const PILLBOX_EQUAL_STEP_SPREAD_PIXELS = (() => {
+	let spread = 0;
+	for (let step = 0; step <= 32; step++) {
+		let distances = PILLBOX_ORBITS.map(orbit => {
+			let position = step < 32 ? orbit.positions[step] : orbit.terminal;
+			return Math.hypot(position[0], position[1]);
+		});
+		spread = Math.max(spread,
+			Math.max(...distances) - Math.min(...distances));
+	}
+	return spread;
+})();
 
 /* Tank shells run the same integer simulation as pillbox shells, at all 256
  * bradians (docs/tank_shell_bradians.md): one velocity-table step every two
@@ -5061,6 +5085,108 @@ function sweep_contradicted_links(snapshots) {
 	return unlinked;
 }
 
+/* The distance-order invariant, scored on final state as a regression
+ * alarm beside score_pill_links. Every live shell of one pillbox
+ * advances one orbit step per sender update, so between two statements
+ * the pill's shells keep their order of distance from it: a trailer
+ * never passes its leader while both fly. The lockstep passes enforce
+ * this only where steps are well-defined (one bradian, or several
+ * agreeing on a step); this scorer needs no step, so it also sees the
+ * pairs those passes skip. For each snapshot and each pill, every two
+ * of its shells whose links both land in one later snapshot make a
+ * pair: kept when the order holds (a tie counts as holding), inverted
+ * when it flips by more than the positions can lie -- the spread of
+ * the orbits' distance-to-step mapping at each end
+ * (PILLBOX_EQUAL_STEP_SPREAD_PIXELS), widened by the chained-offset
+ * uncertainty of any member not pinned to an exact orbit pixel -- and
+ * blurred when it flips within that. A blurred pair is not two rightly
+ * placed shells: two live shells of one pill are at least two steps and
+ * over five pixels apart, so one of its positions or provenances is
+ * wrong, and the bucket is kept apart from inverted because that is a
+ * different complaint from a crossing. Visual joins
+ * and verbatim re-sends are left out as score_pill_links leaves them
+ * out, and a pair whose links land in different snapshots is not
+ * comparable. Every inversion is kept as an example. */
+function score_pill_order(snapshots) {
+	let score = { pairs: 0, kept: 0, blurred: 0, inverted: 0, examples: [] };
+	let index_of = new Map();
+	snapshots.forEach((snapshot, index) => {
+		for (let shell of snapshot.shells) index_of.set(shell, index);
+	});
+	let distance = shell => Math.hypot(
+		(shell.pillbox_orbit_pixel_x ?? shell.pixel_x) - shell.pillbox_source_x,
+		(shell.pillbox_orbit_pixel_y ?? shell.pixel_y) - shell.pillbox_source_y);
+	/* The true position of a chained-offset member lies in a one-sided
+	 * box of its list index per axis (INTERPOLATION.md, quantisation);
+	 * a member pinned to an orbit pixel has none. */
+	let slack = shell => shell.pillbox_orbit_pixel_x !== undefined ? 0
+		: (shell.position_uncertainty || 0) * Math.SQRT2;
+	let pinned = shell => shell.pillbox_orbit_pixel_x !== undefined;
+	let describe = shell => {
+		let step = pinned_orbit_step(shell.pillbox_orbit_states);
+		let bradians = [...new Set((shell.pillbox_orbit_states || [])
+			.map(state => state.bradian))];
+		return {
+			pixel_x: shell.pixel_x, pixel_y: shell.pixel_y,
+			distance: Math.round(distance(shell) * 100) / 100,
+			pinned: pinned(shell),
+			step: step === null ? "?" : step,
+			bradians: bradians.length ? bradians.join("/") : "?",
+			stitched: !!shell.stitched,
+		};
+	};
+	for (let snapshot of snapshots) {
+		let members = snapshot.shells.filter(shell => {
+			let next = shell.next_shell;
+			return next && shell.pillbox_source_x !== undefined &&
+				!shell.next_terminal && !next.visual_join &&
+				!next.stale_restatement;
+		});
+		for (let i = 0; i < members.length; i++) {
+			let first = members[i];
+			let first_next = first.next_shell;
+			for (let j = i + 1; j < members.length; j++) {
+				let second = members[j];
+				let second_next = second.next_shell;
+				if (second.pillbox_source_x !== first.pillbox_source_x ||
+					second.pillbox_source_y !== first.pillbox_source_y) continue;
+				if (index_of.get(first_next) !== index_of.get(second_next)) {
+					continue;
+				}
+				score.pairs++;
+				let gap_before = distance(first) - distance(second);
+				let gap_after = distance(first_next) - distance(second_next);
+				if (gap_before * gap_after >= 0) { score.kept++; continue; }
+				let tolerance_before = PILLBOX_EQUAL_STEP_SPREAD_PIXELS +
+					slack(first) + slack(second);
+				let tolerance_after = PILLBOX_EQUAL_STEP_SPREAD_PIXELS +
+					slack(first_next) + slack(second_next);
+				if (Math.abs(gap_before) <= tolerance_before ||
+					Math.abs(gap_after) <= tolerance_after) {
+					score.blurred++;
+					continue;
+				}
+				score.inverted++;
+				let leader = gap_before > 0 ? first : second;
+				let trailer = leader === first ? second : first;
+				score.examples.push({
+					time: snapshot.time,
+					next_time: snapshots[index_of.get(first_next)].time,
+					pillbox_source_x: first.pillbox_source_x,
+					pillbox_source_y: first.pillbox_source_y,
+					gap_before: Math.round(Math.abs(gap_before) * 100) / 100,
+					gap_after: Math.round(Math.abs(gap_after) * 100) / 100,
+					leader: describe(leader),
+					leader_next: describe(leader.next_shell),
+					trailer: describe(trailer),
+					trailer_next: describe(trailer.next_shell),
+				});
+			}
+		}
+	}
+	return score;
+}
+
 /* Records between progress yields in the long record loops. About ten
  * milliseconds of work: fine enough that a caller can repaint a loading
  * bar on its own schedule without the generator ever holding the thread
@@ -5497,7 +5623,7 @@ const BoloMotion = {
 	tank_position_at, tank_direction_at, lgm_position_at, shell_position_at,
 	shell_birth_positions_at, shell_fall_positions_at,
 	describe_unmatched_terminals, describe_unfated_ends, score_pill_links,
-	sweep_contradicted_links,
+	score_pill_order, sweep_contradicted_links,
 	set_roster_vote_recording, reset_flow_component_stats,
 	flow_component_stats: () => flow_component_stats,
 };
