@@ -10,9 +10,10 @@
  * pass, so the advance ought to be a property of the sender transition
  * rather than of the pill. If it is, a well-constrained pill could lend
  * its advance to a sparse one, and the votes of all a sender's pills
- * could be pooled. This tool measures whether it is, before anything is
- * wired in. It replicates the vote's own gates exactly and reads final
- * state; nothing is changed.
+ * could be pooled. This tool measured whether it is before either vote
+ * site lent an advance ([E:sender-lockstep]), and still reads the
+ * per-pill elections off final state under the vote's own gates;
+ * nothing is changed.
  *
  * For each sender record pair carrying a pinned roster at both ends:
  *

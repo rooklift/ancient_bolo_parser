@@ -1393,6 +1393,49 @@ row in the table below. Corpus: `82531bc` in
 links +210 with contradictions unchanged, three headline records by
 the smallest of margins.
 
+## The sender's lockstep -- pooled roster votes
+
+The roster vote elected one advance per pill per sender record pair,
+so a pill with fewer than three pinned shells in flight never voted,
+and a vote inside the margin stood down, whatever the sender's other
+pills had settled over the same pair. But a client steps every shell
+of every pill firing at it in one update pass, so the advance belongs
+to the sender transition. `tools/measure-cross-pill-agreement.cjs`
+measured that first, on the corpus (`docs/corpus_runs/78797d3-cross-pill.txt`,
+443 logs): 10,434 of 10,434 pairs where two pills each elected agree;
+99.77% of a sparse pill's pinned statements land at a rich pill's
+advance where 22.9% could be landed by any other; pooling the pills'
+scores elects 14.5% more pairs and never contradicts a per-pill
+winner. Recorded as [E:sender-lockstep].
+
+Both vote sites now lend the sender's advance. Where exactly one
+advance won any pill's election it is lent to every pill of the
+sender that could not elect its own; where none passed, the pooled
+election (the full and confident scores summed over every pill, under
+the same symmetric gates, no orphan tie-break) stands in. A lent
+advance prunes members' off-lockstep continuations and claims landing
+ownership exactly as an elected one; a pair whose pills elect
+different advances lends nothing. The stitching and residual reference
+composes the sender's hops the same way, a pill's own election taking
+precedence along its span. The recorded verdict for a lent pill is
+`lent`, reported by the rates tool as `roster_votes_lent`.
+
+Fixture: every coverage line of the rates report identical (links
+52,763, every shell and terminal count), the drawn-motion audit
+byte-identical, and the truth axis moves: vouched links 20,088 ->
+21,512 with unvouched 12,873 -> 11,449, `rate_links_pill_vouched`
+0.609448 -> 0.652650, contradictions 0 -> 0. Of the 11,947 pills that
+could not vote, 955 are now lent an advance (unvoted 9,954 -> 9,198,
+stood down 1,993 -> 1,794, passed 3,717 unchanged). The fast-ring
+fixture: vouched 27,006 -> 30,141, unvouched 18,530 -> 15,396, rate
+0.593069 -> 0.661901, contradictions 0, 1,995 lent; one visual join
+(4 -> 3) became an identity link, the lent advance deciding which
+same-ray story was the shell's, with every other line identical and
+the audit byte-identical. All three pinned counts in
+`test/test-viewer.cjs` are repinned to the new values with the lent
+count added. No headline rate moves, so no new row in the table
+below. Corpus: pending the holder's run.
+
 ## Findings at the close of the ten-run table -- `926f391`
 
 Written when `926f391` was the branch's head and the table above ended

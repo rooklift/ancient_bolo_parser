@@ -324,7 +324,7 @@ arc but deliberately not started.
   engine's own table still uses them -- a quirk on the books). Corpus: 5,089,285 scored, 0.569 vouched, 423
   contradicted (0.000083), every matching metric byte-identical. See
   `docs/interpolation_tests.md` and the corpus file.
-* **Cross-pill evidence sharing -- measured, not yet wired.** The
+* **Cross-pill evidence sharing -- measured and wired, corpus run pending.** The
   roster vote elects one advance per pill per sender record pair, so a
   pill with fewer than three pinned shells in flight never votes and
   its links stand on cost margins alone. But every list of one record
@@ -344,12 +344,14 @@ arc but deliberately not started.
   and never contradicts a per-pill winner. Pooling should also weaken
   cadence aliasing, since pills fire on different phases, and is safe
   under a stale record, which dilates every pill of the sender alike.
-  Next: thread pooling through both vote sites
-  (`build_pill_lockstep_reference` and
-  `enforce_roster_lockstep_candidates`, with its abstention and
-  orphan-free tiebreak), judged on the vouched and contradicted link
-  bins and the drawn-motion audit. The sender's own tank shells step in
-  the same pass and are a possible third voter later.
+  Wired as [E:sender-lockstep]: both vote sites lend the sender's
+  advance (one pill's election, or the pooled election where none
+  passed) to every pill of the sender that could not elect its own.
+  Fixture: coverage and the drawn-motion audit identical, vouched links
+  20,088 -> 21,512 and 27,006 -> 30,141 on the fast ring, contradictions
+  0; see "The sender's lockstep" in `docs/interpolation_tests.md`.
+  Wanting: the corpus rates and audit runs. The sender's own tank
+  shells step in the same pass and are a possible third voter later.
 * **The pace / drawn-speed residue.** Rushed terminal links (68,540
   corpus, 3.0+ px/tick final hops) are the one class every lockstep
   dial nudges the wrong way by a few dozen: a lockstep-verified

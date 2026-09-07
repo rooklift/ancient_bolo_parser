@@ -177,6 +177,10 @@ const RESIDUAL_COST_MARGIN = SHELL_MATCH_MARGIN;
 const DILATED_JOIN_PENALTY_PIXELS = 8;
 const DILATED_CATCHUP_PIXELS = 16;
 const DILATED_UPDATE_SLACK = 8;
+/* The roster vote's gates: an advance must explain at least this many
+ * statements and beat the runner-up by at least this margin. */
+const LOCKSTEP_REFERENCE_MIN_SCORE = 3;
+const LOCKSTEP_REFERENCE_MIN_MARGIN = 2;
 
 /* Standalone map/node records carry no player state or motion. */
 const MAP_NODE_TYPES = new Set([
@@ -2013,6 +2017,28 @@ function enforce_pillbox_lockstep_candidates(previous_shells, by_previous,
  * one point is a genuine conflict the margins must arbitrate. When no
  * vote passes, nothing changes -- the rule vetoes contradictions of a
  * dominant story, it never invents one. */
+/* One election over a per-advance score table: the leader, its score
+ * and the runner-up's, and whether it clears the roster vote's gates. */
+function tally_election(scores) {
+	let best = null, best_score = 0, runner_up = 0;
+	for (let [advance, score] of scores) {
+		if (score > best_score) {
+			runner_up = best_score;
+			best_score = score;
+			best = advance;
+		} else if (score > runner_up) {
+			runner_up = score;
+		}
+	}
+	return { best, best_score, runner_up, scores };
+}
+function election_gates(election) {
+	return election.best !== null &&
+		election.best_score >= LOCKSTEP_REFERENCE_MIN_SCORE &&
+		election.best_score >=
+			election.runner_up + LOCKSTEP_REFERENCE_MIN_MARGIN;
+}
+
 function enforce_roster_lockstep_candidates(previous_shells, target_groups,
 	by_previous, by_next, duration, next = null) {
 	let max_advance = Math.ceil(duration / TICKS_PER_SHELL_UPDATE) +
@@ -2057,6 +2083,7 @@ function enforce_roster_lockstep_candidates(previous_shells, target_groups,
 	let removed = new Set();
 	let retained = new Set();
 	let claims = [];
+	let elections = [];
 	for (let pill of pills.values()) {
 		let source_steps = new Set(pill.members.map(member => member.step));
 		let record = verdict => {
@@ -2068,11 +2095,6 @@ function enforce_roster_lockstep_candidates(previous_shells, target_groups,
 					(a, b) => parseInt(a, 10) - parseInt(b, 10)).join(","),
 			});
 		};
-		if (source_steps.size < LOCKSTEP_REFERENCE_MIN_SCORE) {
-			record({ verdict: "unvoted", landings: "",
-				unpinned: pill.unpinned });
-			continue;
-		}
 		/* The target roster is pinned from raw positions: targets carry no
 		 * orbit states of their own yet, but an orbit point is an exact
 		 * measured coordinate, so a raw position pins a step just as a
@@ -2112,27 +2134,27 @@ function enforce_roster_lockstep_candidates(previous_shells, target_groups,
 		 * gates that the full vote cleared -- hence symmetric. */
 		let elect = steps => {
 			let scores = new Map();
-			let best = null, best_score = 0, runner_up = 0;
 			for (let advance = 1; advance <= max_advance; advance++) {
 				let score = 0;
 				for (let step of steps) {
 					if (landings.has(step + advance)) score++;
 				}
 				scores.set(advance, score);
-				if (score > best_score) {
-					runner_up = best_score;
-					best_score = score;
-					best = advance;
-				} else if (score > runner_up) {
-					runner_up = score;
-				}
 			}
-			return { best, best_score, runner_up, scores };
+			return tally_election(scores);
 		};
 		let confident_steps = new Set(pill.members
 			.filter(member => !member.dying).map(member => member.step));
 		let full = elect(source_steps);
 		let confident = elect(confident_steps);
+		let election = { pill, record, landings, full, confident,
+			confident_steps, best: null };
+		elections.push(election);
+		if (source_steps.size < LOCKSTEP_REFERENCE_MIN_SCORE) {
+			record({ verdict: "unvoted", landings: "",
+				unpinned: pill.unpinned });
+			continue;
+		}
 		/* An orphan landing: a pinned target at a step beyond the advance
 		 * with no pinned source one advance behind it. A newborn sits at
 		 * step <= advance, so under the TRUE advance an orphan can only be
@@ -2152,10 +2174,6 @@ function enforce_roster_lockstep_candidates(previous_shells, target_groups,
 			}
 			return count;
 		};
-		let gates = election => election.best !== null &&
-			election.best_score >= LOCKSTEP_REFERENCE_MIN_SCORE &&
-			election.best_score >=
-				election.runner_up + LOCKSTEP_REFERENCE_MIN_MARGIN;
 		let tiebreak = election => election.best !== null &&
 			election.best_score >= LOCKSTEP_REFERENCE_MIN_SCORE &&
 			!orphans(election.best) &&
@@ -2173,13 +2191,14 @@ function enforce_roster_lockstep_candidates(previous_shells, target_groups,
 		let confident_leads = advance =>
 			confident_steps.size < LOCKSTEP_REFERENCE_MIN_SCORE ||
 			confident.scores.get(advance) >= confident.best_score;
-		let by = gates(confident) && full_leads(confident.best) ? "confident"
-			: gates(full) && confident_leads(full.best) ? "full"
+		let by = election_gates(confident) && full_leads(confident.best)
+			? "confident"
+			: election_gates(full) && confident_leads(full.best) ? "full"
 			: tiebreak(confident) && full_leads(confident.best)
 				? "confident_tiebreak"
 			: tiebreak(full) && confident_leads(full.best) ? "full_tiebreak"
 			: null;
-		let best = by === null ? null
+		election.best = by === null ? null
 			: by.startsWith("full") ? full.best : confident.best;
 		record({
 			verdict: by === null ? "stood_down" : "passed", by,
@@ -2190,7 +2209,64 @@ function enforce_roster_lockstep_candidates(previous_shells, target_groups,
 			unpinned: pill.unpinned,
 			landings: [...landings.keys()].sort((a, b) => a - b).join(","),
 		});
-		if (by === null) continue;
+	}
+
+	/* The sender's advance, which every pill it simulates shares
+	 * ([E:sender-lockstep]): the pills' own where exactly one advance won
+	 * any election, and where none passed, the pooled election -- the
+	 * full and confident scores summed over every pill, the rosters too
+	 * sparse or too ambiguous to vote alone included, under the same
+	 * symmetric gates (no orphan tie-break: orphans are one pill's
+	 * ladder, not the sender's). It is lent to every pill that did not
+	 * elect its own, which then prunes and claims exactly as a pill that
+	 * had. Two pills electing different advances is a conflict nothing
+	 * is lent across. */
+	let sender = null;
+	let winners = new Set(elections.filter(e => e.best !== null)
+		.map(e => e.best));
+	if (winners.size === 1) {
+		sender = [...winners][0];
+	} else if (winners.size === 0 && elections.length > 1) {
+		let pooled = steps_of => {
+			let scores = new Map();
+			for (let advance = 1; advance <= max_advance; advance++) {
+				let score = 0;
+				for (let e of elections) score += steps_of(e).scores.get(advance);
+				scores.set(advance, score);
+			}
+			return tally_election(scores);
+		};
+		let full = pooled(e => e.full);
+		let confident = pooled(e => e.confident);
+		let confident_members = elections.reduce((n, e) =>
+			n + e.confident_steps.size, 0);
+		let full_leads = advance =>
+			full.scores.get(advance) >= full.best_score;
+		let confident_leads = advance =>
+			confident_members < LOCKSTEP_REFERENCE_MIN_SCORE ||
+			confident.scores.get(advance) >= confident.best_score;
+		if (election_gates(confident) && full_leads(confident.best)) {
+			sender = confident.best;
+		} else if (election_gates(full) && confident_leads(full.best)) {
+			sender = full.best;
+		}
+	}
+
+	for (let { pill, record, landings, full, confident, best }
+		of elections) {
+		if (best === null) {
+			if (sender === null) continue;
+			best = sender;
+			record({
+				verdict: "lent", by: "sender", advance: best,
+				own_advance: confident.best, score: confident.best_score,
+				runner_up: confident.runner_up,
+				full_advance: full.best, full_score: full.best_score,
+				full_runner_up: full.runner_up,
+				unpinned: pill.unpinned,
+				landings: [...landings.keys()].sort((a, b) => a - b).join(","),
+			});
+		}
 
 		for (let member of pill.members) {
 			for (let candidate of by_previous[member.index]) {
@@ -2685,9 +2761,6 @@ function pill_states_reachable(end_shell, shell, duration) {
  * exists to kill, admitted while its shell was still a sourceless
  * orphan -- became a unanimous "reference" that then vetoed the three
  * correct joins beside it. Statements outvote links. */
-const LOCKSTEP_REFERENCE_MIN_SCORE = 3;
-const LOCKSTEP_REFERENCE_MIN_MARGIN = 2;
-
 let record_roster_votes = false;
 function set_roster_vote_recording(on) {
 	record_roster_votes = !!on;
@@ -2715,49 +2788,104 @@ function build_pill_lockstep_reference(snapshots,
 	let targets = snapshots.map(snapshot =>
 		roster(snapshot, shell => !shell.starts_at_pillbox &&
 			!shell.starts_at_tank));
+	let elect = scores => {
+		let best = null, best_score = 0, runner_up = 0;
+		for (let [advance, score] of scores) {
+			if (score > best_score) {
+				runner_up = best_score;
+				best_score = score;
+				best = advance;
+			} else if (score > runner_up) {
+				runner_up = score;
+			}
+		}
+		return best_score >= LOCKSTEP_REFERENCE_MIN_SCORE &&
+			best_score >= runner_up + LOCKSTEP_REFERENCE_MIN_MARGIN
+			? best : null;
+	};
+	/* Per hop: each pill's own election, and the sender's -- the one
+	 * advance every pill the sender simulates shares ([E:sender-lockstep]).
+	 * The sender's is the pills' own where exactly one advance won any
+	 * pill's election, and where none did it is the pooled election:
+	 * the per-advance scores summed over every pill, sparse rosters
+	 * included, under the same gates. Two pills electing different
+	 * advances is a conflict the sender's entry stays out of; each
+	 * keeps its own. */
 	let adjacent = snapshots.map(() => new Map());
+	let sender = snapshots.map(() => undefined);
 	for (let i = 0; i + 1 < snapshots.length; i++) {
 		let duration = snapshots[i + 1].time - snapshots[i].time;
 		let max_advance = Math.ceil(duration / TICKS_PER_SHELL_UPDATE) +
 			DILATED_UPDATE_SLACK;
+		let pooled = new Map();
+		let winners = new Set();
 		for (let [pill, steps_a] of sources[i]) {
 			let steps_b = targets[i + 1].get(pill);
-			if (!steps_b || steps_a.size < LOCKSTEP_REFERENCE_MIN_SCORE) continue;
-			let best = null, best_score = 0, runner_up = 0;
+			if (!steps_b) continue;
+			let scores = new Map();
 			for (let advance = 1; advance <= max_advance; advance++) {
 				let score = 0;
 				for (let step of steps_a) {
 					if (steps_b.has(step + advance)) score++;
 				}
-				if (score > best_score) {
-					runner_up = best_score;
-					best_score = score;
-					best = advance;
-				} else if (score > runner_up) {
-					runner_up = score;
-				}
+				scores.set(advance, score);
+				pooled.set(advance, (pooled.get(advance) || 0) + score);
 			}
-			if (best_score >= LOCKSTEP_REFERENCE_MIN_SCORE &&
-				best_score >= runner_up + LOCKSTEP_REFERENCE_MIN_MARGIN) {
-				adjacent[i].set(pill, best);
-			}
+			if (steps_a.size < LOCKSTEP_REFERENCE_MIN_SCORE) continue;
+			let best = elect(scores);
+			if (best === null) continue;
+			adjacent[i].set(pill, best);
+			winners.add(best);
+		}
+		if (winners.size === 1) {
+			sender[i] = [...winners][0];
+		} else if (winners.size === 0) {
+			let best = elect(pooled);
+			if (best !== null) sender[i] = best;
 		}
 	}
+	/* Spans compose adjacent hops, and exist only when every hop has
+	 * one. The sender's span is written under the bare pair key; a
+	 * pill's own span, under the pill-prefixed key, starts from its own
+	 * election and takes the sender's hop wherever it has none of its
+	 * own, so a pill diverges from the sender only across a conflict.
+	 * lockstep_reference_advance reads the pill's entry first. */
 	let reference = new Map();
 	for (let i = 0; i + 1 < snapshots.length; i++) {
-		for (let [pill, first] of adjacent[i]) {
+		let span = (first, hop) => {
+			let entries = [];
 			let advance = first;
 			for (let j = i + 1; j < snapshots.length &&
 				snapshots[j].time - snapshots[i].time <=
 					MAX_STITCH_GAP_TICKS; j++) {
-				reference.set(`${pill}:${key(i, j)}`, advance);
-				let hop = adjacent[j].get(pill);
-				if (hop === undefined) break;
-				advance += hop;
+				entries.push([key(i, j), advance]);
+				let next = hop(j);
+				if (next === undefined) break;
+				advance += next;
+			}
+			return entries;
+		};
+		if (sender[i] !== undefined) {
+			for (let [pair, advance] of span(sender[i], j => sender[j])) {
+				reference.set(pair, advance);
+			}
+		}
+		for (let [pill, first] of adjacent[i]) {
+			for (let [pair, advance] of span(first,
+				j => adjacent[j].get(pill) ?? sender[j])) {
+				reference.set(`${pill}:${pair}`, advance);
 			}
 		}
 	}
 	return reference;
+}
+
+/* The advance the reference holds for a pill over a span: the pill's own
+ * where it elected one, else the sender's, which every pill the sender
+ * simulates shares. */
+function lockstep_reference_advance(reference, source_x, source_y, pair) {
+	let own = reference.get(`${source_x}:${source_y}:${pair}`);
+	return own !== undefined ? own : reference.get(pair);
 }
 
 /* The advance the statement rosters establish for this end's pill over
@@ -2775,8 +2903,9 @@ function unanimous_lockstep_advance(reference, end, start) {
 	if (end_shell.pillbox_source_x === undefined) return null;
 	let states = end_shell.pillbox_orbit_states;
 	if (!states || !states.length) return null;
-	let advance = reference.get(`${end_shell.pillbox_source_x}:` +
-		`${end_shell.pillbox_source_y}:${end.time}:${start.time}`);
+	let advance = lockstep_reference_advance(reference,
+		end_shell.pillbox_source_x, end_shell.pillbox_source_y,
+		`${end.time}:${start.time}`);
 	return advance === undefined ? null : advance;
 }
 
@@ -2807,6 +2936,7 @@ function score_pill_links(snapshots) {
 		 * with fewer than three pinned sources cannot vote, and a vote
 		 * inside the margin stands down. */
 		votes_unvoted: 0, votes_stood_down: 0, votes_passed: 0,
+		votes_lent: 0,
 	};
 	for (let snapshot of snapshots) {
 		for (let vote of snapshot.roster_votes?.values() ?? []) {
@@ -2839,9 +2969,9 @@ function score_pill_links(snapshots) {
 				score.unpinned++;
 				continue;
 			}
-			let advance = reference.get(`${shell.pillbox_source_x}:` +
-				`${shell.pillbox_source_y}:${index_of.get(shell)}:` +
-				`${index_of.get(next)}`);
+			let advance = lockstep_reference_advance(reference,
+				shell.pillbox_source_x, shell.pillbox_source_y,
+				`${index_of.get(shell)}:${index_of.get(next)}`);
 			if (advance === undefined) score.unvouched++;
 			else if (step_b - step_a === advance) score.vouched++;
 			else {
@@ -5066,9 +5196,9 @@ function sweep_contradicted_links(snapshots) {
 			let step_a = pinned_orbit_step(shell.pillbox_orbit_states);
 			let step_b = pinned_orbit_step(next.pillbox_orbit_states);
 			if (step_a === null || step_b === null) continue;
-			let advance = reference.get(`${shell.pillbox_source_x}:` +
-				`${shell.pillbox_source_y}:${index_of.get(shell)}:` +
-				`${index_of.get(next)}`);
+			let advance = lockstep_reference_advance(reference,
+				shell.pillbox_source_x, shell.pillbox_source_y,
+				`${index_of.get(shell)}:${index_of.get(next)}`);
 			if (advance === undefined || step_b - step_a === advance) continue;
 			delete shell.next_time;
 			delete shell.next_pixel_x;
