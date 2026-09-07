@@ -298,7 +298,7 @@ if (!fs.existsSync(log1)) {
 			scene.verdict, scene.advance, scene.score, scene.runner_up,
 			scene.full_score, scene.full_runner_up, scene.sources,
 			scene.landings,
-		], [9954, 1993, 3717, "passed", 8, 5, 3, 5, 4,
+		], [9956, 1993, 3717, "passed", 8, 5, 3, 5, 4,
 			"6,9,11,14,17,19d,22d", "14,17,19,22,25"]);
 		/* The distance-order axis (score_pill_order): same-pill pairs
 		 * linked into one later snapshot, scored on whether the leader
@@ -3100,7 +3100,7 @@ if (!fs.existsSync(log2)) {
 	}
 	check("fast-ring fixture pill links: re-sends excluded, no contradictions", [
 		score.links, score.restated, score.vouched, score.contradicted,
-	], [80428, 1679, 27006, 0]);
+	], [80430, 1679, 27000, 0]);
 }
 
 process.exit(failures ? 1 : 0);

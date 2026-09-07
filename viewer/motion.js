@@ -178,6 +178,24 @@ const DILATED_JOIN_PENALTY_PIXELS = 8;
 const DILATED_CATCHUP_PIXELS = 16;
 const DILATED_UPDATE_SLACK = 8;
 
+/* A stall of the ring, read from one log. Ring records arrive in
+ * bursts, one burst per cycle, so the gap between consecutive records
+ * of ANY sender is normally about one ring cycle. A gap of two cycles
+ * or more is the ring held up: the burst that follows it was sent on
+ * the sender's normal cadence and stamped late by the excess, and so
+ * was everything after it -- the cadence shifts, it does not catch
+ * up. Measured on the ten games logged twice (fixtures/pairs): every
+ * link whose two logs disagree by more than the matcher's tolerance
+ * sits on such a gap in the log that stamped it longer, and the
+ * sender's next gap after the delayed record is one cycle in nine
+ * cases of ten. So a link that spans a stall is read as the excess
+ * shorter than its stamps say: the sender's simulation did not wait
+ * with the packet. Only the pairwise matcher's duration is corrected;
+ * drawing times, terminal arrival times and the stitching passes keep
+ * the stamps. See tools/audit-paired-reconstruction.cjs --gaps and
+ * docs/interpolation_tests_corpus.md. */
+const STALL_GAP_CYCLES = 2;
+
 /* Standalone map/node records carry no player state or motion. */
 const MAP_NODE_TYPES = new Set([
 	"node_id", "map_run", "map_terrain_request", "map_header_request",
@@ -252,6 +270,41 @@ function add_shell_box_terminal(terminals, rec, pixel_x, pixel_y,
  * death, or a quit makes the next position a new path; in particular this
  * prevents interpolation towards the bogus far-away positions sometimes
  * carried by ghost-split quit records. */
+/* The ring cycle as one log sees it: the median gap from one record of
+ * a player to the next, pooled over players. */
+function ring_cycle(records) {
+	let last = new Map();
+	let gaps = [];
+	for (let rec of records) {
+		if (last.has(rec.player)) {
+			let gap = rec.time - last.get(rec.player);
+			if (gap <= 1500) gaps.push(gap);
+		}
+		last.set(rec.player, rec.time);
+	}
+	if (!gaps.length) return null;
+	gaps.sort((a, b) => a - b);
+	return gaps[gaps.length >> 1];
+}
+
+/* Per record, the stall excess accumulated before it: over every gap
+ * of STALL_GAP_CYCLES cycles or more between consecutive records of
+ * the whole stream, the gap less one cycle. The difference between two
+ * records' entries is how much longer their stamps read than the
+ * sender's cadence ran between them. */
+function stall_excess_by_record(records) {
+	let excess = new Float64Array(records.length);
+	let cycle = ring_cycle(records);
+	if (!cycle) return excess;
+	let total = 0;
+	for (let i = 1; i < records.length; i++) {
+		let gap = records[i].time - records[i - 1].time;
+		if (gap >= STALL_GAP_CYCLES * cycle) total += gap - cycle;
+		excess[i] = total;
+	}
+	return excess;
+}
+
 function build_tank_positions(records) {
 	let tracks = Array.from({ length: 16 }, () => []);
 	let active = Array.from({ length: 16 }, () => false);
@@ -2336,7 +2389,10 @@ function link_stale_restatements(previous, next) {
  * constraints; accepted displacements continuously refine a finer heading
  * from the track's first trusted point or weapon source. */
 function match_shell_snapshots(previous, next) {
-	let duration = next.time - previous.time;
+	/* the stamps' interval, less any stall of the ring between the two
+	 * records (STALL_GAP_CYCLES) */
+	let duration = Math.max(0, next.time - previous.time -
+		((next.stall_excess ?? 0) - (previous.stall_excess ?? 0)));
 	/* A zero gap is real on a fast ring: two of the sender's packets can
 	 * land inside one recorder tick, the second a step further along.
 	 * Record order still orders the statements, and the cost machinery
@@ -5227,6 +5283,7 @@ function* build_shell_positions_steps(records, terminals, pillbox_sources_by_rec
 		}
 	}
 	let snapshots = Array.from({ length: 16 }, () => []);
+	let stall_excess = stall_excess_by_record(records);
 	let terminals_by_record = new Map();
 	for (let terminal of terminals) {
 		let record_terminals = terminals_by_record.get(terminal.record);
@@ -5254,6 +5311,7 @@ function* build_shell_positions_steps(records, terminals, pillbox_sources_by_rec
 			 * find the same snapshot in another log of the same game
 			 * (tools/audit-paired-reconstruction.cjs) */
 			record_index: i,
+			stall_excess: stall_excess[i],
 			shells: shells.map(shell => ({
 				pixel_x: shell.x * 16 + shell.px,
 				pixel_y: shell.y * 16 + shell.py,

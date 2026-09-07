@@ -1516,6 +1516,43 @@ the engine see the section after it.
   shells that left are index 1+ tank shots that no longer claim a confident
   origin.
 
+## A stall of the ring is subtracted from the link that spans it
+
+Ring records arrive in bursts, one per cycle, so the gap between
+consecutive records of any sender is normally one ring cycle. The ten
+games logged on two machines at once (`fixtures/pairs/`,
+`tools/audit-paired-reconstruction.cjs --gaps`; the corpus results
+file has the measurement) showed what a delayed link looks like from
+one log: the log that stamped it longer has a whole-stream gap of two
+cycles or more inside the link's span where the other log has one,
+and after the delayed record the sender's cadence resumes at one
+cycle in nine cases of ten -- the ring was held up, the cadence
+shifted, and every stamp after the stall reads late by the excess
+while the sender's simulation ran on. So the engine now reads the
+whole stream once (`stall_excess_by_record`): every gap of
+`STALL_GAP_CYCLES` (two) cycles or more contributes the gap less one
+cycle to a running excess, each snapshot carries the excess before
+its record, and the pairwise matcher's duration is the stamps'
+interval less the excess between the two records, floored at zero.
+Drawing times, terminal arrival times, the stale-restatement bound
+and the stitching passes keep the stamps as they are.
+
+The pairs, which are the metric the change was built against: the two
+builds of a game disagreed on 803 forward stories before and 633
+after. By bin, delay 332 -> 193 (of 1,570 links), stall 71 -> 27 (and
+52 stalled links now joined on both sides where none were), jitter
+400 -> 413. Births differing 553 -> 479; roster elections differing
+90 -> 95.
+
+The committed fixtures. `040601.6` (the fast ring): `shells_matched_forward`
+84,745 -> 84,749, `shells_unlinked` 25 -> 15, `terminals_matched` 4,317 ->
+4,319 (`pillbox_damage` +3, `base_damage` -1), `shells_with_birth` 33,821
+-> 33,751 as ten chain starts joined their predecessors,
+`links_pill_vouched` 27,006 -> 27,000, `rate_terminals_matched` 0.893789
+-> 0.894203; two pins moved with it. `n20021018.2`: `roster_votes_unvoted`
+9,954 -> 9,956, nothing else. The corpus run is the holder's, to
+follow.
+
 ## Where the line stands -- `30d5351`
 
 The same three headline rates at the points a reader is likely to want,
