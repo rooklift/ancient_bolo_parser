@@ -2040,7 +2040,7 @@ function election_gates(election) {
 }
 
 function enforce_roster_lockstep_candidates(previous_shells, target_groups,
-	by_previous, by_next, duration, next = null) {
+	by_previous, by_next, duration, next = null, landings_cache = null) {
 	let max_advance = Math.ceil(duration / TICKS_PER_SHELL_UPDATE) +
 		DILATED_UPDATE_SLACK;
 	/* Measurement only, and off unless a measuring caller switches it on
@@ -2086,9 +2086,10 @@ function enforce_roster_lockstep_candidates(previous_shells, target_groups,
 	let elections = [];
 	for (let pill of pills.values()) {
 		let source_steps = new Set(pill.members.map(member => member.step));
+		let pill_key = `${pill.source_x}:${pill.source_y}`;
 		let record = verdict => {
 			if (!votes) return;
-			votes.set(`${pill.source_x}:${pill.source_y}`, {
+			votes.set(pill_key, {
 				...verdict,
 				sources: pill.members.map(member =>
 					`${member.step}${member.dying ? "d" : ""}`).sort(
@@ -2098,19 +2099,26 @@ function enforce_roster_lockstep_candidates(previous_shells, target_groups,
 		/* The target roster is pinned from raw positions: targets carry no
 		 * orbit states of their own yet, but an orbit point is an exact
 		 * measured coordinate, so a raw position pins a step just as a
-		 * propagated state set would. */
-		let landings = new Map();
-		for (let next_index = 0; next_index < target_groups.length;
-			next_index++) {
-			let target = target_groups[next_index].target;
-			if (target.terminal || target.starts_at_pillbox) continue;
-			let step = pinned_orbit_step(pillbox_orbit_states_at(
-				target.direction, target.pixel_x - pill.source_x,
-				target.pixel_y - pill.source_y, target.position_uncertainty));
-			if (step === null) continue;
-			let indices = landings.get(step);
-			if (!indices) landings.set(step, indices = []);
-			indices.push(next_index);
+		 * propagated state set would. Raw positions do not change
+		 * between the matcher's passes over one pair, so the caller may
+		 * hand in a cache that lives as long as the pair. */
+		let landings = landings_cache?.get(pill_key);
+		if (!landings) {
+			landings = new Map();
+			for (let next_index = 0; next_index < target_groups.length;
+				next_index++) {
+				let target = target_groups[next_index].target;
+				if (target.terminal || target.starts_at_pillbox) continue;
+				let step = pinned_orbit_step(pillbox_orbit_states_at(
+					target.direction, target.pixel_x - pill.source_x,
+					target.pixel_y - pill.source_y,
+					target.position_uncertainty));
+				if (step === null) continue;
+				let indices = landings.get(step);
+				if (!indices) landings.set(step, indices = []);
+				indices.push(next_index);
+			}
+			landings_cache?.set(pill_key, landings);
 		}
 		/* The election. A near-regular ladder maps onto its own future at
 		 * the true advance minus the fire cadence too (the rung-shift
@@ -2497,6 +2505,7 @@ function match_shell_snapshots(previous, next) {
 	}
 	for (let choices of by_previous) choices.sort((a, b) => a.cost - b.cost);
 	for (let choices of by_next) choices.sort((a, b) => a.cost - b.cost);
+	let landings_cache = new Map();
 	for (let pass = 0; pass < 4; pass++) {
 		let changed = propagate_ambiguous_pillbox_orbits(target_groups, by_next,
 			previous.shells);
@@ -2507,7 +2516,7 @@ function match_shell_snapshots(previous, next) {
 		if (enforce_pillbox_lockstep_candidates(previous.shells, by_previous,
 			by_next)) changed = true;
 		if (enforce_roster_lockstep_candidates(previous.shells, target_groups,
-			by_previous, by_next, duration, next)) changed = true;
+			by_previous, by_next, duration, next, landings_cache)) changed = true;
 		if (!changed) break;
 		for (let choices of by_previous) choices.sort((a, b) => a.cost - b.cost);
 		for (let choices of by_next) choices.sort((a, b) => a.cost - b.cost);
@@ -2788,9 +2797,12 @@ function build_pill_lockstep_reference(snapshots,
 	let targets = snapshots.map(snapshot =>
 		roster(snapshot, shell => !shell.starts_at_pillbox &&
 			!shell.starts_at_tank));
-	let elect = scores => {
+	/* Scores are indexed by advance; a pair of rosters is scored by the
+	 * gaps between its members rather than by trying every advance. */
+	let elect = (scores, max_advance) => {
 		let best = null, best_score = 0, runner_up = 0;
-		for (let [advance, score] of scores) {
+		for (let advance = 1; advance <= max_advance; advance++) {
+			let score = scores[advance];
 			if (score > best_score) {
 				runner_up = best_score;
 				best_score = score;
@@ -2817,22 +2829,23 @@ function build_pill_lockstep_reference(snapshots,
 		let duration = snapshots[i + 1].time - snapshots[i].time;
 		let max_advance = Math.ceil(duration / TICKS_PER_SHELL_UPDATE) +
 			DILATED_UPDATE_SLACK;
-		let pooled = new Map();
+		let pooled = new Int32Array(max_advance + 1);
 		let winners = new Set();
 		for (let [pill, steps_a] of sources[i]) {
 			let steps_b = targets[i + 1].get(pill);
 			if (!steps_b) continue;
-			let scores = new Map();
-			for (let advance = 1; advance <= max_advance; advance++) {
-				let score = 0;
-				for (let step of steps_a) {
-					if (steps_b.has(step + advance)) score++;
+			let scores = new Int32Array(max_advance + 1);
+			for (let step_a of steps_a) {
+				for (let step_b of steps_b) {
+					let advance = step_b - step_a;
+					if (advance >= 1 && advance <= max_advance) {
+						scores[advance]++;
+						pooled[advance]++;
+					}
 				}
-				scores.set(advance, score);
-				pooled.set(advance, (pooled.get(advance) || 0) + score);
 			}
 			if (steps_a.size < LOCKSTEP_REFERENCE_MIN_SCORE) continue;
-			let best = elect(scores);
+			let best = elect(scores, max_advance);
 			if (best === null) continue;
 			adjacent[i].set(pill, best);
 			winners.add(best);
@@ -2840,7 +2853,7 @@ function build_pill_lockstep_reference(snapshots,
 		if (winners.size === 1) {
 			sender[i] = [...winners][0];
 		} else if (winners.size === 0) {
-			let best = elect(pooled);
+			let best = elect(pooled, max_advance);
 			if (best !== null) sender[i] = best;
 		}
 	}
@@ -2848,33 +2861,34 @@ function build_pill_lockstep_reference(snapshots,
 	 * one. The sender's span is written under the bare pair key; a
 	 * pill's own span, under the pill-prefixed key, starts from its own
 	 * election and takes the sender's hop wherever it has none of its
-	 * own, so a pill diverges from the sender only across a conflict.
-	 * lockstep_reference_advance reads the pill's entry first. */
+	 * own, so a pill diverges from the sender only across a conflict --
+	 * and only a diverging span is written, the rest being the sender's
+	 * entry over again. lockstep_reference_advance reads the pill's
+	 * entry first. */
 	let reference = new Map();
 	for (let i = 0; i + 1 < snapshots.length; i++) {
-		let span = (first, hop) => {
-			let entries = [];
+		let span = (first, hop, write) => {
 			let advance = first;
 			for (let j = i + 1; j < snapshots.length &&
 				snapshots[j].time - snapshots[i].time <=
 					MAX_STITCH_GAP_TICKS; j++) {
-				entries.push([key(i, j), advance]);
+				write(key(i, j), advance);
 				let next = hop(j);
 				if (next === undefined) break;
 				advance += next;
 			}
-			return entries;
 		};
 		if (sender[i] !== undefined) {
-			for (let [pair, advance] of span(sender[i], j => sender[j])) {
-				reference.set(pair, advance);
-			}
+			span(sender[i], j => sender[j],
+				(pair, advance) => reference.set(pair, advance));
 		}
 		for (let [pill, first] of adjacent[i]) {
-			for (let [pair, advance] of span(first,
-				j => adjacent[j].get(pill) ?? sender[j])) {
-				reference.set(`${pill}:${pair}`, advance);
-			}
+			span(first, j => adjacent[j].get(pill) ?? sender[j],
+				(pair, advance) => {
+					if (reference.get(pair) !== advance) {
+						reference.set(`${pill}:${pair}`, advance);
+					}
+				});
 		}
 	}
 	return reference;

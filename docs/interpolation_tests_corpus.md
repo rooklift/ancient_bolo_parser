@@ -3111,6 +3111,21 @@ is the 79; the fix, if one is ever wanted, is for the sweep to indict
 only against a pill's own election, at the cost of the crossings a
 lent advance alone can see.
 
+The audit's `build_ms` 339,778 -> 380,698 (+12%) is the change's
+running cost, and larger than it needs to be. Profiled on the
+fast-ring fixture, the reference builder had more than doubled its
+share -- scoring every pill's roster through a Map of advances, and
+writing every pill's span in full where the sender's span now
+carries the same number -- and the matcher's vote was pinning every
+target against every sparse pill afresh on each of its passes over a
+pair. The commit after this run scores by roster gaps into an array,
+writes a pill's span only where it diverges from the sender's, and
+caches the pinned landings per pair across the passes: on the
+fixtures the overhead against `8e40b11` falls from 8-24% to about 5%,
+inside the run-to-run noise, with both reports byte-identical. The
+sender's spans exist on far more hops than the per-pill spans did,
+and that residue is the feature's own.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
