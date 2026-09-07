@@ -778,7 +778,7 @@ if (!fs.existsSync(log1)) {
 	]);
 	let corner_graze_shell = corner_graze.shell_positions[0][1].shells[0];
 	check("subpixel corner graze matches a box impact",
-		[corner_graze_shell.next_terminal,
+		[!!corner_graze_shell.next_terminal,
 			rounded(Math.hypot(corner_graze_shell.next_pixel_x + 8 - 2048,
 				corner_graze_shell.next_pixel_y + 8 - 1824))], [true, 0.4097]);
 
@@ -1868,7 +1868,7 @@ if (!fs.existsSync(log1)) {
 	]);
 	let tank_stream = ordered_tank_impacts.shell_positions[0][3].shells;
 	check("ordered tank impact leaves younger successor intact",
-		[tank_stream[0].next_terminal,
+		[!!tank_stream[0].next_terminal,
 			!!tank_stream[1].next_terminal,
 			tank_stream[1].next_pixel_x], [true, false, 1862]);
 
@@ -1955,7 +1955,7 @@ if (!fs.existsSync(log1)) {
 	let lockstep_leader_end = lockstep_end(lockstep_at(100).shells[0]);
 	let lockstep_trailer_end = lockstep_end(lockstep_at(100).shells[1]);
 	check("earlier pill shot falls first",
-		[lockstep_leader_end.next_terminal, lockstep_trailer_end.next_terminal,
+		[!!lockstep_leader_end.next_terminal, !!lockstep_trailer_end.next_terminal,
 			lockstep_leader_end.next_time < lockstep_trailer_end.next_time],
 		[true, true, true]);
 	/* The distance-order scorer (score_pill_order) reads the same
@@ -2133,7 +2133,7 @@ if (!fs.existsSync(log1)) {
 			rounded(position(quantised_pill_orbits, 160, 0, 1).y)],
 		[2.875, 7.5]);
 	check("quantised pill streams reach their distinct range expiries",
-		quantised_streams.map(shell => [shell.next_terminal,
+		quantised_streams.map(shell => [!!shell.next_terminal,
 			shell.next_pixel_x, shell.next_pixel_y]), [
 			[true, 36, 106],
 			[true, 34, 111],

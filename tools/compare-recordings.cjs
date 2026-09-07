@@ -180,6 +180,7 @@ function load_log(BoloLog, file) {
 		for (let raw of BoloLog.rawRecords(bytes)) {
 			let rec = BoloLog.parseRecord(raw);
 			rec.hex = Buffer.from(raw.data).toString("hex");
+			rec.index = recs.length;
 			recs.push(rec);
 		}
 	} catch { /* keep whatever decoded before the damage */ }
@@ -377,6 +378,7 @@ function compare(a_recs, b_recs, options = {}) {
 		}
 	}
 	pairs = kept;
+	out.pairs = pairs;   /* [ring index in A, ring index in B], as split_boot numbers them */
 	out.rejected = rejected.map(([i, j]) => ({ a: a.ring[i], b: b.ring[j] }));
 	out.delayed = delayed;
 
@@ -650,6 +652,6 @@ function main() {
 	compare(load_log(BoloLog, positional[0]), load_log(BoloLog, positional[1]), options);
 }
 
-module.exports = { align, split_boot, seq_holes, ring_order, compare };
+module.exports = { align, split_boot, seq_holes, ring_order, compare, load_log, OFFSET_JITTER };
 
 if (require.main === module) main();

@@ -2565,7 +2565,11 @@ function match_shell_snapshots(previous, next) {
 				? exact_endpoint[0] : best.pixel_x;
 			old_shell.next_pixel_y = exact_endpoint
 				? exact_endpoint[1] : best.pixel_y;
-			old_shell.next_terminal = best.target.terminal;
+			/* the terminal itself rather than a flag: every reader tests
+			 * the field for truth, and a tool aligning two logs of one
+			 * game needs the reference */
+			old_shell.next_terminal = best.target.terminal
+				? group.terminals[i] : false;
 			if (best.target.terminal) {
 				old_shell.next_terminal_type = best.target.type;
 				let terminal = group.terminals[i];
@@ -3934,7 +3938,7 @@ function apply_forced_terminal(end, fate, match) {
 	shell.next_time = end_time;
 	shell.next_pixel_x = match.pixel_x;
 	shell.next_pixel_y = match.pixel_y;
-	shell.next_terminal = true;
+	shell.next_terminal = terminal;   /* the object, as the pairwise matcher stores it */
 	shell.next_terminal_type = terminal.type;
 	shell.next_terminal_event_type = terminal.event_type;
 	terminal.match_time = end_time;
@@ -5246,6 +5250,10 @@ function* build_shell_positions_steps(records, terminals, pillbox_sources_by_rec
 		for (let sub of shell_lists) append_shell_list(shells, sub, rec.time);
 		let snapshot = {
 			time: rec.time,
+			/* position of the record in the build's list, so a tool can
+			 * find the same snapshot in another log of the same game
+			 * (tools/audit-paired-reconstruction.cjs) */
+			record_index: i,
 			shells: shells.map(shell => ({
 				pixel_x: shell.x * 16 + shell.px,
 				pixel_y: shell.y * 16 + shell.py,
