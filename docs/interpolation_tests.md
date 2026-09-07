@@ -62,6 +62,29 @@ and packaging, so v1.0.8's numbers are still `main`'s.
   available at all: a pill with under three pinned sources cannot vote,
   a vote inside the score-3 / margin-2 gates stands down. On the
   fixture 9,918 / 2,538 / 3,171: the vote decides one election in five.
+* `pairs_pill_order` / `pairs_pill_order_kept` / `pairs_pill_order_blurred`
+  / `pairs_pill_order_inverted` and `rate_pairs_pill_order_inverted` -- the
+  distance-order axis (`score_pill_order` in `viewer/motion.js`). Every live
+  shell of one pill advances one orbit step per sender update, so between
+  two statements the pill's shells keep their order of distance from it: a
+  trailer never passes its leader while both fly. Unlike the vouched /
+  contradicted axis this needs no pinned step, so it also covers the pairs
+  the lockstep passes skip (plural states disagreeing on a step, shells on
+  different bradians). A pair is two shells of one pill in one snapshot
+  whose links both land in one later snapshot (visual joins and verbatim
+  re-sends excluded): kept when the order holds, inverted when it flips by
+  more than the positions can lie -- the spread between equal-step orbits
+  on different bradians, about three pixels, widened by the chained-offset
+  uncertainty of any member not pinned to an exact orbit pixel -- and
+  blurred when it flips within that. Inverted is a regression alarm like
+  contradicted, not a coverage figure; `--describe-links` prints every
+  inversion as an `order_example` scene (record times, pill, and each
+  shell's distance, step and bradians at both ends of its link, with the
+  stitched links marked) under an `order_class` tally by which link was a
+  stitch and the narrower gap in whole steps. On the fixture 58,171 pairs,
+  3 inverted, 0 blurred: all three are stitched links crossing a pairwise
+  one, the leader's stitch landing three steps on where the trailer's link
+  landed seven or nine.
 * Tank and LGM track coverage is reported too, but is byte-identical at all ten
   commits, so it is omitted below. For the record: `rate_tank_ticks_interpolated`
   0.687960 and `rate_lgm_ticks_interpolated` 0.435824 throughout. Note that the

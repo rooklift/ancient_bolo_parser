@@ -493,6 +493,21 @@ the bins as `links_*` lines and `rate_links_pill_vouched` /
 come from a link made under other gates or a vote that failed at match
 time), and its fixture counts are pinned in the test suite.
 
+`score_pill_order` is the second truth axis, and needs no pinned step:
+every live shell of one pill advances one orbit step per sender update,
+so between two statements the pill's shells keep their order of
+distance from it -- a trailer never passes its leader while both fly.
+The lockstep passes enforce that only where steps are well-defined;
+the scorer reads it off final state for every pair of one pill's
+shells whose links land in one later snapshot, calling a flip inverted
+when it exceeds what the positions can lie by (the equal-step spread
+between bradians, about three pixels, plus any chained-offset
+uncertainty) and blurred when it sits within that. The rates tool
+reports `pairs_pill_order*` and `rate_pairs_pill_order_inverted`, with
+every inversion printed as a scene under `--describe-links`; inverted
+is a regression alarm, and the fixture's three (all stitched links
+crossing a pairwise one) are pinned in the test suite.
+
 The match rates count explanations, not what the viewer draws, and the
 two can move in opposite directions. `tools/audit-drawn-motion.cjs` is
 the second measurement axis: it samples the drawn link structure

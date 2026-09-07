@@ -49,7 +49,15 @@
  * (verdict, advance, score against runner-up, the pinned source steps
  * with "d" on members that held a terminal candidate, the pinned
  * landings) and the two rosters as final state pins them -- enough to
- * read a scene without the log. The three flags can be combined.
+ * read a scene without the log. The same flag prints the pill
+ * distance-order inversions (see score_pill_order in viewer/motion.js):
+ * a tally over "<leader link>|<trailer link>:<min gap in steps>"
+ * signatures (order_class lines; each link is pairwise or stitched,
+ * the gap is the narrower of the pair's two distance gaps in whole
+ * orbit steps) and every inversion as an order_example line naming
+ * the record times, the pill, and for the leader and the trailer
+ * their distance from the pill, orbit step and bradians before and
+ * after the link. The three flags can be combined.
  *
  * Every metric is a "key<TAB>value" line. A value of "-" means this repo state
  * does not carry the data at all, which is not the same as a count of zero;
@@ -230,6 +238,16 @@ function empty_totals() {
 		roster_votes_unvoted: null,
 		roster_votes_stood_down: null,
 		roster_votes_passed: null,
+		/* Same-pill shell pairs linked into one later snapshot, scored on
+		 * whether their order of distance from the pill survives the link
+		 * (see score_pill_order in viewer/motion.js): a trailer can never
+		 * pass its leader while both fly. Inverted is a regression alarm
+		 * like contradicted; blurred flips sit within what bradian
+		 * rounding and chained-offset uncertainty can explain. */
+		pairs_pill_order: null,
+		pairs_pill_order_kept: null,
+		pairs_pill_order_blurred: null,
+		pairs_pill_order_inverted: null,
 
 		/* Residual-flow components: what forced_bipartite_assignments in
 		 * viewer/motion.js actually solves, and whether its pathological-
@@ -329,6 +347,46 @@ function describe_links(diagnostics, scores, file) {
 			let delta = record.next_step - record.step - record.advance;
 			let signature = `${record.stitched ? "stitched" : "pairwise"}:` +
 				`${delta > 0 ? "+" : ""}${delta}`;
+			diagnostics.classes.set(signature,
+				(diagnostics.classes.get(signature) || 0) + 1);
+			diagnostics.examples.push({ file, record });
+		}
+	}
+}
+
+/* Guarded like count_pill_links so older repo states report "-". */
+function count_pill_order(totals, engines, game) {
+	let scores = [];
+	if (typeof engines.motion?.score_pill_order !== "function") return null;
+	if (!Array.isArray(game.shell_positions)) return scores;
+	for (let snapshots of game.shell_positions) {
+		if (!Array.isArray(snapshots)) continue;
+		let score = engines.motion.score_pill_order(snapshots);
+		scores.push(score);
+		add(totals, "pairs_pill_order", score.pairs);
+		add(totals, "pairs_pill_order_kept", score.kept);
+		add(totals, "pairs_pill_order_blurred", score.blurred);
+		add(totals, "pairs_pill_order_inverted", score.inverted);
+	}
+	return scores;
+}
+
+/* Every inversion, classified by which of the two links was a stitch
+ * and by the narrower of the pair's distance gaps in whole orbit steps.
+ * Kept in full like the contradictions: each one is a scene. */
+function describe_order(diagnostics, scores, file) {
+	if (scores === null) {
+		diagnostics.unsupported = true;
+		return;
+	}
+	/* One orbit step: two ticks at two pixels per tick. */
+	let pixels_per_step = 4;
+	let link = shell => shell.stitched ? "stitched" : "pairwise";
+	for (let score of scores) {
+		for (let record of score.examples || []) {
+			let gap = Math.min(record.gap_before, record.gap_after);
+			let signature = `${link(record.leader_next)}|` +
+				`${link(record.trailer_next)}:${Math.floor(gap / pixels_per_step)}`;
 			diagnostics.classes.set(signature,
 				(diagnostics.classes.get(signature) || 0) + 1);
 			diagnostics.examples.push({ file, record });
@@ -479,6 +537,8 @@ function count_file(totals, engines, file, diagnostics) {
 	count_shells(totals, game);
 	link_scores = count_pill_links(totals, engines, game);
 	if (diagnostics?.links) describe_links(diagnostics.links, link_scores, file);
+	let order_scores = count_pill_order(totals, engines, game);
+	if (diagnostics?.order) describe_order(diagnostics.order, order_scores, file);
 	count_tracks(totals, game.tank_positions, "tank", max_ticks);
 	count_tracks(totals, game.lgm_positions, "lgm", max_ticks);
 	count_tracks(totals, game.tank_directions, "tank_direction",
@@ -589,6 +649,8 @@ function build_report(totals, meta) {
 	rate_line(lines, "links_pill_vouched", totals.links_pill_vouched, scored);
 	rate_line(lines, "links_pill_contradicted",
 		totals.links_pill_contradicted, scored);
+	rate_line(lines, "pairs_pill_order_inverted",
+		totals.pairs_pill_order_inverted, totals.pairs_pill_order);
 	for (let prefix of ["tank", "lgm", "tank_direction"]) {
 		rate_line(lines, `${prefix}_segments_interpolated`,
 			totals[`${prefix}_segments_interpolated`], totals[`${prefix}_segments`]);
@@ -673,6 +735,36 @@ function link_class_report(diagnostics) {
 	return lines;
 }
 
+function order_class_report(diagnostics) {
+	let lines = [];
+	if (diagnostics.unsupported) {
+		lines.push("order_class\t-");
+		return lines;
+	}
+	let classes = [...diagnostics.classes.entries()]
+		.sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
+	for (let [signature, count] of classes) {
+		lines.push(`order_class\t${signature}\t${count}`);
+	}
+	/* One shell's state at one end of its link: distance from the pill,
+	 * orbit step ("?" when not pinned to one), bradians ("?" when none
+	 * survive), with "~" on a position not pinned to an exact orbit
+	 * pixel and so carrying chained-offset uncertainty. */
+	let state = shell => `${shell.pinned ? "" : "~"}${shell.distance}` +
+		`@s${shell.step}/b${shell.bradians}`;
+	let leg = (before, after) => `${state(before)}->${state(after)}` +
+		`${after.stitched ? "(stitched)" : ""}`;
+	for (let { file, record } of diagnostics.examples) {
+		lines.push(`order_example\t${replay_label(file)}` +
+			`\tt${record.time}->${record.next_time}` +
+			`\tpill(${record.pillbox_source_x},${record.pillbox_source_y})` +
+			`\tgap${record.gap_before}->${record.gap_after}` +
+			`\tleader=${leg(record.leader, record.leader_next)}` +
+			`\ttrailer=${leg(record.trailer, record.trailer_next)}`);
+	}
+	return lines;
+}
+
 function load_engines(with_motion) {
 	let engines;
 	try {
@@ -714,6 +806,7 @@ function make_diagnostics(describe_terminals, describe_ends, describe_links) {
 		terminals: describe_terminals ? empty_diagnostics() : null,
 		ends: describe_ends ? empty_diagnostics() : null,
 		links: describe_links ? empty_diagnostics() : null,
+		order: describe_links ? empty_diagnostics() : null,
 	} : null;
 }
 
@@ -737,7 +830,7 @@ function merge_totals(totals, part) {
 }
 
 function merge_diagnostics(diagnostics, part) {
-	for (let side of ["terminals", "ends", "links"]) {
+	for (let side of ["terminals", "ends", "links", "order"]) {
 		if (!diagnostics?.[side] || !part?.[side]) continue;
 		if (part[side].unsupported) diagnostics[side].unsupported = true;
 		for (let [signature, count] of part[side].classes) {
@@ -795,6 +888,10 @@ function main() {
 		}
 		if (diagnostics?.links) {
 			let lines = link_class_report(diagnostics.links);
+			if (lines.length) process.stdout.write(`${lines.join("\n")}\n`);
+		}
+		if (diagnostics?.order) {
+			let lines = order_class_report(diagnostics.order);
 			if (lines.length) process.stdout.write(`${lines.join("\n")}\n`);
 		}
 	};
