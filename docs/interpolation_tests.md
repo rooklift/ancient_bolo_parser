@@ -1615,15 +1615,19 @@ all on the fixture, all from the sections above:
 | pill births follow the record gap | 0.996448 | 0.001613 | 0.860935 |
 | a base is damaged only by tank shells | 0.996461 | 0.001600 | 0.860976 |
 | a turning tank's shell carries the nibble's sector | 0.996502 | 0.001586 | 0.861142 |
+| a stalled pair carries two readings | 0.996529 | 0.001586 | 0.861225 |
 
 * **Every headline record is held by the current head.** Unlinked
-  shells are down to 128, roughly a tenth of the branch point's rate; forward
+  shells are down to 117, roughly a tenth of the branch point's rate; forward
   matching has closed nine tenths of the gap the branch point left;
-  terminals matched is 4.3 points above it, `tank_hit` 2,826 -> 3,212.
+  terminals matched is 4.4 points above it, `tank_hit` 2,826 -> 3,217.
+  The stall reading barely touches this fixture -- a clean game, sixteen
+  stalls in 137 minutes, no link spanning one -- and its row is here for
+  the record; the corpus file has its measure.
 * **The truth axes agree with the coverage axes**, which they were
   built to be able to refuse to do. Pill-link contradictions 6 -> 0
   since the metric was introduced; drawn-motion pop-outs 1,465 at the
-  pre-branch state -> 273; steady links 0.787 -> 0.9787; seam jumps 0
+  pre-branch state -> 256; steady links 0.787 -> 0.9788; seam jumps 0
   at every state ever audited. Nothing on the fixture's books is a
   match rate bought with a rendering lie. The corpus is a shade less
   clean (94 contradictions at `30d5351`, per the corpus file), and that is where
