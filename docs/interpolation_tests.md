@@ -1551,8 +1551,12 @@ The committed fixtures. `040601.6` (the fast ring): `shells_matched_forward`
 -> 33,751 as ten chain starts joined their predecessors,
 `links_pill_vouched` 27,006 -> 27,000, `rate_terminals_matched` 0.893789
 -> 0.894203; two pins moved with it. `n20021018.2`: `roster_votes_unvoted`
-9,954 -> 9,956, nothing else. The corpus run is the holder's, to
-follow.
+9,954 -> 9,956, nothing else. Corpus: `cb51fb3` in
+[`interpolation_tests_corpus.md`](interpolation_tests_corpus.md) --
+matched forward +2,929, unlinked -1,467, terminals +936, backwards
+pops -40%; against that, 23,000 links drawn slow under the stamps the
+drawing still keeps, and the pill distance-order inversions 191 ->
+285, the stall upstream of the sender that one log cannot place.
 
 ## Where the line stands -- `30d5351`
 

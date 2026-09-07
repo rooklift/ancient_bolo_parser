@@ -3217,6 +3217,67 @@ untried: a record that arrives after a gap of two cycles or more could
 be re-stamped a cycle earlier before matching, and this audit would
 say whether the two builds then agree more.
 
+## A stall of the ring subtracted from the link that spans it -- `cb51fb3`
+
+The fixture doc's section of the same name has the change: every gap
+of two ring cycles or more between consecutive records of any sender
+is read as the ring held up, and the pairwise matcher's duration is
+the stamps' interval less the excess accumulated between its two
+records (`stall_excess_by_record`); drawing, terminal arrival and the
+stitching passes keep the stamps. Built against the paired audit
+above, where it took the two builds' disagreements from 803 to 633.
+
+Corpus, `dfc7534-report.txt` and `dfc7534-audit.txt` against
+`82531bc` (443 files, zero failures, same input hash; the order lines
+against `de80622`, which added them without moving a matching metric):
+
+* coverage: `shells_matched_forward` 9,789,589 -> **9,792,518**
+  (+2,929, every one off `shells_unmatched_forward`), `shells_unlinked`
+  11,536 -> **10,069** (-1,467), `terminals_matched` 1,626,391 ->
+  **1,627,327** (+936: `shell_falls` +411, `tank_hit` +279, `explosion`
+  +232, `pillbox_damage` +61, `base_damage` -47),
+  `rate_terminals_matched` 0.835573 -> **0.836053**,
+  `rate_shells_unlinked` 0.001175 -> **0.001026**. Every headline record
+  moves on.
+* the drawn audit's identity lines with it: `pop_outs` 27,586 ->
+  **24,657** (-2,929), `pop_ins` 24,513 -> 22,744, `pops_paired_forward`
+  3,002 -> 2,088, `pops_paired_backwards` 1,224 -> **737** (-40%),
+  `rate_pop_outs` 0.002810 -> 0.002512
+* the truth axes split: `links_pill_contradicted` 14 -> **12**, but
+  `pairs_pill_order_inverted` 191 -> **285** (+94 over 8,623,761 pairs;
+  `blurred` 8 unchanged), `links_pill_unpinned` 2,801 -> 2,894,
+  `rate_links_pill_vouched` 0.570067 -> 0.569960
+* the drawn speed goes the wrong way: `rate_links_steady` 0.966807 ->
+  0.964066, some 23,000 links moved out of the 1.8-2.2 px/tick bucket
+  into the slow ones (`link_speed:1.5-1.8` +11,190, `1.0-1.5` +8,903,
+  `0.5-1.0` +1,770, `0.0-0.5` +1,083), `hover_links` 2,450 -> **5,303**;
+  rushes flat (`rush_links` +12, `terminal_links_rushed` +206)
+* `shells_with_birth` +2,105, `shells_unseen_pillbox_birth` 3,521 ->
+  3,045, `terminals_unseen_pillbox_source` -294,
+  `terminals_unseen_tank_source` +251, `shells_visual_joins` 1,201 ->
+  1,171, `flow_components` +1,366
+
+Reading. The identity side is what the pairs promised: links refused
+or mis-taken across a stall are now joined to the nearer restatement,
+and the backwards pops -- the vanish-and-reappear-behind shape -- fall
+by two fifths. The two lines that worsen are the two limits named when
+the change was made. The slow links are the drawing keeping the
+stamps: a link the matcher now reads as one cycle of flight is still
+drawn over the two the recorder stamped, at half speed, and the
+smoothing passes do not take it up; the fix is to hand the drawn
+timeline the same de-stalled clock, or to slide the chain across the
+stall the way a late head is slid. The order inversions are the stall
+the single log cannot place: a stall upstream of the sender delays
+its packet with the sender's simulation running on, so the contents
+did advance the two cycles the stamps say, and the shortened duration
+then favours a trailing shell as the successor. The pairs never show
+that kind, since it reaches both recorders alike. The one instrument
+that can tell the two kinds apart from one log is the roster vote,
+which elects the advance in orbit steps whatever the stamps claim:
+letting the elected advance, rather than the gap, set the duration of
+a stalled pair would keep the gain and give back the inversions. Both
+are follow-ups; the change stands as measured.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
