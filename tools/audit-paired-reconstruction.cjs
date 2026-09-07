@@ -69,6 +69,15 @@
  * (default fixtures/pairs) and totals the results. Every disagreement
  * is listed up to a cap per pair; --verbose lists them all, plus the
  * weapon-attribution conflicts and the roster elections that differ.
+ *
+ * --gaps asks whether a delayed link can be seen from one log alone.
+ * Ring records arrive in bursts, one per cycle, so the widest gap
+ * between consecutive records of ANY sender inside a link's span is
+ * normally about one ring cycle. For every link it takes the log whose
+ * stamped duration is the longer (the late log), measures that widest
+ * gap there and in the other log, in ring cycles, and tabulates them
+ * by bin, with which side of a disagreement abstained and what each
+ * side of a delayed conflict chose.
  */
 "use strict";
 
@@ -215,10 +224,13 @@ function add_counts(total, part) {
 	}
 }
 
-function audit(a_recs, b_recs) {
+/* options.links: also return every classified observation as a link
+ * record (out.links), for a measurement over the agreed ones too. */
+function audit(a_recs, b_recs, options = {}) {
 	let cmp = compare(a_recs, b_recs, { quiet: true });
 	let out = { game_id: cmp.game_id, same_game: cmp.same_game, same_stretch: !!cmp.same_stretch, counts: null,
-		scenes: [], source_scenes: [], vote_scenes: [], clock: cmp.clock || null, recorder: cmp.recorder };
+		scenes: [], source_scenes: [], vote_scenes: [], clock: cmp.clock || null, recorder: cmp.recorder,
+		links: options.links ? [] : null, a_to_b: null, b_to_a: null };
 	if (!cmp.same_game || !cmp.same_stretch) return out;
 
 	let a = split_boot(a_recs), b = split_boot(b_recs);
@@ -228,6 +240,8 @@ function audit(a_recs, b_recs) {
 		a_to_b[a.ring[i].index] = b.ring[j].index;
 		b_to_a[b.ring[j].index] = a.ring[i].index;
 	}
+	out.a_to_b = a_to_b;
+	out.b_to_a = b_to_a;
 	let first = cmp.pairs[0], last = cmp.pairs[cmp.pairs.length - 1];
 	let lo_a = a.ring[first[0]].time + EDGE_MARGIN, hi_a = a.ring[last[0]].time - EDGE_MARGIN;
 	let lo_b = b.ring[first[1]].time + EDGE_MARGIN, hi_b = b.ring[last[1]].time - EDGE_MARGIN;
@@ -257,6 +271,34 @@ function audit(a_recs, b_recs) {
 		return { cause, delta };
 	}
 
+	/* The late log of a link (the longer stamped duration, over the
+	 * target with the widest difference) and the widest whole-stream
+	 * gap inside the link's span on each side. */
+	function link_timing(ra, rb, oa, ob, cls, cause, delta) {
+		let best = null;
+		for (let [o, own, other, map, own_obs, other_obs] of [[oa, a_recs, b_recs, a_to_b, ra, rb], [ob, b_recs, a_recs, b_to_a, rb, ra]]) {
+			if (o.kind !== "snapshot" && o.kind !== "terminal") continue;
+			let mapped = map[o.record];
+			if (mapped < 0) continue;
+			let d_own = own[o.record].time - own[own_obs].time;
+			let d_other = other[mapped].time - other[other_obs].time;
+			let d = Math.abs(d_own - d_other);
+			if (best && d <= best.delta) continue;
+			let own_late = d_own >= d_other;
+			best = { delta: d,
+				late: own_late ? [own, own_obs, o.record] : [other, other_obs, mapped],
+				early: own_late ? [other, other_obs, mapped] : [own, own_obs, o.record],
+				late_side: own_late === (own === a_recs) ? "A" : "B" };
+		}
+		let widest = ([recs, lo, hi]) => {
+			let w = 0;
+			for (let i = lo + 1; i <= hi; i++) w = Math.max(w, recs[i].time - recs[i - 1].time);
+			return w;
+		};
+		return { ra, rb, sender: a_recs[ra].player, cls, cause, delta, a: oa, b: ob,
+			late_side: best ? best.late_side : null,
+			gap_late: best ? widest(best.late) : null, gap_early: best ? widest(best.early) : null };
+	}
 	let records_a = [...ia.by_record.keys()].sort((p, q) => p - q);
 	for (let ra of records_a) {
 		let sa = ia.by_record.get(ra);
@@ -281,6 +323,7 @@ function audit(a_recs, b_recs) {
 			if (CLASSES.includes(cls)) {
 				let { cause, delta } = cause_of(ra, rb, [[oa, a_recs, b_recs, a_to_b], [ob, b_recs, a_recs, b_to_a]]);
 				counts.by_cause[cause][cls]++;
+				if (out.links) out.links.push({ ...link_timing(ra, rb, oa, ob, cls, cause, delta), position: n });
 				if (cls !== "agree_none" && cls !== "agree_assigned") {
 					out.scenes.push({ ra, rb, sender: a_recs[ra].player, position: n, cls, cause, delta,
 						shell: shell_a, a: oa, b: ob, stitched_a: !!shell_a.stitched, stitched_b: !!shell_b.stitched });
@@ -372,6 +415,51 @@ function print_counts(c, indent) {
 	console.log(`${indent}roster elections: ${c.votes.compared} compared, ${c.votes.differ} differ (${c.votes.one_side} taken on one side only)`);
 }
 
+/* ---------- the gap table (--gaps) ---------- */
+
+function print_gaps(links, cycles) {
+	let dis = r => r.cls !== "agree_none" && r.cls !== "agree_assigned";
+	let half = (ticks, cycle) => Math.round(2 * ticks / cycle) / 2;
+	let hist = values => {
+		let h = new Map();
+		for (let v of values) h.set(v, (h.get(v) || 0) + 1);
+		return [...h].sort((p, q) => p[0] - q[0]).map(([k, v]) => `${k}:${v}`).join(" ") || "-";
+	};
+	let timed = links.filter(r => r.late_side !== null);
+	console.log("whole-stream gaps, in ring cycles (histogram over links, cycles:links):");
+	for (let cause of CAUSES) {
+		for (let [label, pick] of [["agreed", r => !dis(r)], ["disagreed", dis]]) {
+			let sel = timed.filter(r => r.cause === cause && pick(r));
+			if (!sel.length) continue;
+			console.log(`  ${cause} ${label} (${sel.length} links)`);
+			console.log(`    stamp difference ${hist(sel.map(r => half(r.delta, cycles.get(r.game))))}`);
+			console.log(`    widest gap, late log ${hist(sel.map(r => half(r.gap_late, cycles.get(r.game))))}`);
+			console.log(`    widest gap, early log ${hist(sel.map(r => half(r.gap_early, cycles.get(r.game))))}`);
+		}
+	}
+	console.log("a stall detector from one log (widest gap in the late log at least this many cycles), links it fires on:");
+	for (let threshold of [1.5, 2, 2.5, 3]) {
+		let parts = [];
+		for (let cause of ["jitter", "delay"]) for (let [label, pick] of [["agreed", r => !dis(r)], ["disagreed", dis]]) {
+			let sel = timed.filter(r => r.cause === cause && pick(r));
+			if (!sel.length) continue;
+			let fired = sel.filter(r => r.gap_late >= threshold * cycles.get(r.game)).length;
+			parts.push(`${cause}/${label} ${fired}/${sel.length}`);
+		}
+		console.log(`  ${threshold} cycles: ${parts.join("; ")}`);
+	}
+	console.log("which side of a disagreement abstained:");
+	for (let cause of CAUSES) {
+		let ab = timed.filter(r => r.cause === cause && (r.cls === "abstain_a" || r.cls === "abstain_b"));
+		if (!ab.length) continue;
+		let late = ab.filter(r => (r.cls === "abstain_a") === (r.late_side === "A")).length;
+		console.log(`  ${cause}: ${ab.length} abstentions, ${late} by the late side, ${ab.length - late} by the early side`);
+	}
+	let conflicts = timed.filter(r => r.cause === "delay" && r.cls === "conflict");
+	console.log(`delayed conflicts, what the late side chose | what the early side chose: ` +
+		hist(conflicts.map(r => r.late_side === "A" ? `${r.a.kind}|${r.b.kind}` : `${r.b.kind}|${r.a.kind}`)));
+}
+
 /* ---------- driving ---------- */
 
 function find_pairs(dir) {
@@ -380,17 +468,23 @@ function find_pairs(dir) {
 		.filter(([, b]) => fs.existsSync(b));
 }
 
-function run_pair(file_a, file_b, options, total) {
+function run_pair(file_a, file_b, options, total, gaps) {
 	let a_recs = load_log(BoloLog, file_a), b_recs = load_log(BoloLog, file_b);
-	let out = audit(a_recs, b_recs);
+	let out = audit(a_recs, b_recs, { links: !!gaps });
 	print_pair(out, a_recs, b_recs, [replay_label(file_a), replay_label(file_b)], options);
 	if (out.counts && total) add_counts(total, out.counts);
+	if (gaps && out.links) {
+		let game = replay_label(file_a);
+		gaps.cycles.set(game, out.clock.cycle_a);
+		for (let link of out.links) { link.game = game; gaps.links.push(link); }
+	}
 	return out;
 }
 
 function main() {
 	let args = process.argv.slice(2);
 	let options = { verbose: args.includes("--verbose") };
+	let gaps = args.includes("--gaps") ? { links: [], cycles: new Map() } : null;
 	let dir = null;
 	let positional = [];
 	for (let n = 0; n < args.length; n++) {
@@ -398,22 +492,24 @@ function main() {
 		else if (!args[n].startsWith("--")) positional.push(args[n]);
 	}
 	if (positional.length === 2) {
-		run_pair(positional[0], positional[1], options, null);
+		run_pair(positional[0], positional[1], options, null, gaps);
+		if (gaps) print_gaps(gaps.links, gaps.cycles);
 		return;
 	}
 	if (positional.length) {
-		console.error("usage: node tools/audit-paired-reconstruction.cjs <logA> <logB> [--verbose]\n" +
-			"       node tools/audit-paired-reconstruction.cjs [--pairs <dir>] [--verbose]");
+		console.error("usage: node tools/audit-paired-reconstruction.cjs <logA> <logB> [--verbose] [--gaps]\n" +
+			"       node tools/audit-paired-reconstruction.cjs [--pairs <dir>] [--verbose] [--gaps]");
 		process.exit(2);
 	}
 	let pairs = find_pairs(dir || path.join(ROOT, "fixtures", "pairs"));
 	let total = new_counts();
 	for (let [file_a, file_b] of pairs) {
-		run_pair(file_a, file_b, options, total);
+		run_pair(file_a, file_b, options, total, gaps);
 		console.log("");
 	}
 	console.log(`=== all ${total.pairs} pairs: ${total.snapshots} snapshots, ${total.observations} shell observations`);
 	print_counts(total, "  ");
+	if (gaps) print_gaps(gaps.links, gaps.cycles);
 }
 
 module.exports = { audit, classify_outcomes, classify_attribute, EDGE_MARGIN, JITTER_TICKS };
