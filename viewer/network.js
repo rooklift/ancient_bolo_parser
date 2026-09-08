@@ -99,7 +99,7 @@ const TICKS_PER_SECOND = 50;
  * about half the corpus off "good" on a figure that says how many tanks
  * were parked. All of it reproduces with
  * tools/measure-network-agreement.cjs
- * (docs/corpus_runs/f4782bc-agreement.txt).
+ * (docs/corpus_runs/9596cdc-agreement.txt).
  *
  * WHERE THE BANDS ARE CUT, and on what basis. The two readings are cut
  * on different grounds, and neither is a natural break: the pipeline's

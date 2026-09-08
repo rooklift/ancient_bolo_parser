@@ -18,8 +18,8 @@ should be weighed as such. Each statement carries one of three tags:
 - **(corpus)** — measured in the replay corpus; FORMAT.md or FORMAT.notes.md
   carries the evidence, cited as `[E:foo]`.
 - **(measured)** — measured by `tools/measure-gameplay.cjs`, first on the
-  two fixture logs and one further replay (`docs/corpus_runs/d8d7483-gameplay.txt`)
-  and then over the 443-log corpus (`docs/corpus_runs/0c4e116-gameplay.txt`);
+  two fixture logs and one further replay (`docs/corpus_runs/47a58d7-gameplay.txt`)
+  and then over the 443-log corpus (`docs/corpus_runs/7d633c0-gameplay.txt`);
   the numbers below are the corpus ones, and the evidence is in
   FORMAT.notes.md under [E:gameplay] and [E:base-capture].
 - **(fixtures)** — measured on the two fixture logs only, not yet over the

@@ -1073,7 +1073,7 @@ function pillbox_shell_terminal_match(previous, terminal, duration, start_time,
 			 * a shell last seen where the tank is about to be would otherwise
 			 * match at step zero as a zero-length, zero-duration link where
 			 * the track walk finds the collision a step or two on at true
-			 * speed (the corpus run at ccc8ec3 drew 12,862 more rushed
+			 * speed (the corpus run at b9db294 drew 12,862 more rushed
 			 * terminal links that way). The fallback also never starts at
 			 * step zero, so it cannot manufacture such a link itself. */
 			match = walk(first_step, distance => {
@@ -2203,7 +2203,7 @@ function enforce_roster_lockstep_candidates(previous_shells, target_groups,
 		 * never win through it; what it buys is the margin a dead
 		 * shell's coincidence was denying. The first, one-way form of
 		 * this rule required the confident vote itself to pass, and the
-		 * corpus links run at `41bb718` found 84 scenes where three
+		 * corpus links run at `0eba698` found 84 scenes where three
 		 * dying members' abstention had thinned the roster below the
 		 * gates that the full vote cleared -- hence symmetric. */
 		let elect = steps => {
@@ -2237,7 +2237,7 @@ function enforce_roster_lockstep_candidates(previous_shells, target_groups,
 		 * without a source. So when the margin gate fails by one or a
 		 * tie, an orphan-free leader whose every rival within one carries
 		 * an orphan is the consistent story and takes the election. The
-		 * corpus links run at `41bb718` measured this: of 140 pairwise
+		 * corpus links run at `0eba698` measured this: of 140 pairwise
 		 * stand-downs later contradicted by the post-hoc vote, the
 		 * symmetric gates below rescue 84 and the tie-break 26 more, all
 		 * 110 agreeing with the post-hoc vote, none disagreeing. */

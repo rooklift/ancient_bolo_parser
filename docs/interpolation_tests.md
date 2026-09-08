@@ -15,11 +15,11 @@ artefact of the sample changing underneath the engine. The tool writes nothing
 to disk; each historical run was done in a throwaway worktree with `main`'s copy
 of the tool dropped in, so the measuring code is the same in all ten runs and
 only the engine differs. Two runs needed no worktree. The v1.0.8 run was
-`main`'s own HEAD when this file was started; the `926f391` run was the branch's
+`main`'s own HEAD when this file was started; the `ffb7fd3` run was the branch's
 own clean HEAD, with the tool already in the tree and byte-identical to `main`'s
 (`git diff main HEAD -- tools/report-interpolation-rates.cjs` empty).
-`tools/report-interpolation-rates.cjs` has not changed since `76d8b8a`, its
-only commit. `main` has since gained `12bc73d` and the three commits before it,
+`tools/report-interpolation-rates.cjs` has not changed since `86807e0`, its
+only commit. `main` has since gained `1db6e3f` and the three commits before it,
 but they touch only `viewer/main.js`, `viewer/preload.js`, `viewer/renderer.js`
 and packaging, so v1.0.8's numbers are still `main`'s.
 
@@ -95,7 +95,7 @@ and packaging, so v1.0.8's numbers are still `main`'s.
   tick-weighted rate is the honest measure of how much of the replay is actually
   smooth; the per-segment rate flatters it badly (0.951096 for tanks).
 
-## v1.0.7 -- `323c673` "rejoin / alliance issues"
+## v1.0.7 -- `3f359d1` "rejoin / alliance issues"
 
 * `rate_shells_matched_forward` 0.929101
 * `rate_shells_unlinked` 0.029667
@@ -109,22 +109,22 @@ and packaging, so v1.0.8's numbers are still `main`'s.
   fake zero
 * `terminals_unseen_pillbox_source` 0
 
-## Branch point -- `main` at `76d8b8a`
+## Branch point -- `main` at `86807e0`
 
-The engine here was identical to the branch point `6777d35` when this file was
+The engine here was identical to the branch point `dca51d8` when this file was
 started: every commit `main` had gained since then was a FORMAT.md edit or the
 report tool. So this is the baseline the branch should be judged against, not a
 parallel line of work. `main` has moved on since, and
-`git diff 6777d35 main -- viewer/ src/` is no longer empty -- but the only
-engine change in it is `f4f15d9`, whose effect on the report is one line
+`git diff dca51d8 main -- viewer/ src/` is no longer empty -- but the only
+engine change in it is `6a83ce0`, whose effect on the report is one line
 (`shell_births`), recorded under v1.0.8 below.
 
 * `rate_shells_matched_forward` 0.961100 -- tied with v1.0.8; the best measured
-  until `4f5dbe9`
+  until `63b2e71`
 * `rate_shells_unlinked` 0.016596 -- tied with v1.0.8; the best measured until
-  `4f5dbe9`
+  `63b2e71`
 * `rate_terminals_matched` 0.817321 -- tied with v1.0.8; the best measured until
-  `4f5dbe9`
+  `63b2e71`
 * `terminals_matched:tank_hit` 2826 of 3879
 * `shells_from_pillbox` 11661
 * `shells_with_pillbox_source` 41881
@@ -134,10 +134,10 @@ engine change in it is `f4f15d9`, whose effect on the report is one line
 Versus v1.0.7 this is a gain across the board: +3.2 points of shell matching,
 +4.6 points of terminal matching, and unlinked shells roughly halved.
 
-## v1.0.8 -- `e4582dc` "aesthetic improvement"
+## v1.0.8 -- `c15ed26` "aesthetic improvement"
 
 Identical to the branch point everywhere but one line. The whole report diff
-against `76d8b8a` is:
+against `86807e0` is:
 
 * `shell_births` 9020 -> 20681
 
@@ -152,10 +152,10 @@ Everything else matches byte for byte:
 
 The added births are pillbox shells, exactly: 9020 (`shells_from_tank`) + 11661
 (`shells_from_pillbox`) = 20681, so every pillbox shell gained a birth and no
-tank shell lost one. This is `f4f15d9` "Pillbox shots visible right from the
+tank shell lost one. This is `6a83ce0` "Pillbox shots visible right from the
 start", which extends `build_shell_births` in `viewer/motion.js` to derive a
 start point from `pillbox_source_distance` instead of skipping non-tank shells.
-The two later commits, `6801403` (a version label in the menu) and `e4582dc`
+The two later commits, `2f576f8` (a version label in the menu) and `c15ed26`
 (pillbox draw order), touch only `viewer/main.js` and `viewer/renderer.js` and
 cannot move the report.
 
@@ -163,7 +163,7 @@ This is a gain in what can be drawn, not in what is understood: it adds the
 muzzle-to-first-sighting segment for pillbox shells, and does not change which
 shells are matched to which, or which terminals are explained.
 
-## Branch -- `ad6a3b6` "Stuff"
+## Branch -- `15770f0` "Stuff"
 
 * `rate_shells_matched_forward` 0.911773 -- down 4.9 points from the branch point
 * `rate_shells_unlinked` 0.054411 -- up from 0.016596, more than tripled
@@ -174,59 +174,59 @@ shells are matched to which, or which terminals are explained.
 * `shells_with_birth` 27968 -- retained
 * `terminals_unseen_pillbox_source` 424
 
-## Branch -- `5e69318` "consider this tolerance rather than shell sprite size"
+## Branch -- `37acbc7` "consider this tolerance rather than shell sprite size"
 
 * `rate_shells_matched_forward` 0.914431
 * `rate_shells_unlinked` 0.054005
-* `rate_terminals_matched` 0.805940 -- up 0.8 points from `ad6a3b6`
-* `terminals_matched:tank_hit` 2782 of 3879 -- **up 201** from `ad6a3b6`
+* `rate_terminals_matched` 0.805940 -- up 0.8 points from `15770f0`
+* `terminals_matched:tank_hit` 2782 of 3879 -- **up 201** from `15770f0`
 * `shells_from_pillbox` 8666 -- unchanged
 * `shells_with_pillbox_source` 22516 -- unchanged bar one shell
 * `shells_with_birth` 27968 -- unchanged
 * `terminals_unseen_pillbox_source` 424 -- unchanged
 
-## Branch -- `c848efd` "Stuff"
+## Branch -- `8aa9506` "Stuff"
 
-A confirmation run rather than a new data point. `c848efd` adds
+A confirmation run rather than a new data point. `8aa9506` adds
 `tools/measure-pillbox-tank-hit-tolerance.cjs` and a `package.json` script, and
-`dd553c5` after it adds only `tools/_check_death_impact_codes.cjs`; neither
-touches engine code. Every metric is identical to `5e69318`. Recorded so the
+`39da396` after it adds only `tools/_check_death_impact_codes.cjs`; neither
+touches engine code. Every metric is identical to `37acbc7`. Recorded so the
 next section's gain can be pinned to a single commit.
 
-## Branch -- `4f5dbe9` "Possible fix to a bad assumption", `using_the_pillbox_data` checkpoint
+## Branch -- `63b2e71` "Possible fix to a bad assumption", `using_the_pillbox_data` checkpoint
 
 The first state to beat the branch point on every headline metric. It held the
-best `rate_terminals_matched` for the next four measured commits; `83cb132`
-below took the two shell-matching rates off it, and `926f391` has since taken
+best `rate_terminals_matched` for the next four measured commits; `d52f860`
+below took the two shell-matching rates off it, and `ffb7fd3` has since taken
 the terminal rate too.
 
-* `rate_shells_matched_forward` 0.971011 -- up 5.7 points from `5e69318`, and
+* `rate_shells_matched_forward` 0.971011 -- up 5.7 points from `37acbc7`, and
   1.0 point above the branch point, the previous best
 * `rate_shells_unlinked` 0.012094 -- down from 0.054005, and below the branch
   point's 0.016596
-* `rate_terminals_matched` 0.845691 -- up 4.0 points from `5e69318`, 2.8 above
+* `rate_terminals_matched` 0.845691 -- up 4.0 points from `37acbc7`, 2.8 above
   the branch point
-* `terminals_matched:tank_hit` 3089 of 3879 -- up 307 from `5e69318`, and 263
+* `terminals_matched:tank_hit` 3089 of 3879 -- up 307 from `37acbc7`, and 263
   above the branch point's 2826
 * `shells_from_pillbox` 11663 -- recovered from 8666, two above the branch
   point's 11661
 * `shells_with_pillbox_source` 44245 -- recovered from 22516, and 2364 above the
   branch point's 41881
-* `shells_with_birth` 28006 -- up 38 from `5e69318`, 5 above the branch point
+* `shells_with_birth` 28006 -- up 38 from `37acbc7`, 5 above the branch point
 * `shells_from_tank` 9021 -- up one from 9020
 * `terminals_unseen_pillbox_source` 393 -- back to the branch point's value
 * `shell_births` 9021 -- tank shells only; the branch does not carry `main`'s
-  `f4f15d9`, so this is not comparable with v1.0.8's 20681
+  `6a83ce0`, so this is not comparable with v1.0.8's 20681
 * `max_shell_interpolation_ticks` 50
 
 The rest of the terminal breakdown moves the same way: `explosion` 1589 -> 1829,
 `pillbox_damage` 5607 -> 5931, `shell_falls` 8311 -> 8398, and `base_damage`
 1114 -> 1113, the one metric that goes backwards, by a single terminal.
 
-`4f5dbe9` is the only commit in this span touching `viewer/motion.js`, so the
+`63b2e71` is the only commit in this span touching `viewer/motion.js`, so the
 whole gain is its own -- no trio to disentangle this time.
 
-## Branch of the branch -- `83cb132` "Try to determine true location from quantized pillbox shots", `using_the_pillbox_data_antifuzz` checkpoint
+## Branch of the branch -- `d52f860` "Try to determine true location from quantized pillbox shots", `using_the_pillbox_data_antifuzz` checkpoint
 
 `using_the_pillbox_data_antifuzz` is `using_the_pillbox_data` plus this one
 commit, so again the whole delta is attributable to it. It touches
@@ -237,13 +237,13 @@ passes at this commit, 181 checks, no failures.
 The trade is a real gain in shell matching against a rounding-error loss in
 terminal matching.
 
-* `rate_shells_matched_forward` 0.976801 -- up 0.58 points from `4f5dbe9`, the
+* `rate_shells_matched_forward` 0.976801 -- up 0.58 points from `63b2e71`, the
   best measured
 * `rate_shells_unlinked` 0.009342 -- down from 0.012094, the best measured and
   the first time this metric has gone below 1%
-* `rate_terminals_matched` 0.845607 -- **down** 0.000084 from `4f5dbe9`, i.e.
-  two terminals out of 24075. `4f5dbe9` keeps the record here, and holds it
-  until `926f391`.
+* `rate_terminals_matched` 0.845607 -- **down** 0.000084 from `63b2e71`, i.e.
+  two terminals out of 24075. `63b2e71` keeps the record here, and holds it
+  until `ffb7fd3`.
 * `shells_matched_to_snapshot` 51684 -- up 429; every shell gained is matched
   onward to a later snapshot, not to a terminal
 * `shells_unmatched_forward` 1711 -- down 427
@@ -255,7 +255,7 @@ terminal matching.
 * `shells_from_pillbox` 11663, `shells_from_tank` 9021, `shells_with_birth`
   28006, `shell_births` 9021, `terminals_unseen_pillbox_source` 393,
   `terminals_matched:base_damage` 1113, `terminals_matched:explosion` 1829 --
-  all unchanged from `4f5dbe9`
+  all unchanged from `63b2e71`
 * `max_shell_interpolation_ticks` 50
 
 Reading the shape of it: the commit does not find new shells or new pillbox
@@ -265,12 +265,12 @@ estimate of a quantised shot's true position would be expected to do, and it is
 consistent with the commit's stated aim. The two lost terminals are the cost of
 those firmer chains occasionally preferring a snapshot successor to an impact.
 
-## Branch after merging main -- `5f9d86f` "errors are one-sided", `using_the_pillbox_data_antifuzz` HEAD
+## Branch after merging main -- `07b6bd9` "errors are one-sided", `using_the_pillbox_data_antifuzz` HEAD
 
-This state includes the merge from `main`, `cbf1d6e`'s adjustment of pillbox
-birth segments to exact recovered orbit positions, and `5f9d86f`'s one-sided
-quantisation bound. The merge and `cbf1d6e` affect drawing and birth records;
-`5f9d86f` is the engine change responsible for the shell-linkage delta below.
+This state includes the merge from `main`, `142718b`'s adjustment of pillbox
+birth segments to exact recovered orbit positions, and `07b6bd9`'s one-sided
+quantisation bound. The merge and `142718b` affect drawing and birth records;
+`07b6bd9` is the engine change responsible for the shell-linkage delta below.
 An arithmetic right shift always rounds a chained offset down, so a member at
 index `i` can only have an exact coordinate in
 `[reconstructed, reconstructed + i]` on each axis. The former symmetric bound
@@ -284,19 +284,19 @@ more matched terminals:
 * `rate_shells_unlinked` 0.008637 -- down from 0.009342, a new best
 * `shells_unlinked` 637 -- down 52 from 689
 * `rate_terminals_matched` 0.845524 -- down 0.000083 from 0.845607, another two
-  terminals out of 24075; `4f5dbe9` still holds the terminal-matching record at
-  this point, and keeps it until `926f391`
+  terminals out of 24075; `63b2e71` still holds the terminal-matching record at
+  this point, and keeps it until `ffb7fd3`
 * `shells_matched_to_snapshot` 51772 -- up 88 from 51684
 * `shells_unmatched_forward` 1625 -- down 86 from 1711
 * `terminals_matched:tank_hit` 3086 and
   `terminals_matched:shell_falls` 8397 -- unchanged
 * `terminals_matched:pillbox_damage` 5931 -- down 2 from 5933
-* `shells_with_pillbox_source` 44245 -- up 6, returning to `4f5dbe9`'s best
+* `shells_with_pillbox_source` 44245 -- up 6, returning to `63b2e71`'s best
 * `shells_from_pillbox` 11663, `shells_from_tank` 9021,
   `shells_with_birth` 28006 and `terminals_unseen_pillbox_source` 393 --
   unchanged
 * `shell_births` 20684 -- now includes both 9021 tank and 11663 pillbox births
-  after merging main's `f4f15d9`; unlike the earlier branch-only values, this
+  after merging main's `6a83ce0`; unlike the earlier branch-only values, this
   is directly comparable with v1.0.8's 20681
 * `max_shell_interpolation_ticks` 50
 
@@ -307,11 +307,11 @@ inside the one-sided bound. The original two-shell
 case at record 1251 remains resolved to its two distinct orbit states and
 shell-fall terminals.
 
-## Branch -- `926f391` "Tank shots in index 1+ have uncertainty too", `using_the_pillbox_data_antifuzz` HEAD
+## Branch -- `ffb7fd3` "Tank shots in index 1+ have uncertainty too", `using_the_pillbox_data_antifuzz` HEAD
 
-The first state to hold all three headline records at once. `3a46de5` between
-this and `5f9d86f` edits only this file, so the whole delta belongs to
-`926f391`. `npm test` passes here, 187 checks, no failures.
+The first state to hold all three headline records at once. `9e0ff73` between
+this and `07b6bd9` edits only this file, so the whole delta belongs to
+`ffb7fd3`. `npm test` passes here, 187 checks, no failures.
 
 Where the previous three motion commits each bought shell continuity by giving
 terminals back, this one gains on both axes together.
@@ -319,8 +319,8 @@ terminals back, this one gains on both axes together.
 * `rate_shells_matched_forward` 0.980136 -- up from 0.977967, a new best
 * `rate_shells_unlinked` 0.008081 -- down from 0.008637, a new best
 * `rate_terminals_matched` 0.849553 -- up from 0.845524, and 0.003862 above
-  `4f5dbe9`'s 0.845691, which had stood since it was measured. First movement
-  of this record since `4f5dbe9`.
+  `63b2e71`'s 0.845691, which had stood since it was measured. First movement
+  of this record since `63b2e71`.
 * `shells_matched_forward` 72288 -- up 160 from 72128
 * `shells_matched_to_snapshot` 51835 -- up 63 from 51772
 * `shells_matched_to_terminal` 20453 -- up 97
@@ -334,7 +334,7 @@ this span:
 * `terminals_matched:pillbox_damage` 5997 -- up 66 from 5931
 * `terminals_matched:shell_falls` 8416 -- up 19 from 8397
 * `terminals_matched:tank_hit` 3096 of 3879 -- up 10 from 3086, and 7 above
-  `4f5dbe9`'s 3089
+  `63b2e71`'s 3089
 * `terminals_matched:base_damage` 1117 -- up 4 from 1113
 * `terminals_matched:explosion` 1827 -- down 2 from 1829, the only regression
 
@@ -398,7 +398,7 @@ Every shell, terminal, tank-position and LGM metric is byte-identical before and
 after, in both runs: facing feeds drawing only, and nothing in shell matching
 reads it.
 
-## Tank shells join the discrete simulation -- `c4bf83c`
+## Tank shells join the discrete simulation -- `20e863d`
 
 Corpus measurement (`docs/tank_shell_bradians.md`) proved tank shells run
 the same integer simulation as pillbox shells, at all 256 bradians. This
@@ -414,7 +414,7 @@ real, merely-laggy links, converting them to impact matches but costing
 one net forward match.
 
 The first commit to hold all three headline records at once since
-`926f391`, and the first to gain on every one of them simultaneously:
+`ffb7fd3`, and the first to gain on every one of them simultaneously:
 
 * `rate_shells_matched_forward` 0.980448 -- up from 0.980136, a new best
 * `rate_shells_unlinked` 0.007864 -- down from 0.008081, a new best
@@ -441,7 +441,7 @@ bounded-successor test's hand-made coordinates violated the integer
 simulation (its y rose then fell, which no bradian can do) and were
 regenerated to follow it.
 
-## Chain stitching -- `0d181be`
+## Chain stitching -- `ecd220c`
 
 The issue #15 feasibility probe (`tools/probe-shot-fate-parsimony.cjs`)
 showed the unexplained residue's largest single cause is same-client
@@ -455,7 +455,7 @@ allowed to bridge up to a shell lifetime.
 The largest single movement in shell continuity measured in this file:
 
 * `rate_shells_matched_forward` 0.988055 -- up from 0.980448, a new best;
-  +561 links, against the +23 of `c4bf83c` and the +160 of `926f391`
+  +561 links, against the +23 of `20e863d` and the +160 of `ffb7fd3`
 * `rate_shells_unlinked` 0.004990 -- down from 0.007864, a new best and
   the first time under half a percent
 * `rate_terminals_matched` 0.850218 -- unchanged, as expected: stitching
@@ -469,7 +469,7 @@ The largest single movement in shell continuity measured in this file:
 
 `npm test` passes, 189 checks, including a new lag-gap stitching case.
 
-## Forced residual assignment -- `d10f153`
+## Forced residual assignment -- `bb6f769`
 
 The safe core of issue #15. After matching and stitching, one client's
 leftovers form a bipartite problem -- suppliers of a shell identity
@@ -480,7 +480,7 @@ maximum assignment. Ambiguity stays unexplained; the only consistent
 story gets told, including conclusions pairwise margins cannot reach.
 
 * `rate_terminals_matched` 0.856698 -- up from 0.850218, a new best and
-  the largest terminal gain since `4f5dbe9`; +156 terminals, all five
+  the largest terminal gain since `63b2e71`; +156 terminals, all five
   classes up (`tank_hit` +53 to 3161, `pillbox_damage` +44,
   `shell_falls` +32, `explosion` +20, `base_damage` +8)
 * `rate_shells_matched_forward` 0.990889 -- up from 0.988055, a new best
@@ -501,11 +501,11 @@ story gets told, including conclusions pairwise margins cannot reach.
 `npm test` passes, 191 checks, including new forced-late-impact and
 unseen-tank-attribution cases.
 
-Cumulative for the branch line against `926f391`: forward matching
+Cumulative for the branch line against `ffb7fd3`: forward matching
 0.980136 -> 0.990889, unlinked 0.008081 -> 0.004434 (nearly halved),
 terminals 0.849553 -> 0.856698.
 
-## Jitter absorption and constant-velocity drawing -- `4c791a0`
+## Jitter absorption and constant-velocity drawing -- `fb06764`
 
 Prompted by replay `122903.4` records 4264-4288: a lagging sender whose
 record timestamps drift several updates against its simulation, making a
@@ -541,17 +541,17 @@ throughout:
 
 | state | steady links | pop-outs | backwards pops | hover | rush |
 | --- | --- | --- | --- | --- | --- |
-| `5455724` pre-branch | 0.787 | 1465 | 62 | 0 | 0 |
-| `0d181be` stitching | 0.780 | 881 | 42 | 0 | 0 |
-| `d10f153` resolver | 0.779 | 672 | 29 | 0 | 0 |
-| `4c791a0` smoothing, ungated | 0.983 | 619 | 23 | 1 | 13 |
-| `b345ef0` temporal gate | 0.983 | 622 | 25 | 0 | 7 |
+| `2680d76` pre-branch | 0.787 | 1465 | 62 | 0 | 0 |
+| `ecd220c` stitching | 0.780 | 881 | 42 | 0 | 0 |
+| `bb6f769` resolver | 0.779 | 672 | 29 | 0 | 0 |
+| `fb06764` smoothing, ungated | 0.983 | 619 | 23 | 1 | 13 |
+| `963f191` temporal gate | 0.983 | 622 | 25 | 0 | 7 |
 
 Every known event in the branch history is visible: stitching and the
 resolver halve the pops; smoothing lifts steady links from 79% to 98.3%
 (timestamp jitter wobbled a fifth of all drawn links, far beyond the
 extreme scenes that prompted the work); the false-absorption hover
-appears exactly at `4c791a0` and is removed by the temporal gate. The
+appears exactly at `fb06764` and is removed by the temporal gate. The
 zero hover readings on older states are correct, not blind spots -- that
 artifact class arrived with stitching; the older pathology was pops and
 wobble, which the audit counts separately. Seam jumps are zero at every
@@ -595,9 +595,9 @@ ring is five links. On the fast-ring `040601.6` the 831 are 377 timed,
 386 static and 68 instant -- the ring's 1-3 tick cadence lands event
 records against shells still in flight, so the cap bites there and
 nowhere else -- and its 1,104 rush links are 19 timed and 1,085 static,
-the decomposition the fast-ring re-sends entry (`917077a`) had done by
-hand on that log. The `ccc8ec3` step-zero matches land where the
-reasoning said they would: against `30d5351` the first form's extra
+the decomposition the fast-ring re-sends entry (`efe9ab2`) had done by
+hand on that log. The `b9db294` step-zero matches land where the
+reasoning said they would: against `0263483` the first form's extra
 rushed links on `n20021018.2` are static 456 -> 592 with timed 5 -> 5,
 and on `040601.6` static 386 -> 412 with timed 377 -> 381.
 
@@ -608,7 +608,7 @@ the tool into the old tree. The corpus runs of the split are in
 [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md) under
 the rush split section.
 
-## Cost-forced assignment -- `f340943`
+## Cost-forced assignment -- `dafa8d8`
 
 Parsimony phase 2: the residual resolver solves each component as
 minimum-cost maximum flow and accepts, beyond the forced edges, any edge
@@ -634,7 +634,7 @@ established ambiguity unit keeps the system explicable. The remaining
 gap between margin 3 and margin 1 (~25 pop-outs) is the measured price
 of that caution.
 
-## Pop rescue -- dilated and visual joins, `a74033a`
+## Pop rescue -- dilated and visual joins, `6b4140d`
 
 The first change aimed squarely at the audit's headline artifact: the
 forward-paired pop, a shell vanishing and an origin-less shell appearing
@@ -654,7 +654,7 @@ both bounded by the recovered physics:
   position, a deliberate philosophy change: ambiguity about *which*
   shell this is need not cost the certainty that *a* shell flies on.
 
-Fixture, against `f340943`:
+Fixture, against `dafa8d8`:
 
 * audit `pops_paired_forward` 187 -> 20 (-89%); `pop_outs` 581 -> 411;
   backwards pops 22 -> 6; seam jumps still zero
@@ -672,9 +672,9 @@ Fixture, against `f340943`:
   genuinely clock-dilated ones, so the strict per-update model rejects
   more of them once they are long enough to test; expected
 
-## v1.0.9 -- `8f6fe27` "Update builder.py"
+## v1.0.9 -- `6254551` "Update builder.py"
 
-The release is engine-identical to `a74033a` above, so the pop-rescue numbers
+The release is engine-identical to `6b4140d` above, so the pop-rescue numbers
 are the release's numbers: `rate_shells_matched_forward` 0.994427,
 `rate_shells_unlinked` 0.002535, `rate_terminals_matched` 0.856366. Between
 the two commits sit only docs, two audit tools (`find-seam-jumps`,
@@ -682,12 +682,12 @@ the two commits sit only docs, two audit tools (`find-seam-jumps`,
 `viewer/main.js` and `viewer/renderer.js` (loading bar, menu rearrange,
 raw-shell-dots overlay) -- nothing the report loads, which is `logparse.js`,
 `game.js`, `motion.js` and `network.js`, all byte-identical across the span.
-The one engine change in between, `dd9d730`'s hold-then-fly re-timing, was
-reverted by `c2e1d7f` before the tag, and `git diff dd9d730~1 c2e1d7f` is
-empty, so the revert is clean. Everything measured after `a74033a`
-(`ad2168d` onward) is post-release.
+The one engine change in between, `fdb72f1`'s hold-then-fly re-timing, was
+reverted by `0439893` before the tag, and `git diff fdb72f1~1 0439893` is
+empty, so the revert is clean. Everything measured after `6b4140d`
+(`6787773` onward) is post-release.
 
-## Leading impacts -- `ad2168d`
+## Leading impacts -- `6787773`
 
 Dilated joins covered the clock lie in one direction; this covers the
 other. A chain end whose restatement arrived late understates its
@@ -708,7 +708,7 @@ in-window story is always preferred. No cost tuning was needed for the
 motivating case: once the missing edge exists, the true story explains
 strictly more of the residue and value-forcing picks it.
 
-Fixture, against `c41f6c7` (identical engine to `a74033a` for these
+Fixture, against `76c6c85` (identical engine to `6b4140d` for these
 numbers):
 
 * `rate_shells_matched_forward` 0.994427 -> 0.994888, a new best
@@ -725,7 +725,7 @@ numbers):
   rescued chains too
 * Corpus: measured, and the story survives the scale-up at roughly 100x
   the fixture's deltas with all three headline records taken together --
-  see the `ad2168d` entry in
+  see the `6787773` entry in
   [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md).
 
 ## Uncapped shell falls -- drawing only
@@ -755,24 +755,24 @@ Fixture:
 * Corpus: `terminal_links_rushed` down 12.8%, landing below the
   pre-lead-fix baseline, with a three-in-ten-million favourable wiggle
   in the matching numbers the fixture could not see -- see the
-  `7b9030a` entry in
+  `f8ec4d5` entry in
   [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md).
 * The wiggle exposed a real coupling: the candidate `end_time` fed both
-  the equivalence rule's time gate and the renderer. `70b1227` splits
+  the equivalence rule's time gate and the renderer. `3c5edf5` splits
   them -- `end_time` stays the capped decision quantity, `draw_end_time`
   (uncapped for falls only) is what gets drawn -- making the change
   genuinely drawing-only. Fixture and replay metrics byte-identical
   either side of the split.
 
-## Orbit-backed absorption and its guards -- `33e1ee5` + `90925b0`
+## Orbit-backed absorption and its guards -- `b29240b` + `8d310e3`
 
 A pill shot's orbit can absorb a stitch-skipped restatement the
 temporal gate strands: an exact orbit point, on a bradian surviving at
 both ends of the stitch, strictly between their steps, is absorbed
-however badly the sender's clock lied (`33e1ee5`, from replay
+however badly the sender's clock lied (`b29240b`, from replay
 101202.10's pillbox 3, where the gate lost by 0.372 px and the shell
 drew a 19 px backwards jump, a ten-tick hover and a 41 px rush).
-`90925b0` guards it both ways for dense streams: at most one candidate
+`8d310e3` guards it both ways for dense streams: at most one candidate
 per snapshot -- an angry pillbox fires every five or six ticks, so
 stream-mates ride two or three steps apart and nothing in one snapshot
 says which observation is the reconnected shell -- and an observation
@@ -781,10 +781,10 @@ absorb it.
 
 Fixture:
 
-* `33e1ee5`: shells matched forward 73,376 -> 73,379, unlinked
+* `b29240b`: shells matched forward 73,376 -> 73,379, unlinked
   169 -> 166, terminals unchanged; audit hover 2 -> 3 and rush 7 -> 8,
   observations entering the link structure that used to pop invisibly.
-* `90925b0`: matched forward -> 73,369, unlinked -> 172, terminals
+* `8d310e3`: matched forward -> 73,369, unlinked -> 172, terminals
   20,641 -> 20,638 -- the same-time double-absorbed pairs (seven
   snapshots on the fixture) leaving the ledger; audit rush links
   8 -> 1 and the 3.0+ speed bucket 8 -> 1, `pop_outs` 374 -> 384.
@@ -881,7 +881,7 @@ passing vote prunes candidates by lockstep physics, and a doubtful
 member that in fact continued keeps its lockstep-consistent
 continuation.
 
-Fixture, against the `3b9d80d` state:
+Fixture, against the `1ea546c` state:
 
 * `shells_matched_forward` 73,454 -> 73,460, `shells_unlinked`
   137 -> 136, `terminals_matched` 20,695 -> 20,696 (`tank_hit` +1: the
@@ -905,7 +905,7 @@ Fixture, against the `3b9d80d` state:
 
 ## The symmetric election and the orphan tie-break
 
-What the corpus links run at `41bb718` (every contradiction with the
+What the corpus links run at `0eba698` (every contradiction with the
 matcher's own election attached) said, read off the file: of 340
 pairwise contradictions, 335 were **stand-downs** and none a passed
 vote, and in 369 of all 376 stand-downs the matcher's best advance was
@@ -936,7 +936,7 @@ Two rules, scored against those 140 scenes before touching the engine
   election. Rescues 26 more; all 110 agree with the post-hoc vote and
   none disagree.
 
-Fixture, against `2b34a87`:
+Fixture, against `480c1d2`:
 
 * `shells_matched_forward` 73,460 -> 73,461, `shells_stream_birth`
   4 -> 3, `shell_births` 20,727 -> 20,726; `links_pill_unpinned`
@@ -947,7 +947,7 @@ Fixture, against `2b34a87`:
 * Fast-ring fixture: matching and audit byte-identical; elections
   passed 4,830 -> 5,289.
 * Corpus: both shell-side records on by the largest step since
-  `917077a` (matched forward +675 with `pop_outs` -675, unlinked -236),
+  `efe9ab2` (matched forward +675 with `pop_outs` -675, unlinked -236),
   contradictions 437 -> 89, every audit lie metric down -- see the
   branch entry in
   [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md).
@@ -974,7 +974,7 @@ the sender's simulation, and the sender's picture of a remote tank is
 the last restatement it received: in ring order player 3's record
 follows player 2's, so the freshest position player 2 had during the
 interval was the one the recorder had logged a round earlier, which is
-exactly the packet box. The track refinement (`422c5ff`) was written for
+exactly the packet box. The track refinement (`09155b1`) was written for
 a tank driving *into* a shell earlier than its packet box suggests; for
 a tank driving away it moves the box out from under a graze the sender
 registered. `pillbox_shell_terminal_match` now walks the orbit against
@@ -983,7 +983,7 @@ again against the packet box, placing the effect on the box the shell
 entered. Only the pill-orbit branch changes: the ordinary ray branch
 never used the track.
 
-The first form of this (`ccc8ec3`) tested both boxes at every step and
+The first form of this (`b9db294`) tested both boxes at every step and
 took the first entry. The corpus run caught what the fixture rates
 could not: `terminal_links_rushed` 69,287 -> 82,149 while terminal links
 rose by only 1,827. Every new rushed link was the same shape -- a shell
@@ -997,7 +997,7 @@ rescued shells whose arrival is capped at a hit record one tick later,
 the cost already accepted for lagging events), at a price of two tank
 hits over the three files against the first form.
 
-Fixture, against `57dca12`:
+Fixture, against `7e3833b`:
 
 * `rate_shells_matched_forward` 0.996041 -> 0.996298
 * `rate_shells_unlinked` 0.001844 -> 0.001736 (136 -> 128)
@@ -1010,9 +1010,9 @@ Fixture, against `57dca12`:
   (the first form had it at 598), seam jumps still zero
 * A 3 px tolerance instead recovers the scene too (`tank_hit` 4317 over
   the same three files) but is a fudge where this is the mechanism
-* Corpus: both forms are measured under `ccc8ec3` in
+* Corpus: both forms are measured under `b9db294` in
   [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md); the
-  restructured walk (`30d5351`) keeps `tank_hit` +1,552 and pop-outs
+  restructured walk (`0263483`) keeps `tank_hit` +1,552 and pop-outs
   -1,531 over 443 logs with `terminal_links_rushed` back within 124 of
   baseline
 
@@ -1057,7 +1057,7 @@ files with tank play across long gaps (fixture terminals 20720 -> 20722,
 pop-outs 269 -> 267; the replay 5514 -> 5515, 93 -> 92) and nothing moves
 the other way, so it is the one kept.
 
-Fixture, against `9ed3bd6`:
+Fixture, against `1256974`:
 
 * `rate_shells_matched_forward` 0.996298 -> 0.996380
 * `rate_shells_unlinked` 0.001736 -> 0.001681 (128 -> 124)
@@ -1074,7 +1074,7 @@ Fixture, against `9ed3bd6`:
   `pillbox_damage` 2045 -> 2054), tank origins 2257 -> 2284, unseen tank
   sources 267 -> 260; audit hovers 11 -> 8, `pop_outs` 102 -> 92,
   `pop_ins` 91 -> 66, rushed 98 -> 98, seam jumps zero
-* Corpus: `1f70a58` in [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md)
+* Corpus: `bc1c9b7` in [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md)
   -- unlinked -589, terminals +998 with every type up, tank origins
   +3,548, hovers -261, pop-outs -801, pop-ins -3,352, contradictions
   and seam jumps unchanged
@@ -1115,7 +1115,7 @@ of this change it is a wash (fixture 119 -> 118 unlinked, the replay
 27 -> 28) and mostly reclassifies orbit-membership births as
 F4-attributed ones. Left strict.
 
-Fixture, against `45aea5d` (main after the tank-window merge):
+Fixture, against `aa268f1` (main after the tank-window merge):
 
 * `rate_shells_matched_forward` 0.996380 -> 0.996448
 * `rate_shells_unlinked` 0.001681 -> 0.001613 (124 -> 119)
@@ -1138,7 +1138,7 @@ Fixture, against `45aea5d` (main after the tank-window merge):
   55 -> 18, vouched 3371 -> 3387, contradicted 0; audit hovers 8 -> 5,
   `pop_outs` 92 -> 70, `pop_ins` 66 -> 53, `rate_links_steady`
   0.966929 -> 0.968155, rushed 98 -> 99, seam jumps zero
-* Corpus: `9115ab4` in [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md)
+* Corpus: `1a67872` in [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md)
   -- unlinked -1,215, terminals +1,471 with every type up, pill origins
   +1,159, unpinned pill links -9,149, contradictions 94 -> 92, hovers
   -184, pop-outs -1,509, backwards pops -59, for 43 more rush links
@@ -1182,7 +1182,7 @@ for lag that no record could have avoided is a separate cost-model
 question, noted here and not dialled; the die-at-impact section's
 continue-vs-die caution applies.
 
-Fixture, against `2f2c17b` (main after the pill-window merge): every
+Fixture, against `a5cddef` (main after the pill-window merge): every
 line identical; nothing on `n20021018.2` needed a lie that large. On
 `040601.6`, the fast-ring fixture, the bound refuses three joins
 (`shells_unlinked` 25 -> 28, `pop_outs` 115 -> 118) and takes
@@ -1191,7 +1191,7 @@ story, three became pops, and `rate_links_steady` 0.964069 -> 0.964403.
 The motivating replay: hovers 5 -> 2, steady 0.966929 -> 0.968561, one
 link fewer (`pop_outs` 70 -> 71, one backwards pair added -- the 2270
 shell's pop-in behind the fifth shot's vanish, the remainder above),
-terminals unchanged. Corpus: `cee58aa` in
+terminals unchanged. Corpus: `f9d3e7c` in
 [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md) -- a
 trade on the ledger, hovers -647 (-21%) and terminals +32 against
 unlinked +213 and backwards pops +67, with the refused joins' two
@@ -1228,7 +1228,7 @@ cannot confirm. Tank chains get the same treatment with bradian states,
 and a uniquely surviving bradian becomes the heading as it does
 pairwise.
 
-Fixture, against `c007a78` (main after the lie-bound merge): every
+Fixture, against `ab9216e` (main after the lie-bound merge): every
 matching and drawing line identical -- no link, terminal, birth, pop or
 speed bucket moves -- except one terminal link reclassified static ->
 instant (an end whose exact pixel is now recovered draws a few pixels
@@ -1242,7 +1242,7 @@ lands:
 * The motivating replay: `links_pill_unpinned` 18 -> 2, vouched
   3387 -> 3391, contradicted 0; nothing else moves
 * No headline rate moves, so no new row in the table below
-* Corpus: `810ef2c` in [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md)
+* Corpus: `6b2cacd` in [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md)
   -- `links_pill_unpinned` 19,311 -> 2,772, vouched +10,787, matching
   and drawing still; contradictions 92 -> 140, the vote now scoring
   links made below joins without the lockstep defence, read there
@@ -1257,7 +1257,7 @@ source and no state.
 The state walk's corpus run left the vouched-link metric scoring
 16,539 links it could not see before, and 48 of them contradicted the
 pill's elected advance -- ±2-step, mostly pairwise, links made below a
-join without the lockstep defence (the corpus file's `810ef2c` section
+join without the lockstep defence (the corpus file's `6b2cacd` section
 has the class table). The vote had only ever been a measurement; the
 pairwise matcher defers to it at match time, but a link that reached
 final state contradicting it stood. This turns the verdict into an
@@ -1278,14 +1278,14 @@ honest drawing of a link the pill's own statements say was wrong.
 Verbatim re-sends and visual joins are outside the scored population
 and are left alone.
 
-Fixture, against `b614f39` (main after the state-walk merge): nothing
+Fixture, against `38265ff` (main after the state-walk merge): nothing
 to sweep. All three local files carry zero contradictions, so every
 matching and drawing line is byte-identical; the cost of the extra
 reference build and link scan measured 1.04, 1.08 and 1.05 of the
 previous engine by alternating A/B, inside the run-to-run spread. The
 corpus is the only measurement: 140 contradictions to spend, and the
 question is how many of the freed ends and starts the second joining
-round settles rather than pops. Corpus: `7801209` in
+round settles rather than pops. Corpus: `fe3f825` in
 [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md) --
 contradictions 140 -> 14, unlinked -45, terminals +95 with every type
 up, pop-outs -58, pop-ins -47; the 14 left are stitched links in
@@ -1297,7 +1297,7 @@ pinned shells at steps 10, 12, 15 and 16 restated two steps on, three
 linked to their true successors and the fourth one stream-mate too
 far; the sweep undoes the fourth alone.
 
-## A base is damaged only by tank shells -- `63d3acb`
+## A base is damaged only by tank shells -- `223c457`
 
 An `An` never follows a pillbox shot (owner; GAMEPLAY.md). The engine
 had built the base-damage terminal like any other object box, so a
@@ -1306,17 +1306,17 @@ pill's F4 could be count-forced onto one. Both are refused before any
 geometry (`terminal_takes_pillbox_shell`), and the diagnostics name
 the refusal `weapon`.
 
-Fixture, against `7801209`: `terminals_matched:base_damage` 1,132 ->
+Fixture, against `fe3f825`: `terminals_matched:base_damage` 1,132 ->
 1,130, the two pill matches released; `tank_hit` 3,213 -> 3,216;
 `terminals_matched` 20,727 -> 20,728; `terminals_unseen_tank_source`
 1,119 -> 1,122; `shells_unlinked` 119 -> 118;
 `shells_unmatched_forward` 262 -> 261. The three rates below. The
-fast-ring fixture is byte-identical. Corpus: `63d3acb` in
+fast-ring fixture is byte-identical. Corpus: `223c457` in
 [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md) --
 47 base hits released from pill shells, tank hits +57, unexplained
 impacts -46, pop-outs -18, every truth axis unchanged.
 
-## A turning tank's shell carries the nibble's sector -- `4f0aa06`
+## A turning tank's shell carries the nibble's sector -- `1623cbb`
 
 A tank shell born as its tank crossed a sector boundary is listed a
 sector off its true heading for its whole flight, and its `5d` nibble
@@ -1324,7 +1324,7 @@ is the true one (FORMAT.md [E:shell-birth-sector]). Such a shell now
 carries the nibble as `sector`, read wherever a direction becomes
 geometry, while its list label still matches its restatements.
 
-Fixture, against `63d3acb`: 44 shells corrected, every one claiming
+Fixture, against `223c457`: 44 shells corrected, every one claiming
 its birth (`shells_from_tank` 9,062 -> 9,074); `terminals_matched`
 20,728 -> 20,732; `shells_unlinked` 118 -> 117;
 `shells_unmatched_forward` 261 -> 258; `terminals_unseen_tank_source`
@@ -1332,7 +1332,7 @@ its birth (`shells_from_tank` 9,062 -> 9,074); `terminals_matched`
 corrected shell's proper heading refusing a successor its stale sector
 had accepted. The fast-ring fixture moves the same way: tank births
 +25, terminals 4,309 -> 4,317 with `tank_hit` +4, unlinked 28 -> 25,
-one link undone. The three rates below. Corpus: `4f0aa06` in
+one link undone. The three rates below. Corpus: `1623cbb` in
 [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md) --
 impacts +608, unlinked -402, pop-outs -620, pop-ins -2,248, three
 headline records, pill links untouched.
@@ -1387,7 +1387,7 @@ links are made by the stitcher instead of the pairwise pass, and one
 list member at step 7 carries the three bradians its own box admits
 instead of the one a rival candidate's story had narrowed it to. The
 fast-ring fixture is byte-identical. No headline rate moves, so no new
-row in the table below. Corpus: `82531bc` in
+row in the table below. Corpus: `30ea4ef` in
 [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md) --
 52 links gained, 53 pop-outs and 37 phantom births fewer, vouched
 links +210 with contradictions unchanged, three headline records by
@@ -1401,7 +1401,7 @@ and a vote inside the margin stands down, whatever the sender's other
 pills have settled over the same pair. But a client steps every shell
 of every pill firing at it in one update pass, so the advance belongs
 to the sender transition. `tools/measure-cross-pill-agreement.cjs`
-measured that first, on the corpus (`docs/corpus_runs/78797d3-cross-pill.txt`,
+measured that first, on the corpus (`docs/corpus_runs/cb1fd5d-cross-pill.txt`,
 443 logs): 10,434 of 10,434 pairs where two pills each elected agree;
 99.77% of a sparse pill's pinned statements land at a rich pill's
 advance where 22.9% could be landed by any other; pooling the pills'
@@ -1409,7 +1409,7 @@ scores elects 14.5% more pairs and never contradicts a per-pill
 winner. Recorded as [E:sender-lockstep].
 
 Both vote sites were then made to lend the sender's advance
-(`1ffc4d0`): where exactly one advance won any pill's election it
+(`8a54fd8`): where exactly one advance won any pill's election it
 went to every pill of the sender that could not elect its own, and
 where none passed, the pooled election (the full and confident scores
 summed over every pill, under the same symmetric gates, no orphan
@@ -1432,7 +1432,7 @@ contradictions 0, 1,995 lent; one visual join (4 -> 3) became an
 identity link, with every other line identical and the audit
 byte-identical.
 
-Reverted after the corpus run (`1ffc4d0` and `6176936` in
+Reverted after the corpus run (`8a54fd8` and `8212c0c` in
 [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md)):
 vouched links +422,129 with contradictions unchanged at 14 and
 distance inversions 191 -> 179, but the drawn picture a wash --
@@ -1442,49 +1442,49 @@ sweep broke for good on a lent advance -- for a few percent of build
 time. A large gain on the meter for no gain in what is drawn was not
 worth the weight in the two most intricate functions of the engine.
 The engine and the pinned counts in `test/test-viewer.cjs` are back
-at `8e40b11`; the measurement tool, the evidence note, the corpus
+at `8f55e62`; the measurement tool, the evidence note, the corpus
 runs and the report's `shells_sweep_unlinked` / `shells_sweep_rejoined`
 lines (which read a flag the sweep already set) stay. No headline
 rate moved on the fixture, so no row in the table below.
 
-## Findings at the close of the ten-run table -- `926f391`
+## Findings at the close of the ten-run table -- `ffb7fd3`
 
-Written when `926f391` was the branch's head and the table above ended
+Written when `ffb7fd3` was the branch's head and the table above ended
 there. The sections between it and this one carry the line onward and
 supersede any "now" or "current" below; this block is kept as the
 reading at that point, not the state of the engine. For the state of
 the engine see the section after it.
 
 * **The branch line now leads the branch point on every headline metric.** At
-  `926f391` the forward match rate is 0.980136 against `main`'s 0.961100,
+  `ffb7fd3` the forward match rate is 0.980136 against `main`'s 0.961100,
   unlinked shells 0.008081 against 0.016596, and terminal matching 0.849553
-  against 0.817321. The branch spent `ad6a3b6` through `c848efd` behind the
+  against 0.817321. The branch spent `15770f0` through `8aa9506` behind the
   baseline; it is now clear of it on all three, and every headline record is
   held by the branch's own HEAD.
 * **The pillbox-attribution regression is repaired.**
   `shells_with_pillbox_source` goes 22516 -> 44245 and `shells_from_pillbox`
-  8666 -> 11663 at `4f5dbe9`, restoring what was lost between the branch point
-  and `ad6a3b6` and then exceeding it. `terminals_unseen_pillbox_source` returns
+  8666 -> 11663 at `63b2e71`, restoring what was lost between the branch point
+  and `15770f0` and then exceeding it. `terminals_unseen_pillbox_source` returns
   to the branch point's 393. This is the single largest movement in the file.
-* **The gain is attributable to one commit.** `c848efd` and `dd553c5` add only
-  tooling, and `4f5dbe9` is the sole commit in the span touching
+* **The gain is attributable to one commit.** `8aa9506` and `39da396` add only
+  tooling, and `63b2e71` is the sole commit in the span touching
   `viewer/motion.js`. Unlike the +201 tank hits below, this needs no caveat
   about a trio of commits.
-* **The tank-hit work is a clear gain, and has kept going.** `ad6a3b6` to
-  `5e69318` moves exactly one thing, `terminals_matched:tank_hit` 2581 to 2782,
+* **The tank-hit work is a clear gain, and has kept going.** `15770f0` to
+  `37acbc7` moves exactly one thing, `terminals_matched:tank_hit` 2581 to 2782,
   and everything else is flat to within a single shell. Caveat: that span covers
-  three commits -- `422c5ff` (interpolate tanks for shot collisions), `18b51b9`
-  (give shells a hitbox) and `5e69318` (the tolerance itself) -- so +201 is the
-  trio's combined effect, not the tolerance commit measured alone. `4f5dbe9`
+  three commits -- `09155b1` (interpolate tanks for shot collisions), `7bbb8cf`
+  (give shells a hitbox) and `37acbc7` (the tolerance itself) -- so +201 is the
+  trio's combined effect, not the tolerance commit measured alone. `63b2e71`
   adds a further +307, to 3089 of 3879, well past the branch point's 2826.
-* **The four branch motion changes improve complementary things.** `4f5dbe9`
-  recovered pillbox attribution and won terminals; `83cb132` recovered exact
-  positions and lengthened shell chains; `5f9d86f` removes wrong-sign orbit
-  candidates and lengthens them further; `926f391` widens the bound to index 1+
-  tank shots. The middle two together gave back four of `4f5dbe9`'s 20360
-  matched terminals, only 0.000167 of the rate, and `926f391` has since returned
+* **The four branch motion changes improve complementary things.** `63b2e71`
+  recovered pillbox attribution and won terminals; `d52f860` recovered exact
+  positions and lengthened shell chains; `07b6bd9` removes wrong-sign orbit
+  candidates and lengthens them further; `ffb7fd3` widens the bound to index 1+
+  tank shots. The middle two together gave back four of `63b2e71`'s 20360
+  matched terminals, only 0.000167 of the rate, and `ffb7fd3` has since returned
   those four and 93 more.
-* **`926f391` is the first commit to gain on both axes at once.** Every earlier
+* **`ffb7fd3` is the first commit to gain on both axes at once.** Every earlier
   branch motion commit either won terminals or won shell links and paid a couple
   of terminals for them. This one takes both records together: +160 shells
   matched forward and +97 terminals. That is the signature of admitting
@@ -1492,13 +1492,13 @@ the engine see the section after it.
   candidates already in hand.
 * **Nothing measured so far trades away a whole metric class.** Across the ten
   commits the backwards movements on the branch line remain tiny:
-  `base_damage` -1 at `4f5dbe9`, `tank_hit` -3 / `shell_falls` -1 at `83cb132`,
-  `pillbox_damage` -2 at `5f9d86f`, and `explosion` -2 at `926f391`. There is
+  `base_damage` -1 at `63b2e71`, `tank_hit` -3 / `shell_falls` -1 at `d52f860`,
+  `pillbox_damage` -2 at `07b6bd9`, and `explosion` -2 at `ffb7fd3`. There is
   no sign yet of a change that buys shell matching at the cost of terminal
   matching in any serious quantity.
 * **The regression's origin is still unpinned, and now only of historical
-  interest.** It was bracketed to `9bc584d` or `ad6a3b6`, both named "Stuff";
-  measuring `9bc584d` would still say which introduced it, but the symptom is
+  interest.** It was bracketed to `6c937e1` or `15770f0`, both named "Stuff";
+  measuring `6c937e1` would still say which introduced it, but the symptom is
   gone, so this is archaeology rather than a fix that is owed.
 * **Tank and LGM position tracks are untouched** by anything in this range,
   across all ten commits measured.
@@ -1507,16 +1507,16 @@ the engine see the section after it.
   pillbox-shell origins. The branch-point numbers remain the right interpolation
   baseline, while v1.0.8 remains the right birth-rendering baseline.
 * **Historical `shell_births` values are not comparable until the main merge.**
-  The branch-only checkpoints report 9021 because they lack `f4f15d9`; the
+  The branch-only checkpoints report 9021 because they lack `6a83ce0`; the
   current 20680 is comparable with v1.0.8's 20681. It now sits one *below* it,
-  having peaked at 20684 at `5f9d86f`. The swing is entirely the tank-origin
-  count: 9021 -> 9017 at `926f391`, against a pillbox contribution of 11663
-  fixed since `4f5dbe9`. This is a reclassification, not a rendering loss -- the
-  two pillbox shells `5f9d86f` held over v1.0.8 are still there, and the four
+  having peaked at 20684 at `07b6bd9`. The swing is entirely the tank-origin
+  count: 9021 -> 9017 at `ffb7fd3`, against a pillbox contribution of 11663
+  fixed since `63b2e71`. This is a reclassification, not a rendering loss -- the
+  two pillbox shells `07b6bd9` held over v1.0.8 are still there, and the four
   shells that left are index 1+ tank shots that no longer claim a confident
   origin.
 
-## A stall of the ring, and the two readings of the pair that spans it -- `cb51fb3`, `04d67cf`
+## A stall of the ring, and the two readings of the pair that spans it -- `c09e9e3`, `fb4bd12`
 
 Ring records arrive in bursts, one per cycle, so the gap between
 consecutive records of any sender is normally one ring cycle. The ten
@@ -1529,9 +1529,9 @@ and after the delayed record the sender's cadence resumes at one
 cycle in nine cases of ten -- the ring was held up, the cadence
 shifted, and every stamp after the stall reads late by the excess.
 
-The first cut (`cb51fb3`) read every such gap as a lie of the stamps
+The first cut (`c09e9e3`) read every such gap as a lie of the stamps
 and shortened the pairwise matcher's duration by the excess. The
-corpus said half of that was wrong (the `cb51fb3` section of the
+corpus said half of that was wrong (the `c09e9e3` section of the
 corpus file): coverage and the backwards pops improved, but the pill
 distance-order inversions rose by half and some 23,000 links drew
 slow. Two things were behind it, and both are now in.
@@ -1564,8 +1564,8 @@ ticks, three shell updates: above the matcher's tolerance and the
 stamp jitter's outer edge on the pairs. That leaves 0.2% of the
 fixture's pairs stalled and every metric of that fixture where it was.
 
-The pairs, the metric the change was built against (`04d67cf-paired-audit.txt`,
-`04d67cf-pairs-report.txt`, `04d67cf-pairs-audit.txt`): the two builds of
+The pairs, the metric the change was built against (`fb4bd12-paired-audit.txt`,
+`fb4bd12-pairs-report.txt`, `fb4bd12-pairs-audit.txt`): the two builds of
 a game disagreed on 803 forward stories at the baseline, 633 under
 the single reading, 693 under two (the second reading admits more
 candidates, and where two stories fit the two builds can still part).
@@ -1593,24 +1593,24 @@ what it is, the net choking. The drawing keeps the stamps.
 The committed fixtures: `040601.6` byte-identical to the baseline;
 `n20021018.2` `shells_matched_forward` 73,495 -> 73,497 (two
 `shell_falls`), `roster_votes_unvoted` 9,954 -> 9,956. Corpus:
-`04d67cf` in [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md)
+`fb4bd12` in [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md)
 -- against the baseline matched forward +4,152, unlinked -1,828,
 terminals +2,569, pop-outs -15%, the order inversions back at 188
 against 191, the steady rate over unstalled links within 0.0002 of the
 baseline's.
 
-## Where the line stands -- `30d5351`
+## Where the line stands -- `0263483`
 
 The same three headline rates at the points a reader is likely to want,
 all on the fixture, all from the sections above:
 
 | state | matched forward | unlinked | terminals matched |
 | --- | --- | --- | --- |
-| v1.0.7 `323c673` | 0.929101 | 0.029667 | 0.771713 |
-| branch point `76d8b8a` / v1.0.8 | 0.961100 | 0.016596 | 0.817321 |
-| `926f391`, close of the ten-run table | 0.980136 | 0.008081 | 0.849553 |
-| v1.0.9 `8f6fe27` (engine `a74033a`) | 0.994427 | 0.002535 | 0.856366 |
-| `30d5351`, the stale-box walk | 0.996298 | 0.001736 | 0.860478 |
+| v1.0.7 `3f359d1` | 0.929101 | 0.029667 | 0.771713 |
+| branch point `86807e0` / v1.0.8 | 0.961100 | 0.016596 | 0.817321 |
+| `ffb7fd3`, close of the ten-run table | 0.980136 | 0.008081 | 0.849553 |
+| v1.0.9 `6254551` (engine `6b4140d`) | 0.994427 | 0.002535 | 0.856366 |
+| `0263483`, the stale-box walk | 0.996298 | 0.001736 | 0.860478 |
 | tank births follow the record gap | 0.996380 | 0.001681 | 0.860727 |
 | pill births follow the record gap | 0.996448 | 0.001613 | 0.860935 |
 | a base is damaged only by tank shells | 0.996461 | 0.001600 | 0.860976 |
@@ -1630,17 +1630,17 @@ all on the fixture, all from the sections above:
   pre-branch state -> 256; steady links 0.787 -> 0.9788; seam jumps 0
   at every state ever audited. Nothing on the fixture's books is a
   match rate bought with a rendering lie. The corpus is a shade less
-  clean (94 contradictions at `30d5351`, per the corpus file), and that is where
+  clean (94 contradictions at `0263483`, per the corpus file), and that is where
   the next dial is.
 * **Two eras are measured only on the corpus.** The unseen-shot,
-  provenance-birth and pill-lockstep arcs (from `775fe4b` through
-  `917077a`) have no fixture sections; `pop_outs` moves 384 -> 299
+  provenance-birth and pill-lockstep arcs (from `dc3bd3b` through
+  `efe9ab2`) have no fixture sections; `pop_outs` moves 384 -> 299
   between the orbit-absorption entry and the vouched-link entry above,
   and the corpus file holds every commit in between.
 * **Tank and LGM position tracks have never moved.** Byte-identical
   at every state in this file. Facing gained its own window once
-  (`5455724`) and has not changed since; nothing in shell matching
+  (`2680d76`) and has not changed since; nothing in shell matching
   reads it.
 * **The one regression's origin stays unpinned**, bracketed to
-  `9bc584d` or `ad6a3b6` and repaired since `4f5dbe9`. Archaeology,
+  `6c937e1` or `15770f0` and repaired since `63b2e71`. Archaeology,
   not a debt.

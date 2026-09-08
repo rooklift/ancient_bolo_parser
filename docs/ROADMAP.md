@@ -61,7 +61,7 @@ assignment within margin Δ of optimal":
 
 Not on the original list; the audit's first corpus run named the target
 (44,652 forward-paired pops -- one shell drawn as two) and the owner
-prioritised it above item 3. Done in `a74033a` via dilated joins
+prioritised it above item 3. Done in `6b4140d` via dilated joins
 (stitching under time-only widened windows at a penalty cost, spatial
 exactness untouched) and visual joins (draw-only links across genuine
 same-ray ambiguity -- no identity, birth or fate propagates). Corpus:
@@ -200,7 +200,7 @@ pill's own restatements electing the one step advance a sender
 transition carries -- now backs all three engines (pairwise matcher,
 stitching, residual flow). Closing position: every shell-side corpus
 record held (0.995494 matched forward / 0.001520 unlinked), terminal
-rate second only to `029acac`, the audit era's best steady-speed rate,
+rate second only to `1de6e0d`, the audit era's best steady-speed rate,
 stream-birth mints down 55% in the final dial alone. Item 8's hover
 debt largely dissolved along the way (4,164 -> 3,347 without the
 speed floor being built). Full account in the corpus results file.
@@ -233,7 +233,7 @@ down or was never held; see the corpus file's links-run section.
 ## 11. The symmetric election and the orphan tie-break -- DONE
 
 The second complaint the vouched-link metric produced, read straight
-off the `41bb718` links run: every pairwise contradiction was a
+off the `0eba698` links run: every pairwise contradiction was a
 stand-down in which the matcher knew the advance and missed the margin
 by one or a tie -- the ladder alias is structural for long rosters --
 and item 10's one-way abstention had itself regressed 84 scenes by
@@ -250,11 +250,11 @@ stitching pass reading the time-keyed vote table on same-time pairs
 
 ## 12. The vote table keyed by snapshot index -- measured null twice, DROPPED
 
-The `0bfd71d` links run's residue looked like the same-time key
+The `4f02142` links run's residue looked like the same-time key
 collision noted when the scorer was built: 29 of the 89 surviving
 contradictions were stitched links on 3-4 tick pairs carrying exactly
 twice the elected advance. Keying the stitching and residual passes'
-vote table by snapshot index (`84c4605`) was byte-identical on both
+vote table by snapshot index (`3b4556d`) was byte-identical on both
 fixtures and, on the corpus, a null on its target (89 -> 89, the same
 29) at a cost of 8 terminals, 8 forward matches and 22 forward-paired
 pops. Reverted. The reading: the composed two-hop advance is the right
@@ -264,7 +264,7 @@ shelf: a per-link record of which pass made it (pairwise, stitch,
 dilated, residual, absorption -- `stitched` is one flag set by
 several), which would settle it in one run.
 
-Revisited once more after the contradiction sweep (`7801209`) left 14
+Revisited once more after the contradiction sweep (`fe3f825`) left 14
 links standing, and dropped, but with the reading corrected. The
 yardstick was wrong for a reason now known: a same-tick snapshot is
 often the sender's list re-sent, its roster identical to the last, and
@@ -273,7 +273,7 @@ ladder it elects the fire cadence -- an alias -- and every span
 composed across that hop carries it. On the fast-ring fixture 240
 adjacent hops restate a pill's roster unchanged and 32 of them had
 elected an advance of 3 to 8. That is what the index keys fed the
-gates in `84c4605`, and the 8 terminals and 22 pops it paid. Keying by
+gates in `3b4556d`, and the 8 terminals and 22 pops it paid. Keying by
 index together with counting an identical roster as a zero-advance hop
 (`344eb2c`, corpus run archived as `344eb2c-*`) costs nothing -- every
 other line a wash, that cost gone -- but is still a null on its
@@ -305,7 +305,7 @@ arc but deliberately not started.
   shell further along the shared ray falls first). Each rescue
   un-freezes an END as well as matching a terminal, so pop-outs and
   the end census improve together; ~2k terminals would clear
-  `029acac`'s all-time terminal record. Related, same neighbourhood:
+  `1de6e0d`'s all-time terminal record. Related, same neighbourhood:
   the same-record starvation fix (the flow cannot see duration-zero
   creation-to-fate stories, so a low-range shot's own fall can starve
   while the flow spends the shot one fate late -- see "The same-record
@@ -337,7 +337,7 @@ arc but deliberately not started.
   agree, whether a sparse pill's pinned sources land at the rich
   pill's advance (against a control of how many some other advance
   could land), and how many more pairs a pooled election passes. The
-  corpus run (`docs/corpus_runs/78797d3-cross-pill.txt`, 443 logs) is
+  corpus run (`docs/corpus_runs/cb1fd5d-cross-pill.txt`, 443 logs) is
   unanimous: 10,434 of 10,434 double elections agree; 99.77% of
   100,819 sparse sources land at the elected advance where 22.9% could
   be landed by any other; pooling elects 77,948 more pairs (+14.5%)
@@ -347,8 +347,8 @@ arc but deliberately not started.
   Recorded as [E:sender-lockstep]. Both vote sites were then made to
   lend the sender's advance (one pill's election, or the pooled
   election where none passed) to every pill of the sender that could
-  not elect its own, and measured on the corpus (`1ffc4d0`,
-  `6176936`): vouched links +422,129 with contradictions unchanged at
+  not elect its own, and measured on the corpus (`8a54fd8`,
+  `8212c0c`): vouched links +422,129 with contradictions unchanged at
   14 and distance inversions 191 -> 179, but the drawn picture a wash
   -- terminals +47 and unlinked -8 against 72 links lost, 25 pop-outs
   and 40 pill-side births gained, most of them chains the
