@@ -160,10 +160,15 @@ body {
 	min-height: 0;
 	border-bottom: none;
 }
+/* Integral line height, as for .hint: the inherited 1.45 is 20.3px at
+ * 14px, and the fractional pitch makes consecutive lines snap 20 then
+ * 21 physical pixels apart. 20px is also the pitch the video export
+ * paints the wire on (ex_chat_panel), so the two now agree. */
 #chat {
 	flex: 1;
 	overflow-y: auto;
 	font-size: 14px;
+	line-height: 20px;
 	min-height: 0;
 }
 /* Slim dark scrollbar to match the panel */
