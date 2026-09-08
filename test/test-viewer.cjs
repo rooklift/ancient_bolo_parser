@@ -101,12 +101,12 @@ if (!fs.existsSync(log1)) {
 		count + births.length, 0);
 	/* The floors sit a few dozen shells under the measured state
 	 * (73,454 matched forward, 137 unlinked, 8,467 falls, 20,731 births
-	 * at `5cce199`, per `report-interpolation-rates.cjs -f` on this
+	 * at `b77a1a2`, per `report-interpolation-rates.cjs -f` on this
 	 * fixture), so a regression of a tenth of a percent fails here rather
 	 * than passing under a floor set when the engine matched ninety
 	 * percent. Note the trade: the floors are close enough that an HONEST
 	 * give-back could fail this check someday -- invented explanations
-	 * leaving the ledger, as at `90925b0`, cost a few dozen matches on
+	 * leaving the ledger, as at `8d310e3`, cost a few dozen matches on
 	 * purpose. A failure here is therefore a question, not a verdict:
 	 * regression, or a deliberate loss? The latter moves the floor, with
 	 * its measurement on record. The exact terminal census below is the

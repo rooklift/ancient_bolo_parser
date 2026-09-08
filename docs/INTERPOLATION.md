@@ -378,7 +378,7 @@ filtering over a finite state space:
   section has the scene).
 
 History note: the first attempt at using the orbit data made the statistics
-*worse* (see the `ad6a3b6` era in `docs/interpolation_tests.md`), because
+*worse* (see the `15770f0` era in `docs/interpolation_tests.md`), because
 the table was being applied to non-head list members as if their coordinates
 were exact. Once the quantisation bound was modelled — and made one-sided —
 the branch beat the pre-orbit baseline on every headline metric.
@@ -491,7 +491,7 @@ fixture (`-f`) or, with `-r` or a configured corpus root from
 forward, fraction unlinked (appeared and vanished unexplained — the
 clearest failure signal), fraction of terminals explained, and
 attribution counts. `docs/interpolation_tests.md` tracks these across
-commits; at `30d5351` the engine matches 99.6% of shells forward, leaves
+commits; at `0263483` the engine matches 99.6% of shells forward, leaves
 0.17% unlinked, and explains 86.0% of terminals on the reference fixture
 (83.4% of corpus impacts, 96% counting unseen-source attributions).
 Every change to matching should be judged against those numbers,

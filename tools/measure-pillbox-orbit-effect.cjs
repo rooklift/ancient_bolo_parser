@@ -3,7 +3,7 @@
  *
  * Usage:
  *   node tools/measure-pillbox-orbit-effect.cjs [replay-or-directory]
- *       [--baseline=6777d35] [--workers=4]
+ *       [--baseline=dca51d8] [--workers=4]
  */
 "use strict";
 
@@ -310,7 +310,7 @@ if (!isMainThread) {
 	parentPort.postMessage(process_files(workerData.files, workerData.baseline_ref));
 } else {
 	let args = process.argv.slice(2);
-	let baseline_ref = "6777d35";
+	let baseline_ref = "dca51d8";
 	let worker_count = Math.min(4, os.availableParallelism());
 	let requested_path = DEFAULT_REPLAY;
 	for (let arg of args) {
