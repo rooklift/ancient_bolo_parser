@@ -43,22 +43,13 @@ const OBJ_NATIVE_TILE = 16;
 const LGM_ANIMATION_FPS = 20;
 const LGM_ANIMATION = ["lgm_frame0", "lgm_frame1", "lgm_frame0", "lgm_frame2"];
 
-/* ---------- object sprites (sprites/objects/) ----------
- * Classic Bolo object art, two-sided: "good" is the viewed player's team,
- * "evil" is everyone else — including neutral pillboxes, which the
- * original art does not distinguish from hostile ones. The "neutral"
- * pillbox set is that hostile art with its red swapped for a grey
- * (#a5a5a5), shown only when Cmd/Ctrl+N turns the neutral pill colour
- * on. Tank sprite indices match the log's tank directions: 0 = north,
- * clockwise. Pillbox indices are armour states 0 (dead) to 15 (fresh). On
- * by default; Cmd/Ctrl+G switches to vector markers. Only used at zooms
- * where the terrain also draws with sprites — vector markers read better
- * over the flat-colour map. */
-let use_obj_sprites = true;
-let use_lgm_sprites = true;
-let use_big_shots = false;
-let use_simple_terrain = false;
-let use_neutral_pill_colour = false;
+/* ---------- object sprites (sprites/objects/) ---------- */
+let use_obj_sprites = true;				// Sprites vs vector graphics (but the latter is always used at low zoom).
+let use_lgm_sprites = true;				// Sprites for men specifically.
+let use_big_shots = false;				// Optional big yellow shots.
+let use_simple_terrain = false;			// Simple coloured squares for terrain. But we always do this at low zoom.
+let use_neutral_pill_colour = true;		// Gray colour for neutral pillboxes.
+
 let coordinate_debug_enabled = false;
 let pillbox_ids_enabled = false;
 let pill_fire_flashes_enabled = false;
