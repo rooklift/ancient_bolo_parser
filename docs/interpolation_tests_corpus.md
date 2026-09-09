@@ -97,9 +97,13 @@ section -- moves them on again by the largest step since `efe9ab2`;
 tank box, see its section -- takes every record in the four matching
 columns at once, at the price of 12,862 rushed terminal links; and
 `0263483`, the same mechanism with the track keeping first refusal over
-the whole walk, is the **current head**, a shade under `b9db294` on
+the whole walk, was the head for a while, a shade under `b9db294` on
 every matching column with the rushed links back within 124 of
-baseline. (Earlier
+baseline; the line has since run on commit by commit (the table has
+every step) to `800f57c`, the pair after a stall read both ways
+with the delayed head slid for drawing, the **current head**,
+holding every matching record but `tank_hit`, which `40e92f6` holds
+by one. (Earlier
 revisions of this paragraph pinned the file at `ffb7fd3`/`e8f0415`, then at
 `6b4140d`/`c1d6625`; later sections were measured from live checkouts of the
 named commits, per their sections.)
@@ -165,6 +169,9 @@ Constant at all ten commits, and worth having once:
 | `ee2f432` | distance order scored (no engine change) | 0.997171 | 0.001175 | 0.835573 | 238,128 | 13,188§ | 1,224§ | **14** |
 | `c09e9e3` | a stall subtracted from the link (one reading) | **0.997469** | **0.001026** | **0.836053** | **238,407** | 13,248 | **737** | **12** |
 | `fb4bd12` | a stalled pair carries two readings | **0.997594** | **0.000989** | **0.836892** | **238,598** | 13,206 | 856 | 14 |
+| `40e92f6` | the pair after a stall carries two readings as well (two extremes) | 0.997702 | 0.000930 | 0.837348 | 238,808 | 13,211 | 864 | 14 |
+| `92043d9` | all four readings around a double stall | **0.997710** | **0.000925** | **0.837378** | 238,807 | 13,212 | **854** | 14 |
+| `800f57c` | a delayed chain head slides before smoothing (drawing only) | **0.997710** | **0.000925** | **0.837378** | 238,807 | 13,212 | **854** | 14 |
 
 The three right-hand columns are lower-is-better counts from the drawn
 audit and the vouched-link score, added so that a drawing-only commit
@@ -3348,6 +3355,96 @@ the baseline (0.000375 against 0.000300, some 600 links) is the one
 drawn-speed cost not yet named, presumably chains that continue past a
 stalled link. The backwards pops give back 119 of the 487 the single
 reading had recovered. The change stands as measured.
+
+## The pair after a stall carries two readings as well -- `40e92f6`, `92043d9`, `800f57c`
+
+The fixture doc's section of the same name has the change and the
+scene: a record delayed by a stall may state contents from before
+its stamp, and when the record after it arrives on time that pair's
+contents span the stamps plus the stall. So the pair after a stall
+is scored against the stamps and against the stamps plus the stall
+that delayed its first record, the mirror of the stalled pair's two
+readings, the longer reading bounding the flight and the birth
+windows; and a pair that both follows a stall and spans one, four
+readings, is scored against all four (`92043d9`) where the first cut
+(`40e92f6`) kept the two extremes; and a chain head stated by the
+delayed record slides forward before smoothing (`800f57c`), for the
+drawn cost the first two runs showed.
+
+Corpus, `800f57c-report.txt` and `800f57c-audit.txt` against
+`fb4bd12` (`738c79a-*`; 443 files, zero failures, the input hash
+differing only by path -- the `fb4bd12` engine re-measured from a
+worktree reproduced `738c79a-report.txt` line for line, and its
+drawn audit was re-run from the worktree under the current tool for
+the after-stall lines). The matching lines are the same at `92043d9`
+and `800f57c`, a drawing-only commit; the two-extremes cut
+(`40e92f6`) is in the middle column where it differs:
+
+* coverage: `shells_matched_forward` 9,793,741 -> 9,794,797 ->
+  **9,794,878** (+1,137 on `fb4bd12`, every one off
+  `shells_unmatched_forward`), `shells_unlinked` 9,708 -> 9,131 ->
+  **9,078**, `terminals_matched` 1,628,960 -> 1,629,847 ->
+  **1,629,905** (+945: `pillbox_damage` +385, `shell_falls` +249,
+  `tank_hit` +209, `explosion` +64, `base_damage` +38),
+  `rate_terminals_matched` 0.836892 -> **0.837378**,
+  `rate_shells_unlinked` 0.000989 -> **0.000925`. Every headline
+  record moves on.
+* the truth axes: `pairs_pill_order_inverted` 188 -> 196 -> **173**
+  (`blurred` 7 -> 6). The two-extremes cut's eight new inversions
+  were double stalls read at the extremes, a pill's leader six steps
+  on and its trailer fifteen over one pair; with the stamps and
+  their mirror on the table the count ends fifteen under the
+  baseline. `links_pill_contradicted` **14**, unchanged;
+  `rate_links_pill_vouched` 0.570032 -> 0.570081, `links_pill_unpinned`
+  2,746 -> 2,623.
+* the drawn audit (`fb4bd12` -> `92043d9` -> `800f57c`): `pop_outs`
+  23,434 -> **22,297** (-4.9%), `pop_ins` 22,846 -> 21,738,
+  `pops_paired_forward` 2,074 -> 1,982, `pops_paired_backwards` 856 ->
+  **854**, `hover_links` 4,824 -> 4,543 -> **4,566**
+  (`hover_links_stalled` 1,766 -> 1,620: a stalled link whose other
+  end used to be refused is now drawn to its true successor),
+  `rate_links_steady` 0.965741 -> 0.966205 -> **0.966639**,
+  `rate_links_steady_unstalled` 0.966621 -> 0.966973 -> **0.967409**,
+  `rate_pop_outs` 0.002387 -> 0.002271
+* the drawn cost, and its repair: `rush_links` 7,473 -> 7,808 ->
+  **7,365** (`rush_links_timed` 1,531 -> 1,866 -> **1,423**,
+  `link_speed:3.0+` 7,493 -> 7,829 -> 7,385). The audit's new
+  after-stall lines (`links_after_stall` 19,397 -> 19,448,
+  `rush_links_after_stall` 35 -> 87 -> **48**, `rate_rush_links_unstalled`
+  0.000913 -> 0.000948 -> **0.000898**) blamed only 52 of the 335 extra
+  rushes on the record after the stall; diffing the rushed links
+  between the two engines found the rest were smoothed chains, three
+  and four links at 3.1 to 3.6 px/tick, out of a head stated by the
+  delayed record: the smoother anchors on the head, whose stamp is
+  late by the whole stall, and spreads the catch-up over the chain.
+  `800f57c` slides such a head forward along its raw first link
+  before smoothing, as the tail slide does, and the rushes end 108
+  under the baseline with the steady rate up on both readings.
+* `shells_with_birth` +1,681, `shells_from_tank` +668,
+  `shells_from_pillbox` +248, `shells_unseen_pillbox_birth` 3,010 ->
+  1,981 and `shells_stream_birth` 977 -> 908 (heads that used to pop
+  in after a stall and be claimed from orbit membership now arrive
+  through their F4-backed chain), `terminals_unseen_pillbox_source`
+  -105, `terminals_unseen_tank_source` -170, `shells_visual_joins`
+  1,146 -> 1,115, `flow_components` 130,489 -> 128,735
+
+Reading. The delayed record's stale statement is the whole story.
+Before, the pair after a stall of the first kind refused every
+continuation, so the delayed record's statements ended their chains
+and started new ones; the stitching and residual passes then joined
+across them, mostly rightly (the coverage they leave behind is the
+thousand shells here), sometimes to the wrong end (the motivating
+scene's dilated join, the backwards pops), and each stale statement
+left as an orphan fragment was a rival for the joins. With the pair
+read both ways the pairwise matcher links straight through, the
+fragments never arise, and the joining passes have fewer pieces and
+fewer wrong choices: pop-outs, hovers, order inversions and the two
+builds' disagreements on the pairs (693 -> 625) all fall together.
+The rushed links went the other way at first, and were not the
+drawing keeping the stamps, as assumed when the after-stall counter
+was added, but the smoother spreading a late head's lie along its
+chain; with the head slid the drawn speed beats the baseline on
+every line. The change stands as measured.
 
 ## Findings
 

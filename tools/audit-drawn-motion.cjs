@@ -54,6 +54,15 @@
  * the _unstalled rates read the rest of the links without them. An
  * engine without the stall reading counts none.
  *
+ * links_after_stall is the mirror: the links whose SOURCE record was
+ * the one delayed by a stall. Where that record's contents predate
+ * its stamp (viewer/motion.js, stall_before) the link's contents span
+ * more than its stamps, so it draws fast by construction where the
+ * smoother does not re-time it -- at a chain's ends. Both counts read
+ * the stall off the snapshots' stall_excess, so they compare across
+ * engine states; rush_links_after_stall and rate_rush_links_unstalled
+ * (the rushes among the other links) say what that costs.
+ *
  * --engine=DIR measures the engine in another checkout (a git worktree
  * of an older commit, say) with this tool, and reports that checkout's
  * commit, so a historical baseline can be re-measured under a newer
@@ -159,6 +168,10 @@ function empty_metrics() {
 		links_stalled_steady: 0,
 		links_stalled_steady_by_cadence: 0,
 		hover_links_stalled: 0,
+		links_after_stall: 0,
+		links_after_stall_steady: 0,
+		rush_links_after_stall: 0,
+		hover_links_after_stall: 0,
 		rush_links: 0,
 		rush_links_timed: 0,
 		links_static: 0,
@@ -198,6 +211,12 @@ function analyze_file(file, engines, metrics, examples = null) {
 			let snapshot = snapshots[index];
 			let final = index === snapshots.length - 1;
 			let pop_outs = [];
+			/* the stall that delayed this record: how much longer its gap
+			 * from the sender's previous record read than the cadence */
+			let stall_before = index > 0 &&
+				snapshot.stall_excess !== undefined
+				? snapshot.stall_excess - (snapshots[index - 1].stall_excess || 0)
+				: 0;
 			for (let shell of snapshot.shells) {
 				metrics.shell_observations++;
 				let [source_x, source_y] = draw_source(shell);
@@ -246,6 +265,12 @@ function analyze_file(file, engines, metrics, examples = null) {
 							if (speed_bucket(cadence_speed) === "1.8-2.2") {
 								metrics.links_stalled_steady_by_cadence++;
 							}
+						}
+						if (stall_before > 0) {
+							metrics.links_after_stall++;
+							if (bucket === "1.8-2.2") metrics.links_after_stall_steady++;
+							if (speed > RUSH_SPEED) metrics.rush_links_after_stall++;
+							if (speed < HOVER_SPEED) metrics.hover_links_after_stall++;
 						}
 						if (speed > RUSH_SPEED) metrics.rush_links++;
 						if (timed) metrics.rush_links_timed++;
@@ -440,7 +465,8 @@ function print_report(metrics, input, engine_root) {
 		"links_instant", "seam_jumps", "pop_outs", "pop_ins",
 		"pops_paired_forward", "pops_paired_backwards", "links_stalled",
 		"links_stalled_steady", "links_stalled_steady_by_cadence",
-		"hover_links_stalled"]) {
+		"hover_links_stalled", "links_after_stall", "links_after_stall_steady",
+		"rush_links_after_stall", "hover_links_after_stall"]) {
 		lines.push(`${key}\t${metrics[key]}`);
 	}
 	lines.push(`seam_jump_max\t${metrics.seam_jump_max.toFixed(2)}`);
@@ -457,6 +483,9 @@ function print_report(metrics, input, engine_root) {
 		`${rate(metrics.hover_links - metrics.hover_links_stalled,
 			metrics.links - metrics.links_stalled)}`);
 	lines.push(`rate_rush_links\t${rate(metrics.rush_links, metrics.links)}`);
+	lines.push(`rate_rush_links_unstalled\t` +
+		`${rate(metrics.rush_links - metrics.rush_links_after_stall,
+			metrics.links - metrics.links_after_stall)}`);
 	lines.push(`rate_pop_outs\t` +
 		`${rate(metrics.pop_outs, metrics.shell_observations)}`);
 	lines.push(`rate_backwards_pops\t` +

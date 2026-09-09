@@ -1056,6 +1056,58 @@ if (!fs.existsSync(log1)) {
 			stitched_follower.pillbox_source_x],
 		[true, ["63:28"], ["63:31"], 2259, 2128]);
 
+	/* The pair after a stall of the ring carries two readings, the mirror
+	 * of the stalled pair's (motion.js, STALL_GAP_CYCLES). A sender on a
+	 * seven-tick cadence, one record stamped seventeen ticks after the
+	 * previous (a stall: ten ticks of excess) with contents ten ticks
+	 * stale -- 10 px on where the stamps say 34 -- and the next record
+	 * on time again, 34 px on where the stamps say 14. Over the stamps
+	 * alone that last hop is 20 px past the expected flight and refused,
+	 * as the control without the stall shows; read against the stamps
+	 * plus the stall that delayed its first record it is exact, so the
+	 * pairwise matcher links it (no stitch), and the drawing-only
+	 * smoother re-times the stale statement onto the chain's
+	 * constant-velocity line (160 + 86 * 38/45). */
+	let stall_scene = (times, xs) => BoloGame.build(times.map((time, i) =>
+		record(time, [shell_list(4, [[xs[i], 160]])]))).shell_positions[0];
+	let after_stall = stall_scene([100, 107, 114, 121, 138, 145],
+		[160, 174, 188, 202, 212, 246]);
+	let after_stall_control = stall_scene([100, 107, 114, 121, 128, 135],
+		[160, 174, 188, 202, 216, 250]);
+	check("the pair after a stall is read over the stamps plus the stall",
+		[after_stall.map(snapshot => snapshot.stall_before),
+			after_stall[4].shells[0].next_time,
+			!!after_stall[5].shells[0].matched_from_previous,
+			!!after_stall[5].shells[0].stitched,
+			Math.round(after_stall[4].shells[0].smooth_pixel_x),
+			after_stall_control[4].shells[0].next_time === undefined,
+			!!after_stall_control[5].shells[0].matched_from_previous],
+		[[0, 0, 0, 0, 10, 0], 145, true, false, 233, true, false]);
+	/* And a chain whose HEAD is the delayed record's statement: a shell
+	 * first seen at 138 with contents ten ticks stale (x 300, where the
+	 * on-time records put it at 320), then 334, 348, 362 on the seven-tick
+	 * cadence. The smoother anchors on the head, so left alone it would
+	 * spread the 20 px lie over the chain and draw every link fast; the
+	 * head slides forward by the excess before smoothing instead
+	 * (slide_delayed_chain_heads), and the chain draws at 2 px/tick from
+	 * the honest anchor. */
+	let delayed_head = BoloGame.build([
+		record(100, [shell_list(4, [[160, 160]])]),
+		record(107, [shell_list(4, [[174, 160]])]),
+		record(114, [shell_list(4, [[188, 160]])]),
+		record(121, [shell_list(4, [[202, 160]])]),
+		record(138, [shell_list(4, [[300, 200]])]),
+		record(145, [shell_list(4, [[334, 200]])]),
+		record(152, [shell_list(4, [[348, 200]])]),
+		record(159, [shell_list(4, [[362, 200]])]),
+	]).shell_positions[0];
+	check("a chain head on the delayed record slides forward before smoothing",
+		[delayed_head[4].shells[0].smooth_pixel_x,
+			delayed_head[4].shells[0].smooth_next_pixel_x,
+			delayed_head[5].shells[0].smooth_pixel_x,
+			delayed_head[6].shells[0].smooth_pixel_x],
+		[320, 334, 334, 348]);
+
 	/* The contradiction sweep, on a hand-built roster: one pill's four
 	 * pinned shells at steps 10, 12, 15, 16 restated two steps on, three
 	 * of them linked to their true successors and the fourth linked one
