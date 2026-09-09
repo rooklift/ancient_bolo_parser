@@ -1803,6 +1803,77 @@ listed already touching the stale box, refused. It fails on
 `800f57c`. Corpus: `ee502e9` in
 [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md).
 
+## What the residue is made of -- `31c97c0`
+
+With forward matching at 0.998 on the corpus the line was read as
+finished, and the remaining classes were censused rather than
+chased. Over a fifth of the corpus (89 of the 443 logs, every fifth
+file), the ends with no forward story break down as:
+
+| reason | ends |
+| --- | --- |
+| fate taken by another shell | 1,387 |
+| ray misses every terminal | 778 |
+| a valid fate still open | 522 |
+| fate claimed by an unseen shot | 448 |
+| window expired | 306 |
+| timing lead or lag | 160 |
+| orbit miss, no candidate, direction | 145 |
+
+3,746 in all, spread thin: the worst tenth of the files holds 19% of
+them and the worst single file is at 1% of its shells. The largest
+class is two shells wanting one logged event, which the log cannot
+settle. No scene type is left that one mechanism would sweep up.
+
+The terminal side (0.839 matched) is a different matter, and most
+of its gap is not a matching failure. Its largest unexplained
+classes on the sample are pill damage where the shell's story
+continued past the pill (2,353), explosions with no candidate shell
+(1,676), explosions the orbit misses (1,564) and pill damage with no
+candidate (1,157). The no-candidate explosions were looked at on
+the fixture, all 240 of them:
+
+| shape | cases |
+| --- | --- |
+| no shot, explosion on or beside the sender's own tank | 91 |
+| sender dead or parachuting, no shot | 86 |
+| no shot from the sender at all | 44 |
+| same-record shot, first of a point-blank burst | 11 |
+| same-record shot, no repeat | 8 |
+
+By code, 144 turn the square to river and 77 to crater. A crater on
+the sender's own square with no shot is the tank driving over a
+mine; the river ones cluster round a dead player's parachuting man.
+None of the 221 is a shell impact, but `game.js` makes a shell
+terminal of every `7T` except the mine plant and the superboom, so
+they sit in the unmatched-terminal denominator with nothing that
+could ever match them. Excluding them would lift the terminal rate
+without changing a link, and the test wants care, since a listed
+shell craters squares too. That is the first thing to do if the
+terminal line is ever taken up. (`040601.6` has nine: eight round a
+dead player, one same-record shot.)
+
+The 19 with a same-record shot are a real bug, small and known. A
+tank standing still and firing point-blank into the square beside
+it, once a record, has its shot and its impact reported in the same
+record every time, the shell dead before it could be listed
+(records 3936 to 3948 of `n20021018.2`, four shots into a shot
+building, code `7B`). The residual pass builds its ordinary edges
+first, a shot in one record to an impact in a later one, and its
+same-record edges only on what is left; the ordinary edges reach
+the box beside the tank from the previous record's shot, so every
+impact is credited to the shot one record earlier, the first impact
+of the burst goes unexplained and the last shot is left unspent.
+The right pairing is the same-record one four times over. It costs
+one unexplained explosion per burst, about 700 over the corpus by
+the sample, and nothing on screen: an unseen shot's claim draws no
+shell and the boom keeps its record time. The principled fix is to
+put the same-record edges into the flow beside the ordinary ones at
+a small extra cost and let the flow prefer the assignment that
+explains more; it touches the pass whose design keeps phase two
+after phase one so nothing explained can degrade, so it wants a
+corpus run of its own, for a metric nobody is watching. Left as is.
+
 ## Where the line stands -- `0263483`
 
 The same three headline rates at the points a reader is likely to want,
