@@ -3503,8 +3503,12 @@ statement, with an `FC` in the right direction on a box its ray
 missed by a tank's width. The class breakdown says so -- every gain
 is `tank_hit`, and the other terminals give up only the thirty-odd
 shells a wrong fate had been assigned in the hit's place. The cost
-is 25 more timed-rushed terminal links over 1.6 million, a shell
-whose stale box lies a step nearer than its stamps suggest, and 21
+is 25 more timed-rushed terminal links over 1.6 million -- the
+ordinary capped arrival, a hit record stamped closer behind the
+shell's last statement than the box's distance takes at 2 px/tick,
+so the drawn link is compressed into the stamps' gap; about a fifth
+of the stale-box hits on a corpus sample are capped at all, the
+same shape as any other terminal link -- and 21
 more pop-ins, the trailer of a two-shell line taking over the
 continuation its leader had before the leader took its hit. The
 first cut, offering the boxes to every hit including the sender's
