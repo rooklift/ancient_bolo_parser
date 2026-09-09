@@ -100,10 +100,9 @@ columns at once, at the price of 12,862 rushed terminal links; and
 the whole walk, was the head for a while, a shade under `b9db294` on
 every matching column with the rushed links back within 124 of
 baseline; the line has since run on commit by commit (the table has
-every step) to `800f57c`, the pair after a stall read both ways
-with the delayed head slid for drawing, the **current head**,
-holding every matching record but `tank_hit`, which `40e92f6` holds
-by one. (Earlier
+every step) to `ee502e9`, a tank hit tried against the statements
+the sender held, the **current head**, holding every matching
+record. (Earlier
 revisions of this paragraph pinned the file at `ffb7fd3`/`e8f0415`, then at
 `6b4140d`/`c1d6625`; later sections were measured from live checkouts of the
 named commits, per their sections.)
@@ -172,6 +171,7 @@ Constant at all ten commits, and worth having once:
 | `40e92f6` | the pair after a stall carries two readings as well (two extremes) | 0.997702 | 0.000930 | 0.837348 | 238,808 | 13,211 | 864 | 14 |
 | `92043d9` | all four readings around a double stall | **0.997710** | **0.000925** | **0.837378** | 238,807 | 13,212 | **854** | 14 |
 | `800f57c` | a delayed chain head slides before smoothing (drawing only) | **0.997710** | **0.000925** | **0.837378** | 238,807 | 13,212 | **854** | 14 |
+| `ee502e9` | a tank hit tried against the statements the sender held | **0.998058** | **0.000810** | **0.839149** | **242,287** | 13,237 | **832** | 14 |
 
 The three right-hand columns are lower-is-better counts from the drawn
 audit and the vouched-link score, added so that a drawing-only commit
@@ -3445,6 +3445,72 @@ drawing keeping the stamps, as assumed when the after-stall counter
 was added, but the smoother spreading a late head's lie along its
 chain; with the head slid the drawn speed beats the baseline on
 every line. The change stands as measured.
+
+## A tank hit is tried against the statements the sender held -- `ee502e9`
+
+The fixture doc's section of the same name has the change and the
+scene: the `FC` hit is sent by the machine simulating the shell
+([E:hit-reporter]) and found against its own picture of the victim,
+the statement that had reached it, which the ring can leave a round
+or two behind the box this log states. A tank-hit terminal on
+another player's tank now carries the victim's previous two
+statements; the packet box keeps first refusal, a stale-box match
+carries a penalty above the match margin and must lie at least one
+shell update ahead of the statement, and the effect follows the box
+the shell entered.
+
+Corpus, `ee502e9-report.txt` and `ee502e9-audit.txt` against
+`800f57c-*` (443 files, zero failures, the same input hash):
+
+* coverage: `shells_matched_forward` 9,794,878 -> **9,798,295**
+  (+3,417, every one off `shells_unmatched_forward`, 22,483 ->
+  19,066), `shells_unlinked` 9,078 -> **7,953** (-12.4%),
+  `terminals_matched` 1,629,905 -> **1,633,352**: `tank_hit` 238,807
+  -> **242,287** (+3,480), the other classes -33 between them
+  (`explosion` -21, `base_damage` -5, `shell_falls` -5,
+  `pillbox_damage` -2) where a shell now takes its tank hit and
+  leaves the terminal another shell had been given; `links_shell`
+  8,164,973 -> 8,164,943 (-30), `terminals_unseen_tank_source`
+  77,261 -> 77,126, `flow_components` 128,735 -> 127,895.
+  `rate_shells_matched_forward` 0.997710 -> **0.998058**,
+  `rate_shells_unlinked` 0.000925 -> **0.000810**,
+  `rate_terminals_matched` 0.837378 -> **0.839149**. Every headline
+  record moves on, `tank_hit` by more than the stale-box walk's
+  +1,552.
+* the truth axes: `pairs_pill_order_inverted` **173**, `blurred` 6,
+  `links_pill_contradicted` **14**, `links_pill_unpinned` 2,597, all
+  unchanged; `links_pill_vouched` 2,918,600 -> 2,918,768,
+  `rate_links_pill_vouched` 0.570086 -> 0.570119.
+* the drawn audit: `pop_outs` 22,297 -> **18,880** (-15.3%,
+  `rate_pop_outs` 0.002271 -> 0.001923), `pops_paired_backwards` 854
+  -> **832**, `pops_paired_forward` 1,982 -> 1,970, `hover_links`
+  4,566 -> **4,552**, `rush_links` 7,365 -> **7,327** (`rush_links_timed`
+  1,423 -> 1,385), `link_speed:2.2-2.5` 78,988 -> 78,036 and
+  `2.5-3.0` 9,905 -> 9,534 with `1.8-2.2` +1,259: `rate_links_steady`
+  0.966639 -> **0.966797**, `rate_links_steady_unstalled` 0.967409
+  -> **0.967567**. The stall lines are within a few of the baseline
+  either way.
+* the wrong way: `terminal_links_rushed` 69,692 -> 69,708 (+16;
+  `terminal_links_rushed_timed` 13,212 -> 13,237, +25;
+  `terminal_links_static` 55,617 -> 55,609; `instant` 863 -> 862),
+  `pop_ins` 21,738 -> 21,759 (+21), against 3,480 more hits and
+  3,417 fewer pop-outs.
+
+Reading. A stale box is the sender's honest collision shape, and
+the shells it fates were the pop-out class almost to a one: a shell
+that vanished from its sender's lists a round after its last
+statement, with an `FC` in the right direction on a box its ray
+missed by a tank's width. The class breakdown says so -- every gain
+is `tank_hit`, and the other terminals give up only the thirty-odd
+shells a wrong fate had been assigned in the hit's place. The cost
+is 25 more timed-rushed terminal links over 1.6 million, a shell
+whose stale box lies a step nearer than its stamps suggest, and 21
+more pop-ins, the trailer of a two-shell line taking over the
+continuation its leader had before the leader took its hit. The
+first cut, offering the boxes to every hit including the sender's
+own and letting a stale box start at the statement, was measured on
+the fixture only (its section in the fixture doc); the corpus was
+run on the restricted form alone. The change stands as measured.
 
 ## Findings
 
