@@ -339,10 +339,9 @@ body {
 	background: #161b26;
 	border: 1px solid #33405c;
 	border-radius: 6px;
-	padding: 15px 17px 13px;
+	padding: 15px 17px 5px;		/* the last group's own margin makes up the rest */
 	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
 }
-#shortcutBox h1 { font-size: 15px; margin-bottom: 11px; }
 #shortcutGroups { column-count: 2; column-gap: 22px; }
 .shortcutGroup { break-inside: avoid; margin-bottom: 10px; }
 .shortcutGroup h2 {
@@ -377,12 +376,6 @@ body {
 	color: #cfd6e4;
 	white-space: nowrap;
 }
-#shortcutFoot {
-	margin-top: 9px;
-	padding-top: 8px;
-	border-top: 1px solid #262d3d;
-}
-
 /* A narrow browser window can't hold two columns of key caps. */
 @media (max-width: 620px) {
 	#shortcutGroups { column-count: 1; }

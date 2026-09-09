@@ -1433,7 +1433,7 @@ const MAC = /Mac/.test((navigator.userAgentData && navigator.userAgentData.platf
 /* Cmd and Ctrl are interchangeable to the handler; print the one the
  * keyboard in front of the reader actually has. */
 function cmd_key(key) {
-	return MAC ? "\u2318" + key : "Ctrl+" + key;
+	return MAC ? "\u2318" + key : "Ctrl " + key;
 }
 
 /* Each row's keys become key caps, except "/" and "..." which separate
@@ -1446,7 +1446,7 @@ const SHORTCUT_GROUPS = [
 		{ what: "Speed 0.5\u00d7 to 64\u00d7", keys: ["F1", "\u2026", "F8"] },
 		{ what: "Previous / next change", keys: ["\u2191", "/", "\u2193"] },
 		{ what: "Back / forward 10s", keys: ["\u2190", "/", "\u2192"] },
-		{ what: "Back / forward 60s", keys: ["Shift+\u2190", "/", "Shift+\u2192"] },
+		{ what: "Back / forward 60s", keys: ["Shift \u2190", "/", "Shift \u2192"] },
 		{ what: "Beginning / end", keys: ["Home", "/", "End"] },
 	] },
 	{ name: "View", rows: [
