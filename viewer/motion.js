@@ -5031,6 +5031,47 @@ function slide_compressed_chain_tails(snapshots) {
 	}
 }
 
+/* The head's disease in its stall form, treated before smoothing as
+ * the tail's is. A chain head stated by a record a stall delayed
+ * (`stall_before`) can be stale by the whole stall, and its first
+ * link -- made pairwise under the pair's longer reading -- then runs
+ * long by that much. Left to the smoother the lie sits inside the
+ * along-track bound and is spread over the whole chain, every link
+ * drawn at three or four pixels a tick: on the corpus, reading the
+ * pair after a stall both ways put 335 more links over 3 px/tick, and
+ * nearly all of them were smoothed chains out of a delayed head. So
+ * such a head slides forward along its raw first link by the excess
+ * before smoothing, as the tail does, the smoother anchors on the
+ * honest position, and the post-smoothing head slide finds nothing
+ * left. Only heads on a delayed record: everywhere else the
+ * post-smoothing slide keeps its measured behaviour. Drawing only. */
+function slide_delayed_chain_heads(snapshots) {
+	for (let snapshot of snapshots) {
+		if (!(snapshot.stall_before > 0)) continue;
+		for (let shell of snapshot.shells) {
+			if (shell.matched_from_previous || !shell.next_shell ||
+				shell.next_terminal) continue;
+			let window = shell.next_time - snapshot.time;
+			if (!(window >= 0)) continue;
+			let from_x = shell.pillbox_orbit_pixel_x ??
+				shell.tank_exact_pixel_x ?? shell.pixel_x;
+			let from_y = shell.pillbox_orbit_pixel_y ??
+				shell.tank_exact_pixel_y ?? shell.pixel_y;
+			let next = shell.next_shell;
+			let to_x = next.pillbox_orbit_pixel_x ?? next.tank_exact_pixel_x ??
+				next.pixel_x;
+			let to_y = next.pillbox_orbit_pixel_y ?? next.tank_exact_pixel_y ??
+				next.pixel_y;
+			let distance = Math.hypot(to_x - from_x, to_y - from_y);
+			let excess = distance - window * SHELL_SPEED_PIXELS_PER_TICK;
+			if (excess <= CHAIN_HEAD_SLIDE_THRESHOLD_PIXELS) continue;
+			let amount = Math.min(excess / distance, 1);
+			shell.smooth_pixel_x = from_x + (to_x - from_x) * amount;
+			shell.smooth_pixel_y = from_y + (to_y - from_y) * amount;
+		}
+	}
+}
+
 /* Shells fly at exactly one speed, so any unevenness along a chain is
  * timestamp jitter or pixel quantisation, not motion. For drawing only,
  * re-time each chain of three or more restatements to constant velocity
@@ -5039,10 +5080,10 @@ function slide_compressed_chain_tails(snapshots) {
  * successor's smoothed position. Packet-exact state, matcher artifacts
  * and terminal endpoints are untouched; a chain whose interior strays
  * further from the uniform reading than record lag explains is left
- * as observed. The final anchor prefers a slid tail's drawn position:
- * the slide has already established the stamped time's honest place on
- * the ray, and re-timing onto the stale packet coordinate would undo
- * it. */
+ * as observed. Either anchor prefers a slid position, a tail's or a
+ * delayed head's: the slide has already established the stamped
+ * time's honest place on the ray, and re-timing onto the stale packet
+ * coordinate would undo it. */
 function smooth_shell_chains(snapshots) {
 	for (let snapshot of snapshots) {
 		for (let shell of snapshot.shells) {
@@ -5057,9 +5098,9 @@ function smooth_shell_chains(snapshots) {
 			if (entries.length < 3) continue;
 			let first = entries[0].shell;
 			let last = entries[entries.length - 1].shell;
-			let anchor_x = first.pillbox_orbit_pixel_x ??
+			let anchor_x = first.smooth_pixel_x ?? first.pillbox_orbit_pixel_x ??
 				first.tank_exact_pixel_x ?? first.pixel_x;
-			let anchor_y = first.pillbox_orbit_pixel_y ??
+			let anchor_y = first.smooth_pixel_y ?? first.pillbox_orbit_pixel_y ??
 				first.tank_exact_pixel_y ?? first.pixel_y;
 			let final_x = last.smooth_pixel_x ?? last.pillbox_orbit_pixel_x ??
 				last.tank_exact_pixel_x ?? last.pixel_x;
@@ -5447,6 +5488,7 @@ function* build_shell_positions_steps(records, terminals, pillbox_sources_by_rec
 				}
 			},
 			() => slide_compressed_chain_tails(client_snapshots),
+			() => slide_delayed_chain_heads(client_snapshots),
 			() => smooth_shell_chains(client_snapshots),
 			() => reconcile_link_targets(client_snapshots),
 			() => slide_compressed_chain_heads(client_snapshots),

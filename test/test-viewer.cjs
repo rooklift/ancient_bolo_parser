@@ -1083,6 +1083,30 @@ if (!fs.existsSync(log1)) {
 			after_stall_control[4].shells[0].next_time === undefined,
 			!!after_stall_control[5].shells[0].matched_from_previous],
 		[[0, 0, 0, 0, 10, 0], 145, true, false, 233, true, false]);
+	/* And a chain whose HEAD is the delayed record's statement: a shell
+	 * first seen at 138 with contents ten ticks stale (x 300, where the
+	 * on-time records put it at 320), then 334, 348, 362 on the seven-tick
+	 * cadence. The smoother anchors on the head, so left alone it would
+	 * spread the 20 px lie over the chain and draw every link fast; the
+	 * head slides forward by the excess before smoothing instead
+	 * (slide_delayed_chain_heads), and the chain draws at 2 px/tick from
+	 * the honest anchor. */
+	let delayed_head = BoloGame.build([
+		record(100, [shell_list(4, [[160, 160]])]),
+		record(107, [shell_list(4, [[174, 160]])]),
+		record(114, [shell_list(4, [[188, 160]])]),
+		record(121, [shell_list(4, [[202, 160]])]),
+		record(138, [shell_list(4, [[300, 200]])]),
+		record(145, [shell_list(4, [[334, 200]])]),
+		record(152, [shell_list(4, [[348, 200]])]),
+		record(159, [shell_list(4, [[362, 200]])]),
+	]).shell_positions[0];
+	check("a chain head on the delayed record slides forward before smoothing",
+		[delayed_head[4].shells[0].smooth_pixel_x,
+			delayed_head[4].shells[0].smooth_next_pixel_x,
+			delayed_head[5].shells[0].smooth_pixel_x,
+			delayed_head[6].shells[0].smooth_pixel_x],
+		[320, 334, 334, 348]);
 
 	/* The contradiction sweep, on a hand-built roster: one pill's four
 	 * pinned shells at steps 10, 12, 15, 16 restated two steps on, three
