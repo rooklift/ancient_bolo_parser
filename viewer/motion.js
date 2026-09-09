@@ -37,6 +37,22 @@ const SHELL_BOX_GRAZE_TOLERANCE_PIXELS = 1;
  * position quantisation and uncertainty in the tank's between-packet path;
  * this is not a claim about Bolo's original collision shape. */
 const SHELL_TANK_HIT_TOLERANCE_PIXELS = 2;
+/* Stale tank-hit boxes. A tank-hit packet is sent by the machine
+ * simulating the shell (FORMAT.md, [E:hit-reporter]), and the box it is
+ * logged against is this log's latest statement of the victim -- but the
+ * collision was found against the SENDER's picture of the victim, the
+ * statement that had reached it, which the ring can leave a round or two
+ * behind the recorder's (or, when the victim's next statement arrives
+ * in the same bundle as the hit, one ahead of what the sender used).
+ * So a tank-hit terminal also carries the victim's previous statements
+ * (`earlier_boxes`, newest first), and a shell that misses the packet
+ * box is tried against them in turn. The packet box keeps first refusal
+ * over the whole set, and a stale-box match carries this penalty, more
+ * than the match margin, so it can never outbid an on-schedule
+ * continuation or a fresher box: it exists so a shell that vanished
+ * from its sender's lists at the hit gets its fate instead of popping
+ * out, and the effect follows the box the shell entered. */
+const STALE_TANK_BOX_PENALTY_PIXELS = 8;
 const SHELL_DIRECTION_TOLERANCE = Math.PI / 8;
 const SHELL_MATCH_MARGIN = 3;
 const SHELL_EQUIVALENT_ENDPOINT_PIXELS = 2;
@@ -1120,6 +1136,15 @@ function pillbox_shell_terminal_match(previous, terminal, duration, start_time,
 		} else {
 			match = walk(first_step, packet_box, false);
 		}
+		/* then the victim's earlier statements, the boxes the sender may
+		 * have held (STALE_TANK_BOX_PENALTY_PIXELS); never from step zero,
+		 * for the same reason as the packet-box fallback */
+		for (let box of terminal.earlier_boxes || []) {
+			if (match) break;
+			match = walk(previous_state.step + 1,
+				() => [box.min_x, box.min_y], true);
+			if (match) match.stale_box = true;
+		}
 		if (match) matches.push(match);
 	}
 	let long_distance = long_duration * SHELL_SPEED_PIXELS_PER_TICK;
@@ -1138,6 +1163,7 @@ function pillbox_shell_terminal_match(previous, terminal, duration, start_time,
 		if (match.distance > long_distance + SHELL_MATCH_ERROR_PIXELS) {
 			match.cost += DILATED_JOIN_PENALTY_PIXELS;
 		}
+		if (match.stale_box) match.cost += STALE_TANK_BOX_PENALTY_PIXELS;
 	}
 	matches = matches.filter(match =>
 		match.distance <= long_distance + SHELL_MATCH_ERROR_PIXELS +
@@ -1343,52 +1369,79 @@ function shell_terminal_match(previous, terminal, duration, start_time,
 	let graze_tolerance = previous.tank_exact_pixel_x !== undefined
 		? SHELL_TANK_HIT_TOLERANCE_PIXELS : SHELL_BOX_GRAZE_TOLERANCE_PIXELS;
 	let matches = [];
-	for (let variant of ordinary_shell_position_variants(previous)) {
-		let endpoint, angle_error = 0;
-		if (terminal.type === "box") {
-			/* A tile/object event supplies timing and bounds, not an aim point.
-			 * Without an already learned fine heading, centring the 4-bit sector
-			 * would merely disguise a guess as smooth motion. */
-			endpoint = shell_ray_box_endpoint(variant, terminal, graze_tolerance);
-			if (!endpoint) continue;
-		} else {
-			let delta_x = terminal.pixel_x - variant.pixel_x;
-			let delta_y = terminal.pixel_y - variant.pixel_y;
-			let distance = Math.hypot(delta_x, delta_y);
-			if (distance === 0) continue;
-			let heading_x = variant.heading_x;
-			let heading_y = variant.heading_y;
-			if (heading_x === undefined) {
-				let angle = shell_sector(previous) * Math.PI / 8;
-				heading_x = Math.sin(angle);
-				heading_y = -Math.cos(angle);
+	/* A box terminal is tried as the packet box first and then, only when
+	 * no variant reaches that, as each of the victim's earlier statements
+	 * (see STALE_TANK_BOX_PENALTY_PIXELS); a point terminal has one
+	 * geometry. */
+	let boxes = terminal.type === "box"
+		? [terminal, ...(terminal.earlier_boxes || [])] : [terminal];
+	for (let box of boxes) {
+		let stale_box = box !== terminal;
+		for (let variant of ordinary_shell_position_variants(previous)) {
+			let endpoint, angle_error = 0;
+			if (terminal.type === "box") {
+				/* A tile/object event supplies timing and bounds, not an aim point.
+				 * Without an already learned fine heading, centring the 4-bit sector
+				 * would merely disguise a guess as smooth motion. */
+				endpoint = shell_ray_box_endpoint(variant, box, graze_tolerance);
+				if (!endpoint) continue;
+				/* A stale box must lie AHEAD of the statement by at least
+				 * one shell update: had the sender's picture of the tank
+				 * already contained or touched the shell where it was
+				 * listed, the hit would have been found then, before this
+				 * statement went out. The packet box keeps the zero-length
+				 * entry (a restatement can catch a shell one frame inside
+				 * the tile whose collision follows). */
+				if (stale_box && (endpoint.distance <
+					TICKS_PER_SHELL_UPDATE * SHELL_SPEED_PIXELS_PER_TICK ||
+					(variant.pixel_x + 8 > box.min_x &&
+						variant.pixel_x + 8 < box.max_x &&
+						variant.pixel_y + 8 > box.min_y &&
+						variant.pixel_y + 8 < box.max_y))) continue;
+			} else {
+				let delta_x = terminal.pixel_x - variant.pixel_x;
+				let delta_y = terminal.pixel_y - variant.pixel_y;
+				let distance = Math.hypot(delta_x, delta_y);
+				if (distance === 0) continue;
+				let heading_x = variant.heading_x;
+				let heading_y = variant.heading_y;
+				if (heading_x === undefined) {
+					let angle = shell_sector(previous) * Math.PI / 8;
+					heading_x = Math.sin(angle);
+					heading_y = -Math.cos(angle);
+				}
+				let forward = delta_x * heading_x + delta_y * heading_y;
+				let lateral = Math.abs(delta_x * heading_y - delta_y * heading_x);
+				if (forward <= 0) continue;
+				angle_error = Math.atan2(lateral, forward);
+				if (angle_error > SHELL_DIRECTION_TOLERANCE) continue;
+				endpoint = {
+					pixel_x: terminal.pixel_x, pixel_y: terminal.pixel_y, distance,
+				};
 			}
-			let forward = delta_x * heading_x + delta_y * heading_y;
-			let lateral = Math.abs(delta_x * heading_y - delta_y * heading_x);
-			if (forward <= 0) continue;
-			angle_error = Math.atan2(lateral, forward);
-			if (angle_error > SHELL_DIRECTION_TOLERANCE) continue;
-			endpoint = {
-				pixel_x: terminal.pixel_x, pixel_y: terminal.pixel_y, distance,
-			};
+			if (endpoint.distance > long_distance +
+				SHELL_MATCH_ERROR_PIXELS + lead_pixels) continue;
+			let lead_penalty = endpoint.distance > long_distance +
+				SHELL_MATCH_ERROR_PIXELS ? DILATED_JOIN_PENALTY_PIXELS : 0;
+			let expected_distance = nearest_expected_distance(endpoint.distance,
+				duration, long_duration, stamped_duration);
+			matches.push({
+				cost: lead_penalty +
+					(stale_box ? STALE_TANK_BOX_PENALTY_PIXELS : 0) +
+					Math.abs(endpoint.distance - expected_distance) +
+					angle_error * expected_distance +
+					(endpoint.graze_distance || 0),
+				pixel_x: endpoint.pixel_x,
+				pixel_y: endpoint.pixel_y,
+				distance: endpoint.distance,
+				graze_distance: endpoint.graze_distance || 0,
+				bounded_position: variant.bounded_position,
+				/* the effect follows the box the shell entered */
+				hitbox_pixel_x: stale_box ? box.min_x : undefined,
+				hitbox_pixel_y: stale_box ? box.min_y : undefined,
+			});
 		}
-		if (endpoint.distance > long_distance +
-			SHELL_MATCH_ERROR_PIXELS + lead_pixels) continue;
-		let lead_penalty = endpoint.distance > long_distance +
-			SHELL_MATCH_ERROR_PIXELS ? DILATED_JOIN_PENALTY_PIXELS : 0;
-		let expected_distance = nearest_expected_distance(endpoint.distance,
-			duration, long_duration, stamped_duration);
-		matches.push({
-			cost: lead_penalty +
-				Math.abs(endpoint.distance - expected_distance) +
-				angle_error * expected_distance +
-				(endpoint.graze_distance || 0),
-			pixel_x: endpoint.pixel_x,
-			pixel_y: endpoint.pixel_y,
-			distance: endpoint.distance,
-			graze_distance: endpoint.graze_distance || 0,
-			bounded_position: variant.bounded_position,
-		});
+		if (matches.length) break;
 	}
 	if (!matches.length) return null;
 	matches.sort((first, second) => first.cost - second.cost);
