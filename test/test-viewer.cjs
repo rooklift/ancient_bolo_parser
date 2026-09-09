@@ -1056,6 +1056,34 @@ if (!fs.existsSync(log1)) {
 			stitched_follower.pillbox_source_x],
 		[true, ["63:28"], ["63:31"], 2259, 2128]);
 
+	/* The pair after a stall of the ring carries two readings, the mirror
+	 * of the stalled pair's (motion.js, STALL_GAP_CYCLES). A sender on a
+	 * seven-tick cadence, one record stamped seventeen ticks after the
+	 * previous (a stall: ten ticks of excess) with contents ten ticks
+	 * stale -- 10 px on where the stamps say 34 -- and the next record
+	 * on time again, 34 px on where the stamps say 14. Over the stamps
+	 * alone that last hop is 20 px past the expected flight and refused,
+	 * as the control without the stall shows; read against the stamps
+	 * plus the stall that delayed its first record it is exact, so the
+	 * pairwise matcher links it (no stitch), and the drawing-only
+	 * smoother re-times the stale statement onto the chain's
+	 * constant-velocity line (160 + 86 * 38/45). */
+	let stall_scene = (times, xs) => BoloGame.build(times.map((time, i) =>
+		record(time, [shell_list(4, [[xs[i], 160]])]))).shell_positions[0];
+	let after_stall = stall_scene([100, 107, 114, 121, 138, 145],
+		[160, 174, 188, 202, 212, 246]);
+	let after_stall_control = stall_scene([100, 107, 114, 121, 128, 135],
+		[160, 174, 188, 202, 216, 250]);
+	check("the pair after a stall is read over the stamps plus the stall",
+		[after_stall.map(snapshot => snapshot.stall_before),
+			after_stall[4].shells[0].next_time,
+			!!after_stall[5].shells[0].matched_from_previous,
+			!!after_stall[5].shells[0].stitched,
+			Math.round(after_stall[4].shells[0].smooth_pixel_x),
+			after_stall_control[4].shells[0].next_time === undefined,
+			!!after_stall_control[5].shells[0].matched_from_previous],
+		[[0, 0, 0, 0, 10, 0], 145, true, false, 233, true, false]);
+
 	/* The contradiction sweep, on a hand-built roster: one pill's four
 	 * pinned shells at steps 10, 12, 15, 16 restated two steps on, three
 	 * of them linked to their true successors and the fourth linked one
