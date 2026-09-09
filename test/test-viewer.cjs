@@ -220,10 +220,10 @@ if (!fs.existsSync(log1)) {
 			described, described === unexplained, reasons_sound,
 			classes.get("explosion:no_candidate:-"),
 			classes.get("pillbox_damage:end_continued:T"),
-		], [1007, true, true, 240, 88]);
+		], [896, true, true, 240, 88]);
 		check("fixture same-record unseen shots claimed without cost", [
 			matched, unseen.pill, unseen.tank,
-		], [20734, 1217, 1117]);
+		], [20846, 1217, 1116]);
 
 		/* The end-side mirror: every chain end with no forward story gets
 		 * a class; the census must equal the unmatched-forward count less
@@ -252,7 +252,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture end-side census reconciles", [
 			ends_described, ends_described === unfated, end_reasons_sound,
 			fate_open,
-		], [256, true, true, 22]);
+		], [145, true, true, 22]);
 	}
 
 	/* The truth axis: every pill link scored against the statement-roster
@@ -277,7 +277,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture pill links scored against the roster vote", [
 			score.links, score.vouched, score.contradicted, score.unvouched,
 			score.unpinned, score.restated, [...score.clients],
-		], [52763, 20088, 0, 12873, 5, 0, []]);
+		], [52762, 20091, 0, 12870, 5, 0, []]);
 		/* The elections themselves: most pills cannot vote at all (under
 		 * three pinned sources), and of those that can, a vote inside the
 		 * margin stands down. The scene that motivated abstention is
@@ -2371,6 +2371,56 @@ if (!fs.existsSync(log1)) {
 		[stale_box_effect.x * 16 + stale_box_effect.px,
 			stale_box_effect.y * 16 + stale_box_effect.py],
 		[1968, 2320]);
+
+	/* Stale tank-hit boxes (motion.js, STALE_TANK_BOX_PENALTY_PIXELS): a
+	 * hit on ANOTHER player's tank was found by the sender against the
+	 * victim's statement that had reached it, which can be a round or two
+	 * behind the one this log holds. Player 0's shell flies south along
+	 * x 168; tank 1 states (160,300), whose box the ray crosses, and then
+	 * (186,300), which it misses by ten pixels; the hit arrives against
+	 * the second. The shell takes the earlier box and the effect moves to
+	 * it. With the second statement at (164,300) both boxes contain the
+	 * ray and the packet box keeps first refusal, so the effect stays
+	 * put. The same hit reported by the victim on itself carries no
+	 * earlier boxes -- a machine's picture of its own tank is exact --
+	 * and a shell already touching the stale box where it was listed is
+	 * refused: the sender would have found that hit before listing it. */
+	let victim = (time, x, player = 1) => record(time, [{
+		type: "tank_position", x: Math.floor(x / 16), y: 18,
+		pixelX: x % 16, pixelY: 12, direction: 4,
+		inBoat: false, hidden: false, dying: false, speed: 64, motion: 0,
+	}], player);
+	let stale_hit_scene = (second_x, hit_player = 0, shell_ys = [240, 264]) =>
+		BoloGame.build([
+			victim(100, 160),
+			record(100, [shell_list(8, [[160, shell_ys[0]]])]),
+			victim(112, second_x),
+			record(112, [shell_list(8, [[160, shell_ys[1]]])]),
+			record(124, [{ type: "tank_hit", direction: 8, tank: 1 }],
+				hit_player),
+		]);
+	let stale_hit = stale_hit_scene(186);
+	let stale_hit_shell = stale_hit.shell_positions[0][1].shells[0];
+	let stale_hit_effect = stale_hit.effects.find(effect =>
+		effect.type === "tank_hit");
+	let fresh_hit = stale_hit_scene(164);
+	let fresh_hit_effect = fresh_hit.effects.find(effect =>
+		effect.type === "tank_hit");
+	let self_hit = stale_hit_scene(186, 1);
+	let touching_hit = stale_hit_scene(186, 0, [268, 292]);
+	check("a hit on another player's tank matches the statement the sender held",
+		[stale_hit_shell.next_terminal_event_type,
+			stale_hit_shell.next_pixel_x, stale_hit_shell.next_pixel_y,
+			stale_hit_shell.next_time,
+			stale_hit_effect.x * 16 + stale_hit_effect.px,
+			stale_hit_effect.y * 16 + stale_hit_effect.py,
+			fresh_hit.shell_positions[0][1].shells[0].next_terminal_event_type,
+			fresh_hit_effect.x * 16 + fresh_hit_effect.px,
+			self_hit.shell_positions[0][1].shells[0].next_terminal_event_type,
+			touching_hit.shell_positions[0][1].shells[0]
+				.next_terminal_event_type],
+		["tank_hit", 160, 292, 124, 160, 300, "tank_hit", 164,
+			undefined, undefined]);
 
 	let pill_orbit_overrules_ray = BoloGame.build([
 		record(80, [{ type: "pillbox_list", items: [{

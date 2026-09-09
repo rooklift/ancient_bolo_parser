@@ -96,6 +96,18 @@ function* dump_path() {
 	}
 }
 
+/* The statements a tank made before its current one, newest first, as
+ * far back as EARLIER_TANK_STATEMENTS. A death ends the run: the wreck's
+ * flames and the respawn are not places a shell could have hit. */
+const EARLIER_TANK_STATEMENTS = 2;
+function earlier_tank_statements(previous) {
+	if (!previous || previous.dying || previous.dead) return [];
+	return [{
+		x: previous.x, y: previous.y, px: previous.px, py: previous.py,
+		time: previous.position_time,
+	}, ...(previous.earlier || [])].slice(0, EARLIER_TANK_STATEMENTS);
+}
+
 /* Optionally seeded with extract_initial_map()'s result so the world has
  * full terrain from tick zero (the log's own map transfer trickles in over
  * the first seconds). */
@@ -434,6 +446,7 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 					/* positions with the dying bit are death-animation flames,
 					 * not a live tank; only a normal position is a respawn */
 					dead: sub.dying ? (s.tanks[pl] ? s.tanks[pl].dead : false) : false,
+					earlier: sub.dying ? [] : earlier_tank_statements(s.tanks[pl]),
 				};
 				s.present[pl] = true;
 				if (sub.dying) {
@@ -704,9 +717,29 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 						};
 						effects.push(effect);
 					}
+					/* The box is this log's picture of the victim. The hit
+					 * was found by the machine simulating the shell against
+					 * ITS picture, the victim's statement that had reached
+					 * it, which the ring can leave a round or two behind
+					 * this one; the victim's previous statements go along
+					 * as the boxes the sender may have hit instead
+					 * (BoloMotion, "stale tank-hit boxes"). */
+					let details = { event_type: "tank_hit", effect, target_tank: sub.tank };
+					let pixel_x = t.x * 16 + t.px;
+					let pixel_y = t.y * 16 + t.py;
+					let earlier_boxes = [];
+					/* a machine's picture of its own tank is exact: only a
+					 * hit reported on another player's tank can be stale */
+					for (let e of (sub.tank === pl ? [] : t.earlier || [])) {
+						let min_x = e.x * 16 + e.px;
+						let min_y = e.y * 16 + e.py;
+						if ((min_x === pixel_x && min_y === pixel_y) ||
+							earlier_boxes.some(b => b.min_x === min_x && b.min_y === min_y)) continue;
+						earlier_boxes.push({ min_x, min_y, max_x: min_x + 16, max_y: min_y + 16, time: e.time });
+					}
+					if (earlier_boxes.length) details.earlier_boxes = earlier_boxes;
 					BoloMotion.add_shell_box_terminal(shell_terminals, rec,
-						t.x * 16 + t.px, t.y * 16 + t.py, sub.direction,
-						{ event_type: "tank_hit", effect, target_tank: sub.tank });
+						pixel_x, pixel_y, sub.direction, details);
 				}
 				break;
 			}

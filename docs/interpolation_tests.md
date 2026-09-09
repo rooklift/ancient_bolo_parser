@@ -1703,6 +1703,106 @@ terminals +945, pop-outs -5%, the order inversions 188 -> 173, the
 contradictions still 14, and with the head slide rushed links 7,473
 -> 7,365 and the steady rate 0.965741 -> 0.966639.
 
+## A tank hit is tried against the statements the sender held -- `ee502e9`
+
+The scene the after-stall sections left behind. In the 2001 replay
+(`20011221D`, records 5082 to 5098) player 2 drives south behind
+tank 3 firing every round, and every hit lands: three `FC` packets
+in five records. The engine explained two and left the third, in
+record 5098, with no shell: its box, tank 3's statement in the same
+round, sat with its west edge nine pixels east of the ray, and the
+only candidate popped out at (1737, 1950) with no fate. Tank 3's
+statement two rounds earlier, (1742, 1960), has the ray a pixel
+inside its west edge, and the shell's next update lands in it.
+
+The mechanism is the one [E:hit-reporter] settled: the `FC` is sent
+by the machine simulating the shell, and it found the collision
+against ITS picture of the victim, the statement that had reached
+it. The engine boxed the hit at the recorder's latest statement,
+which the ring can leave a round or two ahead of the sender's (or,
+when the victim's next statement arrives in the same bundle as the
+hit, the sender's is the one before). The stale-box walk
+(`0263483`) had met the same thing from the other side, a track
+box sliding out from under the packet box, and gave the pill orbit
+the packet box as its fallback; here the packet box itself is the
+fresher one.
+
+A probe over the two fixtures and the scene (4,555 hits) classified
+the 699 the engine left unmatched by which of the victim's stated
+boxes a same-direction shell of the sender's previous list would
+have entered inside its flight window: 435 had no such shell at all
+(point-blank, the shell dead before its first listing), 19 no box
+on the ray, and of the rest 149 reached a box one or two statements
+old, 122 of them shells with no story at all, and 7 a box three or
+four old -- by the ring, one cycle stale in 81, two in 67, more in
+8. So `game.js` keeps each tank's previous two statements
+and hands them to a tank-hit terminal as `earlier_boxes`, and both
+terminal matchers try the packet box first and the earlier boxes
+only when no variant reaches it, newest first, the effect following
+the box the shell entered. A stale-box match carries a penalty
+above the match margin (`STALE_TANK_BOX_PENALTY_PIXELS`), so it can
+never outbid an on-schedule continuation or a fresher box: it is a
+fate for a shell that vanished from its sender's lists, not a rival.
+
+Two rules came from the first cut, which offered the boxes to every
+hit and let a stale box start at the statement. On `n20021018.2`
+that gained 138 hits and lost three continuations and two hits,
+and the losses were one shape: a pill barrage on the recorder's own
+tank (record 10646), where a shell already touching the box the
+tank had left two rounds earlier took a zero-length hit, its true
+successor became an orphan birth, and the shell that had really hit
+lost the terminal to it. So a hit reported on the sender's own tank
+carries no earlier boxes -- a machine's picture of its own tank is
+exact, and the tank track already covers the cycle before the
+packet -- and a stale box must lie at least one shell update ahead
+of the statement, the shell not already inside or touching it: had
+the sender's picture of the tank contained the shell where it was
+listed, the hit would have been found before the statement went
+out. With those the fixture keeps 110 of the 138 and loses
+nothing: the two continuations that do change are a 25-tick
+dilated link replaced by an on-schedule hit, and a two-shell line
+where the leader takes the hit the `FC` reports and the trailer
+takes the continuation the leader had.
+
+Fixture (`n20021018.2`), against `800f57c`:
+
+* `rate_shells_matched_forward` 0.996529 -> **0.998034**
+  (`shells_unmatched_forward` 256 -> 145)
+* `rate_shells_unlinked` 0.001586 -> **0.001017** (117 -> 75)
+* `rate_terminals_matched` 0.861225 -> **0.865877**: `tank_hit`
+  3,217 -> **3,329**, no other class moves; `links_shell` 52,763 ->
+  52,762, `shells_visual_joins` 3 -> 1, `flow_components` 1,205 ->
+  1,193
+* `links_pill_vouched` 20,088 -> 20,091, contradicted still 0,
+  distance-order inversions still 3
+* Audit: `pop_outs` 256 -> **145**, `terminal_links_rushed` 464 ->
+  463, `terminal_links_static` 458 -> 457, `pop_ins` 224 -> 225,
+  `rate_links_steady` 0.978830 -> 0.979076, seam jumps still zero
+* `040601.6` is byte-identical: 397 of its 478 hits are on the
+  recorder's own tank, which carry no earlier boxes, and the 81 on
+  other tanks gain nothing
+
+The ten pairs (`ee502e9-pairs-report.txt`, `-pairs-audit.txt`,
+`-paired-audit.txt` against `800f57c-*`): `terminals_matched` 54,869
+-> **54,992** (`tank_hit` +125, `explosion` -2), `shells_unlinked`
+317 -> **269**, `rate_shells_matched_forward` 0.997085 -> 0.997563;
+the drawn audit's `pop_outs` 723 -> **599**, `pops_paired_backwards`
+29 -> **27**, `terminal_links_rushed` 1,700 -> 1,698, `rush_links`
+and `hover_links` unchanged; the two builds of a game disagree on
+625 forward stories -> **613** (A abstains 133 -> 129, B 101 -> 91,
+conflicts 391 -> 393), roster elections differing 54 -> 54.
+
+The unit test (`test/test-viewer.cjs`, "a hit on another player's
+tank matches the statement the sender held") builds the scene by
+hand -- a shell south along x 168, the victim stating (160, 300)
+and then (186, 300), the hit against the second -- and its three
+controls: both boxes on the ray, where the packet box keeps first
+refusal and the effect stays put; the same hit reported by the
+victim on itself, which carries no earlier boxes; and a shell
+listed already touching the stale box, refused. It fails on
+`800f57c`. Corpus: `ee502e9` in
+[`interpolation_tests_corpus.md`](interpolation_tests_corpus.md).
+
 ## Where the line stands -- `0263483`
 
 The same three headline rates at the points a reader is likely to want,
@@ -1721,18 +1821,19 @@ all on the fixture, all from the sections above:
 | a turning tank's shell carries the nibble's sector | 0.996502 | 0.001586 | 0.861142 |
 | a stalled pair carries two readings | 0.996529 | 0.001586 | 0.861225 |
 | the pair after a stall carries two readings as well | 0.996529 | 0.001586 | 0.861225 |
+| a tank hit is tried against the statements the sender held | 0.998034 | 0.001017 | 0.865877 |
 
 * **Every headline record is held by the current head.** Unlinked
-  shells are down to 117, roughly a tenth of the branch point's rate; forward
-  matching has closed nine tenths of the gap the branch point left;
-  terminals matched is 4.4 points above it, `tank_hit` 2,826 -> 3,217.
+  shells are down to 75, a sixteenth of the branch point's rate; forward
+  matching has closed nineteen twentieths of the gap the branch point left;
+  terminals matched is 4.9 points above it, `tank_hit` 2,826 -> 3,329.
   The stall reading barely touches this fixture -- a clean game, sixteen
   stalls in 137 minutes, no link spanning one -- and its row is here for
   the record; the corpus file has its measure.
 * **The truth axes agree with the coverage axes**, which they were
   built to be able to refuse to do. Pill-link contradictions 6 -> 0
   since the metric was introduced; drawn-motion pop-outs 1,465 at the
-  pre-branch state -> 256; steady links 0.787 -> 0.9788; seam jumps 0
+  pre-branch state -> 145; steady links 0.787 -> 0.9791; seam jumps 0
   at every state ever audited. Nothing on the fixture's books is a
   match rate bought with a rendering lie. The corpus is a shade less
   clean (94 contradictions at `0263483`, per the corpus file), and that is where

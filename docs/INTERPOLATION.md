@@ -176,8 +176,20 @@ are:
    tank shell (GAMEPLAY.md), so a base-damage terminal is refused, before
    any geometry, for a shell already put at a pill -- an orbit-tracked or
    pill-sourced shell in every matching pass, and a pill's F4 in the
-   unseen-shot edges (`terminal_takes_pillbox_shell`). The ordinary ray
-   test uses a tank-hit box as the packet states it. A pill shell on a pinned
+   unseen-shot edges (`terminal_takes_pillbox_shell`). A tank-hit box is
+   the recorder's latest statement of the victim, but the hit was found
+   by the machine simulating the shell (FORMAT.md [E:hit-reporter])
+   against ITS picture of the victim, the statement that had reached
+   it, which the ring can leave a round or two behind; so a hit on
+   another player's tank also carries the victim's previous two
+   statements (`earlier_boxes`), and both matchers try the packet box
+   first and those only when nothing reaches it, newest first, under a
+   penalty above the match margin (`STALE_TANK_BOX_PENALTY_PIXELS`) so
+   a stale box never outbids an on-schedule story, and never as a box
+   the shell was already in or touching when listed. A hit on the
+   sender's own tank carries none: its picture of itself is exact.
+   The ordinary ray test otherwise uses a tank-hit box as the packet
+   states it. A pill shell on a pinned
    orbit gets two walks (`pillbox_shell_terminal_match`): first against
    the *interpolated* tank track at the shell's arrival time, and only
    if that whole walk finds nothing, again against the packet box,

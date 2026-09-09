@@ -1,0 +1,313 @@
+=== game c0a80101b6f2cff7: A = 20010406.1-A, B = 20010406.1-B
+  recorders: A slot 4, B slot 2; ring cycle 13 ticks
+  snapshots compared 10344 (190 unaligned, 30 within 100 ticks of the shared stretch's ends); shell observations 6875
+  forward: agree 6854 (none 19, assigned 6835); A abstains 5; B abstains 2; conflict 10; 4 with a target outside the shared stretch
+    jitter: 6802 (assigned and agreed 6772, A abstains 3, B abstains 1, conflict 7)
+    delay: 67 (assigned and agreed 61, A abstains 2, B abstains 1, conflict 3)
+    stall: 2 (assigned and agreed 2, A abstains 0, B abstains 0, conflict 0)
+  birth: agree 2561, A only 3, B only 2, neither 4309
+  weapon: agree 5180, A only 2, B only 1, conflict 0, neither 1692
+  roster elections: 1802 compared, 1 differ (0 taken on one side only)
+  forward disagreements:
+    conflict [jitter, stamps differ by 2] sender 0 shell 3 at (1134,2498) dir 8: A #636 t=2289310 -> tank_hit #641 +12 | B #676 t=409090 -> tank_hit #681 +14
+    conflict [jitter, stamps differ by 2] sender 0 shell 5 at (1132,2489) dir 8: A #636 t=2289310 -> tank_hit #641 +12 | B #676 t=409090 -> tank_hit #681 +14
+    conflict [jitter, stamps differ by 1] sender 4 shell 4 at (738,2231) dir 0: A #880 t=2289945 -> explosion #885 +12 | B #920 t=409739 -> explosion #925 +13
+    conflict [jitter, stamps differ by 1] sender 4 shell 5 at (737,2238) dir 0: A #880 t=2289945 -> explosion #885 +12 | B #920 t=409739 -> explosion #925 +13
+    abstain_b [jitter, stamps differ by 3] sender 4 shell 1 at (744,2315) dir 14: A #1984 t=2293178 -> explosion #1989 +12 | B #2024 t=412972 -> none
+    conflict [delay, stamps differ by 13] sender 4 shell 3 at (694,2308) dir 0: A #2024 t=2293287 -> tank_hit #2029 +26 | B #2064 t=413095 -> tank_hit #2069 +13
+    conflict [delay, stamps differ by 13] sender 4 shell 5 at (695,2295) dir 0: A #2024 t=2293287 -> tank_hit #2029 +26 | B #2064 t=413095 -> tank_hit #2069 +13
+    abstain_a [delay, stamps differ by 13] sender 4 shell 7 at (704,2269) dir 14: A #2024 t=2293287 -> none | B #2064 t=413095 -> tank_hit #2069 +13
+    abstain_a [delay, stamps differ by 13] sender 4 shell 12 at (757,2324) dir 14: A #2024 t=2293287 -> none | B #2064 t=413095 -> explosion #2069 +13
+    abstain_b [delay, stamps differ by 21] sender 4 shell 1 at (783,2126) dir 7: A #3317 t=2296876 -> pillbox_damage #3320 +17 | B #3357 t=416675 -> none
+    conflict [delay, stamps differ by 21] sender 4 shell 2 at (779,2107) dir 7: A #3317 t=2296876 -> shell #3320/1 +17 | B #3357 t=416675 -> shell #3360/0 +38
+    abstain_a [jitter, stamps differ by 0] sender 2 shell 1 at (806,2123) dir 10: A #3477 t=2297360 -> none | B #3517 t=417131 -> shell #3522/1 +23
+    abstain_a [jitter, stamps differ by 0] sender 2 shell 3 at (807,2126) dir 2: A #3477 t=2297360 -> none | B #3517 t=417131 -> tank_hit #3522 +23
+    conflict [jitter, stamps differ by 4] sender 1 shell 1 at (1237,2342) dir 13: A #3642 t=2298033 -> pillbox_damage #3650 +31 | B #3682 t=417814 -> shell #3686/1 +13
+    abstain_a [jitter, stamps differ by 4] sender 1 shell 0 at (1195,2322) dir 13: A #3646 t=2298050 -> none | B #3686 t=417827 -> pillbox_damage #3690 +18
+    conflict [jitter, stamps differ by 1] sender 2 shell 2 at (1125,2279) dir 7: A #5333 t=2302915 -> pillbox_damage #5338 +12 | B #5373 t=422695 -> pillbox_damage #5378 +13
+    conflict [jitter, stamps differ by 1] sender 2 shell 3 at (1120,2260) dir 7: A #5333 t=2302915 -> pillbox_damage #5338 +12 | B #5373 t=422695 -> pillbox_damage #5378 +13
+
+=== game c0a80301b6faa310: A = 20010412.1-A, B = 20010412.1-B
+  recorders: A slot 4, B slot 0; ring cycle 9 ticks
+  snapshots compared 17886 (127 unaligned, 61 within 100 ticks of the shared stretch's ends); shell observations 10406
+  forward: agree 10348 (none 11, assigned 10337); A abstains 12; B abstains 5; conflict 35; 6 with a target outside the shared stretch
+    jitter: 10315 (assigned and agreed 10274, A abstains 6, B abstains 3, conflict 21)
+    delay: 69 (assigned and agreed 53, A abstains 6, B abstains 0, conflict 10)
+    stall: 16 (assigned and agreed 10, A abstains 0, B abstains 2, conflict 4)
+  birth: agree 4104, A only 14, B only 25, neither 6263
+  weapon: agree 7095, A only 3, B only 3, conflict 0, neither 3305
+  roster elections: 2416 compared, 0 differ (0 taken on one side only)
+  forward disagreements (first 20 of 52):
+    conflict [jitter, stamps differ by 1] sender 1 shell 2 at (2034,1909) dir 8: A #4943 t=3422445 -> pillbox_damage #4964 +42 | B #5096 t=158016 -> shell #5100/3 +9
+    conflict [jitter, stamps differ by 1] sender 1 shell 3 at (2046,1984) dir 0: A #4943 t=3422445 -> shell #4947/5 +8 | B #5096 t=158016 -> shell #5100/4 +9
+    conflict [jitter, stamps differ by 1] sender 1 shell 4 at (2043,1960) dir 0: A #4943 t=3422445 -> explosion #4947 +8 | B #5096 t=158016 -> explosion #5100 +9
+    conflict [jitter, stamps differ by 1] sender 1 shell 5 at (2044,1971) dir 0: A #4943 t=3422445 -> shell #4947/4 +8 | B #5096 t=158016 -> explosion #5100 +9
+    abstain_a [jitter, stamps differ by 0] sender 1 shell 1 at (2039,1985) dir 8: A #4947 t=3422453 -> none | B #5100 t=158025 -> pillbox_damage #5104 +8
+    abstain_a [jitter, stamps differ by 1] sender 1 shell 3 at (2037,1981) dir 8: A #4960 t=3422479 -> none | B #5113 t=158050 -> pillbox_damage #5117 +9
+    abstain_a [delay, stamps differ by 10] sender 3 shell 1 at (2214,2225) dir 14: A #8108 t=3427450 -> none | B #8261 t=163002 -> pillbox_damage #8267 +19
+    abstain_a [delay, stamps differ by 10] sender 0 shell 1 at (1827,1928) dir 3: A #8109 t=3427450 -> none | B #8262 t=163002 -> shell #8268/1 +19
+    abstain_a [delay, stamps differ by 15] sender 3 shell 1 at (2217,2227) dir 14: A #8136 t=3427491 -> none | B #8289 t=163054 -> shell #8295/2 +9
+    conflict [delay, stamps differ by 15] sender 3 shell 2 at (2238,2244) dir 14: A #8136 t=3427491 -> shell #8142/2 +24 | B #8289 t=163054 -> shell #8295/3 +9
+    conflict [stall, stamps differ by 396] sender 3 shell 0 at (2242,2247) dir 14: A #8142 t=3427515 -> shell #8148/1 +419 | B #8295 t=163063 -> shell #8301/0 +23
+    conflict [stall, stamps differ by 396] sender 3 shell 1 at (2263,2264) dir 14: A #8142 t=3427515 -> pillbox_damage #8148 +419 | B #8295 t=163063 -> shell #8301/1 +23
+    conflict [stall, stamps differ by 396] sender 3 shell 2 at (2200,2215) dir 14: A #8142 t=3427515 -> pillbox_damage #8148 +419 | B #8295 t=163063 -> pillbox_damage #8301 +23
+    conflict [stall, stamps differ by 396] sender 3 shell 3 at (2221,2232) dir 14: A #8142 t=3427515 -> shell #8148/0 +419 | B #8295 t=163063 -> pillbox_damage #8301 +23
+    abstain_a [jitter, stamps differ by 0] sender 0 shell 2 at (1820,1931) dir 3: A #8143 t=3427515 -> none | B #8296 t=163063 -> shell #8302/1 +23
+    abstain_b [stall, stamps differ by 169] sender 3 shell 0 at (2208,2220) dir 14: A #8148 t=3427934 -> pillbox_damage #8154 +251 | B #8301 t=163086 -> none
+    abstain_b [stall, stamps differ by 169] sender 3 shell 1 at (2229,2237) dir 14: A #8148 t=3427934 -> pillbox_damage #8154 +251 | B #8301 t=163086 -> none
+    conflict [jitter, stamps differ by 1] sender 2 shell 0 at (1908,1911) dir 8: A #8195 t=3428275 -> explosion #8201 +9 | B #8348 t=163847 -> shell #8354/1 +8
+    conflict [jitter, stamps differ by 1] sender 2 shell 1 at (1905,1899) dir 8: A #8195 t=3428275 -> shell #8201/1 +9 | B #8348 t=163847 -> explosion #8354 +8
+    conflict [jitter, stamps differ by 0] sender 2 shell 1 at (1911,1919) dir 7: A #8207 t=3428298 -> explosion #8213 +32 | B #8360 t=163870 -> explosion #8366 +32
+
+=== game c0a80301b6faa779: A = 20010412.2-A, B = 20010412.2-B
+  recorders: A slot 4, B slot 0; ring cycle 8 ticks
+  snapshots compared 14807 (317 unaligned, 63 within 100 ticks of the shared stretch's ends); shell observations 9494
+  forward: agree 9479 (none 5, assigned 9474); A abstains 1; B abstains 1; conflict 11; 2 with a target outside the shared stretch
+    jitter: 9492 (assigned and agreed 9474, A abstains 1, B abstains 1, conflict 11)
+  birth: agree 3642, A only 0, B only 6, neither 5846
+  weapon: agree 6553, A only 0, B only 1, conflict 0, neither 2940
+  roster elections: 2270 compared, 2 differ (0 taken on one side only)
+  forward disagreements:
+    conflict [jitter, stamps differ by 3] sender 0 shell 3 at (1900,2195) dir 8: A #1186 t=3461548 -> explosion #1191 +7 | B #2000 t=197110 -> explosion #2005 +10
+    conflict [jitter, stamps differ by 3] sender 0 shell 4 at (1901,2183) dir 8: A #1186 t=3461548 -> explosion #1191 +7 | B #2000 t=197110 -> explosion #2005 +10
+    conflict [jitter, stamps differ by 2] sender 0 shell 4 at (1786,2079) dir 8: A #2211 t=3463113 -> pillbox_damage #2216 +8 | B #3025 t=198675 -> pillbox_damage #3030 +10
+    conflict [jitter, stamps differ by 2] sender 0 shell 5 at (1787,2071) dir 8: A #2211 t=3463113 -> pillbox_damage #2216 +8 | B #3025 t=198675 -> pillbox_damage #3030 +10
+    conflict [jitter, stamps differ by 1] sender 5 shell 3 at (2012,1788) dir 12: A #2881 t=3464144 -> pillbox_damage #2886 +7 | B #3695 t=199715 -> pillbox_damage #3700 +8
+    conflict [jitter, stamps differ by 1] sender 5 shell 4 at (2023,1789) dir 12: A #2881 t=3464144 -> pillbox_damage #2886 +7 | B #3695 t=199715 -> pillbox_damage #3700 +8
+    conflict [jitter, stamps differ by 1] sender 4 shell 0 at (2236,2203) dir 9: A #4103 t=3465930 -> shell #4109/0 +8, stitched | B #4917 t=201501 -> shell_falls #4923 +9
+    conflict [jitter, stamps differ by 1] sender 4 shell 1 at (2236,2192) dir 9: A #4103 t=3465930 -> shell_falls #4109 +8 | B #4917 t=201501 -> shell #4923/0 +9
+    conflict [jitter, stamps differ by 1] sender 3 shell 4 at (1798,2008) dir 0: A #8892 t=3472974 -> pillbox_damage #8898 +7 | B #9706 t=208545 -> pillbox_damage #9712 +8
+    conflict [jitter, stamps differ by 1] sender 3 shell 5 at (1794,2027) dir 0: A #8892 t=3472974 -> pillbox_damage #8898 +7 | B #9706 t=208545 -> shell #9712/3 +8
+    conflict [jitter, stamps differ by 1] sender 3 shell 6 at (1795,2019) dir 0: A #8892 t=3472974 -> shell #8898/3 +7 | B #9706 t=208545 -> pillbox_damage #9712 +8
+    abstain_a [jitter, stamps differ by 1] sender 0 shell 3 at (2032,2190) dir 14: A #11410 t=3476677 -> none | B #12224 t=212240 -> shell #12230/4 +9
+    abstain_b [jitter, stamps differ by 1] sender 3 shell 0 at (1786,2026) dir 15: A #12944 t=3479047 -> tank_hit #12949 +8 | B #13758 t=214619 -> none
+
+=== game c0a81701b7a359c9: A = 20010817.1-A, B = 20010817.1-B
+  recorders: A slot 4, B slot 3; ring cycle 14 ticks
+  snapshots compared 7220 (739 unaligned, 44 within 100 ticks of the shared stretch's ends); shell observations 4394
+  forward: agree 4353 (none 28, assigned 4325); A abstains 13; B abstains 4; conflict 24
+    jitter: 4204 (assigned and agreed 4151, A abstains 8, B abstains 4, conflict 13)
+    delay: 169 (assigned and agreed 157, A abstains 5, B abstains 0, conflict 7)
+    stall: 21 (assigned and agreed 17, A abstains 0, B abstains 0, conflict 4)
+  birth: agree 1173, A only 0, B only 7, neither 3214
+  weapon: agree 3620, A only 3, B only 7, conflict 0, neither 764
+  roster elections: 1499 compared, 3 differ (7 taken on one side only)
+  forward disagreements (first 20 of 41):
+    conflict [jitter, stamps differ by 1] sender 2 shell 3 at (2169,2263) dir 8: A #979 t=38846 -> shell_falls #985 +12 | B #730 t=60504 -> shell_falls #736 +11
+    conflict [jitter, stamps differ by 1] sender 2 shell 8 at (2168,2251) dir 8: A #979 t=38846 -> shell_falls #985 +12 | B #730 t=60504 -> shell_falls #736 +11
+    abstain_b [jitter, stamps differ by 0] sender 2 shell 1 at (2131,2290) dir 7: A #985 t=38858 -> shell #991/1 +20 | B #736 t=60515 -> none
+    abstain_b [jitter, stamps differ by 1] sender 2 shell 1 at (2143,2311) dir 7: A #991 t=38878 -> explosion #997 +17 | B #742 t=60535 -> none
+    abstain_a [delay, stamps differ by 12] sender 3 shell 0 at (2169,2157) dir 14: A #1185 t=39443 -> none | B #936 t=61088 -> pillbox_damage #941 +12
+    conflict [delay, stamps differ by 12] sender 3 shell 1 at (2192,2172) dir 14: A #1185 t=39443 -> pillbox_damage #1190 +24, stitched | B #936 t=61088 -> shell #941/0 +12
+    conflict [delay, stamps differ by 12] sender 3 shell 2 at (2211,2185) dir 14: A #1185 t=39443 -> shell #1190/0 +24 | B #936 t=61088 -> shell #941/1 +12
+    conflict [delay, stamps differ by 9] sender 3 shell 0 at (2173,2160) dir 14: A #1190 t=39467 -> pillbox_damage #1195 +16 | B #941 t=61100 -> pillbox_damage #946 +25
+    abstain_a [delay, stamps differ by 9] sender 3 shell 1 at (2192,2173) dir 14: A #1190 t=39467 -> none | B #941 t=61100 -> pillbox_damage #946 +25
+    conflict [delay, stamps differ by 9] sender 3 shell 2 at (2221,2192) dir 14: A #1190 t=39467 -> shell #1195/0 +16 | B #941 t=61100 -> shell #946/1 +25
+    conflict [delay, stamps differ by 9] sender 3 shell 3 at (2176,2155) dir 6: A #1190 t=39467 -> shell #1195/3 +16 | B #941 t=61100 -> shell #946/2 +25
+    abstain_a [jitter, stamps differ by 2] sender 3 shell 1 at (2179,2163) dir 14: A #1195 t=39483 -> none | B #946 t=61125 -> pillbox_damage #952 +15
+    abstain_a [jitter, stamps differ by 4] sender 3 shell 1 at (2241,2201) dir 6: A #1201 t=39500 -> none | B #952 t=61140 -> tank_hit #958 +17
+    abstain_a [jitter, stamps differ by 0] sender 3 shell 1 at (2071,2292) dir 12: A #1404 t=40190 -> none | B #1155 t=61835 -> pillbox_damage #1160 +13
+    conflict [delay, stamps differ by 5] sender 3 shell 1 at (2096,2266) dir 3: A #1448 t=40314 -> pillbox_damage #1457 +30 | B #1199 t=61960 -> shell #1203/0 +12
+    conflict [delay, stamps differ by 5] sender 3 shell 2 at (2085,2272) dir 3: A #1448 t=40314 -> shell #1452/0 +17 | B #1199 t=61960 -> shell #1203/1 +12
+    conflict [jitter, stamps differ by 4] sender 3 shell 0 at (2118,2254) dir 3: A #1452 t=40331 -> pillbox_damage #1457 +13 | B #1203 t=61972 -> pillbox_damage #1208 +17
+    abstain_a [jitter, stamps differ by 4] sender 3 shell 1 at (2107,2260) dir 3: A #1452 t=40331 -> none | B #1203 t=61972 -> pillbox_damage #1208 +17
+    abstain_a [jitter, stamps differ by 1] sender 2 shell 2 at (2277,1980) dir 8: A #1491 t=40423 -> none | B #1242 t=62080 -> shell #1248/0 +14
+    abstain_a [jitter, stamps differ by 0] sender 2 shell 0 at (2281,2014) dir 8: A #1497 t=40436 -> none | B #1248 t=62094 -> pillbox_damage #1254 +14
+
+=== game c0a80f01b9a9afea: A = 20020915.1-A, B = 20020915.1-B
+  recorders: A slot 4, B slot 1; ring cycle 14 ticks
+  snapshots compared 19660 (30 unaligned, 40 within 100 ticks of the shared stretch's ends); shell observations 11282
+  forward: agree 11141 (none 44, assigned 11097); A abstains 32; B abstains 8; conflict 95; 6 with a target outside the shared stretch
+    jitter: 10923 (assigned and agreed 10794, A abstains 25, B abstains 5, conflict 55)
+    delay: 329 (assigned and agreed 283, A abstains 6, B abstains 0, conflict 40)
+    stall: 24 (assigned and agreed 20, A abstains 1, B abstains 3, conflict 0)
+  birth: agree 3577, A only 10, B only 51, neither 7644
+  weapon: agree 8924, A only 6, B only 10, conflict 0, neither 2342
+  roster elections: 3170 compared, 10 differ (8 taken on one side only)
+  forward disagreements (first 20 of 135):
+    abstain_a [stall, stamps differ by 119] sender 0 shell 0 at (1943,2220) dir 4: A #1585 t=13737200 -> none | B #1574 t=1970850 -> explosion #1580 +16
+    conflict [jitter, stamps differ by 3] sender 3 shell 1 at (2258,1815) dir 11: A #1920 t=13738160 -> pillbox_damage #1930 +30 | B #1909 t=1971678 -> shell #1914/1 +13
+    abstain_a [jitter, stamps differ by 2] sender 3 shell 0 at (2218,1840) dir 11: A #1925 t=13738176 -> none | B #1914 t=1971691 -> pillbox_damage #1919 +16
+    abstain_a [jitter, stamps differ by 1] sender 5 shell 5 at (1790,1921) dir 13: A #2151 t=13738999 -> none | B #2140 t=1972516 -> shell #2146/4 +14
+    conflict [jitter, stamps differ by 1] sender 5 shell 6 at (1797,1923) dir 13: A #2151 t=13738999 -> shell #2157/4 +15 | B #2140 t=1972516 -> shell #2146/5 +14
+    abstain_b [stall, stamps differ by 143] sender 0 shell 3 at (1853,2243) dir 11: A #2421 t=13739652 -> tank_hit #2427 +158 | B #2410 t=1973326 -> none
+    abstain_b [stall, stamps differ by 143] sender 0 shell 4 at (1863,2237) dir 11: A #2421 t=13739652 -> tank_hit #2427 +158 | B #2410 t=1973326 -> none
+    abstain_b [stall, stamps differ by 143] sender 0 shell 5 at (1869,2233) dir 11: A #2421 t=13739652 -> tank_hit #2427 +158 | B #2410 t=1973326 -> none
+    abstain_a [jitter, stamps differ by 4] sender 3 shell 0 at (2101,1968) dir 9: A #3007 t=13741468 -> none | B #2996 t=1974982 -> shell #3002/0 +17
+    abstain_a [jitter, stamps differ by 4] sender 3 shell 2 at (2096,1990) dir 9: A #3007 t=13741468 -> none | B #2996 t=1974982 -> shell #3002/2 +17
+    conflict [jitter, stamps differ by 4] sender 1 shell 0 at (2080,2032) dir 0: A #3010 t=13741468 -> pillbox_damage #3016 +13 | B #2999 t=1974982 -> pillbox_damage #3005 +17
+    conflict [jitter, stamps differ by 4] sender 1 shell 1 at (2079,2039) dir 0: A #3010 t=13741468 -> pillbox_damage #3016 +13 | B #2999 t=1974982 -> pillbox_damage #3005 +17
+    conflict [jitter, stamps differ by 4] sender 1 shell 3 at (2080,2052) dir 0: A #3010 t=13741468 -> pillbox_damage #3016 +13 | B #2999 t=1974982 -> pillbox_damage #3005 +17
+    conflict [jitter, stamps differ by 1] sender 1 shell 0 at (2081,2024) dir 0: A #3016 t=13741481 -> pillbox_damage #3022 +14 | B #3005 t=1974999 -> pillbox_damage #3011 +13
+    conflict [jitter, stamps differ by 1] sender 1 shell 1 at (2080,2035) dir 0: A #3016 t=13741481 -> pillbox_damage #3022 +14 | B #3005 t=1974999 -> pillbox_damage #3011 +13
+    conflict [delay, stamps differ by 7] sender 4 shell 0 at (1976,2162) dir 3: A #3755 t=13743404 -> shell #3761/0 +21 | B #3744 t=1976941 -> pillbox_damage #3750 +14
+    conflict [jitter, stamps differ by 4] sender 2 shell 0 at (2112,2171) dir 14: A #4838 t=13746207 -> shell #4844/2 +18 | B #4827 t=1979725 -> shell #4833/0 +14
+    conflict [jitter, stamps differ by 4] sender 2 shell 2 at (2089,2154) dir 14: A #4838 t=13746207 -> shell #4844/0 +18 | B #4827 t=1979725 -> shell #4833/2 +14
+    conflict [jitter, stamps differ by 1] sender 5 shell 0 at (1993,2012) dir 5: A #4849 t=13746239 -> pillbox_damage #4855 +14 | B #4838 t=1979755 -> pillbox_damage #4844 +15
+    conflict [jitter, stamps differ by 1] sender 5 shell 1 at (1982,2011) dir 5: A #4849 t=13746239 -> pillbox_damage #4855 +14, stitched | B #4838 t=1979755 -> pillbox_damage #4844 +15
+
+=== game c0a81b01baac09c2: A = 20030330.1-A, B = 20030330.1-B
+  recorders: A slot 0, B slot 2; ring cycle 6 ticks
+  snapshots compared 20773 (2 unaligned, 44 within 100 ticks of the shared stretch's ends); shell observations 16556
+  forward: agree 16453 (none 12, assigned 16441); A abstains 28; B abstains 15; conflict 60
+    jitter: 16461 (assigned and agreed 16355, A abstains 28, B abstains 11, conflict 55)
+    delay: 95 (assigned and agreed 86, A abstains 0, B abstains 4, conflict 5)
+  birth: agree 6689, A only 31, B only 103, neither 9733
+  weapon: agree 10732, A only 3, B only 7, conflict 3, neither 5811
+  roster elections: 3489 compared, 5 differ (13 taken on one side only)
+  forward disagreements (first 20 of 103):
+    abstain_a [jitter, stamps differ by 2] sender 1 shell 0 at (1934,2184) dir 1: A #548 t=323850 -> none | B #616 t=206495 -> shell #620/0 +8
+    conflict [jitter, stamps differ by 2] sender 1 shell 2 at (1912,2230) dir 1: A #548 t=323850 -> shell #560/0 +23 | B #616 t=206495 -> shell #620/2 +8
+    abstain_a [jitter, stamps differ by 0] sender 1 shell 0 at (1938,2177) dir 1: A #552 t=323860 -> none | B #620 t=206503 -> pillbox_damage #624 +7
+    conflict [jitter, stamps differ by 0] sender 1 shell 6 at (1909,2244) dir 9: A #552 t=323860 -> tank_hit #556 +7 | B #620 t=206503 -> tank_hit #624 +7
+    conflict [jitter, stamps differ by 0] sender 1 shell 7 at (1914,2233) dir 9: A #552 t=323860 -> tank_hit #556 +7 | B #620 t=206503 -> tank_hit #624 +7
+    abstain_a [jitter, stamps differ by 2] sender 1 shell 1 at (1924,2206) dir 1: A #556 t=323867 -> none | B #624 t=206510 -> shell #628/0 +8
+    abstain_b [jitter, stamps differ by 1] sender 2 shell 0 at (1804,2012) dir 0: A #570 t=323885 -> shell #574/0 +8 | B #638 t=206530 -> none
+    conflict [jitter, stamps differ by 2] sender 1 shell 6 at (1894,2272) dir 9: A #572 t=323893 -> explosion #576 +6 | B #640 t=206537 -> explosion #644 +8
+    conflict [jitter, stamps differ by 2] sender 1 shell 7 at (1899,2266) dir 9: A #572 t=323893 -> explosion #576 +6 | B #640 t=206537 -> explosion #644 +8
+    conflict [delay, stamps differ by 5] sender 0 shell 2 at (2216,2181) dir 13: A #826 t=324323 -> shell #830/1 +7 | B #894 t=206975 -> shell #902/1 +18
+    abstain_b [delay, stamps differ by 5] sender 0 shell 1 at (2206,2175) dir 13: A #830 t=324330 -> shell #834/1 +11 | B #898 t=206987 -> none
+    abstain_b [delay, stamps differ by 5] sender 0 shell 2 at (2226,2187) dir 13: A #830 t=324330 -> shell #834/2 +11 | B #898 t=206987 -> none
+    conflict [jitter, stamps differ by 3] sender 3 shell 0 at (2173,1900) dir 10: A #1088 t=324787 -> shell #1092/2 +10 | B #1156 t=207432 -> shell #1160/0 +7
+    abstain_a [jitter, stamps differ by 3] sender 3 shell 2 at (2158,1918) dir 10: A #1088 t=324787 -> none | B #1156 t=207432 -> shell #1160/2 +7
+    conflict [jitter, stamps differ by 0] sender 3 shell 0 at (2224,1832) dir 2: A #1116 t=324845 -> shell_falls #1120 +9 | B #1184 t=207490 -> shell_falls #1188 +9
+    conflict [jitter, stamps differ by 0] sender 3 shell 2 at (2208,1850) dir 2: A #1116 t=324845 -> shell_falls #1120 +9 | B #1184 t=207490 -> shell_falls #1188 +9
+    conflict [jitter, stamps differ by 2] sender 0 shell 0 at (2277,2031) dir 7: A #1295 t=325207 -> pillbox_damage #1298 +8 | B #1363 t=207860 -> pillbox_damage #1366 +6
+    abstain_b [jitter, stamps differ by 2] sender 0 shell 1 at (2270,2006) dir 7: A #1295 t=325207 -> pillbox_damage #1298 +8 | B #1363 t=207860 -> none
+    abstain_a [jitter, stamps differ by 1] sender 0 shell 0 at (2277,2026) dir 7: A #1310 t=325241 -> none | B #1378 t=207894 -> pillbox_damage #1381 +5
+    conflict [jitter, stamps differ by 2] sender 0 shell 3 at (2284,2043) dir 9: A #2070 t=326510 -> pillbox_damage #2074 +6 | B #2138 t=209161 -> pillbox_damage #2142 +8
+
+=== game c0a81b01baac0fc2: A = 20030330.2-A, B = 20030330.2-B
+  recorders: A slot 0, B slot 2; ring cycle 6 ticks
+  snapshots compared 17111 (239 unaligned, 67 within 100 ticks of the shared stretch's ends); shell observations 12099
+  forward: agree 12011 (none 6, assigned 12005); A abstains 6; B abstains 21; conflict 61
+    jitter: 11730 (assigned and agreed 11689, A abstains 5, B abstains 11, conflict 19)
+    delay: 369 (assigned and agreed 316, A abstains 1, B abstains 10, conflict 42)
+  birth: agree 4144, A only 49, B only 16, neither 7890
+  weapon: agree 8580, A only 5, B only 4, conflict 0, neither 3510
+  roster elections: 3073 compared, 8 differ (6 taken on one side only)
+  forward disagreements (first 20 of 88):
+    conflict [jitter, stamps differ by 1] sender 1 shell 4 at (2148,2252) dir 11: A #2508 t=386680 -> shell_falls #2512 +6 | B #2267 t=269330 -> shell_falls #2271 +5
+    conflict [jitter, stamps differ by 1] sender 1 shell 5 at (2155,2250) dir 11: A #2508 t=386680 -> shell_falls #2512 +6 | B #2267 t=269330 -> shell_falls #2271 +5
+    conflict [delay, stamps differ by 5] sender 1 shell 0 at (2236,2222) dir 4: A #2585 t=386807 -> shell #2589/0 +6 | B #2344 t=269455 -> shell #2348/3 +11
+    conflict [delay, stamps differ by 5] sender 1 shell 1 at (2215,2219) dir 4: A #2585 t=386807 -> shell #2589/1 +6 | B #2344 t=269455 -> shell #2348/0 +11
+    conflict [delay, stamps differ by 5] sender 1 shell 2 at (2197,2216) dir 4: A #2585 t=386807 -> shell #2589/2 +6 | B #2344 t=269455 -> shell #2348/1 +11
+    conflict [delay, stamps differ by 5] sender 1 shell 3 at (2247,2223) dir 4: A #2585 t=386807 -> shell #2589/3 +6 | B #2344 t=269455 -> pillbox_damage #2352 +17
+    conflict [delay, stamps differ by 5] sender 1 shell 0 at (2248,2224) dir 4: A #2589 t=386813 -> pillbox_damage #2593 +11 | B #2348 t=269466 -> shell #2352/0 +6, stitched
+    conflict [delay, stamps differ by 5] sender 1 shell 1 at (2227,2221) dir 4: A #2589 t=386813 -> shell #2593/0 +11 | B #2348 t=269466 -> shell #2352/1 +6, stitched
+    abstain_b [delay, stamps differ by 5] sender 1 shell 2 at (2209,2218) dir 4: A #2589 t=386813 -> shell #2593/1 +11 | B #2348 t=269466 -> none
+    conflict [delay, stamps differ by 5] sender 1 shell 3 at (2259,2225) dir 4: A #2589 t=386813 -> pillbox_damage #2593 +11 | B #2348 t=269466 -> pillbox_damage #2352 +6
+    conflict [delay, stamps differ by 5] sender 1 shell 11 at (2167,2226) dir 3: A #2589 t=386813 -> shell_falls #2593 +11 | B #2348 t=269466 -> shell_falls #2352 +6
+    conflict [delay, stamps differ by 5] sender 1 shell 12 at (2155,2230) dir 3: A #2589 t=386813 -> shell_falls #2593 +11 | B #2348 t=269466 -> shell_falls #2352 +6
+    conflict [delay, stamps differ by 6] sender 3 shell 0 at (2036,1921) dir 5: A #3969 t=389475 -> shell #3973/1 +6 | B #3728 t=272123 -> pillbox_damage #3732 +12
+    abstain_b [delay, stamps differ by 6] sender 3 shell 1 at (2048,1924) dir 5: A #3973 t=389481 -> pillbox_damage #3977 +12 | B #3732 t=272135 -> none
+    abstain_a [jitter, stamps differ by 1] sender 3 shell 4 at (2056,1933) dir 13: A #3989 t=389511 -> none | B #3748 t=272160 -> pillbox_damage #3752 +5
+    abstain_b [delay, stamps differ by 5] sender 3 shell 0 at (2033,1920) dir 5: A #4045 t=389604 -> shell #4049/0 +6 | B #3804 t=272253 -> none
+    abstain_b [delay, stamps differ by 5] sender 3 shell 0 at (2044,1924) dir 5: A #4049 t=389610 -> pillbox_damage #4053 +12 | B #3808 t=272264 -> none
+    conflict [delay, stamps differ by 5] sender 1 shell 5 at (2144,2252) dir 11: A #4050 t=389610 -> shell_falls #4054 +12 | B #3809 t=272264 -> shell_falls #3813 +7
+    conflict [delay, stamps differ by 5] sender 1 shell 6 at (2151,2250) dir 11: A #4050 t=389610 -> shell_falls #4054 +12 | B #3809 t=272264 -> shell_falls #3813 +7
+    conflict [delay, stamps differ by 5] sender 1 shell 7 at (2162,2247) dir 11: A #4050 t=389610 -> shell_falls #4054 +12 | B #3809 t=272264 -> shell_falls #3813 +7
+
+=== game c0a80b01bb17fd29: A = 20030619.1-A, B = 20030619.1-B
+  recorders: A slot 2, B slot 3; ring cycle 7 ticks
+  snapshots compared 18602 (10 unaligned, 42 within 100 ticks of the shared stretch's ends); shell observations 12206
+  forward: agree 12112 (none 16, assigned 12096); A abstains 23; B abstains 17; conflict 54
+    jitter: 12045 (assigned and agreed 11971, A abstains 15, B abstains 15, conflict 28)
+    delay: 161 (assigned and agreed 125, A abstains 8, B abstains 2, conflict 26)
+  birth: agree 4053, A only 9, B only 64, neither 8080
+  weapon: agree 8835, A only 7, B only 6, conflict 0, neither 3358
+  roster elections: 3684 compared, 18 differ (0 taken on one side only)
+  forward disagreements (first 20 of 94):
+    conflict [delay, stamps differ by 6] sender 3 shell 0 at (1870,2335) dir 0: A #1933 t=5030208 -> shell_falls #1958 +48 | B #2042 t=75477 -> shell #2046/1 +13
+    abstain_a [jitter, stamps differ by 0] sender 3 shell 3 at (1863,2242) dir 0: A #1954 t=5030250 -> none | B #2063 t=75524 -> shell_falls #2067 +6
+    conflict [jitter, stamps differ by 1] sender 0 shell 3 at (2287,1850) dir 4: A #2886 t=5032076 -> explosion #2890 +9 | B #2995 t=77358 -> explosion #2999 +8
+    conflict [jitter, stamps differ by 1] sender 0 shell 5 at (2279,1850) dir 4: A #2886 t=5032076 -> explosion #2890 +9 | B #2995 t=77358 -> explosion #2999 +8
+    conflict [jitter, stamps differ by 1] sender 0 shell 4 at (2287,1849) dir 4: A #2894 t=5032092 -> explosion #2898 +9 | B #3003 t=77374 -> explosion #3007 +8
+    conflict [jitter, stamps differ by 1] sender 0 shell 5 at (2279,1849) dir 4: A #2894 t=5032092 -> explosion #2898 +9 | B #3003 t=77374 -> explosion #3007 +8
+    conflict [delay, stamps differ by 6] sender 2 shell 0 at (1775,1975) dir 8: A #2979 t=5032255 -> shell #2983/0 +6 | B #3088 t=77536 -> shell #3096/0 +21
+    conflict [delay, stamps differ by 6] sender 2 shell 3 at (1771,2002) dir 8: A #2979 t=5032255 -> shell #2983/2 +6 | B #3088 t=77536 -> shell #3096/2 +21
+    abstain_b [delay, stamps differ by 6] sender 2 shell 0 at (1774,1987) dir 8: A #2983 t=5032261 -> shell #2987/0 +15 | B #3092 t=77548 -> none
+    abstain_b [delay, stamps differ by 6] sender 2 shell 2 at (1771,2014) dir 8: A #2983 t=5032261 -> shell #2987/2 +15 | B #3092 t=77548 -> none
+    conflict [jitter, stamps differ by 2] sender 2 shell 3 at (1763,2044) dir 0: A #3023 t=5032340 -> pillbox_damage #3027 +6 | B #3132 t=77620 -> pillbox_damage #3136 +8
+    conflict [jitter, stamps differ by 2] sender 2 shell 4 at (1761,2051) dir 0: A #3023 t=5032340 -> pillbox_damage #3027 +6 | B #3132 t=77620 -> pillbox_damage #3136 +8
+    conflict [delay, stamps differ by 7] sender 3 shell 2 at (1782,2072) dir 14: A #3185 t=5032695 -> shell #3187/0 +6 | B #3294 t=77962 -> shell #3296/2 +13
+    conflict [jitter, stamps differ by 2] sender 1 shell 1 at (2318,2095) dir 0: A #3452 t=5033285 -> shell #3456/1 +15 | B #3561 t=78567 -> shell #3569/0 +23
+    conflict [jitter, stamps differ by 2] sender 1 shell 2 at (2313,2118) dir 0: A #3452 t=5033285 -> shell #3456/2 +15 | B #3561 t=78567 -> shell #3569/1 +23
+    abstain_b [jitter, stamps differ by 1] sender 1 shell 1 at (2321,2079) dir 0: A #3456 t=5033300 -> shell #3460/0 +10 | B #3565 t=78581 -> none
+    abstain_b [jitter, stamps differ by 1] sender 1 shell 2 at (2316,2102) dir 0: A #3456 t=5033300 -> shell #3460/1 +10 | B #3565 t=78581 -> none
+    conflict [jitter, stamps differ by 1] sender 1 shell 2 at (2334,2051) dir 8: A #3488 t=5033365 -> pillbox_damage #3492 +8 | B #3597 t=78646 -> pillbox_damage #3601 +9
+    abstain_b [jitter, stamps differ by 2] sender 1 shell 5 at (2314,2055) dir 10: A #3660 t=5033740 -> shell #3664/5 +8 | B #3769 t=79020 -> none
+    abstain_b [jitter, stamps differ by 2] sender 1 shell 6 at (2323,2042) dir 10: A #3660 t=5033740 -> shell #3664/6 +8 | B #3769 t=79020 -> none
+
+=== game c0a81401bd62d592: A = 20040907.1-A, B = 20040907.1-B
+  recorders: A slot 1, B slot 3; ring cycle 8 ticks
+  snapshots compared 33906 (45 unaligned, 32 within 100 ticks of the shared stretch's ends); shell observations 24059
+  forward: agree 24008 (none 21, assigned 23987); A abstains 3; B abstains 7; conflict 22; 19 with a target outside the shared stretch
+    jitter: 23937 (assigned and agreed 23889, A abstains 3, B abstains 5, conflict 19)
+    delay: 99 (assigned and agreed 94, A abstains 0, B abstains 2, conflict 3)
+    stall: 4 (assigned and agreed 4, A abstains 0, B abstains 0, conflict 0)
+  birth: agree 9538, A only 7, B only 0, neither 14514
+  weapon: agree 16373, A only 0, B only 0, conflict 0, neither 7686
+  roster elections: 5743 compared, 2 differ (0 taken on one side only)
+  forward disagreements (first 20 of 32):
+    conflict [jitter, stamps differ by 2] sender 2 shell 4 at (2236,2263) dir 8: A #1285 t=1134862 -> explosion #1289 +8 | B #1269 t=707887 -> explosion #1273 +10
+    conflict [jitter, stamps differ by 2] sender 2 shell 6 at (2233,2270) dir 8: A #1285 t=1134862 -> explosion #1289 +8 | B #1269 t=707887 -> explosion #1273 +10
+    conflict [delay, stamps differ by 11] sender 2 shell 0 at (2325,2052) dir 0: A #1999 t=1136455 -> pillbox_damage #2003 +19 | B #1983 t=709492 -> shell #1987/0 +8, stitched
+    conflict [delay, stamps differ by 11] sender 2 shell 1 at (2321,2075) dir 0: A #1999 t=1136455 -> shell #2003/0 +19 | B #1983 t=709492 -> pillbox_damage #1987 +8
+    abstain_b [jitter, stamps differ by 2] sender 0 shell 1 at (1931,2121) dir 14: A #4285 t=1141521 -> shell #4289/1 +10 | B #4269 t=714549 -> none
+    abstain_b [jitter, stamps differ by 2] sender 2 shell 1 at (2331,2049) dir 3: A #4286 t=1141521 -> pillbox_damage #4290 +10 | B #4270 t=714549 -> none
+    abstain_a [jitter, stamps differ by 3] sender 3 shell 1 at (2338,2043) dir 2: A #7384 t=1148224 -> none | B #7368 t=721240 -> pillbox_damage #7372 +10
+    abstain_b [jitter, stamps differ by 3] sender 2 shell 1 at (1743,1840) dir 13: A #9286 t=1152178 -> explosion #9289 +7 | B #9270 t=725203 -> none
+    conflict [jitter, stamps differ by 3] sender 2 shell 2 at (1755,1849) dir 13: A #9286 t=1152178 -> shell #9289/0 +7 | B #9270 t=725203 -> explosion #9273 +10
+    conflict [jitter, stamps differ by 1] sender 2 shell 0 at (1911,1985) dir 4: A #9375 t=1152448 -> tank_hit #9379 +9 | B #9359 t=725475 -> shell #9363/0 +8, stitched
+    conflict [jitter, stamps differ by 1] sender 2 shell 1 at (1900,1987) dir 4: A #9375 t=1152448 -> shell #9379/0 +9 | B #9359 t=725475 -> tank_hit #9363 +8
+    conflict [jitter, stamps differ by 3] sender 2 shell 1 at (2301,2066) dir 5: A #12003 t=1161611 -> shell #12007/0 +11 | B #11987 t=734639 -> pillbox_damage #11995 +16
+    abstain_b [jitter, stamps differ by 0] sender 2 shell 0 at (2323,2077) dir 5: A #12007 t=1161622 -> pillbox_damage #12011 +8 | B #11991 t=734647 -> none
+    abstain_a [jitter, stamps differ by 1] sender 3 shell 3 at (2178,1779) dir 11: A #15930 t=1170262 -> none | B #15914 t=743279 -> pillbox_damage #15918 +9
+    abstain_a [jitter, stamps differ by 3] sender 3 shell 4 at (2117,1792) dir 6: A #16158 t=1170730 -> none | B #16142 t=743743 -> shell #16146/5 +12
+    abstain_b [jitter, stamps differ by 0] sender 3 shell 1 at (2044,1909) dir 10: A #21085 t=1181442 -> pillbox_damage #21089 +8 | B #21069 t=754460 -> none
+    conflict [jitter, stamps differ by 2] sender 2 shell 1 at (1919,2275) dir 7: A #24314 t=1188846 -> shell_falls #24318 +9 | B #24298 t=761873 -> shell #24302/0 +7
+    conflict [jitter, stamps differ by 2] sender 2 shell 2 at (1916,2267) dir 7: A #24314 t=1188846 -> shell #24318/0 +9 | B #24298 t=761873 -> shell_falls #24302 +7
+    abstain_b [delay, stamps differ by 20] sender 0 shell 0 at (1835,2134) dir 10: A #25340 t=1191178 -> shell_falls #25344 +28 | B #25324 t=764223 -> none
+    conflict [delay, stamps differ by 20] sender 0 shell 1 at (1820,2146) dir 10: A #25340 t=1191178 -> shell_falls #25344 +28 | B #25324 t=764223 -> shell_falls #25328 +8
+
+=== game c0a81401bd62dc4f: A = 20040907.2-A, B = 20040907.2-B
+  recorders: A slot 1, B slot 2; ring cycle 8 ticks
+  snapshots compared 30284 (24 unaligned, 31 within 100 ticks of the shared stretch's ends); shell observations 21880
+  forward: agree 21833 (none 14, assigned 21819); A abstains 6; B abstains 11; conflict 21; 9 with a target outside the shared stretch
+    jitter: 21636 (assigned and agreed 21598, A abstains 6, B abstains 4, conflict 14)
+    delay: 212 (assigned and agreed 199, A abstains 0, B abstains 6, conflict 7)
+    stall: 23 (assigned and agreed 22, A abstains 0, B abstains 1, conflict 0)
+  birth: agree 8716, A only 29, B only 2, neither 13133
+  weapon: agree 14842, A only 4, B only 2, conflict 0, neither 7032
+  roster elections: 4925 compared, 5 differ (0 taken on one side only)
+  forward disagreements (first 20 of 38):
+    conflict [jitter, stamps differ by 1] sender 2 shell 4 at (2167,2037) dir 5: A #1950 t=1227524 -> pillbox_damage #1954 +7 | B #2729 t=800540 -> pillbox_damage #2733 +8
+    conflict [jitter, stamps differ by 1] sender 2 shell 8 at (2159,2036) dir 5: A #1950 t=1227524 -> pillbox_damage #1954 +7 | B #2729 t=800540 -> pillbox_damage #2733 +8
+    conflict [jitter, stamps differ by 1] sender 0 shell 1 at (1754,1905) dir 2: A #3024 t=1229895 -> shell #3028/1 +9 | B #3803 t=802920 -> explosion #3807 +8
+    conflict [jitter, stamps differ by 2] sender 0 shell 2 at (1844,1964) dir 13: A #4269 t=1232638 -> shell_falls #4273 +9 | B #5048 t=805664 -> shell_falls #5052 +7
+    conflict [jitter, stamps differ by 2] sender 0 shell 3 at (1854,1970) dir 13: A #4269 t=1232638 -> shell_falls #4273 +9 | B #5048 t=805664 -> shell_falls #5052 +7
+    abstain_a [jitter, stamps differ by 2] sender 2 shell 1 at (2303,2259) dir 5: A #6730 t=1237960 -> none | B #7509 t=810977 -> shell #7513/2 +8
+    abstain_a [jitter, stamps differ by 0] sender 2 shell 2 at (2314,2262) dir 5: A #6734 t=1237970 -> none | B #7513 t=810985 -> pillbox_damage #7517 +9
+    abstain_b [delay, stamps differ by 16] sender 1 shell 1 at (2030,1833) dir 7: A #7301 t=1239112 -> shell #7305/1 +25 | B #8080 t=812153 -> none
+    conflict [jitter, stamps differ by 2] sender 2 shell 4 at (1935,2156) dir 6: A #8902 t=1242574 -> pillbox_damage #8905 +10 | B #9681 t=815590 -> pillbox_damage #9684 +8
+    conflict [jitter, stamps differ by 2] sender 2 shell 5 at (1928,2151) dir 6: A #8902 t=1242574 -> pillbox_damage #8905 +10 | B #9681 t=815590 -> pillbox_damage #9684 +8
+    abstain_b [delay, stamps differ by 10] sender 3 shell 0 at (2165,1857) dir 15: A #9623 t=1244195 -> shell #9627/0 +18 | B #10402 t=817230 -> none
+    conflict [jitter, stamps differ by 1] sender 3 shell 0 at (2043,1781) dir 12: A #9703 t=1244421 -> base_damage #9706 +9 | B #10482 t=817447 -> base_damage #10485 +8
+    conflict [jitter, stamps differ by 1] sender 3 shell 2 at (2030,1784) dir 12: A #9703 t=1244421 -> base_damage #9706 +9 | B #10482 t=817447 -> base_damage #10485 +8
+    conflict [delay, stamps differ by 17] sender 3 shell 0 at (2111,2063) dir 5: A #12995 t=1251449 -> shell_falls #12999 +27 | B #13774 t=824490 -> shell_falls #13778 +10
+    conflict [delay, stamps differ by 17] sender 3 shell 1 at (2097,2055) dir 5: A #12995 t=1251449 -> shell_falls #12999 +27 | B #13774 t=824490 -> shell_falls #13778 +10
+    abstain_b [delay, stamps differ by 7] sender 3 shell 2 at (2083,1975) dir 11: A #15709 t=1257569 -> shell #15713/1 +16 | B #16488 t=830601 -> none
+    abstain_a [jitter, stamps differ by 3] sender 1 shell 1 at (2017,1788) dir 13: A #17563 t=1261942 -> none | B #18342 t=834969 -> shell #18346/2 +7
+    abstain_b [jitter, stamps differ by 3] sender 1 shell 2 at (2027,1794) dir 13: A #17563 t=1261942 -> shell #17567/2 +10 | B #18342 t=834969 -> none
+    conflict [jitter, stamps differ by 2] sender 1 shell 1 at (2016,1790) dir 13: A #17575 t=1261969 -> pillbox_damage #17579 +7 | B #18354 t=834992 -> explosion #18358 +9
+    abstain_b [jitter, stamps differ by 2] sender 1 shell 3 at (2013,1781) dir 14: A #17575 t=1261969 -> explosion #17579 +7 | B #18354 t=834992 -> none
+
+=== all 10 pairs: 190593 snapshots, 129251 shell observations
+  forward: agree 128592 (none 176, assigned 128416); A abstains 129; B abstains 91; conflict 393; 46 with a target outside the shared stretch
+    jitter: 127545 (assigned and agreed 126967, A abstains 100, B abstains 60, conflict 242)
+    delay: 1570 (assigned and agreed 1374, A abstains 28, B abstains 25, conflict 143)
+    stall: 90 (assigned and agreed 75, A abstains 1, B abstains 6, conflict 8)
+  birth: agree 48197, A only 152, B only 276, neither 80626
+  weapon: agree 90734, A only 33, B only 41, conflict 3, neither 38440
+  roster elections: 32071 compared, 54 differ (34 taken on one side only)
