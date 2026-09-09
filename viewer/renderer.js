@@ -1450,7 +1450,7 @@ const SHORTCUT_GROUPS = [
 		{ what: "Beginning / end", keys: ["Home", "/", "End"] },
 	] },
 	{ name: "View", rows: [
-		{ what: "Zoom in / out", keys: [cmd_key("="), "/", cmd_key("-")] },
+		{ what: "Zoom out / in", keys: [cmd_key("-"), "/", cmd_key("=")] },
 		{ what: "Centre map", keys: [cmd_key("0")] },
 		{ what: "Player lock", keys: ["L"] },
 		{ what: "Simple graphics", keys: ["G"] },
