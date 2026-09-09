@@ -21,6 +21,7 @@
 				<div>
 					<h1>Ancient Bolo Log Viewer</h1>
 					<p id="dropHintText">Starting up...</p>
+					<p id="dropHintKeys" hidden>Press <kbd>?</kbd> for keyboard shortcuts.</p>
 					<p id="dropHintLink" hidden>For more information, see <a href="https://github.com/rooklift/ancient_bolo_parser" target="_blank" rel="noopener">github.com/rooklift/ancient_bolo_parser</a></p>
 				</div>
 			</div>
@@ -46,6 +47,7 @@
 				</select>
 				<select id="viewpoint" title="Player used for friendly colours and player lock"></select>
 				<span id="zoomLabel"></span>
+				<button id="helpBtn" title="Keyboard and mouse shortcuts (?)" aria-expanded="false" hidden>?</button>
 			</div>
 		</div>
 		<div id="sidebar">
@@ -133,6 +135,13 @@
 			<div id="exportBar"><div id="exportBarFill"></div></div>
 			<div id="exportLabel" class="hint"></div>
 			<button id="exportCancel">Cancel</button>
+		</div>
+	</div>
+	<div id="shortcutSheet" class="hidden">
+		<div id="shortcutBox" role="dialog" aria-label="Keyboard and mouse shortcuts">
+			<h1>Keyboard &amp; mouse</h1>
+			<div id="shortcutGroups"></div>
+			<div id="shortcutFoot" class="hint">Esc, ? or a click closes this. Any other shortcut closes it and does its job.</div>
 		</div>
 	</div>
 	<input type="file" id="filePick" hidden>
