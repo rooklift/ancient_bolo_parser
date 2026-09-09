@@ -47,9 +47,10 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
 - **Armour.** A tank holds 9 armour and dies on the ninth net hit
   **(owner; measured)**: replaying every life at 9, minus 1 per `FC` hit,
   plus 1 per `Dn` drain capped at 9, ends 12,375 of 15,443 shell deaths at
-  exactly 0, where 8 ends them at −1; most of the rest are hits logged twice
-  by two senders, and the 7% with armour to spare are the size mine damage
-  would leave. The game displays 8 bars and the tank dies when
+  exactly 0, where 8 ends them at −1; the rest below 0 are largely hits that
+  reached a tank already dead, credited to its next life (not double logging:
+  no hit is reported twice, [E:hit-reporter]), and the 7% with armour to spare are
+  the size mine damage would leave. The game displays 8 bars and the tank dies when
   hit at 0, which is the same count **(owner)**. Driving over a mine removes
   3, floored at 0, and a tank on its last 2 points is lost outright: in
   display bars 8 → 5, 3 → 0, 2 → 0, and 1 or 0 → lost; in the 9-scale

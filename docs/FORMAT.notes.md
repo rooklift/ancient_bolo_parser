@@ -34,6 +34,7 @@ Corpus figures are from the 443-log set unless an entry says 446, in which case 
 - [`[E:muzzle]`](#emuzzle-the-opening-frame-does-not-fell-the-firers-tree) — the opening frame does not fell the firer's tree
 - [`[E:shell-birth-sector]`](#eshell-birth-sector-a-shell-born-on-a-sector-boundary-is-listed-a-sector-off-for-life) — a shell born on a sector boundary is listed a sector off for life
 - [`[E:shell-passthrough]`](#eshell-passthrough-apparent-pass-throughs-are-identity-errors) — apparent pass-throughs are identity errors
+- [`[E:hit-reporter]`](#ehit-reporter-the-fc-hit-is-sent-by-the-shells-simulator) — the `FC` hit is sent by the shell's simulator
 
 **Pillboxes**
 
@@ -308,6 +309,16 @@ That last point defends against *offset decoding*, which is a different problem 
 
 Two pillboxes firing on one line at different cadences is the ordinary case for this, and it is also the case that generates most apparent pass-throughs. A corner-graze filter alone removes 80% of naive hits, and of what survives, 839 of 1,126 are pills at armour 0. The live-pill residue has not been shown to survive proper identity tracking, and the working assumption is that it does not.
 
+### [E:hit-reporter] — the `FC` hit is sent by the shell's simulator
+
+The `FC dn` packet comes from the machine simulating the shell, never from the tank it hit as such. `tools/measure-hit-reporter.cjs` over the 22 fixture logs (14,197 hits) looks for a shell heading `d` within 48 px of the victim's last position in every machine's previous record, and for a shot (`5d`) or a pill fire at the sender (`F4`) in direction `d` inside 20 ticks where no shell was ever listed (a point-blank shell lands before its first restatement).
+
+**Sender is the victim: 11,132 (78%).** The victim's own previous lists carry the shell in 10,439, and a pill fired `d` at the victim inside 20 ticks in 678 more — pill shells, which the target simulates [E:pill-shell-migration]. In 0 cases was the shell in another machine's lists only; 15 are unexplained.
+
+**Sender is another player: 3,065 (22%).** The sender's own previous lists carry the shell in 2,432, the sender fired `d` point-blank in 521, and the shell is in the sender's lists a sector off in 34 [E:shell-birth-sector]. In 0 cases was the shell only in the victim's lists, in 0 only in a third machine's; 78 are unexplained, all with a shot by the sender in direction `d` inside 3 s but no shell within 48 px of the victim's last stated position. Split by what the sender did in direction `d` in the previous 3 s: a tank shot only 2,281, a pill fire at the sender only 654, both 128, neither 2. The 654 are the third class of hit — **a pill shell striking a tank other than its target**, reported by the target because it simulates the pill — and the tank hit stays silent (it reported the same direction within 2 ticks in 9, coincident pill fire at both). `fixtures/040601.6` records 7617–7626 are a clean one: a pill fires at hawk, hawk restates the `d11` shell four times closing on his own tank, crow's tank sits in its path at 2127,1916, hawk sends `FC` on tank 1 and the shell leaves his lists; crow's next record is a bare position.
+
+**No hit is logged twice.** Same-victim same-direction hits from two senders within 2 ticks — the only shape a duplicate could take — occur 24 times, in 9 lives that end in a shell death, and replaying each life's armour (9, −1 per `FC`, +1 per armour drain capped at 9) ends every one of the 9 at exactly 0: both hits were real, a pill shell simulated by the victim and a tank shell simulated by its shooter arriving together from one side. `fixtures/040601.6` records 9283–9290 show it, each sender's `d0` list losing one shell as it reports. The −1/−2 tail of the armour replay in [E:gameplay] was put down to such double logging; on the fixtures no life ending below 0 contains a two-sender pair, and half of them (84 of 171) instead carry a hit inside 2 s of the previous death record, where lives ending at 0 almost never do (3 of 517) — mostly a shooter's shell reaching a tank its machine had not yet seen die, credited to the next life — which is itself the reporter following the simulation rather than the tank.
+
 ## Pillboxes
 
 ### [E:pill-shell-migration] — pill shells ride in the simulating machine's lists
@@ -484,7 +495,7 @@ On the corrected model ([E:dump-terrain]) the row reads **8 cases, 0 floods**: t
 
 The numbers in GAMEPLAY.md tagged *measured* come from `tools/measure-gameplay.cjs`, first over the two fixture logs and a third 7-minute replay (`docs/corpus_runs/47a58d7-gameplay.txt`) and then over the 443-log corpus (`docs/corpus_runs/7d633c0-gameplay.txt`, 13.3 million records, 11,682 minutes); the corpus figures are quoted here. Timings read from restatements are quantised to the sender's record cadence, which is why cadence-bound medians (reload, refuel spacing) sit a tick or two above the fine-cadence value, and the turn intervals round up on coarse logs.
 
-**Tank armour 9** — replaying each life at 9, −1 per `FC` hit, +1 per `Dn` capped at 9, puts 12,375 of 15,443 shell deaths at exactly 0, where 8 gives −1 and 10 leaves 1; the −1 and −2 tail (1,835) matches hits logged twice within 2 ticks by two senders (2,125 corpus-wide), and the 1,136 with armour left are the size mine damage would leave; the 775 drownings (`F9` code 3) carry 0–8 hits.
+**Tank armour 9** — replaying each life at 9, −1 per `FC` hit, +1 per `Dn` capped at 9, puts 12,375 of 15,443 shell deaths at exactly 0, where 8 gives −1 and 10 leaves 1; the −1 and −2 tail (1,835) was put down to hits logged twice within 2 ticks by two senders (2,125 corpus-wide), but on the fixtures those coincidences are two real shells and the tail is hits landing on a tank already dead ([E:hit-reporter]), and the 1,136 with armour left are the size mine damage would leave; the 775 drownings (`F9` code 3) carry 0–8 hits.
 
 **Speed byte = pixels per tick × 64** — byte 64 moves 1.00 px/tick, 48 moves 0.75, 24 moves 0.375; terrain medians road 57, boat 62, grass 48, forest 24, river 12, swamp 13, the owner's 16:12:6:3 exactly.
 
