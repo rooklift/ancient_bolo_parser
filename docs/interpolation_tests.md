@@ -1599,6 +1599,110 @@ terminals +2,569, pop-outs -15%, the order inversions back at 188
 against 191, the steady rate over unstalled links within 0.0002 of the
 baseline's.
 
+## The pair after a stall carries two readings as well -- `40e92f6`, `92043d9`, `800f57c`
+
+The stall sections above read the pair that spans a stall two ways
+and left the pair after it on the stamps. A replay from the 2001
+corpus (`20011221D`, a four-player game on a seven-tick ring) showed
+what that misses. One sender's records ran 554393, 554407, 554414:
+a fourteen-tick gap, eight ticks of excess, then seven. Its three
+shells advanced 12 px over the fourteen ticks -- the stall of the
+first kind, contents on the cadence and only the stamp late -- and
+then 29 px over the seven: the ring caught up, the next record came
+on time, and its contents spanned the seven ticks plus the eight the
+delayed record had lagged by. Over the stamps alone 29 px is two
+updates past the tolerance on a seven-tick pair, so every
+continuation was refused, all three chains broke on the record after
+the stall, and the delayed record's stale statements were left as
+orphan fragments: the joining passes glued one of them, through a
+dilated join, onto the end of an earlier shell whose tank hit had
+gone unmatched (the box was the recorder's picture of the victim,
+seventeen pixels east of the shooter's), and the trailing shell,
+its successor taken, popped out.
+
+So the pair after a stall carries two readings too, the mirror
+image: the stamps, and the stamps plus the stall that delayed its
+first record (each snapshot records that stall as `stall_before`).
+Every candidate is scored against whichever reading it fits better,
+as on the stalled pair; the longer reading bounds the flight and the
+two birth windows, since a record stamped late states contents from
+before its stamp. Under the second kind of stall, or a cadence that
+shifted and stayed shifted, the stamps' reading wins as before. The
+longer-reading parameter the leaf matchers take is renamed from
+`stamped_duration`, since it is no longer always the stamps.
+
+A pair that both follows a stall and spans one has four readings --
+each record's contents stale by its stall or not -- and the first cut
+(`40e92f6`) kept the two extremes. On the corpus that put a pill's
+two shells on the two extremes over one pair, one advanced six steps
+and the other fifteen, a distance-order inversion; `92043d9` passes
+the stamps down as well, so the stamps and their mirror are scored
+too, and away from a double stall the four collapse to the same two.
+
+The scene itself now reconstructs as the lockstep reads it: the
+three chains run straight to their own falls, and the drawing-only
+smoother re-times the stale statements onto each chain's line, so
+nothing crawls or sprints. The unmatched tank hit is untouched and
+that shell still ends with no fate -- a separate problem, the
+victim's box a ring round or two fresher than the shooter's.
+
+The unit test (`test/test-viewer.cjs`, "the pair after a stall is
+read over the stamps plus the stall") builds the shape by hand: a
+seven-tick cadence, one record stamped seventeen ticks late with
+contents ten ticks stale, the next on time with a 34 px hop that the
+control without the stall refuses. It fails on `fb4bd12`.
+
+The pairs, the metric the stall work was built against
+(`800f57c-paired-audit.txt`, `800f57c-pairs-report.txt`,
+`800f57c-pairs-audit.txt`): the two builds of a game disagreed on 693
+forward stories at `fb4bd12` and on **625** now (A abstains 134 ->
+133, B 130 -> 101, conflicts 429 -> 391), with the delayed links the
+ones that moved (conflicts 187 -> 140), and the roster elections that
+differ between the two builds 96 -> 54. Coverage over the twenty pair
+logs: `shells_matched_forward` 258,906 -> **258,966**,
+`shells_unlinked` 352 -> **317**, `terminals_matched` 54,815 ->
+**54,869** (`pillbox_damage` +19, `tank_hit` +12, `shell_falls` +12,
+`explosion` +8, `base_damage` +3), `rate_terminals_matched` 0.827571
+-> 0.828386, `pairs_pill_order_inverted` 6 -> **5**; the drawn
+audit's `pop_outs` 783 -> **723**, `hover_links` 191 -> 171,
+`rush_links` 20 -> 28 under `92043d9` and **13** with the delayed head
+slid (`800f57c`), `rate_links_steady` 0.960062 -> 0.961219.
+
+The drawn speed. The stalled-pair sections settled that the drawing
+keeps the stamps. A link out of the delayed record is then the
+mirror of a link into it: where the longer reading was the truth its
+contents span more than its stamps, so it draws fast. Inside a chain
+the smoother re-times it -- the stale statement slides forward along
+the line -- and the drawn audit counts the links out of a delayed
+record apart (`links_after_stall`, `rush_links_after_stall`,
+`rate_rush_links_unstalled`), the way it counts the stalled links.
+The corpus (`92043d9` in the corpus file) then showed 335 more links
+over 3 px/tick, and that counter blamed only 52 of them on the record
+after the stall. Diffing the rushed links between the two engines
+found the rest: smoothed chains, three and four links long at 3.1 to
+3.6 px/tick, whose HEAD was the delayed record's statement. The
+smoother anchors on the head, and a head stamped late by the whole
+stall drags the chain: the lie sits inside the along-track bound, so
+the smoother spreads it over every link rather than refusing. The
+tail already had a pre-smoothing slide for its stale-anchor case,
+and the post-smoothing head slide only trims what the smoother
+leaves. So a head stated by a delayed record now slides forward
+along its raw first link by the excess before smoothing
+(`slide_delayed_chain_heads`, `800f57c`), the smoother anchors on the
+slid position, and the chain draws at 2 px/tick from an honest
+anchor; heads elsewhere keep the measured post-smoothing slide. The
+second hand-built scene in the same test pins it: a head first seen
+on the delayed record, 20 px behind where the on-time records put
+it, slides those 20 px and the links after it draw at true speed.
+
+The committed fixtures: both byte-identical to `fb4bd12` (the clean
+game has no link on the record after a stall either). Corpus:
+`92043d9` in [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md)
+-- against `fb4bd12` matched forward +1,137, unlinked 9,708 -> 9,078,
+terminals +945, pop-outs -5%, the order inversions 188 -> 173, the
+contradictions still 14, and with the head slide rushed links 7,473
+-> 7,365 and the steady rate 0.965741 -> 0.966639.
+
 ## Where the line stands -- `0263483`
 
 The same three headline rates at the points a reader is likely to want,
@@ -1616,6 +1720,7 @@ all on the fixture, all from the sections above:
 | a base is damaged only by tank shells | 0.996461 | 0.001600 | 0.860976 |
 | a turning tank's shell carries the nibble's sector | 0.996502 | 0.001586 | 0.861142 |
 | a stalled pair carries two readings | 0.996529 | 0.001586 | 0.861225 |
+| the pair after a stall carries two readings as well | 0.996529 | 0.001586 | 0.861225 |
 
 * **Every headline record is held by the current head.** Unlinked
   shells are down to 117, roughly a tenth of the branch point's rate; forward
