@@ -1520,6 +1520,12 @@ if (WEB) {
 	 * out from under the release, and the drop hint below it opens the
 	 * file picker when clicked. */
 	shortcut_sheet_el.addEventListener("click", () => set_shortcut_sheet(false));
+	/* the start screen's own line opens the sheet rather than a log: the
+	 * whole hint around it is the open button, so the click stops here */
+	drop_hint_keys.addEventListener("click", e => {
+		e.stopPropagation();
+		set_shortcut_sheet(true);
+	});
 }
 
 window.addEventListener("keydown", e => {

@@ -66,6 +66,7 @@ body {
 #dropHintLink { margin-top: 8px; }
 /* Set well below the rest: it's the afterthought, not part of how to open a log. */
 #dropHintKeys { margin-top: 56px; }
+#dropHintKeys:hover { color: #cfd6e4; }		/* its own click target, not part of the open button */
 #dropHintLink a { color: #5b8def; }
 #dropHint.hidden { display: none; }
 
