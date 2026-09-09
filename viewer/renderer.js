@@ -1550,7 +1550,9 @@ window.addEventListener("keydown", e => {
 	 * canvas already uncovered when the change lands. */
 	if (WEB && e.key === "?" && !e.ctrlKey && !e.metaKey && !e.altKey) {
 		e.preventDefault();
-		set_shortcut_sheet(!shortcut_sheet_open);
+		/* held down, it toggles once: the repeats are swallowed here
+		 * rather than falling through to the dismissal below */
+		if (!e.repeat) set_shortcut_sheet(!shortcut_sheet_open);
 		return;
 	}
 	if (shortcut_sheet_open) {
