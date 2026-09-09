@@ -146,6 +146,11 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
 - A shell destroys a boat, whether or not a tank is in it **(owner)**. The
   square reverts to river **(corpus: 3,381 boat-to-river impacts,
   [E:terrain-hits])**.
+- A tank sailing in a boat over a boat square destroys that boat, keeping
+  its own; the square reverts to river, evented as `7 1` by the sailing
+  tank's owner **(owner; fixtures, [E:boat-over-boat]: 150 of 179
+  boat-to-river events have the sender in a boat on or beside the
+  square)**.
 - **What a shell flies over, and what stops it.** A shell passes over
   river, swamp, crater, road, rubble and grass, mined or not, and over deep
   sea; it is stopped by, and damages, building, shot building, forest and

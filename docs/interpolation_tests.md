@@ -1841,9 +1841,12 @@ the fixture, all 240 of them:
 | same-record shot, first of a point-blank burst | 11 |
 | same-record shot, no repeat | 8 |
 
-By code, 144 turn the square to river and 77 to crater. A crater on
-the sender's own square with no shot is the tank driving over a
-mine; the river ones cluster round a dead player's parachuting man.
+Read against the terrain under each square: the 144 that turn a
+square to river are boats destroyed by the sender sailing its own
+boat over them (FORMAT.md [E:boat-over-boat]), the craters are 55
+mines detonating under other tanks, 17 dying tanks' terminal craters
+and 5 the sender's own tank on a mine. The `7T` packet carries all
+of these besides shell impacts, and the mine plant and superboom.
 None of the 221 is a shell impact, but `game.js` makes a shell
 terminal of every `7T` except the mine plant and the superboom, so
 they sit in the unmatched-terminal denominator with nothing that

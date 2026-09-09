@@ -66,6 +66,7 @@ Corpus figures are from the 443-log set unless an entry says 446, in which case 
 - [`[E:mine-persists]`](#emine-persists-a-mine-survives-a-terrain-change) — a mine survives a terrain change
 - [`[E:crater-water]`](#ecrater-water-a-crater-on-open-water-is-a-no-op-a-boat-craters-and-floods) — a crater on open water is a no-op; a boat craters and floods
 - [`[E:boat]`](#eboat-boarding-consumes-the-boat-with-no-event) — boarding consumes the boat with no event
+- [`[E:boat-over-boat]`](#eboat-over-boat-sailing-over-a-boat-destroys-it) — sailing over a boat destroys it
 - [`[E:base-road]`](#ebase-road-a-bases-square-behaves-as-road) — a base's square behaves as road
 - [`[E:terrain-hits]`](#eterrain-hits-what-a-shell-flies-over-what-stops-it-and-what-it-does-to-the-ground) — what a shell flies over, what stops it, and what it does to the ground
 
@@ -646,6 +647,12 @@ For playback the consequence is that a `7 3` on river or deep sea must be droppe
 ### [E:boat] — boarding consumes the boat with no event
 
 All 38 sample boardings sit on terrain 9, none has a terrain event.
+
+### [E:boat-over-boat] — sailing over a boat destroys it
+
+A tank in a boat that sails over a boat square destroys the square's boat, which reverts to river by a `7 1` from the sailing tank's owner; the tank keeps its own boat (owner). On the two fixtures the 181 `7 1` events are 179 on boat terrain, and of those 157 are sent by a player whose tank is in a boat, 150 of them with the tank on the square or the one next to it in the same record (the position is stated after the crossing, a boat moving about 13 px a record); the 22 by a player not in a boat are shell impacts, the shell listed or the shot in the record (GAMEPLAY.md: a shell destroys a boat). The other two `7 1` are on river and road.
+
+The consequence for a reader is that a `7T` is not a shell impact by default. Over the fixture's 240 terrain events the engine could tie to no shell, 144 are these boat losses, 55 mines detonating under someone else, 17 dying tanks' terminal craters, 5 the sender's own tank on a mine, and 19 point-blank shells (`docs/interpolation_tests.md`, "What the residue is made of").
 
 ### [E:base-road] — a base's square behaves as road
 
