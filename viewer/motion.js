@@ -340,16 +340,31 @@ function stall_excess_by_record(records) {
 	return excess;
 }
 
-/* Around a stall a pair carries two readings of its interval (see
- * STALL_GAP_CYCLES; `duration` is the shorter, `long_duration` the
- * longer): the flight a candidate's distance is scored against is
- * whichever reading it fits better. */
-function nearest_expected_distance(distance, duration, long_duration) {
+/* Around a stall a pair carries several readings of its interval (see
+ * STALL_GAP_CYCLES; `duration` is the shortest, `long_duration` the
+ * longest, `stamped_duration` the stamps'): the flight a candidate's
+ * distance is scored against is whichever reading it fits best. A
+ * pair that both follows a stall and spans one has four -- each
+ * record's contents stale by its stall or not -- and the stamps and
+ * their mirror sit between the extremes; elsewhere the four collapse
+ * to two. */
+function nearest_expected_distance(distance, duration, long_duration,
+	stamped_duration = long_duration) {
 	let short = duration * SHELL_SPEED_PIXELS_PER_TICK;
 	if (long_duration === duration) return short;
-	let long = long_duration * SHELL_SPEED_PIXELS_PER_TICK;
-	return Math.abs(distance - long) < Math.abs(distance - short)
-		? long : short;
+	let readings = [short, long_duration * SHELL_SPEED_PIXELS_PER_TICK];
+	if (stamped_duration !== duration && stamped_duration !== long_duration) {
+		readings.push(stamped_duration * SHELL_SPEED_PIXELS_PER_TICK,
+			(duration + long_duration - stamped_duration) *
+				SHELL_SPEED_PIXELS_PER_TICK);
+	}
+	let best = short;
+	for (let reading of readings) {
+		if (Math.abs(distance - reading) < Math.abs(distance - best)) {
+			best = reading;
+		}
+	}
+	return best;
 }
 
 function build_tank_positions(records) {
@@ -615,10 +630,10 @@ function track_pixel_at(track, tick) {
 }
 
 function shell_match_cost(previous, next, duration,
-	long_duration = duration) {
+	long_duration = duration, stamped_duration = long_duration) {
 	if (previous.direction !== next.direction) return null;
 	let orbit_states = pillbox_shell_successor_states(previous, next, duration,
-		long_duration);
+		long_duration, stamped_duration);
 	if (orbit_states && !orbit_states.length) return null;
 	if (orbit_states) {
 		let cost = Math.min(...orbit_states.map(state => state.cost));
@@ -644,7 +659,7 @@ function shell_match_cost(previous, next, duration,
 	let delta_y = next.pixel_y - previous_pixel_y;
 	let distance = Math.hypot(delta_x, delta_y);
 	let expected_distance = nearest_expected_distance(distance, duration,
-		long_duration);
+		long_duration, stamped_duration);
 	let distance_error = Math.abs(distance - expected_distance);
 	if (distance_error > SHELL_MATCH_ERROR_PIXELS || distance === 0) return null;
 	let heading_x = previous.heading_x;
@@ -949,7 +964,7 @@ function refine_pillbox_orbits_from_shell_lists(snapshot) {
 }
 
 function pillbox_shell_successor_states(previous, next, duration,
-	long_duration = duration) {
+	long_duration = duration, stamped_duration = long_duration) {
 	if (!previous.pillbox_orbit_states) return undefined;
 	let relative_x = next.pixel_x - previous.pillbox_source_x;
 	let relative_y = next.pixel_y - previous.pillbox_source_y;
@@ -971,7 +986,7 @@ function pillbox_shell_successor_states(previous, next, duration,
 			let distance = Math.hypot(position[0] - previous_position[0],
 				position[1] - previous_position[1]);
 			let cost = Math.abs(distance - nearest_expected_distance(distance,
-				duration, long_duration));
+				duration, long_duration, stamped_duration));
 			let dilated = cost > SHELL_MATCH_ERROR_PIXELS;
 			if (dilated) {
 				if (step - previous_state.step > step_window) continue;
@@ -1002,7 +1017,7 @@ function pillbox_shell_successor_states(previous, next, duration,
 
 function pillbox_shell_terminal_match(previous, terminal, duration, start_time,
 	lead_pixels = 0,
-	long_duration = duration) {
+	long_duration = duration, stamped_duration = long_duration) {
 	if (!previous.pillbox_orbit_states) return undefined;
 	let matches = [];
 	for (let previous_state of previous.pillbox_orbit_states) {
@@ -1116,7 +1131,7 @@ function pillbox_shell_terminal_match(previous, terminal, duration, start_time,
 				match.pixel_y - previous.pixel_y);
 		}
 		match.cost = Math.abs(match.distance - nearest_expected_distance(
-			match.distance, duration, long_duration));
+			match.distance, duration, long_duration, stamped_duration));
 		/* Same rule as the ordinary branch below: a match only reachable
 		 * through the lead allowance carries the dilated penalty, so an
 		 * in-window story is always preferred. The stamps bound the flight. */
@@ -1302,7 +1317,7 @@ function shell_from_pillbox(shell) {
 
 function shell_terminal_match(previous, terminal, duration, start_time,
 	lead_pixels = 0, pillbox_lead_pixels = lead_pixels,
-	long_duration = duration) {
+	long_duration = duration, stamped_duration = long_duration) {
 	if (terminal.direction !== null &&
 		terminal.direction !== shell_sector(previous)) return null;
 	if (!terminal_takes_pillbox_shell(terminal) && shell_from_pillbox(previous)) {
@@ -1315,7 +1330,7 @@ function shell_terminal_match(previous, terminal, duration, start_time,
 	 * no lead and keeps the strict window for both branches; the diagnostics
 	 * still pass the two leads separately to relax one constraint at a time. */
 	let pillbox_match = pillbox_shell_terminal_match(previous, terminal, duration,
-		start_time, pillbox_lead_pixels, long_duration);
+		start_time, pillbox_lead_pixels, long_duration, stamped_duration);
 	if (pillbox_match !== undefined) return pillbox_match;
 	/* the pair's longer reading bounds the flight; the cost reads against
 	 * the nearer of the two */
@@ -1362,7 +1377,7 @@ function shell_terminal_match(previous, terminal, duration, start_time,
 		let lead_penalty = endpoint.distance > long_distance +
 			SHELL_MATCH_ERROR_PIXELS ? DILATED_JOIN_PENALTY_PIXELS : 0;
 		let expected_distance = nearest_expected_distance(endpoint.distance,
-			duration, long_duration);
+			duration, long_duration, stamped_duration);
 		matches.push({
 			cost: lead_penalty +
 				Math.abs(endpoint.distance - expected_distance) +
@@ -2459,8 +2474,9 @@ function match_shell_snapshots(previous, next) {
 	 * the first record, whose contents may predate its stamp by that
 	 * much, is the longer. Both coincide with the stamps away from a
 	 * stall. The shorter gates the window and the longer bounds the
-	 * flight. (A pair that both follows a stall and spans one has four
-	 * readings; the two extremes are kept.) */
+	 * flight; a pair that both follows a stall and spans one has four
+	 * readings, and the stamps are passed on so the two between the
+	 * extremes are scored too (nearest_expected_distance). */
 	let stamped_duration = next.time - previous.time;
 	let duration = Math.max(0, stamped_duration - (next.stall_before ?? 0));
 	let long_duration = stamped_duration + (previous.stall_before ?? 0);
@@ -2489,10 +2505,10 @@ function match_shell_snapshots(previous, next) {
 			if (target.terminal) {
 				if (duration > MAX_POSITION_INTERPOLATION_TICKS) continue;
 				match = shell_terminal_match(previous.shells[previous_index], target,
-					duration, previous.time, 0, 0, long_duration);
+					duration, previous.time, 0, 0, long_duration, stamped_duration);
 			} else {
 				match = shell_match_cost(previous.shells[previous_index], target,
-					duration, long_duration);
+					duration, long_duration, stamped_duration);
 				if (match) {
 					match.pixel_x = target.pixel_x;
 					match.pixel_y = target.pixel_y;
