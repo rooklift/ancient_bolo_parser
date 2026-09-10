@@ -321,6 +321,27 @@ if (!fs.existsSync(log1)) {
 			[9547346, 9547367, true, true],
 			[9547346, 9547367, true, false],
 		]]);
+		/* The tank-side axis (score_tank_order): same-sector pairs of one
+		 * tank's shells, which keep their order along the heading since a
+		 * shell outruns a tank two to one. The fixture carries one
+		 * inversion, an identity swap between two eastbound shells on one
+		 * line -- the crossing and the non-crossing assignment cost the
+		 * same total distance, and the stitch took the crossing -- and
+		 * one blurred flip, pinned as measured. */
+		let tank_order = { pairs: 0, kept: 0, blurred: 0, inverted: 0 };
+		let tank_inversions = [];
+		for (let snapshots of game.shell_positions) {
+			let part = BoloMotion.score_tank_order(snapshots);
+			for (let key of Object.keys(tank_order)) tank_order[key] += part[key];
+			tank_inversions.push(...part.examples);
+		}
+		check("fixture tank pairs scored on along-heading order", [
+			tank_order.pairs, tank_order.kept, tank_order.blurred,
+			tank_order.inverted,
+			tank_inversions.map(record => [record.time, record.next_time,
+				record.sector, record.leader_next.stitched,
+				record.trailer_next.stitched]),
+		], [9129, 9127, 1, 1, [[9713165, 9713188, 4, true, false]]]);
 	}
 
 	let pill_burst = { total: 0, matched: 0 };
@@ -3186,6 +3207,181 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	check("links into different snapshots make no pair", tally(excluded),
 		[0, 0, 0, 0]);
 }
+// The tank-side order scorer on hand-built snapshots: two tank-born
+// shells of one sector are read along the sector's centre line (sector 4
+// is east, so along = pixel_x); a swap is inverted when both gaps clear
+// the three-pixel spread plus chained-offset slack, blurred inside it.
+// Different sectors, pill shells and unattributed shells make no pair.
+{
+	const BoloMotion = require("../viewer/motion.js");
+	let shell = (along, options = {}) => ({
+		pixel_x: along, pixel_y: 100, direction: 4, starts_at_tank: true,
+		position_uncertainty: 0, ...options,
+	});
+	let pair = (before, after, options = [{}, {}]) => {
+		let [leader, trailer] = before.map((along, i) => shell(along, options[i]));
+		let [leader_next, trailer_next] = after.map(along => shell(along));
+		leader.next_shell = leader_next;
+		trailer.next_shell = trailer_next;
+		return [{ time: 0, shells: [leader, trailer] },
+			{ time: 8, shells: [leader_next, trailer_next] }];
+	};
+	let tally = snapshots => {
+		let score = BoloMotion.score_tank_order(snapshots);
+		return [score.pairs, score.kept, score.blurred, score.inverted];
+	};
+	check("tank order kept", tally(pair([132, 120], [148, 136])), [1, 1, 0, 0]);
+	check("tank order inverted", tally(pair([132, 120], [136, 148])),
+		[1, 0, 0, 1]);
+	check("tank order flip inside the spread is blurred",
+		tally(pair([122, 120], [136, 138])), [1, 0, 1, 0]);
+	let example = BoloMotion.score_tank_order(pair([132, 120], [136, 148]))
+		.examples[0];
+	check("tank inversion example names the sector, leader and trailer", [
+		example.weapon, example.sector, example.time, example.next_time,
+		example.gap_before, example.gap_after,
+		example.leader.distance, example.leader_next.distance,
+		example.trailer.distance, example.trailer_next.distance,
+	], ["tank", 4, 0, 8, 12, 12, 132, 136, 120, 148]);
+	/* A chained-offset member widens the tolerance by its one-sided box:
+	 * a ten-pixel swap, inverted on heads, is blurred on list index 3
+	 * shells at both ends. */
+	check("tank order ten-pixel swap on heads is inverted",
+		tally(pair([130, 120], [136, 146])), [1, 0, 0, 1]);
+	let chained = pair([130, 120], [136, 146]);
+	for (let snapshot of chained) {
+		for (let member of snapshot.shells) member.position_uncertainty = 3;
+	}
+	check("tank order swap on chained members is blurred", tally(chained),
+		[1, 0, 1, 0]);
+	/* A turning shell's corrected sector, not its list label, is the
+	 * heading read; a shell listed one sector off its true one pairs
+	 * with the shells of the true sector. */
+	check("corrected sector pairs the turning shell", tally(pair(
+		[132, 120], [148, 136], [{ direction: 3, sector: 4 }, {}])),
+		[1, 1, 0, 0]);
+	check("different sectors make no pair", tally(pair(
+		[132, 120], [148, 136], [{ direction: 3 }, {}])), [0, 0, 0, 0]);
+	check("a pill shell makes no tank pair", tally(pair(
+		[132, 120], [148, 136],
+		[{ pillbox_source_x: 0, pillbox_source_y: 0 }, {}])), [0, 0, 0, 0]);
+	check("an unattributed shell makes no tank pair", tally(pair(
+		[132, 120], [148, 136], [{ starts_at_tank: false }, {}])),
+		[0, 0, 0, 0]);
+	let excluded = pair([132, 120], [136, 148]);
+	excluded[0].shells[0].next_terminal = true;
+	check("terminal-bound tank member makes no pair", tally(excluded),
+		[0, 0, 0, 0]);
+}
+// The tank lockstep on hand-built candidate tables: every live shell of
+// one tank flew the same distance between two statements, so one common
+// pixel advance must explain a non-terminal candidate of every tank shell
+// that has any, and candidates no common advance supports are pruned.
+// Two shells 12 px apart on one line, both restated 28 px on, in an
+// interval whose stall-widened readings also accept a 40 px hop: the
+// trailer's hop onto the leader's true position ties its own true
+// continuation on cost, and the lockstep breaks the tie.
+{
+	const BoloMotion = require("../viewer/motion.js");
+	let tank_shell = (pixel_x, options = {}) => ({
+		pixel_x, pixel_y: 100, direction: 4, starts_at_tank: true,
+		position_uncertainty: 0, ...options,
+	});
+	let target = (pixel_x, options = {}) => ({
+		pixel_x, pixel_y: 100, position_uncertainty: 0, ...options,
+	});
+	let table = (previous_shells, targets, links) => {
+		let by_previous = previous_shells.map(() => []);
+		let by_next = targets.map(() => []);
+		for (let [previous_index, next_index] of links) {
+			let candidate = {
+				previous_index, next_index, target: targets[next_index],
+				pixel_x: targets[next_index].pixel_x,
+				pixel_y: targets[next_index].pixel_y,
+			};
+			by_previous[previous_index].push(candidate);
+			by_next[next_index].push(candidate);
+		}
+		return { by_previous, by_next };
+	};
+	let shape = ({ by_previous, by_next }) => [
+		by_previous.map(choices => choices.map(candidate => candidate.next_index)),
+		by_next.map(choices => choices.map(candidate => candidate.previous_index)),
+	];
+	let enforce = (previous_shells, table) => [
+		BoloMotion.enforce_tank_lockstep_candidates(previous_shells,
+			table.by_previous, table.by_next),
+		...shape(table),
+	];
+	/* Leader at 100, trailer at 88; restated at 128 and 116. The trailer's
+	 * 40 px hop onto the leader's restatement is pruned: the leader has
+	 * only its 28 px continuation, so 28 is the one common advance. */
+	let shells = [tank_shell(100), tank_shell(88)];
+	let targets = [target(128), target(116), target(140)];
+	check("tank lockstep prunes the hops no common advance explains",
+		enforce(shells, table(shells, targets, [[0, 0], [1, 1], [1, 0]])),
+		[true, [[0], [1]], [[0], [1], []]]);
+	/* Give the leader a 40 px hop of its own (a stray target at 140) and
+	 * 40 is a common advance too: both stories survive, nothing is pruned. */
+	check("tank lockstep keeps every jointly consistent story",
+		enforce(shells, table(shells, targets,
+			[[0, 0], [0, 2], [1, 1], [1, 0]])),
+		[false, [[0, 2], [1, 0]], [[0, 1], [1], [0]]]);
+	check("tank lockstep stands down when no common advance exists",
+		enforce(shells, table(shells, targets, [[0, 2], [1, 1]])),
+		[false, [[2], [1]], [[], [1], [0]]]);
+	check("tank lockstep leaves a lone constrained shell alone",
+		enforce(shells, table(shells, targets, [[0, 0], [0, 2]])),
+		[false, [[0, 2], []], [[0], [], [0]]]);
+	/* Terminal candidates are neither counted nor pruned, and a shell
+	 * that may have died abstains: with both shells offered the terminal
+	 * there is no voter left. */
+	let with_terminal = [target(128), target(116),
+		{ terminal: true, pixel_x: 140, pixel_y: 100 }];
+	check("tank lockstep ignores terminal candidates",
+		enforce(shells, table(shells, with_terminal,
+			[[0, 0], [0, 2], [1, 1], [1, 2]])),
+		[false, [[0, 2], [1, 2]], [[0], [1], [0, 1]]]);
+	/* A leader that may have hit has a spurious 16 px hop onto its
+	 * trailer's restatement as its only continuation. It must not set the
+	 * roster's advance: two voters behind it agree on 28, so the hop is
+	 * pruned and the leader keeps its terminal. */
+	let three = [tank_shell(100), tank_shell(88), tank_shell(76)];
+	let dying = [target(116), target(104),
+		{ terminal: true, pixel_x: 140, pixel_y: 100 }];
+	check("a shell that may have died does not set the advance",
+		enforce(three, table(three, dying,
+			[[0, 0], [0, 2], [1, 0], [2, 1]])),
+		[true, [[2], [0], [1]], [[1], [2], [0]]]);
+	/* The same leader alone with one voter: no vote, nothing pruned. */
+	check("one voter and an abstainer cannot vote",
+		enforce(three, table(three, dying, [[0, 0], [0, 2], [1, 0]])),
+		[false, [[0, 2], [0], []], [[0, 1], [], [0]]]);
+	/* A chained-offset member's one-sided box widens its tolerance: a
+	 * 34 px hop from a list index 3 shell agrees with a 28 px one. */
+	let chained = [tank_shell(100), tank_shell(88, { position_uncertainty: 3 })];
+	check("tank lockstep widens by chained-offset slack",
+		enforce(chained, table(chained, [target(128), target(122)],
+			[[0, 0], [1, 1]])),
+		[false, [[0], [1]], [[0], [1]]]);
+	/* A shell whose bradians agree on an exact pixel reads from it. */
+	let exact = [tank_shell(100), tank_shell(90,
+		{ position_uncertainty: 3, tank_exact_pixel_x: 88, tank_exact_pixel_y: 100 })];
+	check("tank lockstep reads an exact pixel where the bradians agree",
+		enforce(exact, table(exact, targets, [[0, 0], [1, 1], [1, 0]])),
+		[true, [[0], [1]], [[0], [1], []]]);
+	/* Pill shells and unattributed shells never join the tank's group. */
+	let mixed = [tank_shell(100), tank_shell(88,
+		{ pillbox_source_x: 0, pillbox_source_y: 0 })];
+	check("a pill shell is not in the tank lockstep",
+		enforce(mixed, table(mixed, targets, [[0, 0], [0, 2], [1, 1]])),
+		[false, [[0, 2], [1]], [[0], [1], [0]]]);
+	let unattributed = [tank_shell(100), tank_shell(88, { starts_at_tank: false })];
+	check("an unattributed shell is not in the tank lockstep",
+		enforce(unattributed, table(unattributed, targets,
+			[[0, 0], [0, 2], [1, 1]])),
+		[false, [[0, 2], [1]], [[0], [1], [0]]]);
+}
 
 
 // The fast-ring fixture: two sender packets in one recorder tick are
@@ -3207,7 +3403,7 @@ if (!fs.existsSync(log2)) {
 	}
 	check("fast-ring fixture pill links: re-sends excluded, no contradictions", [
 		score.links, score.restated, score.vouched, score.contradicted,
-	], [80428, 1679, 27006, 0]);
+	], [80429, 1679, 27006, 0]);
 }
 
 process.exit(failures ? 1 : 0);

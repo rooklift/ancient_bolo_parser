@@ -254,6 +254,16 @@ function empty_totals() {
 		pairs_pill_order_kept: null,
 		pairs_pill_order_blurred: null,
 		pairs_pill_order_inverted: null,
+		/* The tank-side axis (score_tank_order): same-sector pairs of one
+		 * tank's shells, which keep their order along the heading -- the
+		 * shells fly at twice the tank's top speed, so the later shot
+		 * never catches the earlier one on the same line. Inverted is a
+		 * regression alarm like the pill axis; blurred flips sit within
+		 * the pixel rounding and chained-offset slack. */
+		pairs_tank_order: null,
+		pairs_tank_order_kept: null,
+		pairs_tank_order_blurred: null,
+		pairs_tank_order_inverted: null,
 
 		/* Residual-flow components: what forced_bipartite_assignments in
 		 * viewer/motion.js actually solves, and whether its pathological-
@@ -377,6 +387,22 @@ function count_pill_order(totals, engines, game) {
 	return scores;
 }
 
+function count_tank_order(totals, engines, game) {
+	let scores = [];
+	if (typeof engines.motion?.score_tank_order !== "function") return null;
+	if (!Array.isArray(game.shell_positions)) return scores;
+	for (let snapshots of game.shell_positions) {
+		if (!Array.isArray(snapshots)) continue;
+		let score = engines.motion.score_tank_order(snapshots);
+		scores.push(score);
+		add(totals, "pairs_tank_order", score.pairs);
+		add(totals, "pairs_tank_order_kept", score.kept);
+		add(totals, "pairs_tank_order_blurred", score.blurred);
+		add(totals, "pairs_tank_order_inverted", score.inverted);
+	}
+	return scores;
+}
+
 /* Every inversion, classified by which of the two links was a stitch
  * and by the narrower of the pair's distance gaps in whole orbit steps.
  * Kept in full like the contradictions: each one is a scene. */
@@ -391,7 +417,7 @@ function describe_order(diagnostics, scores, file) {
 	for (let score of scores) {
 		for (let record of score.examples || []) {
 			let gap = Math.min(record.gap_before, record.gap_after);
-			let signature = `${link(record.leader_next)}|` +
+			let signature = `${record.weapon || "pill"}|${link(record.leader_next)}|` +
 				`${link(record.trailer_next)}:${Math.floor(gap / pixels_per_step)}`;
 			diagnostics.classes.set(signature,
 				(diagnostics.classes.get(signature) || 0) + 1);
@@ -551,6 +577,11 @@ function count_file(totals, engines, file, diagnostics) {
 	if (diagnostics?.links) describe_links(diagnostics.links, link_scores, file);
 	let order_scores = count_pill_order(totals, engines, game);
 	if (diagnostics?.order) describe_order(diagnostics.order, order_scores, file);
+	let tank_order_scores = count_tank_order(totals, engines, game);
+	/* Older repo states without the tank axis keep the pill scenes. */
+	if (diagnostics?.order && tank_order_scores !== null) {
+		describe_order(diagnostics.order, tank_order_scores, file);
+	}
 	count_tracks(totals, game.tank_positions, "tank", max_ticks);
 	count_tracks(totals, game.lgm_positions, "lgm", max_ticks);
 	count_tracks(totals, game.tank_directions, "tank_direction",
@@ -663,6 +694,8 @@ function build_report(totals, meta) {
 		totals.links_pill_contradicted, scored);
 	rate_line(lines, "pairs_pill_order_inverted",
 		totals.pairs_pill_order_inverted, totals.pairs_pill_order);
+	rate_line(lines, "pairs_tank_order_inverted",
+		totals.pairs_tank_order_inverted, totals.pairs_tank_order);
 	for (let prefix of ["tank", "lgm", "tank_direction"]) {
 		rate_line(lines, `${prefix}_segments_interpolated`,
 			totals[`${prefix}_segments_interpolated`], totals[`${prefix}_segments`]);
@@ -764,15 +797,23 @@ function order_class_report(diagnostics) {
 	 * pixel and so carrying chained-offset uncertainty. */
 	let state = shell => `${shell.pinned ? "" : "~"}${shell.distance}` +
 		`@s${shell.step}/b${shell.bradians}`;
+	/* A tank shell's state is its advance along the sector's centre line
+	 * and its shell-list index, with "~" on a chained-offset member. */
+	let tank_state = shell => `${shell.pinned ? "" : "~"}${shell.distance}` +
+		`@i${shell.list_index}`;
 	let leg = (before, after) => `${state(before)}->${state(after)}` +
 		`${after.stitched ? "(stitched)" : ""}`;
+	let tank_leg = (before, after) => `${tank_state(before)}->${tank_state(after)}` +
+		`${after.stitched ? "(stitched)" : ""}`;
 	for (let { file, record } of diagnostics.examples) {
+		let tank = record.weapon === "tank";
 		lines.push(`order_example\t${replay_label(file)}` +
 			`\tt${record.time}->${record.next_time}` +
-			`\tpill(${record.pillbox_source_x},${record.pillbox_source_y})` +
+			(tank ? `\ttank(sector ${record.sector})`
+				: `\tpill(${record.pillbox_source_x},${record.pillbox_source_y})`) +
 			`\tgap${record.gap_before}->${record.gap_after}` +
-			`\tleader=${leg(record.leader, record.leader_next)}` +
-			`\ttrailer=${leg(record.trailer, record.trailer_next)}`);
+			`\tleader=${(tank ? tank_leg : leg)(record.leader, record.leader_next)}` +
+			`\ttrailer=${(tank ? tank_leg : leg)(record.trailer, record.trailer_next)}`);
 	}
 	return lines;
 }

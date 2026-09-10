@@ -89,6 +89,31 @@ and packaging, so v1.0.8's numbers are still `main`'s.
   3 inverted, 0 blurred: all three are stitched links crossing a pairwise
   one, the leader's stitch landing three steps on where the trailer's link
   landed seven or nine.
+* `pairs_tank_order` / `pairs_tank_order_kept` / `pairs_tank_order_blurred`
+  / `pairs_tank_order_inverted` and `rate_pairs_tank_order_inverted` -- the
+  tank-side order axis (`score_tank_order` in `viewer/motion.js`). A shell
+  flies at 2 px/tick and a tank at most 1, so two shells of one tank on one
+  heading keep their order along it: the later shot starts behind by at
+  least the reload's length in pixels and the two then advance alike. The
+  order of distance from the tank across headings is only nearly kept (a
+  full-speed S-turn on road can put the later shell a tile further out in
+  the first shell's last second), so the axis reads same-sector pairs of
+  tank-born shells only, where the invariant is exact, each shell read as
+  its position along the sector's centre line. Inverted when the order
+  flips by more than three pixels plus the chained-offset slack of the
+  members, blurred inside that (closer than two shots a reload apart can
+  be). The scenes print under the same `order_example` / `order_class`
+  lines as the pill axis, tagged `tank`, with each shell's advance along
+  the line and its list index. On the fixture 9,129 pairs, 1 inverted, 1
+  blurred; over the ten pairs 45,194 pairs, 14 inverted (seven scenes,
+  each seen by both recorders); on `040601.6` 22,332 pairs and none. Every
+  inversion is an identity swap between two shells on one line whose true
+  continuations lie outside the interval's readings, so the swapped hops
+  were the only candidates each shell had; the tank lockstep
+  (`enforce_tank_lockstep_candidates`, INTERPOLATION.md) prunes among
+  candidates and so reaches none of them, while moving about twenty other
+  links over the ten pairs in the paired audit's favour (45,176 pairs
+  once a shell that may have died abstains from the vote, `7290254`).
 * Tank and LGM track coverage is reported too, but is byte-identical at all ten
   commits, so it is omitted below. For the record: `rate_tank_ticks_interpolated`
   0.687960 and `rate_lgm_ticks_interpolated` 0.435824 throughout. Note that the
@@ -1877,6 +1902,142 @@ explains more; it touches the pass whose design keeps phase two
 after phase one so nothing explained can degrade, so it wants a
 corpus run of its own, for a metric nobody is watching. Left as is.
 
+## A tank's shells keep their order along the heading, and advance in lockstep -- `422354a`, `e46dd5e`, `7290254`
+
+The question was whether the matcher used the fact that a tank's
+earlier shell stays further out than its later one. For pills it did,
+twice over (the lockstep passes and `score_pill_order`); for tanks only
+`prefer_ordered_shell_impacts` ordered a stream's fates by birth time.
+The invariant is also weaker for a tank than the pill's: the tank moves
+between shots, so across headings the order of distance from the tank
+is only nearly kept -- a search over the documented speeds and turn
+rate finds a full-speed S-turn on road that puts the later shell about
+16 px further out in the first shell's last twenty ticks, 5 px on
+grass, never in forest -- and its range setting can change, so birth
+order is not fall order. Along one heading it is exact: a shell flies
+at 2 px/tick and a tank at most 1, so the later shot starts behind by
+at least the reload's length in pixels and the two then advance alike.
+
+`422354a` measures that: `score_tank_order` reads same-sector pairs of
+tank-born shells along the sector's centre line, kept, blurred (a flip
+within three pixels plus chained-offset slack, closer than two shots a
+reload apart can be) or inverted, in the shape of `score_pill_order`,
+printed under the same `order_example` lines tagged `tank`.
+
+Fixtures at `422354a`: `n20021018.2` 9,129 pairs, **1** inverted, 1
+blurred; `040601.6` 22,319 pairs, none; the ten pairs 45,160 pairs,
+**14** inverted (seven scenes, each seen by both recorders). Every
+inversion is one shape. In the fixture's (records at 9713165 and
+9713188, sector 4) three eastbound shells of one tank sit at 1996,
+2019 and 2047 px along the heading and are next stated at 2024, 1997
+(a newborn) and 2047 (a fall): every live shell flew 28 px, so the
+23-tick stamp is about nine ticks late, a dropped restatement's worth.
+The matcher, reading 46 px off the stamps, could accept only the 51 px
+hop from 1996 to 2047 and made it; the stitcher then joined 2019 to
+2024, 5 px in 23 ticks, and the two identities crossed. The crossing
+and the truth cost the same total distance -- 51 + 5 = 28 + 28 -- and
+the truth was outside the window.
+
+`e46dd5e` enforces the tank's lockstep. The sender moves every shell
+it simulates 2 px in one update pass, so between two of its statements
+every one of its tank's live shells has flown the same distance,
+whatever its heading; tank shells hold bradian position bounds rather
+than orbit steps, so `enforce_tank_lockstep_candidates` reads pixel
+advances, from the shell's exact pixel where its bradians agree on one
+(else its stated pixel) to the candidate's, within three pixels plus the
+chained-offset box of either end. One common advance must explain a
+non-terminal candidate of every tank shell that has any; candidates no
+common advance supports are pruned, and with none nothing is. Terminal
+candidates stay out, and only shells with tank provenance join. It runs
+in the matcher's pass loop after the pill lockstep passes.
+
+Fixtures at `e46dd5e`, against `422354a`:
+
+* `n20021018.2`: every rate unchanged, `flow_components` 1,193 ->
+  1,188. The inversion stands: its shells had one candidate each.
+* `040601.6`: one more shell links forward (`links_shell` 80,428 ->
+  80,429, `shells_unmatched_forward` 111 -> 110), `shells_with_birth`
+  +20, `pairs_tank_order` 22,319 -> 22,332, still none inverted.
+* the ten pairs: `shells_matched_forward` 259,090 -> 259,097
+  (`to_snapshot` +16, `to_terminal` -9: `pillbox_damage` -9),
+  `shells_unlinked` 269 -> **267**, `shell_births` 54,993 -> 54,988,
+  `shells_visual_joins` 28 -> 26, `pairs_tank_order` 45,160 -> 45,194
+  with the 14 inversions untouched; the two builds of a game agree on
+  128,592 -> **128,618** forward stories, conflicts 393 -> **376**,
+  abstentions 129 / 91 -> 127 / 84, births agreed 48,197 -> **48,225**,
+  roster elections differing 54 -> 54.
+
+The corpus run at `e46dd5e` (its section in the corpus file) gave 146
+terminals back, 109 of them `pillbox_damage`, and the ten pairs' nine
+lost terminals showed the shape. In `20010412.1` (sender 1, records
+3432199 and 3432220, a 21-tick stamp after a 12-tick stall) the lead
+shell of a three-shell line had hit the pill and the record carried
+its damage; its only continuation candidate was the 16 px hop onto its
+successor's restatement, the short reading's distance. The lockstep
+took that hop as the leader's advance and forced the two shells behind
+onto the short reading too, so the leader continued instead of taking
+its hit and the damage record went unclaimed. `7290254` makes a shell
+with a terminal among its candidates abstain: its non-terminal hops
+are still pruned against the advance the voters establish, but never
+set it, and two voters are needed as before. On the ten pairs, against
+`e46dd5e`: `terminals_matched` 54,983 -> **54,993** (`pillbox_damage`
+17,530 -> 17,540; the pre-lockstep state had 54,992),
+`shells_matched_forward` 259,097 -> 259,098, `shells_unlinked` 267 ->
+268, `shell_births` back to 54,993, `pairs_tank_order` 45,194 ->
+45,176 with the 14 inversions untouched; the two builds of a game
+agree on 128,614 forward stories (128,592 before the lockstep,
+128,618 at `e46dd5e`), conflicts **379** (393 / 376), births agreed
+48,219 (48,197 / 48,225). Both single fixtures are byte-identical to
+`e46dd5e`. The unit tests add the three-shell scene by hand: the
+leader with a hop and a terminal, two voters behind it agreeing on 28
+px, the hop pruned and the terminal kept; and the same leader with one
+voter, where nothing is pruned.
+
+Corpus at `364174f` (its section in the corpus file): against
+`ee502e9`, `terminals_matched` 1,633,352 -> **1,633,385** in every
+class, `shells_matched_forward` +177, `shells_unlinked` -63, the pill
+truth axes byte-identical, `rate_links_steady` 0.966797 -> **0.966863**;
+against `e46dd5e`, 146 -> +33 terminals for 47 forward matches and
+eight tank inversions (330 -> 338). The thousand slow links `e46dd5e`
+had added are gone with the abstention, which says what they were:
+not the truth at a late stamp's clock but rosters a dead leader's hop
+had forced onto the short reading.
+
+The same structure is in `enforce_pillbox_lockstep_candidates`, whose
+members vote whether or not they hold a terminal candidate (the roster
+vote, `enforce_roster_lockstep_candidates`, already holds its election
+with and without its doubtful members). Measured on the fixtures and
+not applied: `n20021018.2` gains three forward matches, one terminal
+and loses one of its three pinned inversions; the ten pairs lose one
+terminal, gain twelve vouched links and three inversions (5 -> 8), and
+the paired audit's conflicts go 379 -> 382. Every new inversion is a
+dying leader given a one-step stitched continuation by the stitcher
+after the pass pruned the same hop, so the abstention there needs the
+stitcher's side worked out first, and its own section.
+
+Why the pass reaches none of the inversions: in every scene the true
+continuations lie outside the interval's readings, so the swapped hops
+were the only candidates each shell had and there was nothing to prune
+among. What the pass does move is the case one step milder, where a
+shell has both its true continuation and a rival hop in the window and
+another of the tank's shells says which advance the interval carried.
+The common advance is in fact the interval's true length -- every tank
+shell agreeing on 28 px says the gap was 14 ticks -- and reading the
+clock off it, rather than pruning under it, is the change that would
+reach the scenes; that is a change to the readings.
+
+The unit tests (`test/test-viewer.cjs`) pin the fixture's tank order
+counts and the fast-ring link count, exercise the scorer on hand-built
+pairs (kept, inverted, blurred, chained members, a turning shell's
+corrected sector, and the exclusions), and run the lockstep on
+hand-built candidate tables: the trailer's hop onto the leader's
+restatement pruned when the leader has only its own continuation, both
+stories kept when the leader has a matching long hop too, a stand-down
+with no common advance, terminals ignored, chained-offset slack, the
+exact pixel read where the bradians agree, and pill and unattributed
+shells kept out of the group. Corpus: `e46dd5e` in
+[`interpolation_tests_corpus.md`](interpolation_tests_corpus.md).
+
 ## Where the line stands -- `0263483`
 
 The same three headline rates at the points a reader is likely to want,
@@ -1896,6 +2057,7 @@ all on the fixture, all from the sections above:
 | a stalled pair carries two readings | 0.996529 | 0.001586 | 0.861225 |
 | the pair after a stall carries two readings as well | 0.996529 | 0.001586 | 0.861225 |
 | a tank hit is tried against the statements the sender held | 0.998034 | 0.001017 | 0.865877 |
+| a tank's shells advance in lockstep | 0.998034 | 0.001017 | 0.865877 |
 
 * **Every headline record is held by the current head.** Unlinked
   shells are down to 75, a sixteenth of the branch point's rate; forward

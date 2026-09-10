@@ -172,6 +172,8 @@ Constant at all ten commits, and worth having once:
 | `92043d9` | all four readings around a double stall | **0.997710** | **0.000925** | **0.837378** | 238,807 | 13,212 | **854** | 14 |
 | `800f57c` | a delayed chain head slides before smoothing (drawing only) | **0.997710** | **0.000925** | **0.837378** | 238,807 | 13,212 | **854** | 14 |
 | `ee502e9` | a tank hit tried against the statements the sender held | **0.998058** | **0.000810** | **0.839149** | **242,287** | 13,237 | **832** | 14 |
+| `e46dd5e` | a tank's shells advance in lockstep | **0.998081** | **0.000801** | 0.839074 | 242,286 | 13,226 | **783** | 14 |
+| `364174f` | a shell that may have died abstains from the tank lockstep (engine `7290254`) | 0.998076 | 0.000804 | **0.839166** | **242,293** | 13,230 | 801 | 14 |
 
 The three right-hand columns are lower-is-better counts from the drawn
 audit and the vouched-link score, added so that a drawing-only commit
@@ -3515,6 +3517,186 @@ first cut, offering the boxes to every hit including the sender's
 own and letting a stale box start at the statement, was measured on
 the fixture only (its section in the fixture doc); the corpus was
 run on the restricted form alone. The change stands as measured.
+
+## A tank's shells advance in lockstep -- `422354a`, `e46dd5e`
+
+The fixture doc's section of the same name has the change and the
+scenes. `422354a` is measurement only: `score_tank_order`, the
+distance-order axis for a tank's own shells, reading same-sector pairs
+along the sector's centre line (across headings the order is only nearly
+kept -- a full-speed S-turn on road can put the later shell a tile
+further out in the first shell's last second -- so the axis stays where
+the invariant is exact). `e46dd5e` is the engine change: the sender
+moves every shell it simulates 2 px in one update pass, so between two
+of its statements every one of its tank's live shells has flown the same
+distance, and `enforce_tank_lockstep_candidates` prunes the candidates no
+common pixel advance supports, standing down when none exists. It is the
+tank-side, pruning-only cousin of the pill lockstep, and deliberately
+not the lent-vote sender lockstep of `8a54fd8`: it only ever removes a
+candidate another of the tank's own shells contradicts, and lends
+nothing.
+
+Corpus, `e46dd5e-report.txt` and `e46dd5e-audit.txt` against
+`ee502e9-*` (443 files, zero failures, the same 9,817,361 shell
+observations, 1,946,439 terminals and 9,914,126 tank points; the
+`input` line differs because it hashes the corpus directory's path,
+not its contents, and this run was made from the directory 22 earlier
+archived runs used). No pre-enforcement corpus run exists for the tank
+order axis, so its 330 is a first reading, not a delta.
+
+* coverage: `shells_matched_forward` 9,798,295 -> **9,798,519**
+  (+224; `shells_matched_to_snapshot` +370, `shells_matched_to_terminal`
+  -146), `shells_unmatched_forward` 19,066 -> 18,842, `shells_unlinked`
+  7,953 -> **7,864** (-89), `rate_shells_matched_forward` 0.998058 ->
+  **0.998081**, `rate_shells_unlinked` 0.000810 -> **0.000801**. Two
+  records move on.
+* the terminal record is given back: `terminals_matched` 1,633,352 ->
+  1,633,206 (-146: `pillbox_damage` -109, `shell_falls` -19,
+  `base_damage` -16, `explosion` -1, `tank_hit` -1),
+  `rate_terminals_matched` 0.839149 -> 0.839074;
+  `terminals_unseen_pillbox_source` +18, `terminals_unseen_tank_source`
+  +34. `shell_births` 1,630,659 -> 1,630,541 (-118, `shells_from_tank`
+  -119), `shells_visual_joins` 1,111 -> 1,089 (-22), `flow_components`
+  127,895 -> 127,325 (-570), `links_no_pill_source` +393.
+* the truth axes hold: `links_pill_contradicted` **14**,
+  `pairs_pill_order_inverted` **173**, `blurred` 6, `links_pill_unpinned`
+  2,597, all unchanged; `links_pill_vouched` -2. The new axis:
+  `pairs_tank_order` 1,860,783, `inverted` **330**, `blurred` 17,
+  `rate_pairs_tank_order_inverted` 0.000177 -- nine times the pill
+  axis's rate, on a fifth of its pairs.
+* the drawn audit: `pop_outs` 18,880 -> **18,656** (-224, exactly the
+  forward gain), `pop_ins` 21,759 -> **21,507** (-252),
+  `pops_paired_backwards` 832 -> **783** (-49, a record),
+  `pops_paired_forward` 1,970 -> 1,951; `terminal_links_rushed` 69,708
+  -> 69,690 (`timed` 13,237 -> **13,226**, `static` -5, `instant` -2);
+  `rush_links` 7,327 -> 7,324; `hover_links` 4,552 -> 4,559 (+7);
+  seam jumps still zero.
+* the wrong way: `rate_links_steady` 0.966797 -> 0.966694,
+  `rate_links_steady_unstalled` 0.967567 -> 0.967509. The speed
+  histogram says how: `1.0-1.5` 20,286 -> **21,257** (+971), `1.5-1.8`
+  +141, `1.8-2.2` 7,893,841 -> 7,893,361 (-480), `2.2-2.5` -231,
+  `2.5-3.0` -35. The stall lines move with it: `links_stalled` 19,563
+  -> 19,786, `links_stalled_steady` 12,639 -> 12,489,
+  `links_after_stall_steady` 16,596 -> 16,508, `hover_links_stalled`
+  1,612 -> 1,632.
+
+Reading. The lockstep's one move is to refuse a hop another of the
+tank's shells contradicts, and the histogram shows what those hops
+were: the swap the fixture scene shows in miniature, where a record
+stamped a dropped restatement late lets the leader's 2 px/tick hop onto
+the trailer's true position outbid its own continuation. Refusing it
+frees both shells, and the passes after the matcher rejoin them along
+the truth -- 28 px in a "23-tick" gap, which the audit draws at 1.2
+px/tick and books as unsteady. So 480 steady links become 1,100 slow
+ones, and each rejoined chain retires a pop-out, a pop-in and a birth:
+-224, -252, -118, in step. The steady rate falls for the same reason
+the inversions stand: the audit and the matcher both read the interval
+off the stamps, and here the stamps are the thing that is wrong. The
+146 terminals are the cost, all but `tank_hit`, and `pillbox_damage`
+three quarters of it: a shell whose short hop the lockstep refused had
+been reaching a pill's damage record from where the hop put it, and
+its rejoined chain arrives elsewhere or later; whether the record is
+now unclaimed rightly or wrongly the corpus cannot say, and the pairs
+fixtures, where the two recorders can, read the same change as
+conflicts 393 -> 376 and agreed births +28 for -9 terminals. Read on
+the pairs, the nine had one shape -- a stream leader that had hit its
+pill, whose only continuation candidate was the spurious short hop
+onto its successor's restatement, setting the roster's advance to the
+short reading -- and `7290254` makes a shell that may have died
+abstain from the vote (the fixture doc's section has the scene and
+the pairs' numbers: terminals back to one above the pre-lockstep
+state, the paired audit keeping most of the conflict gain). Its
+corpus run is the next section, and it corrects the reading above:
+the thousand slow links were not rejoined chains drawn at a late
+stamp's clock. They were rosters forced onto the short reading of a
+stall-widened interval by a dead leader's spurious hop, drawn slow
+because the stamps were right; with the leader abstaining they are
+gone, and the steady rate ends above `ee502e9`'s.
+
+The 330 inversions are the number the pass was aimed at and did not
+touch on the fixtures, for the reason the fixture doc gives: in every
+scene the true continuations lie outside the interval's readings, so
+the swapped hops were the only candidates each shell had and there was
+nothing to prune among. The common advance the lockstep sees is the
+interval's true length -- every tank shell agreeing on 28 px says the
+gap was 14 ticks -- and the change that would reach those scenes reads
+the clock off the tank's shells rather than pruning under it. That is
+the next dial, and it is a change to the readings, which the stall
+sections above spent three commits getting right.
+
+## A shell that may have died abstains from the tank lockstep -- `7290254`, measured at `364174f`
+
+The fixture doc's section has the scene. `364174f` is the docs commit
+on top of `7290254`; the engine is `7290254`'s.
+
+Corpus, `364174f-report.txt` and `364174f-audit.txt` against
+`ee502e9-*` (the pre-lockstep state) and `e46dd5e-*` (the lockstep
+without the abstention), 443 files, zero failures, the same input:
+
+* coverage, `ee502e9` -> `e46dd5e` -> `364174f`: `shells_matched_forward`
+  9,798,295 -> 9,798,519 -> 9,798,472 (+177 on the pre-lockstep state,
+  47 under `e46dd5e`; `to_snapshot` 8,164,943 -> 8,165,313 -> 8,165,087,
+  `to_terminal` 1,633,352 -> 1,633,206 -> 1,633,385), `shells_unlinked`
+  7,953 -> 7,864 -> 7,890, `rate_shells_matched_forward` 0.998058 ->
+  0.998081 -> 0.998076, `rate_shells_unlinked` 0.000810 -> 0.000801 ->
+  0.000804. Both move on from `ee502e9`; `e46dd5e` keeps the two
+  records by a hair, having paid 146 terminals for them.
+* the terminal record is back, and then some: `terminals_matched`
+  1,633,352 -> 1,633,206 -> **1,633,385** (+33 on `ee502e9`, in every
+  class: `pillbox_damage` +15, `tank_hit` +6, `base_damage` +5,
+  `explosion` +5, `shell_falls` +2), `rate_terminals_matched` 0.839149
+  -> 0.839074 -> **0.839166**; `terminals_unseen_pillbox_source`
+  166,982 -> 167,000 -> 166,978, `terminals_unseen_tank_source` 77,126
+  -> 77,160 -> 77,117. `shell_births` 1,630,659 -> 1,630,541 ->
+  1,630,661, `shells_from_tank` 658,295 -> 658,176 -> 658,297,
+  `shells_visual_joins` 1,111 -> 1,089 -> 1,095, `flow_components`
+  127,895 -> 127,325 -> 127,421.
+* the truth axes: the pill side is byte-identical to `ee502e9`
+  (`links_pill_contradicted` **14**, `pairs_pill_order_inverted` **173**,
+  `blurred` 6, `links_pill_unpinned` 2,597, `links_pill_vouched`
+  2,918,768, where `e46dd5e` had -2). The tank axis: `pairs_tank_order`
+  1,860,783 -> 1,860,367, `inverted` 330 -> **338**, `blurred` 17. The
+  abstention leaves a dying leader's roster both its stories, and cost
+  takes the crossing in eight more pairs.
+* the drawn audit: `pop_outs` 18,880 -> 18,656 -> 18,703, `pop_ins`
+  21,759 -> 21,507 -> 21,613, `pops_paired_backwards` 832 -> 783 -> 801,
+  `pops_paired_forward` 1,970 -> 1,951 -> 1,948; `hover_links` 4,552 ->
+  4,559 -> **4,544**, `rush_links` 7,327 -> 7,324 -> 7,321
+  (`rush_links_timed` 1,385 -> 1,382 -> 1,379); `terminal_links_rushed`
+  69,708 -> 69,690 -> 69,695 (`timed` 13,237 -> 13,226 -> 13,230,
+  `static` 55,609 -> 55,604 -> 55,605, `instant` 862 -> 860 -> 860);
+  seam jumps still zero.
+* the steady rate turns round: `rate_links_steady` 0.966797 ->
+  0.966694 -> **0.966863**, `rate_links_steady_unstalled` 0.967567 ->
+  0.967509 -> **0.967634**. The histogram: `1.0-1.5` 20,286 -> 21,257
+  -> 20,339, `1.5-1.8` 151,347 -> 151,488 -> 150,973, `1.8-2.2`
+  7,893,841 -> 7,893,361 -> **7,894,522** (+681 on `ee502e9`), `2.2-2.5`
+  78,036 -> 77,805 -> 77,865; `links_stalled_steady` 12,639 -> 12,489
+  -> 12,691, `links_after_stall_steady` 16,596 -> 16,508 -> 16,698,
+  `hover_links_stalled` 1,612 -> 1,632 -> 1,605.
+
+Reading, and a correction. The `e46dd5e` entry read its thousand new
+slow links as rejoined chains drawn at a late stamp's clock, the truth
+booked as unsteady because the stamps were wrong. The abstention shows
+that was not what they were: with dying leaders out of the vote the
+`1.0-1.5` bucket comes back to within 53 of `ee502e9` and the steady
+bucket ends 681 above it. Those links were rosters the dead leader's
+spurious hop had forced onto the short reading of a stall-widened
+interval, drawn slow because the stamps were RIGHT, and the 146
+terminals were the leaders continuing past their hits. So the
+lockstep's genuine effect is the part that survives the abstention:
+177 more forward matches, 63 fewer unlinked shells, 177 fewer pop-outs,
+146 fewer pop-ins, 31 fewer backwards pops, 8 fewer hovers, 33 more
+terminals in every class, the pill axes untouched, and a steady rate
+above where it started. The eight extra tank inversions are the
+abstention's price, the same trade the roster vote's symmetric
+election made for pills: a doubtful voter can veto an alias it would
+not lead, but cannot cast the deciding vote, and where it was in fact
+alive and right the pairwise cost now has to find the story alone.
+The change stands as measured. The pill-side pass carries the same
+structure without the abstention (its roster vote has it); the fixture
+doc's section records a measurement of adding it, a wash on the pairs,
+and leaves it for a section of its own.
 
 ## Findings
 

@@ -539,6 +539,51 @@ every inversion printed as a scene under `--describe-links`; inverted
 is a regression alarm, and the fixture's three (all stitched links
 crossing a pairwise one) are pinned in the test suite.
 
+`score_tank_order` is the same axis for a tank's own shells. A tank has
+no lockstep -- it moves between shots, and its range setting can change,
+so birth order is not fall order -- but a shell flies at 2 px/tick and a
+tank at most 1, so two shells of one tank on one heading keep their order
+along it: the later shot starts behind by at least the reload's length in
+pixels and the two then advance alike. Across headings the order of
+distance from the tank is only nearly kept (a full-speed S-turn on road
+can put the later shell a tile further out in the first shell's last
+second), so the scorer reads same-sector pairs of tank-born shells only,
+each shell as its position along the sector's centre line, with a
+three-pixel spread plus chained-offset slack separating blurred from
+inverted. The rates tool reports `pairs_tank_order*` and
+`rate_pairs_tank_order_inverted`, and the fixture's one inversion and one
+blurred pair are pinned in the test suite.
+
+The tank has a lockstep of its own, and the matcher enforces it
+(`enforce_tank_lockstep_candidates`): the sender moves every shell it
+simulates 2 px in the same update pass, so between two of its statements
+every one of its tank's live shells has flown the same distance, whatever
+its heading. With no steps to count the rule reads pixel advances, from
+the shell's exact pixel where its bradians agree on one (else its stated
+pixel) to the candidate's, within three pixels plus the chained-offset box
+of either end; one common advance must explain a non-terminal candidate of
+every tank shell that has any, candidates no common advance supports are
+pruned, and with no common advance nothing is. A shell with a terminal
+among its candidates abstains from setting the advance -- a stream leader
+that hit its pill has a spurious short hop onto its successor's position
+as its only continuation, and counting that as its advance forced the
+roster onto the wrong reading and left the hit unclaimed -- though its
+hops are still pruned against what the voters establish. On the ten pairs it moves
+about twenty links in two hundred thousand, and the paired audit reads the
+move as a gain: forward conflicts 393 -> 376, agreed links 128,592 ->
+128,618, agreed births 48,197 -> 48,225. It touches none of the
+`score_tank_order` inversions, though. Those are not assignment ties the
+pairwise matcher could arbitrate: in each scene the true continuations
+lie outside the interval's readings (a record stamped late by a dropped
+restatement's worth, so three shells that all flew 28 px in a "23-tick"
+gap were linked 51 and 5, the second by a stitch), or the two shells'
+links each took a different reading of one stall-widened interval, and
+the swapped hops were the only candidates each shell had. The common
+advance the lockstep sees is in fact the interval's true length -- every
+tank shell agreeing on 28 px says the gap was 14 ticks -- and reading the
+clock off it, rather than pruning under it, is the change that would
+reach those scenes.
+
 The match rates count explanations, not what the viewer draws, and the
 two can move in opposite directions. `tools/audit-drawn-motion.cjs` is
 the second measurement axis: it samples the drawn link structure
