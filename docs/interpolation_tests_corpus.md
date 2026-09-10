@@ -3597,8 +3597,16 @@ been reaching a pill's damage record from where the hop put it, and
 its rejoined chain arrives elsewhere or later; whether the record is
 now unclaimed rightly or wrongly the corpus cannot say, and the pairs
 fixtures, where the two recorders can, read the same change as
-conflicts 393 -> 376 and agreed births +28 for -9 terminals. The
-change stands as measured, with the terminal give-back on the books.
+conflicts 393 -> 376 and agreed births +28 for -9 terminals. Read on
+the pairs, the nine had one shape -- a stream leader that had hit its
+pill, whose only continuation candidate was the spurious short hop
+onto its successor's restatement, setting the roster's advance to the
+short reading -- and `7290254` makes a shell that may have died
+abstain from the vote (the fixture doc's section has the scene and
+the pairs' numbers: terminals back to one above the pre-lockstep
+state, the paired audit keeping most of the conflict gain). That
+commit is unmeasured on the corpus as this is written; the terminal
+column is the one to watch when it is.
 
 The 330 inversions are the number the pass was aimed at and did not
 touch on the fixtures, for the reason the fixture doc gives: in every

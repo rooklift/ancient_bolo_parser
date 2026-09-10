@@ -112,7 +112,8 @@ and packaging, so v1.0.8's numbers are still `main`'s.
   were the only candidates each shell had; the tank lockstep
   (`enforce_tank_lockstep_candidates`, INTERPOLATION.md) prunes among
   candidates and so reaches none of them, while moving about twenty other
-  links over the ten pairs in the paired audit's favour.
+  links over the ten pairs in the paired audit's favour (45,176 pairs
+  once a shell that may have died abstains from the vote, `7290254`).
 * Tank and LGM track coverage is reported too, but is byte-identical at all ten
   commits, so it is omitted below. For the record: `rate_tank_ticks_interpolated`
   0.687960 and `rate_lgm_ticks_interpolated` 0.435824 throughout. Note that the
@@ -1901,7 +1902,7 @@ explains more; it touches the pass whose design keeps phase two
 after phase one so nothing explained can degrade, so it wants a
 corpus run of its own, for a metric nobody is watching. Left as is.
 
-## A tank's shells keep their order along the heading, and advance in lockstep -- `422354a`, `e46dd5e`
+## A tank's shells keep their order along the heading, and advance in lockstep -- `422354a`, `e46dd5e`, `7290254`
 
 The question was whether the matcher used the fact that a tank's
 earlier shell stays further out than its later one. For pills it did,
@@ -1965,6 +1966,32 @@ Fixtures at `e46dd5e`, against `422354a`:
   128,592 -> **128,618** forward stories, conflicts 393 -> **376**,
   abstentions 129 / 91 -> 127 / 84, births agreed 48,197 -> **48,225**,
   roster elections differing 54 -> 54.
+
+The corpus run at `e46dd5e` (its section in the corpus file) gave 146
+terminals back, 109 of them `pillbox_damage`, and the ten pairs' nine
+lost terminals showed the shape. In `20010412.1` (sender 1, records
+3432199 and 3432220, a 21-tick stamp after a 12-tick stall) the lead
+shell of a three-shell line had hit the pill and the record carried
+its damage; its only continuation candidate was the 16 px hop onto its
+successor's restatement, the short reading's distance. The lockstep
+took that hop as the leader's advance and forced the two shells behind
+onto the short reading too, so the leader continued instead of taking
+its hit and the damage record went unclaimed. `7290254` makes a shell
+with a terminal among its candidates abstain: its non-terminal hops
+are still pruned against the advance the voters establish, but never
+set it, and two voters are needed as before. On the ten pairs, against
+`e46dd5e`: `terminals_matched` 54,983 -> **54,993** (`pillbox_damage`
+17,530 -> 17,540; the pre-lockstep state had 54,992),
+`shells_matched_forward` 259,097 -> 259,098, `shells_unlinked` 267 ->
+268, `shell_births` back to 54,993, `pairs_tank_order` 45,194 ->
+45,176 with the 14 inversions untouched; the two builds of a game
+agree on 128,614 forward stories (128,592 before the lockstep,
+128,618 at `e46dd5e`), conflicts **379** (393 / 376), births agreed
+48,219 (48,197 / 48,225). Both single fixtures are byte-identical to
+`e46dd5e`. The unit tests add the three-shell scene by hand: the
+leader with a hop and a terminal, two voters behind it agreeing on 28
+px, the hop pruned and the terminal kept; and the same leader with one
+voter, where nothing is pruned.
 
 Why the pass reaches none of the inversions: in every scene the true
 continuations lie outside the interval's readings, so the swapped hops

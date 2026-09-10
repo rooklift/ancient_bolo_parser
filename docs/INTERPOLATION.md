@@ -563,7 +563,12 @@ the shell's exact pixel where its bradians agree on one (else its stated
 pixel) to the candidate's, within three pixels plus the chained-offset box
 of either end; one common advance must explain a non-terminal candidate of
 every tank shell that has any, candidates no common advance supports are
-pruned, and with no common advance nothing is. On the ten pairs it moves
+pruned, and with no common advance nothing is. A shell with a terminal
+among its candidates abstains from setting the advance -- a stream leader
+that hit its pill has a spurious short hop onto its successor's position
+as its only continuation, and counting that as its advance forced the
+roster onto the wrong reading and left the hit unclaimed -- though its
+hops are still pruned against what the voters establish. On the ten pairs it moves
 about twenty links in two hundred thousand, and the paired audit reads the
 move as a gain: forward conflicts 393 -> 376, agreed links 128,592 ->
 128,618, agreed births 48,197 -> 48,225. It touches none of the
