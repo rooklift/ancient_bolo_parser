@@ -137,17 +137,17 @@ const TICKS_PER_SECOND = 50;
  * actually make of the stream. Over both collections (1,020 logs), the
  * share of tank track segments the motion code cannot bridge tracks
  * cycle p90 at rho = 0.91, and shells it fails to chain forward at 0.69;
- * with stall partialled out those hold at 0.89 and 0.70, while stall
- * with cycle held keeps only 0.32 and 0.36, and the quiet share never
- * rises above 0.25 -- its correlation is player count in disguise, and
- * held to four-player logs it collapses to 0.02. A slow ring
- * undersamples every shell in flight, and no amount of counting quiet
- * slots will see it; the poster child is a log with 2.7% quiet whose
- * ring turned every 0.3 s, giving the corpus's worst shell interpolation
- * on nearly its cleanest quiet figure. That is why the quiet share was
- * dropped from the verdict: at its old bands (6 / 11 / 22%) it moved
- * about half the corpus off "good" on a figure that says how many tanks
- * were parked. All of it reproduces with
+ * with stall partialled out those hold at 0.85 and 0.53, while stall
+ * with cycle held keeps 0.23 of each, and the quiet share's raw figures
+ * never rise above 0.25 -- its correlation is player count in disguise,
+ * and held to four-player logs it collapses to -0.02 while cycle keeps
+ * 0.64. A slow ring undersamples every shell in flight, and no amount of
+ * counting quiet slots will see it; the poster child is the corpus's
+ * worst shell interpolation, 5.2% unchained on a ring turning every
+ * 0.7 s, with a quiet figure in the cleanest tenth of the corpus. That is
+ * why the quiet share was dropped from the verdict: at its old bands (6 /
+ * 11 / 22%) it moved half the corpus off "good" on a figure that says how
+ * many tanks were parked. All of it reproduces with
  * tools/measure-network-agreement.cjs
  * (docs/corpus_runs/9596cdc-agreement.txt).
  *
@@ -171,18 +171,26 @@ const TICKS_PER_SECOND = 50;
  *
  *   The STALL cuts are felt-time levels, chosen by judgement: 2 / 4 / 8%
  *   is roughly one, two and five seconds frozen per minute, the freezes
- *   counted being silences of over half a second each. They cannot be
- *   anchored to the pipeline, which barely notices a stall once the
- *   cycle is held: among rings under 14 ticks the median shell-unchained
- *   rate is flat (0.19% to 0.43%) from no stall to over 25%. A frozen
- *   game is plain to a viewer whether or not the shells chain, which is
- *   the reading's justification. The upper two were first set at 7 and
- *   18, four and eleven seconds a minute, far out in a reading whose
- *   corpus quartiles were then 0.1 / 0.7 / 2.9%, and are 0.0 / 0.2 / 1.8%
- *   now the ring-turned gate has stopped charging parked games: a game
- *   frozen a tenth of the
- *   time was not yet "awful". Lowering them moves 10% of the corpus's
- *   verdicts, 50 logs into "bad" and 52 into "awful", and the share of
+ *   counted being silences of over half a second each. They were chosen
+ *   without an anchor in the pipeline, which barely noticed a stall once
+ *   the cycle was held -- among rings under 14 ticks the median
+ *   shell-unchained rate read flat from no stall at all to over 25% --
+ *   and the ring-turned gate has since supplied one. Held to those same
+ *   fast rings, where a slow ring can no longer be the culprit, the
+ *   gated reading stages cleanly across the cuts: from no stall, through
+ *   each band in turn, the median tank-unbridged share runs 3.69 / 4.40
+ *   / 4.91 / 5.13 / 5.50% and shells unchained 0.13 / 0.19 / 0.21 / 0.25
+ *   / 0.31%, rising at every step (on 341 / 297 / 53 / 21 / 14 logs, so
+ *   the upper two bands are thin). The cuts were not placed on that and
+ *   are not moved by it; it is the first evidence they sit anywhere
+ *   sensible. A frozen game is plain to a viewer whether or not the shells
+ *   chain, which remains the reading's justification. The upper two were
+ *   first set at 7 and 18, four and eleven seconds a minute, far out in a
+ *   reading whose corpus quartiles were then 0.1 / 0.7 / 2.9%, and are 0.0
+ *   / 0.2 / 1.8% now the ring-turned gate has stopped charging parked
+ *   games: a game frozen a tenth of the time was not yet "awful". Lowering
+ *   them moves 10% of the corpus's verdicts, 50 logs into "bad" and 52
+ *   into "awful", and the share of
  *   verdicts the stall reading sets over the cycle's rises from 12.5%
  *   to 16.2%. The logs moved read, by the pipeline, like the band they
  *   leave (median 4.7% of segments unbridged among those moved into
@@ -190,7 +198,8 @@ const TICKS_PER_SECOND = 50;
  *   moved into "awful" against 7.3% for those staying "bad"), which is
  *   the reading doing its job -- flagging a freeze the pipeline cannot
  *   see -- at a price on the other two measures: the band's rank
- *   correlation with segments unbridged falls from 0.82 to 0.78, the
+ *   correlation with segments unbridged falls from 0.82 to 0.78 (both
+ *   pre-gate; the gated reading takes the same cuts to 0.85), the
  *   per-band medians still staging in order down every column, and
  *   half-to-half agreement on the band gives up 1.6 points (94.1% to
  *   92.5%) to a cut nearer the reading's bulk. Both of those are
@@ -207,9 +216,10 @@ const TICKS_PER_SECOND = 50;
  * sampled, and fair to state once for a whole game. The bands place both
  * collections at 36.5% good, 35.9% fair, 18.8% bad, 8.7% awful (32 / 34 /
  * 20 / 13 before the ring-turned gate), the two halves of a log agreeing
- * on the band 94.8% of the time, and the band's rank correlation with segments unbridged
- * is 0.78 (0.82 at stall cuts of 2 / 7 / 18, 0.67 at cycle cuts of
- * 14 / 19 / 26). All of it reproduces with
+ * on the band 94.8% of the time, and the band's rank correlation with
+ * segments unbridged 0.85 (pre-gate it was 0.78 at these cuts, 0.82 at
+ * stall cuts of 2 / 7 / 18, 0.67 at cycle cuts of 14 / 19 / 26). All of it
+ * reproduces with
  * tools/measure-network-conditions.cjs.
  *
  * WHAT THE GATE DID TO THE CORPUS, measured rather than assumed
@@ -230,12 +240,24 @@ const TICKS_PER_SECOND = 50;
  * still stage in order down every column of the agreement run; and
  * half-to-half band agreement improves from 92.5% to 94.8%.
  *
- * Three figures quoted above still predate the gate, the tools not
- * printing them: the partial correlations in the cycle paragraph, the
- * band's rank correlation with segments unbridged (0.78), and the claim
- * that stall is flat within rings under 14 ticks. Recomputing them wants
- * the agreement run's --json rows. The cycle reading itself the gate does
- * not touch, and its corpus readings are unchanged. */
+ * The three figures the tools did not print are now measured too
+ * (docs/corpus_runs/f4fe3b7-agreement-reprint.txt: the same rows, put
+ * back through measure-network-agreement.cjs --rows once its report had
+ * grown the three sections, every line of the original reappearing in it
+ * byte for byte). Two of the three moved in the gate's favour. The
+ * VERDICT BAND's rank correlation with segments unbridged rises from
+ * 0.78 to 0.85, the best it has read at any cuts these notes record. The
+ * STALL READING BECOMES VISIBLE INSIDE FAST RINGS, where it was flat
+ * before, which is the anchor the cuts never had (see the cuts section).
+ * Against those, one figure moved the other way: stall's PARTIAL, what
+ * it knows that the cycle does not, falls from 0.32 to 0.23 on segments
+ * unbridged. The gate raised stall's raw agreement with the pipeline by
+ * making it agree with the cycle reading (r 0.493 to 0.625), so more of
+ * what it now knows is knowledge the verdict already had. It keeps its
+ * place on the same ground as before -- a freeze is plain to a viewer
+ * whether or not the shells chain -- rather than on a claim to
+ * independence it does not have. The cycle reading the gate does not
+ * touch, and its corpus readings are unchanged. */
 
 const STALL_GAP_TICKS = TICKS_PER_SECOND / 2;  /* silence long enough to be a freeze */
 const SEQ_TRUST_TICKS = 250;    /* 5s: past this a step is a rejoin, not quiet */

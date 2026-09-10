@@ -1,0 +1,63 @@
+1020 logs scored
+
+network signal vs pipeline failure rate, across logs:
+                             quiet r / rho     stall r / rho     cycle r / rho
+  shell unmatched %          0.032 / 0.107     0.702 / 0.551     0.728 / 0.686
+  terminal unmatched %       0.090 / 0.083     0.510 / 0.337     0.676 / 0.567
+  tank unbridged %           0.181 / 0.248     0.771 / 0.634     0.823 / 0.907
+
+pipeline medians inside each verdict band (worse bands should
+read worse down every column):
+  band       n     shell unmatched %  terminal unmatched %      tank unbridged %
+  good     372                  0.12                 15.38                  3.49
+  fair     367                  0.22                 17.80                  5.03
+  bad      192                  0.36                 21.40                  7.12
+  awful     89                  0.95                 25.87                 10.52
+
+the same, with the other reading held (partial rank correlation):
+                             cycle | stall     stall | cycle     quiet | cycle
+  shell unmatched %                  0.527             0.225             0.036
+  terminal unmatched %               0.485            -0.019             0.019
+  tank unbridged %                   0.849             0.229             0.339
+
+the verdict band against the pipeline (rank correlation):
+  band vs shell unmatched %     rho = 0.646
+  band vs terminal unmatched %  rho = 0.546
+  band vs tank unbridged %      rho = 0.848
+
+stall inside fast rings (cycle under 14 ticks), by stall band:
+  728 of 1020 logs
+  stall         n     shell unmatched %  terminal unmatched %      tank unbridged %
+  none        341                  0.13                 16.65                  3.69
+  0-2%        297                  0.19                 15.94                  4.40
+  2-4%         53                  0.21                 16.49                  4.91
+  4-8%         21                  0.25                 17.14                  5.13
+  8-25%        14                  0.31                 22.59                  5.50
+  over 25%      2                  0.06                 17.89                  4.26
+
+a walk up the quiet-slot range:
+  good   quiet=  1.0% stall=  0.7%  shell= 0.04% term= 9.9% tank=  3.4%  3p  20020208~b8c736
+  awful  quiet=  3.8% stall= 19.4%  shell= 0.56% term=31.8% tank= 15.5%  4p  20010303~812977
+  good   quiet=  4.5% stall=  0.0%  shell= 0.09% term=16.1% tank=  4.6%  2p  20050202.2~566f58
+  bad    quiet=  5.0% stall=  0.2%  shell= 0.29% term=21.5% tank=  7.6%  4p  20011106~983a3d
+  bad    quiet=  5.4% stall=  0.9%  shell= 0.24% term=20.1% tank=  6.7%  6p  20010117~07b9d6
+  fair   quiet=  5.9% stall=  0.3%  shell= 0.18% term=18.8% tank=  3.9%  4p  20030617~3442fa
+  good   quiet=  6.4% stall=  0.0%  shell= 0.17% term=16.0% tank=  2.6%  2p  20040831~2faca2
+  good   quiet=  6.9% stall=  0.0%  shell= 0.07% term=14.2% tank=  3.2%  4p  20010425~678a0f
+  bad    quiet=  7.4% stall=  3.0%  shell= 0.83% term=27.2% tank=  8.7%  6p  20010213~a57d6b
+  good   quiet=  8.4% stall=  0.0%  shell= 0.13% term=14.4% tank=  3.8%  4p  20010504.5~f7d615
+  bad    quiet=  9.9% stall=  7.6%  shell= 0.61% term=23.6% tank=  9.3%  4p  20011215~70ca7e
+  good   quiet= 13.3% stall=  0.0%  shell= 0.42% term=19.5% tank=  3.5%  2p  20030401~d2f2a2
+
+most discordant -- network rated WORSE than the pipeline saw:
+  fair   quiet= 47.6% shell unmatched=0.00% (rank gap 99)  20011206~3ae5fa
+  bad    quiet= 20.7% shell unmatched=0.00% (rank gap 96)  20020715~fa1a84
+  good   quiet= 34.6% shell unmatched=0.05% (rank gap 95)  20010429~79f5c7
+  good   quiet= 18.6% shell unmatched=0.04% (rank gap 92)  20020213~66cbe2
+  good   quiet= 26.5% shell unmatched=0.06% (rank gap 92)  20010306~c4c704
+most discordant -- network rated BETTER than the pipeline saw:
+  awful  quiet=  3.2% shell unmatched=1.74% (rank gap -95)  20010923~2fe12e
+  awful  quiet=  2.7% shell unmatched=0.99% (rank gap -93)  20030722.3~2c2598
+  awful  quiet=  3.7% shell unmatched=3.30% (rank gap -93)  20010327~3ea6f7
+  awful  quiet=  2.9% shell unmatched=0.93% (rank gap -92)  20040901~c91ee5
+  awful  quiet=  3.8% shell unmatched=1.66% (rank gap -90)  20011016~3ea0b5

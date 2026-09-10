@@ -36,7 +36,10 @@
  * those are where either detector's next bug is hiding.
  *
  * Usage: node tools/measure-network-agreement.cjs [corpus-root] [--workers=N] [--json=rows.json]
- *        (--workers=N; default half the machine's cores)
+ *        node tools/measure-network-agreement.cjs --rows=rows.json
+ *        (--workers=N; default half the machine's cores.  --rows reprints
+ *        the whole report from a saved --json, which is every figure below
+ *        without the corpus or the hour it takes to read it.)
  */
 "use strict";
 
@@ -198,6 +201,15 @@ function spearman(xs, ys) {
 	return pearson(ranks(xs), ranks(ys));
 }
 
+/* The rank correlation of x with y that is not already z's: two signals
+ * read off one stream share most of what they know, and the question a
+ * verdict has to answer is whether a reading earns its place beside the
+ * others rather than whether it correlates with anything at all. */
+function partial_spearman(xs, ys, zs) {
+	let rxy = spearman(xs, ys), rxz = spearman(xs, zs), ryz = spearman(ys, zs);
+	return (rxy - rxz * ryz) / Math.sqrt((1 - rxz ** 2) * (1 - ryz ** 2));
+}
+
 /* ---------- the pool ---------- */
 
 function run_worker() {
@@ -216,6 +228,7 @@ function run_worker() {
 function main() {
 	let workers = null;
 	let json_out = null;
+	let rows_in = null;
 	let args = process.argv.slice(2).filter(arg => {
 		let match = arg.match(/^--workers=(\d+)$/);
 		if (match) {
@@ -227,8 +240,21 @@ function main() {
 			json_out = match[1];
 			return false;
 		}
+		match = arg.match(/^--rows=(.+)$/);
+		if (match) {
+			rows_in = match[1];
+			return false;
+		}
 		return true;
 	});
+	/* Re-report from a saved --json without re-running the pipeline, which
+	 * costs an hour of wall time to arrive at rows it already has. Anything
+	 * added to the report below can then be had from an archived run. */
+	if (rows_in) {
+		report(JSON.parse(fs.readFileSync(rows_in, "utf8")), path.dirname(rows_in));
+		return;
+	}
+
 	let corpus = args[0] || require("./corpus.cjs").corpus_root();
 	let files = [...walk(corpus)];
 	if (!files.length) {
@@ -338,6 +364,59 @@ function report(rows, corpus) {
 				? median(values).toFixed(2).padStart(22) : "-".padStart(22);
 		});
 		console.log(`  ${name.padEnd(7)}${String(group.length).padStart(5)}` +
+			cells.join(""));
+	}
+
+	/* WHAT EACH READING KNOWS THAT THE OTHERS DO NOT. The three signals are
+	 * read off one stream and overlap heavily, so a raw correlation cannot
+	 * say whether a reading earns its place in the verdict. Holding the
+	 * other one can. */
+	console.log("\nthe same, with the other reading held (partial rank correlation):");
+	console.log(`  ${"".padEnd(22)}${"cycle | stall".padStart(18)}` +
+		`${"stall | cycle".padStart(18)}${"quiet | cycle".padStart(18)}`);
+	for (let [label, failure] of FAILURES) {
+		let pairs = rows.filter(row => failure(row) !== null);
+		let ys = pairs.map(failure);
+		let quiet = pairs.map(row => row.quiet);
+		let stall = pairs.map(row => row.stall);
+		let cycle = pairs.map(row => row.cycle);
+		console.log(`  ${label.padEnd(22)}` +
+			[partial_spearman(cycle, ys, stall),
+				partial_spearman(stall, ys, cycle),
+				partial_spearman(quiet, ys, cycle)]
+				.map(v => v.toFixed(3).padStart(18)).join(""));
+	}
+
+	/* THE BAND ITSELF, which is all a viewer is shown. Four ordered words
+	 * against a continuous failure rate: the number to watch when the cuts
+	 * or the readings behind them move. */
+	console.log("\nthe verdict band against the pipeline (rank correlation):");
+	for (let [label, failure] of FAILURES) {
+		let pairs = rows.filter(row => failure(row) !== null);
+		let bands = pairs.map(row => NAMES.indexOf(row.rating));
+		console.log(`  band vs ${label.padEnd(22)}rho = ` +
+			spearman(bands, pairs.map(failure)).toFixed(3));
+	}
+
+	/* IS THE STALL READING VISIBLE AT ALL ONCE THE RING IS FAST? Held to
+	 * rings under the cycle reading's first cut, a stall is the only thing
+	 * left that could be hurting playback, so this is the stall cuts' one
+	 * chance to be anchored to something outside themselves. */
+	console.log("\nstall inside fast rings (cycle under 14 ticks), by stall band:");
+	const STALL_BUCKETS = [["none", 0, 1e-9], ["0-2%", 1e-9, 2], ["2-4%", 2, 4],
+		["4-8%", 4, 8], ["8-25%", 8, 25], ["over 25%", 25, Infinity]];
+	let fast = rows.filter(row => row.cycle < 14);
+	console.log(`  ${fast.length} of ${rows.length} logs`);
+	console.log(`  ${"stall".padEnd(10)}${"n".padStart(5)}` +
+		FAILURES.map(([name]) => name.padStart(22)).join(""));
+	for (let [label, lo, hi] of STALL_BUCKETS) {
+		let group = fast.filter(row => row.stall >= lo && row.stall < hi);
+		let cells = FAILURES.map(([, failure]) => {
+			let values = group.map(failure).filter(value => value !== null);
+			return values.length
+				? median(values).toFixed(2).padStart(22) : "-".padStart(22);
+		});
+		console.log(`  ${label.padEnd(10)}${String(group.length).padStart(5)}` +
 			cells.join(""));
 	}
 
