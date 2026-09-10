@@ -1993,6 +1993,28 @@ leader with a hop and a terminal, two voters behind it agreeing on 28
 px, the hop pruned and the terminal kept; and the same leader with one
 voter, where nothing is pruned.
 
+Corpus at `364174f` (its section in the corpus file): against
+`ee502e9`, `terminals_matched` 1,633,352 -> **1,633,385** in every
+class, `shells_matched_forward` +177, `shells_unlinked` -63, the pill
+truth axes byte-identical, `rate_links_steady` 0.966797 -> **0.966863**;
+against `e46dd5e`, 146 -> +33 terminals for 47 forward matches and
+eight tank inversions (330 -> 338). The thousand slow links `e46dd5e`
+had added are gone with the abstention, which says what they were:
+not the truth at a late stamp's clock but rosters a dead leader's hop
+had forced onto the short reading.
+
+The same structure is in `enforce_pillbox_lockstep_candidates`, whose
+members vote whether or not they hold a terminal candidate (the roster
+vote, `enforce_roster_lockstep_candidates`, already holds its election
+with and without its doubtful members). Measured on the fixtures and
+not applied: `n20021018.2` gains three forward matches, one terminal
+and loses one of its three pinned inversions; the ten pairs lose one
+terminal, gain twelve vouched links and three inversions (5 -> 8), and
+the paired audit's conflicts go 379 -> 382. Every new inversion is a
+dying leader given a one-step stitched continuation by the stitcher
+after the pass pruned the same hop, so the abstention there needs the
+stitcher's side worked out first, and its own section.
+
 Why the pass reaches none of the inversions: in every scene the true
 continuations lie outside the interval's readings, so the swapped hops
 were the only candidates each shell had and there was nothing to prune
