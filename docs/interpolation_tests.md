@@ -89,6 +89,26 @@ and packaging, so v1.0.8's numbers are still `main`'s.
   3 inverted, 0 blurred: all three are stitched links crossing a pairwise
   one, the leader's stitch landing three steps on where the trailer's link
   landed seven or nine.
+* `pairs_tank_order` / `pairs_tank_order_kept` / `pairs_tank_order_blurred`
+  / `pairs_tank_order_inverted` and `rate_pairs_tank_order_inverted` -- the
+  tank-side order axis (`score_tank_order` in `viewer/motion.js`). A shell
+  flies at 2 px/tick and a tank at most 1, so two shells of one tank on one
+  heading keep their order along it: the later shot starts behind by at
+  least the reload's length in pixels and the two then advance alike. The
+  order of distance from the tank across headings is only nearly kept (a
+  full-speed S-turn on road can put the later shell a tile further out in
+  the first shell's last second), so the axis reads same-sector pairs of
+  tank-born shells only, where the invariant is exact, each shell read as
+  its position along the sector's centre line. Inverted when the order
+  flips by more than three pixels plus the chained-offset slack of the
+  members, blurred inside that (closer than two shots a reload apart can
+  be). The scenes print under the same `order_example` / `order_class`
+  lines as the pill axis, tagged `tank`, with each shell's advance along
+  the line and its list index. On the fixture 9,129 pairs, 1 inverted, 1
+  blurred; over the ten pairs 45,160 pairs, 14 inverted (seven scenes,
+  each seen by both recorders); on `040601.6` 22,319 pairs and none. Every
+  inversion is an identity swap between two shells on one line, where the
+  crossing and the non-crossing assignment cost the same total distance.
 * Tank and LGM track coverage is reported too, but is byte-identical at all ten
   commits, so it is omitted below. For the record: `rate_tank_ticks_interpolated`
   0.687960 and `rate_lgm_ticks_interpolated` 0.435824 throughout. Note that the

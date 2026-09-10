@@ -321,6 +321,27 @@ if (!fs.existsSync(log1)) {
 			[9547346, 9547367, true, true],
 			[9547346, 9547367, true, false],
 		]]);
+		/* The tank-side axis (score_tank_order): same-sector pairs of one
+		 * tank's shells, which keep their order along the heading since a
+		 * shell outruns a tank two to one. The fixture carries one
+		 * inversion, an identity swap between two eastbound shells on one
+		 * line -- the crossing and the non-crossing assignment cost the
+		 * same total distance, and the stitch took the crossing -- and
+		 * one blurred flip, pinned as measured. */
+		let tank_order = { pairs: 0, kept: 0, blurred: 0, inverted: 0 };
+		let tank_inversions = [];
+		for (let snapshots of game.shell_positions) {
+			let part = BoloMotion.score_tank_order(snapshots);
+			for (let key of Object.keys(tank_order)) tank_order[key] += part[key];
+			tank_inversions.push(...part.examples);
+		}
+		check("fixture tank pairs scored on along-heading order", [
+			tank_order.pairs, tank_order.kept, tank_order.blurred,
+			tank_order.inverted,
+			tank_inversions.map(record => [record.time, record.next_time,
+				record.sector, record.leader_next.stitched,
+				record.trailer_next.stitched]),
+		], [9129, 9127, 1, 1, [[9713165, 9713188, 4, true, false]]]);
 	}
 
 	let pill_burst = { total: 0, matched: 0 };
@@ -3184,6 +3205,72 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	excluded = pair([32, 24], [40, 48]);
 	excluded.push({ time: 16, shells: [excluded[1].shells.pop()] });
 	check("links into different snapshots make no pair", tally(excluded),
+		[0, 0, 0, 0]);
+}
+// The tank-side order scorer on hand-built snapshots: two tank-born
+// shells of one sector are read along the sector's centre line (sector 4
+// is east, so along = pixel_x); a swap is inverted when both gaps clear
+// the three-pixel spread plus chained-offset slack, blurred inside it.
+// Different sectors, pill shells and unattributed shells make no pair.
+{
+	const BoloMotion = require("../viewer/motion.js");
+	let shell = (along, options = {}) => ({
+		pixel_x: along, pixel_y: 100, direction: 4, starts_at_tank: true,
+		position_uncertainty: 0, ...options,
+	});
+	let pair = (before, after, options = [{}, {}]) => {
+		let [leader, trailer] = before.map((along, i) => shell(along, options[i]));
+		let [leader_next, trailer_next] = after.map(along => shell(along));
+		leader.next_shell = leader_next;
+		trailer.next_shell = trailer_next;
+		return [{ time: 0, shells: [leader, trailer] },
+			{ time: 8, shells: [leader_next, trailer_next] }];
+	};
+	let tally = snapshots => {
+		let score = BoloMotion.score_tank_order(snapshots);
+		return [score.pairs, score.kept, score.blurred, score.inverted];
+	};
+	check("tank order kept", tally(pair([132, 120], [148, 136])), [1, 1, 0, 0]);
+	check("tank order inverted", tally(pair([132, 120], [136, 148])),
+		[1, 0, 0, 1]);
+	check("tank order flip inside the spread is blurred",
+		tally(pair([122, 120], [136, 138])), [1, 0, 1, 0]);
+	let example = BoloMotion.score_tank_order(pair([132, 120], [136, 148]))
+		.examples[0];
+	check("tank inversion example names the sector, leader and trailer", [
+		example.weapon, example.sector, example.time, example.next_time,
+		example.gap_before, example.gap_after,
+		example.leader.distance, example.leader_next.distance,
+		example.trailer.distance, example.trailer_next.distance,
+	], ["tank", 4, 0, 8, 12, 12, 132, 136, 120, 148]);
+	/* A chained-offset member widens the tolerance by its one-sided box:
+	 * a ten-pixel swap, inverted on heads, is blurred on list index 3
+	 * shells at both ends. */
+	check("tank order ten-pixel swap on heads is inverted",
+		tally(pair([130, 120], [136, 146])), [1, 0, 0, 1]);
+	let chained = pair([130, 120], [136, 146]);
+	for (let snapshot of chained) {
+		for (let member of snapshot.shells) member.position_uncertainty = 3;
+	}
+	check("tank order swap on chained members is blurred", tally(chained),
+		[1, 0, 1, 0]);
+	/* A turning shell's corrected sector, not its list label, is the
+	 * heading read; a shell listed one sector off its true one pairs
+	 * with the shells of the true sector. */
+	check("corrected sector pairs the turning shell", tally(pair(
+		[132, 120], [148, 136], [{ direction: 3, sector: 4 }, {}])),
+		[1, 1, 0, 0]);
+	check("different sectors make no pair", tally(pair(
+		[132, 120], [148, 136], [{ direction: 3 }, {}])), [0, 0, 0, 0]);
+	check("a pill shell makes no tank pair", tally(pair(
+		[132, 120], [148, 136],
+		[{ pillbox_source_x: 0, pillbox_source_y: 0 }, {}])), [0, 0, 0, 0]);
+	check("an unattributed shell makes no tank pair", tally(pair(
+		[132, 120], [148, 136], [{ starts_at_tank: false }, {}])),
+		[0, 0, 0, 0]);
+	let excluded = pair([132, 120], [136, 148]);
+	excluded[0].shells[0].next_terminal = true;
+	check("terminal-bound tank member makes no pair", tally(excluded),
 		[0, 0, 0, 0]);
 }
 

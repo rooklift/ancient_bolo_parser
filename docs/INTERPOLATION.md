@@ -539,6 +539,24 @@ every inversion printed as a scene under `--describe-links`; inverted
 is a regression alarm, and the fixture's three (all stitched links
 crossing a pairwise one) are pinned in the test suite.
 
+`score_tank_order` is the same axis for a tank's own shells. A tank has
+no lockstep -- it moves between shots, and its range setting can change,
+so birth order is not fall order -- but a shell flies at 2 px/tick and a
+tank at most 1, so two shells of one tank on one heading keep their order
+along it: the later shot starts behind by at least the reload's length in
+pixels and the two then advance alike. Across headings the order of
+distance from the tank is only nearly kept (a full-speed S-turn on road
+can put the later shell a tile further out in the first shell's last
+second), so the scorer reads same-sector pairs of tank-born shells only,
+each shell as its position along the sector's centre line, with a
+three-pixel spread plus chained-offset slack separating blurred from
+inverted. Nothing in the matcher enforces this yet: on the fixtures the
+inversions are identity swaps between two shells on one line, where the
+crossing assignment costs the same total distance as the non-crossing
+one and a stitch or a pairwise link took the crossing. The rates tool
+reports `pairs_tank_order*` and `rate_pairs_tank_order_inverted`, and the
+fixture's one inversion and one blurred pair are pinned in the test suite.
+
 The match rates count explanations, not what the viewer draws, and the
 two can move in opposite directions. `tools/audit-drawn-motion.cjs` is
 the second measurement axis: it samples the drawn link structure

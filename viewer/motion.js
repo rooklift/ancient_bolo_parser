@@ -5429,6 +5429,99 @@ function score_pill_order(snapshots) {
 	return score;
 }
 
+/* The tank-side order axis. Every shell flies at 2 px/tick and a tank at
+ * most 1, so two shells of one tank on one heading keep their order along
+ * it: the later shot starts behind by at least the reload's length in
+ * pixels (two per tick flown less one per tick driven) and the two then
+ * advance alike. Across headings the order of distance from the tank is
+ * only nearly kept -- a full-speed S-turn on road can put the later shell
+ * a tile further out in the first shell's last second -- so this axis
+ * reads same-sector pairs only, where the invariant is exact. A shell's
+ * reading is its position projected on the sector's centre line: the true
+ * lead along that line is at least about two pixels at the reload floor
+ * of five ticks (the shells' bradians may sit a sixteenth of a circle
+ * apart, costing 1 - cos(pi/16) of the advance), and a head is stated to
+ * the pixel, so a flip inside TANK_ORDER_SPREAD_PIXELS plus any
+ * chained-offset slack is a misplacement rather than a crossing and is
+ * bucketed blurred; beyond it, inverted. A pair is two tank-born shells (a
+ * seen birth, or a birth time recovered later) of one sector in one
+ * snapshot whose links both land in one later snapshot; visual joins,
+ * verbatim re-sends and terminal-bound members are excluded as
+ * score_pill_order excludes them. Every inversion is kept as an example
+ * in the shape score_pill_order uses, tagged `weapon: "tank"`. */
+const TANK_ORDER_SPREAD_PIXELS = 3;
+function score_tank_order(snapshots) {
+	let score = { pairs: 0, kept: 0, blurred: 0, inverted: 0, examples: [] };
+	let index_of = new Map();
+	snapshots.forEach((snapshot, index) => {
+		for (let shell of snapshot.shells) index_of.set(shell, index);
+	});
+	let along = (shell, sector) => {
+		let angle = sector * Math.PI / 8;
+		return shell.pixel_x * Math.sin(angle) - shell.pixel_y * Math.cos(angle);
+	};
+	let slack = shell => (shell.position_uncertainty || 0) * Math.SQRT2;
+	let describe = (shell, sector) => ({
+		pixel_x: shell.pixel_x, pixel_y: shell.pixel_y,
+		distance: Math.round(along(shell, sector) * 100) / 100,
+		list_index: shell.shell_list_index,
+		pinned: !shell.position_uncertainty,
+		birth_time: shell.birth_time,
+		stitched: !!shell.stitched,
+	});
+	for (let snapshot of snapshots) {
+		let members = snapshot.shells.filter(shell => {
+			let next = shell.next_shell;
+			return next && !shell_from_pillbox(shell) &&
+				(shell.starts_at_tank || shell.birth_time !== undefined) &&
+				!shell.next_terminal && !next.visual_join &&
+				!next.stale_restatement;
+		});
+		for (let i = 0; i < members.length; i++) {
+			let first = members[i];
+			let first_next = first.next_shell;
+			let sector = shell_sector(first);
+			for (let j = i + 1; j < members.length; j++) {
+				let second = members[j];
+				let second_next = second.next_shell;
+				if (shell_sector(second) !== sector) continue;
+				if (index_of.get(first_next) !== index_of.get(second_next)) {
+					continue;
+				}
+				score.pairs++;
+				let gap_before = along(first, sector) - along(second, sector);
+				let gap_after = along(first_next, sector) - along(second_next, sector);
+				if (gap_before * gap_after >= 0) { score.kept++; continue; }
+				let tolerance_before = TANK_ORDER_SPREAD_PIXELS +
+					slack(first) + slack(second);
+				let tolerance_after = TANK_ORDER_SPREAD_PIXELS +
+					slack(first_next) + slack(second_next);
+				if (Math.abs(gap_before) <= tolerance_before ||
+					Math.abs(gap_after) <= tolerance_after) {
+					score.blurred++;
+					continue;
+				}
+				score.inverted++;
+				let leader = gap_before > 0 ? first : second;
+				let trailer = leader === first ? second : first;
+				score.examples.push({
+					weapon: "tank",
+					time: snapshot.time,
+					next_time: snapshots[index_of.get(first_next)].time,
+					sector,
+					gap_before: Math.round(Math.abs(gap_before) * 100) / 100,
+					gap_after: Math.round(Math.abs(gap_after) * 100) / 100,
+					leader: describe(leader, sector),
+					leader_next: describe(leader.next_shell, sector),
+					trailer: describe(trailer, sector),
+					trailer_next: describe(trailer.next_shell, sector),
+				});
+			}
+		}
+	}
+	return score;
+}
+
 /* Records between progress yields in the long record loops. About ten
  * milliseconds of work: fine enough that a caller can repaint a loading
  * bar on its own schedule without the generator ever holding the thread
@@ -5880,7 +5973,7 @@ const BoloMotion = {
 	tank_position_at, tank_direction_at, lgm_position_at, shell_position_at,
 	shell_birth_positions_at, shell_fall_positions_at,
 	describe_unmatched_terminals, describe_unfated_ends, score_pill_links,
-	score_pill_order, sweep_contradicted_links,
+	score_pill_order, score_tank_order, sweep_contradicted_links,
 	set_roster_vote_recording, reset_flow_component_stats,
 	flow_component_stats: () => flow_component_stats,
 };
