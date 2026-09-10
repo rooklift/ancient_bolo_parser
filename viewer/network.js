@@ -55,12 +55,23 @@ const TICKS_PER_SECOND = 50;
  * -- while a ring that turned through the silence steps it once per node
  * per lap. So a silence is a freeze only when the counter advanced by no
  * more than one ring's worth of slots: the ring did not get round even
- * once. Over the twenty-two committed fixtures the two populations do not
- * touch: of the 327 silences on their four-, five- and six-player rings 326
- * step the counter by 3 or less, and the five silences in all the fixtures
- * that step past 3 step 9 or higher. Twenty-one of the twenty-two keep
- * their stall figure to the hundredth of a point, so the gate takes nothing
- * away from a log that really did freeze [E:idle-stall].
+ * once. Over both collections (31,792 silences in 1,020 logs) the two
+ * populations are sharply bimodal but NOT disjoint: 64.1% of silences step
+ * the counter by 3 or less and 34.9% step past 6, while the 4-to-6 middle
+ * holds 303, 0.95% of them. The cut sits in a thin valley, not an empty
+ * gap, so a silence within a slot or two of one ring's worth is genuinely
+ * ambiguous -- a ring that limped round once, rather than one that clearly
+ * stopped or clearly ran. What settles the gate is not the valley but what
+ * it removes: the stall reading's correlation with the quiet share, which
+ * is the idleness measure, falls from r = 0.463 to 0.025, and its rank
+ * agreement with the share of tank track segments the pipeline cannot
+ * bridge rises from rho = 0.478 to 0.634. The gate takes out idleness, and
+ * what it leaves predicts damage better than what it started with. (Those
+ * are the clean comparison: on the tank-unbridged row the quiet and cycle
+ * correlations are identical across the two runs, so nothing but the stall
+ * reading moved. The shell and terminal rows shifted with the
+ * interpolation engine in between and cannot be read the same way.)
+ * [E:idle-stall]
  *
  * What it does take away is the parked game. A two-player log from April
  * 2001 on "chew toy 2000" (the holder's corpus, not the fixtures) rated
@@ -125,7 +136,7 @@ const TICKS_PER_SECOND = 50;
  * The cycle reading earns its place by predicting what the viewer can
  * actually make of the stream. Over both collections (1,020 logs), the
  * share of tank track segments the motion code cannot bridge tracks
- * cycle p90 at rho = 0.91, and shells it fails to chain forward at 0.76;
+ * cycle p90 at rho = 0.91, and shells it fails to chain forward at 0.69;
  * with stall partialled out those hold at 0.89 and 0.70, while stall
  * with cycle held keeps only 0.32 and 0.36, and the quiet share never
  * rises above 0.25 -- its correlation is player count in disguise, and
@@ -167,7 +178,9 @@ const TICKS_PER_SECOND = 50;
  *   game is plain to a viewer whether or not the shells chain, which is
  *   the reading's justification. The upper two were first set at 7 and
  *   18, four and eleven seconds a minute, far out in a reading whose
- *   corpus quartiles are 0.1 / 0.7 / 2.9%: a game frozen a tenth of the
+ *   corpus quartiles were then 0.1 / 0.7 / 2.9%, and are 0.0 / 0.2 / 1.8%
+ *   now the ring-turned gate has stopped charging parked games: a game
+ *   frozen a tenth of the
  *   time was not yet "awful". Lowering them moves 10% of the corpus's
  *   verdicts, 50 logs into "bad" and 52 into "awful", and the share of
  *   verdicts the stall reading sets over the cycle's rises from 12.5%
@@ -180,33 +193,49 @@ const TICKS_PER_SECOND = 50;
  *   correlation with segments unbridged falls from 0.82 to 0.78, the
  *   per-band medians still staging in order down every column, and
  *   half-to-half agreement on the band gives up 1.6 points (94.1% to
- *   92.5%) to a cut nearer the reading's bulk.
+ *   92.5%) to a cut nearer the reading's bulk. Both of those are
+ *   pre-gate figures, from when the reading still charged parked games;
+ *   it now agrees 94.8% of the time.
  *
  * Both cuts are in ticks and percent, not corpus quantiles, so they stay
  * put as the corpus grows; Palp's logs shifted every percentile of
  * Nemokrad's when they were added.
  *
  * Scoring interleaved half-minute blocks as if they were separate games
- * gives r = 0.90 on the quiet share, 0.92 on stall and 0.99 on cycle
+ * gives r = 0.90 on the quiet share, 0.90 on stall and 0.99 on cycle
  * time, so this is a property of a session rather than of the moment
  * sampled, and fair to state once for a whole game. The bands place both
- * collections at 32% good, 34% fair, 20% bad, 13% awful (Nemokrad's alone
- * 46 / 31 / 16 / 7), the two halves of a log agreeing on the band 92.5%
- * of the time, and the band's rank correlation with segments unbridged
+ * collections at 36.5% good, 35.9% fair, 18.8% bad, 8.7% awful (32 / 34 /
+ * 20 / 13 before the ring-turned gate), the two halves of a log agreeing
+ * on the band 94.8% of the time, and the band's rank correlation with segments unbridged
  * is 0.78 (0.82 at stall cuts of 2 / 7 / 18, 0.67 at cycle cuts of
  * 14 / 19 / 26). All of it reproduces with
  * tools/measure-network-conditions.cjs.
  *
- * EVERY CORPUS FIGURE QUOTED ABOVE FOR THE STALL READING -- its quartiles,
- * the band splits, the half-to-half agreement, the rank correlations, and
- * the counts of logs the lowered cuts moved -- was measured before the
- * ring-turned gate, when a parked game read as a frozen one. The gate
- * moves no fixture's rating and the worst-hit of them by 0.12 stall
- * points, so the corpus figures are unlikely to move far, but they are
- * unverified until the
- * corpus holder reruns them; tools/measure-ring-stalls.cjs reports what
- * the gate takes off each log, and the cuts should be reconsidered on the
- * rerun rather than assumed. The cycle reading is untouched. */
+ * WHAT THE GATE DID TO THE CORPUS, measured rather than assumed
+ * (docs/corpus_runs/f4fe3b7-ring-stalls.txt, -conditions.txt and
+ * -agreement.txt). The fixtures had predicted a near no-op and were wrong:
+ * they hold almost no parked games. The gate clears silence in 315 of the
+ * 1,020 logs and moves 86 verdicts, nearly all downward in severity --
+ * 133 "awful" logs become 89, 206 "bad" become 192 -- and the stall
+ * reading's distribution drops with them, p50 0.7% to 0.2%, p75 2.9% to
+ * 1.8%, p90 8.9% to 5.6%, while its maximum of 67.1% does not move at all.
+ * That is the shape a reading has when what it loses is a contaminant
+ * rather than a share of everything.
+ *
+ * The stall cuts are LEFT WHERE THEY ARE. They are felt-time levels, not
+ * corpus quantiles, so a reading that got more honest does not move them:
+ * a game now over 8% really is frozen five seconds a minute. They still
+ * spread the corpus, at 36.5 / 35.9 / 18.8 / 8.7%; the pipeline medians
+ * still stage in order down every column of the agreement run; and
+ * half-to-half band agreement improves from 92.5% to 94.8%.
+ *
+ * Three figures quoted above still predate the gate, the tools not
+ * printing them: the partial correlations in the cycle paragraph, the
+ * band's rank correlation with segments unbridged (0.78), and the claim
+ * that stall is flat within rings under 14 ticks. Recomputing them wants
+ * the agreement run's --json rows. The cycle reading itself the gate does
+ * not touch, and its corpus readings are unchanged. */
 
 const STALL_GAP_TICKS = TICKS_PER_SECOND / 2;  /* silence long enough to be a freeze */
 const SEQ_TRUST_TICKS = 250;    /* 5s: past this a step is a rejoin, not quiet */

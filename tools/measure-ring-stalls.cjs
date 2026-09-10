@@ -38,8 +38,12 @@
  *      gives, so the cost of the gate to logs that really did freeze is on
  *      the record next to what it takes off the ones that did not;
  *   -- THE STEP CENSUS: every silence over half a second, bucketed by how
- *      far the counter moved.  This is the claim the gate rests on, and it
- *      is falsifiable: if the two populations overlap, the gate is wrong;
+ *      far the counter moved.  Over the corpus this is sharply bimodal --
+ *      64% of silences step by 3 or less, 35% past 6 -- but not disjoint:
+ *      the 4-to-6 middle holds about 1%, silences on a ring that limped
+ *      round once rather than stopping or running.  The cut sits in that
+ *      valley and cannot settle them; what justifies it is what it
+ *      removes, measured below and in [E:idle-stall];
  *   -- THE PARKED GAMES: the longest run of consecutive silences the gate
  *      clears in each log, with how many distinct positions each tank
  *      states across those silences.  A run of minutes over which every
