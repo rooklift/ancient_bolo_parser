@@ -3273,6 +3273,98 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	check("terminal-bound tank member makes no pair", tally(excluded),
 		[0, 0, 0, 0]);
 }
+// The tank lockstep on hand-built candidate tables: every live shell of
+// one tank flew the same distance between two statements, so one common
+// pixel advance must explain a non-terminal candidate of every tank shell
+// that has any, and candidates no common advance supports are pruned.
+// Two shells 12 px apart on one line, both restated 28 px on, in an
+// interval whose stall-widened readings also accept a 40 px hop: the
+// trailer's hop onto the leader's true position ties its own true
+// continuation on cost, and the lockstep breaks the tie.
+{
+	const BoloMotion = require("../viewer/motion.js");
+	let tank_shell = (pixel_x, options = {}) => ({
+		pixel_x, pixel_y: 100, direction: 4, starts_at_tank: true,
+		position_uncertainty: 0, ...options,
+	});
+	let target = (pixel_x, options = {}) => ({
+		pixel_x, pixel_y: 100, position_uncertainty: 0, ...options,
+	});
+	let table = (previous_shells, targets, links) => {
+		let by_previous = previous_shells.map(() => []);
+		let by_next = targets.map(() => []);
+		for (let [previous_index, next_index] of links) {
+			let candidate = {
+				previous_index, next_index, target: targets[next_index],
+				pixel_x: targets[next_index].pixel_x,
+				pixel_y: targets[next_index].pixel_y,
+			};
+			by_previous[previous_index].push(candidate);
+			by_next[next_index].push(candidate);
+		}
+		return { by_previous, by_next };
+	};
+	let shape = ({ by_previous, by_next }) => [
+		by_previous.map(choices => choices.map(candidate => candidate.next_index)),
+		by_next.map(choices => choices.map(candidate => candidate.previous_index)),
+	];
+	let enforce = (previous_shells, table) => [
+		BoloMotion.enforce_tank_lockstep_candidates(previous_shells,
+			table.by_previous, table.by_next),
+		...shape(table),
+	];
+	/* Leader at 100, trailer at 88; restated at 128 and 116. The trailer's
+	 * 40 px hop onto the leader's restatement is pruned: the leader has
+	 * only its 28 px continuation, so 28 is the one common advance. */
+	let shells = [tank_shell(100), tank_shell(88)];
+	let targets = [target(128), target(116), target(140)];
+	check("tank lockstep prunes the hops no common advance explains",
+		enforce(shells, table(shells, targets, [[0, 0], [1, 1], [1, 0]])),
+		[true, [[0], [1]], [[0], [1], []]]);
+	/* Give the leader a 40 px hop of its own (a stray target at 140) and
+	 * 40 is a common advance too: both stories survive, nothing is pruned. */
+	check("tank lockstep keeps every jointly consistent story",
+		enforce(shells, table(shells, targets,
+			[[0, 0], [0, 2], [1, 1], [1, 0]])),
+		[false, [[0, 2], [1, 0]], [[0, 1], [1], [0]]]);
+	check("tank lockstep stands down when no common advance exists",
+		enforce(shells, table(shells, targets, [[0, 2], [1, 1]])),
+		[false, [[2], [1]], [[], [1], [0]]]);
+	check("tank lockstep leaves a lone constrained shell alone",
+		enforce(shells, table(shells, targets, [[0, 0], [0, 2]])),
+		[false, [[0, 2], []], [[0], [], [0]]]);
+	/* Terminal candidates are neither counted nor pruned. */
+	let with_terminal = [target(128), target(116),
+		{ terminal: true, pixel_x: 140, pixel_y: 100 }];
+	check("tank lockstep ignores terminal candidates",
+		enforce(shells, table(shells, with_terminal,
+			[[0, 0], [0, 2], [1, 1], [1, 2]])),
+		[false, [[0, 2], [1, 2]], [[0], [1], [0, 1]]]);
+	/* A chained-offset member's one-sided box widens its tolerance: a
+	 * 34 px hop from a list index 3 shell agrees with a 28 px one. */
+	let chained = [tank_shell(100), tank_shell(88, { position_uncertainty: 3 })];
+	check("tank lockstep widens by chained-offset slack",
+		enforce(chained, table(chained, [target(128), target(122)],
+			[[0, 0], [1, 1]])),
+		[false, [[0], [1]], [[0], [1]]]);
+	/* A shell whose bradians agree on an exact pixel reads from it. */
+	let exact = [tank_shell(100), tank_shell(90,
+		{ position_uncertainty: 3, tank_exact_pixel_x: 88, tank_exact_pixel_y: 100 })];
+	check("tank lockstep reads an exact pixel where the bradians agree",
+		enforce(exact, table(exact, targets, [[0, 0], [1, 1], [1, 0]])),
+		[true, [[0], [1]], [[0], [1], []]]);
+	/* Pill shells and unattributed shells never join the tank's group. */
+	let mixed = [tank_shell(100), tank_shell(88,
+		{ pillbox_source_x: 0, pillbox_source_y: 0 })];
+	check("a pill shell is not in the tank lockstep",
+		enforce(mixed, table(mixed, targets, [[0, 0], [0, 2], [1, 1]])),
+		[false, [[0, 2], [1]], [[0], [1], [0]]]);
+	let unattributed = [tank_shell(100), tank_shell(88, { starts_at_tank: false })];
+	check("an unattributed shell is not in the tank lockstep",
+		enforce(unattributed, table(unattributed, targets,
+			[[0, 0], [0, 2], [1, 1]])),
+		[false, [[0, 2], [1]], [[0], [1], [0]]]);
+}
 
 
 // The fast-ring fixture: two sender packets in one recorder tick are
@@ -3294,7 +3386,7 @@ if (!fs.existsSync(log2)) {
 	}
 	check("fast-ring fixture pill links: re-sends excluded, no contradictions", [
 		score.links, score.restated, score.vouched, score.contradicted,
-	], [80428, 1679, 27006, 0]);
+	], [80429, 1679, 27006, 0]);
 }
 
 process.exit(failures ? 1 : 0);

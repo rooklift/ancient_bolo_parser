@@ -105,10 +105,14 @@ and packaging, so v1.0.8's numbers are still `main`'s.
   be). The scenes print under the same `order_example` / `order_class`
   lines as the pill axis, tagged `tank`, with each shell's advance along
   the line and its list index. On the fixture 9,129 pairs, 1 inverted, 1
-  blurred; over the ten pairs 45,160 pairs, 14 inverted (seven scenes,
-  each seen by both recorders); on `040601.6` 22,319 pairs and none. Every
-  inversion is an identity swap between two shells on one line, where the
-  crossing and the non-crossing assignment cost the same total distance.
+  blurred; over the ten pairs 45,194 pairs, 14 inverted (seven scenes,
+  each seen by both recorders); on `040601.6` 22,332 pairs and none. Every
+  inversion is an identity swap between two shells on one line whose true
+  continuations lie outside the interval's readings, so the swapped hops
+  were the only candidates each shell had; the tank lockstep
+  (`enforce_tank_lockstep_candidates`, INTERPOLATION.md) prunes among
+  candidates and so reaches none of them, while moving about twenty other
+  links over the ten pairs in the paired audit's favour.
 * Tank and LGM track coverage is reported too, but is byte-identical at all ten
   commits, so it is omitted below. For the record: `rate_tank_ticks_interpolated`
   0.687960 and `rate_lgm_ticks_interpolated` 0.435824 throughout. Note that the

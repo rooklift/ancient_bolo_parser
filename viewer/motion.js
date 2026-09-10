@@ -2172,6 +2172,99 @@ function enforce_pillbox_lockstep_candidates(previous_shells, by_previous,
 	return changed;
 }
 
+/* A tank's own shells advance in lockstep too: the sender moves every
+ * shell it simulates 2 px along its bradian in the same update pass, and
+ * every list of one record is one sampling instant ([E:shell-list-skew]),
+ * so between two statements of one sender every one of its tank's live
+ * shells has flown the same distance, whatever its heading or list. The
+ * tank has no orbit steps to count -- its shells' bradian states are
+ * position bounds, not steps -- so the rule reads pixel advances: from
+ * the shell's exact pixel where its bradians agree on one, else its
+ * stated pixel, to the candidate's stated pixel, within
+ * TANK_LOCKSTEP_TOLERANCE_PIXELS (pixel rounding at both ends and the
+ * spread of the integer velocities' magnitudes across bradians) plus the
+ * chained-offset box of either end. Distance cost alone cannot see this:
+ * two shells on one line whose interval read long (a record stamped
+ * late) let the leader's short hop onto the trailer's true position and
+ * the trailer's long hop onto the leader's cost the same as the two true
+ * continuations, and the identities swap (fixture n20021018.2 at
+ * t9713165: three eastbound shells all flew 28 px, linked 51 and 5). One
+ * common advance must explain a non-terminal candidate of every tank
+ * shell that has any; candidates no common advance supports are pruned,
+ * and when no common advance exists (a fall mid-interval, a dropped
+ * restatement) nothing is. Terminal candidates stay out of it: dying is
+ * how a shell leaves the lockstep. Only shells with tank provenance -- a
+ * seen birth, or a birth time recovered later -- join the group, so an
+ * unattributed shell is never made to agree with them. */
+const TANK_LOCKSTEP_TOLERANCE_PIXELS = 3;
+function enforce_tank_lockstep_candidates(previous_shells, by_previous,
+	by_next) {
+	let members = [];
+	for (let index = 0; index < previous_shells.length; index++) {
+		let shell = previous_shells[index];
+		if (shell_from_pillbox(shell) ||
+			!(shell.starts_at_tank || shell.birth_time !== undefined)) continue;
+		let exact = shell.tank_exact_pixel_x !== undefined;
+		let origin_x = exact ? shell.tank_exact_pixel_x : shell.pixel_x;
+		let origin_y = exact ? shell.tank_exact_pixel_y : shell.pixel_y;
+		let slack = exact ? 0 : (shell.position_uncertainty || 0) * Math.SQRT2;
+		let intervals = [];
+		for (let candidate of by_previous[index]) {
+			if (candidate.target.terminal) continue;
+			let advance = Math.hypot(candidate.pixel_x - origin_x,
+				candidate.pixel_y - origin_y);
+			let tolerance = TANK_LOCKSTEP_TOLERANCE_PIXELS + slack +
+				(candidate.target.position_uncertainty || 0) * Math.SQRT2;
+			intervals.push({ candidate, lo: advance - tolerance,
+				hi: advance + tolerance });
+		}
+		if (intervals.length) members.push({ intervals });
+	}
+	if (members.length < 2) return false;
+
+	/* The common advances are the values some interval of every member
+	 * covers: a union of segments whose ends are interval ends, found by
+	 * testing every elementary segment between consecutive ends and every
+	 * end itself (two intervals may share only a point). */
+	let covered = (member, value) => member.intervals.some(interval =>
+		interval.lo <= value && value <= interval.hi);
+	let ends = [];
+	for (let member of members) {
+		for (let interval of member.intervals) ends.push(interval.lo, interval.hi);
+	}
+	ends.sort((a, b) => a - b);
+	let allowed = [];
+	for (let i = 0; i < ends.length; i++) {
+		if (members.every(member => covered(member, ends[i]))) {
+			allowed.push([ends[i], ends[i]]);
+		}
+		if (i + 1 === ends.length) continue;
+		let middle = (ends[i] + ends[i + 1]) / 2;
+		if (members.every(member => covered(member, middle))) {
+			allowed.push([ends[i], ends[i + 1]]);
+		}
+	}
+	if (!allowed.length) return false;
+
+	let removed = new Set();
+	for (let member of members) {
+		for (let interval of member.intervals) {
+			let supported = allowed.some(([lo, hi]) =>
+				interval.lo <= hi && lo <= interval.hi);
+			if (!supported) removed.add(interval.candidate);
+		}
+	}
+	if (!removed.size) return false;
+	for (let i = 0; i < by_previous.length; i++) {
+		by_previous[i] = by_previous[i].filter(candidate =>
+			!removed.has(candidate));
+	}
+	for (let i = 0; i < by_next.length; i++) {
+		by_next[i] = by_next[i].filter(candidate => !removed.has(candidate));
+	}
+	return true;
+}
+
 /* The lockstep rule above arbitrates among a member's own candidates, so
  * it needs two mutually constraining members before it can prune, and it
  * can never defend a pill's landing spot from an outside shell -- a
@@ -2629,6 +2722,8 @@ function match_shell_snapshots(previous, next) {
 			by_next)) changed = true;
 		if (enforce_roster_lockstep_candidates(previous.shells, target_groups,
 			by_previous, by_next, long_duration, next)) changed = true;
+		if (enforce_tank_lockstep_candidates(previous.shells, by_previous,
+			by_next)) changed = true;
 		if (!changed) break;
 		for (let choices of by_previous) choices.sort((a, b) => a.cost - b.cost);
 		for (let choices of by_next) choices.sort((a, b) => a.cost - b.cost);
@@ -5974,6 +6069,7 @@ const BoloMotion = {
 	shell_birth_positions_at, shell_fall_positions_at,
 	describe_unmatched_terminals, describe_unfated_ends, score_pill_links,
 	score_pill_order, score_tank_order, sweep_contradicted_links,
+	enforce_tank_lockstep_candidates,
 	set_roster_vote_recording, reset_flow_component_stats,
 	flow_component_stats: () => flow_component_stats,
 };
