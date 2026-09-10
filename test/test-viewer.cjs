@@ -3333,13 +3333,30 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	check("tank lockstep leaves a lone constrained shell alone",
 		enforce(shells, table(shells, targets, [[0, 0], [0, 2]])),
 		[false, [[0, 2], []], [[0], [], [0]]]);
-	/* Terminal candidates are neither counted nor pruned. */
+	/* Terminal candidates are neither counted nor pruned, and a shell
+	 * that may have died abstains: with both shells offered the terminal
+	 * there is no voter left. */
 	let with_terminal = [target(128), target(116),
 		{ terminal: true, pixel_x: 140, pixel_y: 100 }];
 	check("tank lockstep ignores terminal candidates",
 		enforce(shells, table(shells, with_terminal,
 			[[0, 0], [0, 2], [1, 1], [1, 2]])),
 		[false, [[0, 2], [1, 2]], [[0], [1], [0, 1]]]);
+	/* A leader that may have hit has a spurious 16 px hop onto its
+	 * trailer's restatement as its only continuation. It must not set the
+	 * roster's advance: two voters behind it agree on 28, so the hop is
+	 * pruned and the leader keeps its terminal. */
+	let three = [tank_shell(100), tank_shell(88), tank_shell(76)];
+	let dying = [target(116), target(104),
+		{ terminal: true, pixel_x: 140, pixel_y: 100 }];
+	check("a shell that may have died does not set the advance",
+		enforce(three, table(three, dying,
+			[[0, 0], [0, 2], [1, 0], [2, 1]])),
+		[true, [[2], [0], [1]], [[1], [2], [0]]]);
+	/* The same leader alone with one voter: no vote, nothing pruned. */
+	check("one voter and an abstainer cannot vote",
+		enforce(three, table(three, dying, [[0, 0], [0, 2], [1, 0]])),
+		[false, [[0, 2], [0], []], [[0, 1], [], [0]]]);
 	/* A chained-offset member's one-sided box widens its tolerance: a
 	 * 34 px hop from a list index 3 shell agrees with a 28 px one. */
 	let chained = [tank_shell(100), tank_shell(88, { position_uncertainty: 3 })];

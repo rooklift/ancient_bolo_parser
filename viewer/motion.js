@@ -2193,8 +2193,17 @@ function enforce_pillbox_lockstep_candidates(previous_shells, by_previous,
  * shell that has any; candidates no common advance supports are pruned,
  * and when no common advance exists (a fall mid-interval, a dropped
  * restatement) nothing is. Terminal candidates stay out of it: dying is
- * how a shell leaves the lockstep. Only shells with tank provenance -- a
- * seen birth, or a birth time recovered later -- join the group, so an
+ * how a shell leaves the lockstep. A shell that MAY have died -- one
+ * with a terminal among its candidates -- abstains from the vote as
+ * well: its non-terminal hops are pruned against the advance the others
+ * establish, but never set it. Its own true story may be the terminal,
+ * and a stream leader that hit its pill has a spurious short hop onto
+ * its successor's position as its only continuation candidate; counting
+ * that as the leader's advance forced the whole roster onto the short
+ * reading of a stall-widened interval, the leader continued instead of
+ * taking its hit, and the damage record went unclaimed (the ten pairs'
+ * 20010412.1, sender 1 at 3432199). Only shells with tank provenance --
+ * a seen birth, or a birth time recovered later -- join the group, so an
  * unattributed shell is never made to agree with them. */
 const TANK_LOCKSTEP_TOLERANCE_PIXELS = 3;
 function enforce_tank_lockstep_candidates(previous_shells, by_previous,
@@ -2209,8 +2218,9 @@ function enforce_tank_lockstep_candidates(previous_shells, by_previous,
 		let origin_y = exact ? shell.tank_exact_pixel_y : shell.pixel_y;
 		let slack = exact ? 0 : (shell.position_uncertainty || 0) * Math.SQRT2;
 		let intervals = [];
+		let may_die = false;
 		for (let candidate of by_previous[index]) {
-			if (candidate.target.terminal) continue;
+			if (candidate.target.terminal) { may_die = true; continue; }
 			let advance = Math.hypot(candidate.pixel_x - origin_x,
 				candidate.pixel_y - origin_y);
 			let tolerance = TANK_LOCKSTEP_TOLERANCE_PIXELS + slack +
@@ -2218,29 +2228,30 @@ function enforce_tank_lockstep_candidates(previous_shells, by_previous,
 			intervals.push({ candidate, lo: advance - tolerance,
 				hi: advance + tolerance });
 		}
-		if (intervals.length) members.push({ intervals });
+		if (intervals.length) members.push({ intervals, votes: !may_die });
 	}
-	if (members.length < 2) return false;
+	let voters = members.filter(member => member.votes);
+	if (voters.length < 2) return false;
 
-	/* The common advances are the values some interval of every member
+	/* The common advances are the values some interval of every voter
 	 * covers: a union of segments whose ends are interval ends, found by
 	 * testing every elementary segment between consecutive ends and every
 	 * end itself (two intervals may share only a point). */
 	let covered = (member, value) => member.intervals.some(interval =>
 		interval.lo <= value && value <= interval.hi);
 	let ends = [];
-	for (let member of members) {
+	for (let member of voters) {
 		for (let interval of member.intervals) ends.push(interval.lo, interval.hi);
 	}
 	ends.sort((a, b) => a - b);
 	let allowed = [];
 	for (let i = 0; i < ends.length; i++) {
-		if (members.every(member => covered(member, ends[i]))) {
+		if (voters.every(member => covered(member, ends[i]))) {
 			allowed.push([ends[i], ends[i]]);
 		}
 		if (i + 1 === ends.length) continue;
 		let middle = (ends[i] + ends[i + 1]) / 2;
-		if (members.every(member => covered(member, middle))) {
+		if (voters.every(member => covered(member, middle))) {
 			allowed.push([ends[i], ends[i + 1]]);
 		}
 	}
