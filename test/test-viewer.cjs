@@ -67,11 +67,13 @@ if (!fs.existsSync(log1)) {
 	check("starts", game.final.starts.length, 8);
 	check("chat entries", game.chat.length > 100, true);
 	// A 13-tick ring is the fair band (10 to 14); stall is nowhere near
-	// its first cut. The quiet share (6.84%) has no say.
+	// its first cut. The quiet share (6.84%) has no say. Of the log's two
+	// silences over half a second only one stopped the ring, and the stall
+	// figure is that one alone (0.04% before the gate).
 	check("network conditions rating", game.network.rating, "fair");
 	check("network conditions cycle ticks", game.network.cycle, 13);
 	check("network conditions quiet slots %", game.network.quiet.toFixed(2), "6.84");
-	check("network conditions stall %", game.network.stall.toFixed(2), "0.04");
+	check("network conditions stall %", game.network.stall.toFixed(2), "0.01");
 	// The verdict is read from settled play, so the ramp at the start is
 	// outside the measured span.
 	check("network conditions skips the join ramp", game.network.from > game.t0, true);
@@ -3019,6 +3021,43 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	check("freezes leave no quiet slots", net2.quiet, 0);
 	check("freezes are counted as lost time", net2.stall > 25, true);
 	check("freezes alone can rate awful", net2.rating, "awful");
+
+	// A silence is only a freeze if the ring stopped in it, which the slot
+	// counter says outright: a stopped ring cannot step it past one ring's
+	// worth of slots, and a ring that turned steps it once per node per lap.
+	// A third of the elapsed time here is silence, as in `frozen`, but the
+	// counter runs on through every gap: two parked tanks, not a fault.
+	function two_parked_tanks(ring_turns) {
+		let recs = [];
+		for (let i = 0, t = 1000, seq = 0; i < 2000; i++) {
+			recs.push({ time: t, seq: seq & 0x7f, player: i & 1, subpackets: [] });
+			let quiet = i % 40 === 39;   /* 0.8 s of silence in every 2.4 s */
+			t += quiet ? 40 : 2;
+			seq += quiet && ring_turns ? 20 : 1;
+		}
+		return recs;
+	}
+	let net_parked = BoloNetwork.network_conditions(two_parked_tanks(true));
+	check("a silence the ring turned through is not a freeze", net_parked.stall, 0);
+	check("a parked game is not rated on its silence", net_parked.rating, "good");
+
+	// The same stream with the counter stopped dead is a freeze again, so
+	// the gate turns on the counter and nothing else.
+	check("the same silences with a stopped counter are freezes",
+		BoloNetwork.network_conditions(two_parked_tanks(false)).stall > 25, true);
+
+	// The allowance is a whole ring, not one slot: as a held-up packet gets
+	// going again the nodes taking the next turns may have nothing to log,
+	// and a quiet slot steps the counter just the same.
+	check("a ring's worth of slots across a silence is still a freeze",
+		BoloNetwork.ring_stopped(4, 4), true);
+	check("a slot past the ring is a ring that turned",
+		BoloNetwork.ring_stopped(5, 4), false);
+	check("the ring is the distinct slots heard from",
+		BoloNetwork.ring_size([{ player: 3, subpackets: [] }, { player: 7, subpackets: [] },
+			{ player: 3, subpackets: [] }, { tankStatus: 0x0f, player: 9, subpackets: [] }]), 2);
+	check("a ring of none still allows a slot",
+		BoloNetwork.ring_size([{ tankStatus: 0x0f, player: 9, subpackets: [] }]), 1);
 
 	// Lag alone can damn one the freeze reading would pass: a ring turning
 	// slowly has no gap reaching the half second a stall needs, but

@@ -17,8 +17,12 @@
  * round, and a wrapped step is a lie.
  *
  * STALL: the share of elapsed time in gaps where nothing at all arrived for
- * over half a second.  No ring cycles that slowly at any player count, so
- * this is a freeze regardless of how many were playing.
+ * over half a second AND the slot counter says the ring did not get round
+ * even once.  A silence alone is not a freeze: a game whose players have
+ * all parked goes quiet with the ring turning at full speed, which is what
+ * the counter is asked about [E:idle-stall], and tools/measure-ring-stalls.cjs
+ * measures what that gate takes off a corpus.  Gated, this is a freeze
+ * regardless of how many were playing.
  *
  * CYCLE: how long the ring takes to go round -- the p90 of the gap between
  * one record from a player and the next from the same player.  The ring
@@ -98,14 +102,17 @@ function spread(label, values) {
 }
 
 /* the readings as network_conditions takes them, but over whatever slice of
- * records it is handed -- used here for the untrimmed comparison */
+ * records it is handed -- used here for the untrimmed comparison. The stall
+ * gate is network.js's: a silence counts only where the slot counter says
+ * the ring did not get round even once [E:idle-stall]. */
 function raw_readings(recs) {
 	let elapsed = recs[recs.length - 1].time - recs[0].time;
+	let players = BoloNetwork.ring_size(recs);
 	let missing = 0, slots = 0, frozen = 0;
 	for (let i = 1; i < recs.length; i++) {
 		let gap = recs[i].time - recs[i - 1].time;
 		let step = (recs[i].seq - recs[i - 1].seq) & 0x7f;
-		if (gap > 25 && gap <= 1500) frozen += gap;
+		if (gap > 25 && gap <= 1500 && BoloNetwork.ring_stopped(step, players)) frozen += gap;
 		if (step === 0 || gap > 250) { slots++; continue; }
 		missing += step - 1;
 		slots += step;

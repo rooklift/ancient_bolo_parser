@@ -13,8 +13,10 @@ const TICKS_PER_SECOND = 50;
  * reported alongside them without a say in the verdict:
  *
  *   STALL. The share of elapsed time spent in gaps where nothing at all
- *   arrived for over half a second -- a freeze the viewer shows whatever
- *   the player count, since no ring cycles that slowly.
+ *   arrived for over half a second AND THE RING DID NOT TURN -- a freeze
+ *   the viewer shows whatever the player count. The second half of that
+ *   qualifier is not decoration; see THE SILENCE THAT IS NOT A FREEZE
+ *   below.
  *
  *   CYCLE. How long the ring takes to go round: the 90th percentile of
  *   the gap between one record from a player and the next record from
@@ -42,6 +44,43 @@ const TICKS_PER_SECOND = 50;
  *   of them parked or dead at any moment, and its correlation with what
  *   the viewer can make of the stream is player count in disguise (see
  *   below). It is kept in the result for the measurement tools.
+ *
+ * THE SILENCE THAT IS NOT A FREEZE. A gap in the log means the logging
+ * machine wrote nothing for a while, and that has two quite different
+ * causes: the ring stopped, or the ring turned and nobody had anything to
+ * say. The stall reading was built on the first and charged for both, and
+ * the slot counter tells them apart outright. A stopped ring cannot step
+ * the counter -- the game needs its packet back to go on, so a held-up
+ * packet costs a wait and whatever repairs it leaves the counter unbroken
+ * -- while a ring that turned through the silence steps it once per node
+ * per lap. So a silence is a freeze only when the counter advanced by no
+ * more than one ring's worth of slots: the ring did not get round even
+ * once. Over the twenty-two committed fixtures the two populations do not
+ * touch: of the 327 silences on their four-, five- and six-player rings 326
+ * step the counter by 3 or less, and the five silences in all the fixtures
+ * that step past 3 step 9 or higher. Twenty-one of the twenty-two keep
+ * their stall figure to the hundredth of a point, so the gate takes nothing
+ * away from a log that really did freeze [E:idle-stall].
+ *
+ * What it does take away is the parked game. A two-player log from April
+ * 2001 on "chew toy 2000" (the holder's corpus, not the fixtures) rated
+ * "awful" on a 44.8% stall while its ring turned at 6 ticks, the corpus
+ * floor: both players parked their tanks 21 minutes in and came back 43
+ * minutes later, and with only two nodes in the ring there was no third
+ * voice to fill the silence. The counter ran on unbroken through all
+ * 1,634 of that log's silences, stepping 6 to 59 where a freeze steps 1;
+ * both machines' 1000-tick base timers fired 126 times in the 126,000
+ * ticks of the long one, not a beat missed; and both tanks restate one
+ * pixel apiece, 658 times each, byte for byte. Nothing was frozen and
+ * nothing was paused -- Bolo has no pause -- the players simply went away.
+ * Gated, that log reads 0.0% stall and rates "good" on its cycle.
+ *
+ * The gate can only ever clear a silence, never convict one. The counter
+ * is 7 bits, so a silence longer than 128 slots can wrap and alias its
+ * step down into the frozen range; that misreads an idle stretch as a
+ * freeze, which is what the reading did for every silence before the gate,
+ * and it cannot go the other way, since a stopped ring has no large step
+ * to alias from.
  *
  * All three are read only over the stretch of SETTLED PLAY, and that
  * qualifier carries most of the accuracy here. While the game is still
@@ -156,9 +195,20 @@ const TICKS_PER_SECOND = 50;
  * of the time, and the band's rank correlation with segments unbridged
  * is 0.78 (0.82 at stall cuts of 2 / 7 / 18, 0.67 at cycle cuts of
  * 14 / 19 / 26). All of it reproduces with
- * tools/measure-network-conditions.cjs. */
+ * tools/measure-network-conditions.cjs.
+ *
+ * EVERY CORPUS FIGURE QUOTED ABOVE FOR THE STALL READING -- its quartiles,
+ * the band splits, the half-to-half agreement, the rank correlations, and
+ * the counts of logs the lowered cuts moved -- was measured before the
+ * ring-turned gate, when a parked game read as a frozen one. The gate
+ * moves no fixture's rating and the worst-hit of them by 0.12 stall
+ * points, so the corpus figures are unlikely to move far, but they are
+ * unverified until the
+ * corpus holder reruns them; tools/measure-ring-stalls.cjs reports what
+ * the gate takes off each log, and the cuts should be reconsidered on the
+ * rerun rather than assumed. The cycle reading is untouched. */
 
-const STALL_GAP_TICKS = TICKS_PER_SECOND / 2;  /* silence that reads as a freeze */
+const STALL_GAP_TICKS = TICKS_PER_SECOND / 2;  /* silence long enough to be a freeze */
 const SEQ_TRUST_TICKS = 250;    /* 5s: past this a step is a rejoin, not quiet */
 const ABSENCE_TICKS = 1500;     /* 30s: nobody home, not a stalled network */
 const SETTLE_BLOCK_TICKS = 500; /* 10s: the grain the join ramp is found on */
@@ -331,6 +381,37 @@ function ring_cycle_ticks(span) {
 	return gaps[Math.floor(CYCLE_QUANTILE * (gaps.length - 1))];
 }
 
+/* How many machines are in the ring over a stretch of records: the distinct
+ * player slots heard from. Viewer inserts carry no player and are not ring
+ * traffic. Never less than one, so the freeze gate below always has a
+ * ring's worth of slots to allow. */
+function ring_size(span) {
+	let seen = new Set();
+	for (const rec of span) {
+		if (rec.tankStatus === 0x0f) continue;  /* viewer insert */
+		seen.add(rec.player & 0x0f);
+	}
+	return Math.max(1, seen.size);
+}
+
+/* Did the ring stop during a silence? The slot counter answers it: a
+ * stopped ring cannot step it, since the game needs its packet back to go
+ * on, so a held-up packet costs a wait and whatever repairs it leaves the
+ * counter unbroken. A silence is therefore a freeze only when the counter
+ * moved by no more than one ring's worth of slots -- the ring did not get
+ * round even once. The allowance is a whole ring rather than a single slot
+ * because the nodes that take the next turns as it resumes may have nothing
+ * to log, and a quiet slot steps the counter just the same.
+ *
+ * The test can only clear a silence, never convict one: the counter is 7
+ * bits, so a silence past 128 slots can wrap and alias a large step down
+ * into this range, misreading an idle stretch as a freeze -- which is what
+ * the reading did for every silence before the gate. A stopped ring has no
+ * large step to alias from, so a real freeze is never cleared. */
+function ring_stopped(step, players) {
+	return step <= players;
+}
+
 function network_conditions(records) {
 	if (records.length < 2) return null;
 	let span = settled_span(records);
@@ -340,12 +421,14 @@ function network_conditions(records) {
 
 	let missing = 0;     /* ring slots on which a node logged nothing */
 	let slots = 0;       /* ring slots accounted for either way */
-	let frozen = 0;      /* ticks spent hearing nothing at all */
+	let frozen = 0;      /* ticks spent with the ring stopped */
+	let players = ring_size(span);
 
 	for (let i = 1; i < span.length; i++) {
 		let gap = span[i].time - span[i - 1].time;
 		let step = (span[i].seq - span[i - 1].seq) & 0x7f;
-		if (gap > STALL_GAP_TICKS && gap <= ABSENCE_TICKS) frozen += gap;
+		if (gap > STALL_GAP_TICKS && gap <= ABSENCE_TICKS &&
+			ring_stopped(step, players)) frozen += gap;
 		if (step === 0 || gap > SEQ_TRUST_TICKS) {
 			/* a duplicate, or a hole long enough that the 7-bit counter may
 			 * have wrapped right round it -- one slot, none of it quiet */
@@ -365,7 +448,8 @@ function network_conditions(records) {
 	};
 }
 
-const BoloNetwork = { network_conditions, network_rating, recorder };
+const BoloNetwork = { network_conditions, network_rating, recorder,
+	ring_size, ring_stopped };
 
 if (typeof module !== "undefined" && module.exports) {
 	module.exports = BoloNetwork;

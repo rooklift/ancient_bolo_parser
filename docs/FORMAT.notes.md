@@ -19,6 +19,7 @@ Corpus figures are from the 443-log set unless an entry says 446, in which case 
 - [`[E:seq-loss]`](#eseq-loss-the-ring-slot-counter-holes-the-gathering-phase-and-the-three-network-readings) — the ring slot counter, holes, the gathering phase, and the three network readings
 - [`[E:two-recorders]`](#etwo-recorders-two-logs-of-one-game) — two logs of one game
 - [`[E:idle-silence]`](#eidle-silence-how-long-a-live-player-can-be-silent) — how long a live player can be silent
+- [`[E:idle-stall]`](#eidle-stall-a-silence-is-not-a-freeze) — a silence is not a freeze
 - [`[E:quit-fields]`](#equit-fields-the-three-address-fields-of-a-quit) — the three address fields of a quit
 
 **Shells**
@@ -209,6 +210,35 @@ A rule taking both — 15 s of the ring heard turning, and some one other player
 The viewer once faded after 5 s of clock time, which drew every idle tank of the gathering phase as a ghost: there the whole ring is on a 6–8 s cycle, and across a 7.6 s silence in the third log each of the other three players was heard exactly once.
 
 Before the game has settled — nobody shooting, no base draining — nothing else from a player fills the interval between a stationary tank's restatements, which is why a live, connected player is routinely silent for 6–9 s. Measuring a silence against the records the log *did* receive from others meanwhile would be more faithful than the clock alone, but as the ring reading above shows it buys only a few dozen events corpus-wide.
+
+### [E:idle-stall] — a silence is not a freeze
+
+`viewer/network.js` rates a game partly on its **stall**: the share of settled play spent in gaps where nothing at all arrived for over half a second. A gap means the logging machine wrote nothing for a while, and that has two causes the reading originally conflated. The ring may have stopped — a packet held up on its way round, which every machine feels as a freeze, and which is the thing worth rating. Or the ring may have turned with nobody speaking: a record is written only when a node has something to say, so a game whose players have parked their tanks goes quiet at full ring speed. A stationary tank restates only every 4 to 8 s ([E:idle-silence]), eight to sixteen times the half second the reading calls a freeze, so an idle game books nearly all of its elapsed time as frozen. It is worst at two players, where the two tanks are the only voices there are.
+
+**The slot counter separates them.** The game's ring needs its packet back to go on, so a stopped ring cannot step the counter, and whatever repairs a held-up packet leaves the counter unbroken ([E:seq-loss]); a ring that turned through the silence steps it once per node per lap. A silence is therefore a freeze only where the counter advanced by no more than one ring's worth of slots — the ring did not get round even once. The allowance is a whole ring rather than a single slot because the nodes taking the next turns as it resumes may have nothing to log, and a quiet slot steps the counter just the same.
+
+**The two populations do not touch.** `tools/measure-ring-stalls.cjs` buckets every silence over half a second by how far the counter moved. Over the twenty-two committed fixtures:
+
+| ring | step 0–1 | 2–3 | 4–6 | 7–15 | 16–31 | 32+ |
+|---|---|---|---|---|---|---|
+| 2 players | 0 | 0 | 0 | 3 | 1 | 0 |
+| 4 players | 105 | 11 | 0 | 0 | 0 | 1 |
+| 5 players | 11 | 1 | 0 | 0 | 0 | 0 |
+| 6 players | 181 | 17 | 0 | 0 | 0 | 0 |
+
+Of the 327 silences on the four-, five- and six-player rings, 326 step the counter by 3 or less, and the five that do not — one there and the four two-player ones — step 9 or higher. The 4–6 column is empty: nothing lands in between. Twenty-one of the twenty-two fixtures keep their stall figure unchanged to the hundredth of a point, so the gate costs a log that really froze nothing at all. The single four-player silence in the 32+ column is `n20021018.2`'s, a 2.98 s quiet stretch across which the counter stepped 46 — in the same log as a 0.52 s silence that stepped 1, the two shapes side by side.
+
+**What it takes away is the parked game.** A two-player log from April 2001 on "chew toy 2000" — the holder's corpus, not one of the committed fixtures — rated **awful** on a 44.8% stall while its ring turned at 6 ticks, the corpus floor. Twenty-one minutes in, both players parked and left; they came back 43 minutes later and played another 38. Three readings agree that nothing was wrong with the network and nothing was paused:
+
+- the counter ran on unbroken through all 1,634 of the log's silences, at a steady ~3 ticks a slot — 764 of them stepping 7 to 15, 243 stepping 16 to 31 and 627 stepping past 31, not one below 7, where a freeze steps 1;
+- both machines' 1000-tick base-stock timers fired 126 times each in the 126,000 ticks of the long silence, intervals 999–1008, not a beat missed — Bolo has no pause, and this is what proves neither game clock stopped;
+- both tanks restate one position apiece, 658 times each, byte for byte, and terrain kept changing around them as trees regrew.
+
+Gated, that log reads 0.0% stall and rates **good** on its cycle. On the fixtures themselves the gate takes far less: `040601.6` gives up all 0.123 of its stall points and `n20021018.2` 0.037 of its 0.043, and neither rating moves.
+
+**The gate can only clear a silence, never convict one.** The counter is 7 bits, so a silence past 128 slots — 175 to 400 ticks on the fixtures' rings — can wrap and alias a large step down into the frozen range. That misreads an idle stretch as a freeze, which is exactly what the reading did for every silence before the gate, so the failure is the old behaviour rather than a new one. A stopped ring has no large step to alias from, so a real freeze is never cleared.
+
+**Unverified over the corpus.** Every corpus figure `viewer/network.js` quotes for the stall reading — its quartiles, the band splits, the half-to-half agreement, the rank correlations against the interpolation pipeline, and the counts of logs the lowered cuts moved — was measured before the gate, when a parked game read as a frozen one. The fixtures say the gate is close to a no-op on logs that froze, but the corpus figures stand unverified until the holder reruns `tools/measure-ring-stalls.cjs` and `tools/measure-network-conditions.cjs`, and the stall cuts should be reconsidered on that rerun rather than assumed. The cycle reading is untouched.
 
 ### [E:quit-fields] — the three address fields of a quit
 
