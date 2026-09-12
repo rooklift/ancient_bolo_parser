@@ -4754,9 +4754,16 @@ function resolve_residual_shell_fates(snapshots) {
 	 * identity AND no live shell story competes inside that margin (a
 	 * costlier shell story was already beaten by phase-one cost-forcing
 	 * standards; a competing one keeps the fate open). Cheapest fates
-	 * claim first, spending only their within-margin candidate shots:
-	 * sharing a muzzle does not make a future or expired shot eligible,
-	 * and overlapping candidate sets must share the actual shot counts. */
+	 * claim first, and each spends only shots that could have flown into
+	 * it: sharing a muzzle does not make a future or expired shot
+	 * eligible, and overlapping candidate sets share the actual shot
+	 * counts. An earlier fate may have spent this one's cheapest story,
+	 * so the election is held again at spend time over the candidates
+	 * still unspent -- a costlier shot from the same muzzle is a legal
+	 * story, and would have been the whole within set had the cheaper
+	 * sibling never existed -- with the identity test and the live-shell
+	 * test re-run against the new cheapest, since a rival that sat
+	 * outside the old margin can sit inside the new one. */
 	let identity_of = creation => `${creation.kind}:${creation.pixel_x},` +
 		`${creation.pixel_y},${creation.direction}`;
 	let live_end_cost = new Map();
@@ -4796,15 +4803,25 @@ function resolve_residual_shell_fates(snapshots) {
 		let identities = new Set(within.map(candidate =>
 			identity_of(candidate.creation)));
 		if (identities.size !== 1) continue;
-		eligible.push({ fate, count, best, candidates: within });
+		eligible.push({ fate, count, best, candidates });
 	}
 	eligible.sort((a, b) => a.best - b.best);
 	for (let { fate, count, candidates } of eligible) {
 		let remaining = count;
-		for (let { creation, match } of candidates) {
-			if (remaining <= 0) break;
+		while (remaining > 0) {
+			let open = candidates.filter(candidate => candidate.creation.count >
+				(creation_spent.get(candidate.creation) || 0));
+			if (!open.length) break;
+			let best = Math.min(...open.map(candidate => candidate.cost));
+			let end_cost = live_end_cost.get(fate);
+			if (end_cost !== undefined &&
+				end_cost < best + RESIDUAL_COST_MARGIN) break;
+			let within = open.filter(candidate =>
+				candidate.cost < best + RESIDUAL_COST_MARGIN);
+			if (new Set(within.map(candidate =>
+				identity_of(candidate.creation))).size !== 1) break;
+			let { creation, match } = within[0];
 			let unspent = creation.count - (creation_spent.get(creation) || 0);
-			if (unspent <= 0) continue;
 			let units = Math.min(unspent, remaining);
 			apply_forced_unseen(creation, fate, units, match);
 			creation_spent.set(creation,
