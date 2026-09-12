@@ -176,6 +176,7 @@ Constant at all ten commits, and worth having once:
 | `364174f` | a shell that may have died abstains from the tank lockstep (engine `7290254`) | 0.998076 | 0.000804 | **0.839166** | **242,293** | 13,230 | 801 | 14 |
 | `43efbbb` | the tank's shells as the pair's clock | **0.998337** | **0.000652** | **0.839362** | **242,334** | 13,560 | 791 | 16 |
 | `91b9174` | the terminal's nearest explainer is the doubtful voter; the stitcher reads the clock (engine `26863ca`) | **0.998408** | **0.000612** | **0.839410** | **242,335** | 13,565 | **635** | 16 |
+| `7c99ab5` | a record the reading marks late slides its heads, against the next record (drawing only) | 0.998408 | 0.000612 | 0.839410 | 242,335 | 13,565 | **633** | 16 |
 
 The three right-hand columns are lower-is-better counts from the drawn
 audit and the vouched-link score, added so that a drawing-only commit
@@ -3972,6 +3973,32 @@ carry no reading (the pill's shells are the sender's only shells, or
 the tank's voters tie), and a composed clock of stamps is the stamps.
 The change stands as measured; every headline record but the timed
 column moves on.
+
+## A record the reading marks late slides its heads -- `7c99ab5`, drawing only
+
+The fixture doc's section of the same name has the change and the
+fast ring's shape. Drawing only: the report is byte-identical to
+`91b9174`'s, and `7c99ab5-audit.txt` against `91b9174-audit.txt` (443
+files, the same input):
+
+* `rate_links_steady` 0.965122 -> **0.965654** (`1.8-2.2` +4,348),
+  `rush_links` 8,735 -> **8,041** (`rush_links_timed` 2,711 -> 2,017,
+  the `3.0+` bucket -698), `2.5-3.0` 19,546 -> 17,554, `2.2-2.5` 77,924
+  -> **62,425** (-15,499); `pops_paired_backwards` 635 -> 633.
+* the overshoot: `1.5-1.8` 153,301 -> 166,245 (+12,944), `1.0-1.5`
+  +829, `0.5-1.0` +60, `hover_links` 4,478 -> 4,546 (+68).
+
+Reading. The slide moves the right heads and by too much: of the
+15,499 links that left the just-fast bucket, a quarter reached steady
+and most fell through to just-slow. The pass read a head's lateness
+against the next record, and the smoother re-times the chain against
+its tail; a backlog drains over several records, so the tail is still
+late by part of what the next pair read, and the head was slid by the
+whole of it. The commit after this one reads the head's lateness
+against the tail off the composed clock -- the chain's true span less
+its stamped span -- and on the fixtures that takes the pairs from
+0.962717 to 0.964108 with the hovers back at baseline; its corpus run
+is the next section when it exists.
 
 ## Findings
 

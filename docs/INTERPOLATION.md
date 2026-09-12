@@ -632,7 +632,9 @@ reading sits outside every stamp reading by more than the match window
 The drawing reads the clock too: a record the reading marks late -- the
 next pair read longer than its longest stamp reading -- slides its chain
 heads before smoothing as a stalled record's do (`slide_delayed_chain_heads`),
-to the tick and on a smaller excess, capped by the reading's lateness.
+to the tick and on a smaller excess, capped by the head's lateness
+against the chain's tail, which the composed clock gives as the chain's
+true span less its stamped span.
 A uniformly stale chain, statement and hit alike, is beyond any anchor
 slide and stays drawn fast; the fixture doc's section "A record the
 reading marks late slides its heads" has the measurement and the shape.

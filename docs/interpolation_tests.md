@@ -2328,21 +2328,33 @@ reading marks late, and reads the lateness to the tick
 and a whole cadence of lie sits under the match window the matcher's
 "novel" gate uses. A read-late head slides on a smaller excess than a
 stalled one (`READ_LATE_SLIDE_THRESHOLD_PIXELS` 2 against 8), by no
-more than the reading's lateness plus that slack, since the link's
-excess also carries the head's own quantisation. The report is
-byte-identical by construction; only the drawn audit moves.
+more than the lateness plus that slack, since the link's excess also
+carries the head's own quantisation. The report is byte-identical by
+construction; only the drawn audit moves.
 
-Drawn audit (`tools/audit-drawn-motion.cjs`), against `12d9a1d`:
+Which lateness: `7c99ab5` read the head's against the next record
+alone, and the corpus (`7c99ab5-audit.txt`) said that overshoots --
+`rate_links_steady` 0.965122 -> 0.965654, but 15,499 links left the
+`2.2-2.5` bucket and 12,944 landed in `1.5-1.8`, `hover_links` +68 --
+because the smoother re-times the chain against its TAIL, and a
+backlog drains over several records, so the tail is still late by part
+of what the next pair read. The lateness that matters is the head's
+against the tail, and the composed clock (`sender_clock`) gives it:
+the chain's true span less its stamped span. Drawn audit, the three
+engines side by side (`12d9a1d` | next-pair | chain-composed):
 
-* the ten pairs: `rate_links_steady` 0.961311 -> **0.962717**,
-  `link_speed:2.2-2.5` 2,398 -> 1,866, `2.5-3.0` 226 -> 189, `3.0+` 8
-  -> 7, `1.5-1.8` 4,428 -> 4,689, `hover_links` 164 -> 174
-* `n20021018.2`: `rate_links_steady` 0.978627 -> **0.979214** (a
-  record; 0.979076 at `ee502e9`), `2.2-2.5` 444 -> 385, `2.5-3.0` 34 ->
-  31, hovers unchanged
-* `040601.6`: `rate_links_steady` 0.961897 -> 0.961773, `2.5-3.0` 365
-  -> 347, `2.2-2.5` 621 -> 558, `1.5-1.8` 749 -> 847, `hover_links` 14
-  -> 19
+* the ten pairs: `rate_links_steady` 0.961311 | 0.962717 |
+  **0.964108**; `2.2-2.5` 2,398 | 1,866 | 1,829; `2.5-3.0` 226 | 189 |
+  186; `1.5-1.8` 4,428 | 4,689 | 4,467; `hover_links` 164 | 174 | 164
+* `n20021018.2`: `rate_links_steady` 0.978627 | 0.979214 |
+  **0.979726** (a record; 0.979076 at `ee502e9`); `2.2-2.5` 444 | 385 |
+  377; `1.5-1.8` 604 | 635 | 616; hovers unchanged
+* `040601.6`: `rate_links_steady` 0.961897 | 0.961773 | **0.962382**;
+  `2.2-2.5` 621 | 558 | 544; `2.5-3.0` 365 | 347 | 347; `1.5-1.8` 749 |
+  847 | 809; `hover_links` 14 | 19 | 19
+
+The overshoot's slow links come back to steady and the hovers to
+baseline on the pairs; the fast ring's five extra hovers stay.
 
 The fast ring's fast links are a different shape and stay. Dumped
 whole, its chains run at two pixels a tick raw on a two-tick cadence
