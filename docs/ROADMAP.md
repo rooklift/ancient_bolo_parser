@@ -186,6 +186,28 @@ measure the false-claim risk before believing it. Explicitly optional.
 * The seam-jump family (129 links, max 3.16 px) was root-caused and
   closed by item 9's seam closure: 81 corpus seam jumps to 0, and 0 at
   every audit since. DONE.
+* The residual resolver's books. Two faults found by reading the code,
+  fixed at `081d8aa` and `8289438` (the fixture doc's "A shot is spent
+  only where it could have flown"): same-tick snapshots received each
+  other's leftover shots in the writeback, and the equivalence phase's
+  capacity pool let a shot fired after an impact fund it. Corpus: 1,462
+  unseen attributions leave the ledger, ten pillbox hits go to observed
+  shells instead, nine pop-outs gone, every other line a wash. `ae527fd`
+  then re-elects among the shots still unspent at spend time, so a
+  costlier same-muzzle story is taken once the cheap one is spent
+  elsewhere: 231 of those attributions come back, nothing else moves.
+  DONE.
+* Links that outlive the sender's next record are not drawn past it.
+  The renderer draws packet state plus birth and fall segments, so a
+  stitch or a forced terminal whose target lies beyond the sender's
+  next snapshot has no sprite from that record to the target. Measured
+  over the two fixtures and the ten pairs: 157 such links in 417,452
+  (shell falls excluded, since fall segments already cover them), 14 on
+  `n20021018.2` (eight stitches, six non-fall terminals), 55 on the
+  fast ring, each invisible for 5-25 ticks typically, 1,935 ticks in
+  all. The drawn audit reads every link as drawn end to end and cannot
+  see this class. Fall segments solve it for falls; generalising them
+  to every such link is a drawing-only change. Open.
 
 ## 9. The pill lockstep arc -- DONE
 

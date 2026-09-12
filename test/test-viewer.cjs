@@ -222,10 +222,16 @@ if (!fs.existsSync(log1)) {
 			described, described === unexplained, reasons_sound,
 			classes.get("explosion:no_candidate:-"),
 			classes.get("pillbox_damage:end_continued:T"),
-		], [896, true, true, 240, 88]);
+		], [903, true, true, 240, 88]);
+		/* Spending only where a shot could have flown leaves seven more
+		 * pill impacts unexplained. The old pool charged thirteen units
+		 * on this fixture: four to within-margin shots, two to legal but
+		 * costlier shots of the same source, and seven to shots fired
+		 * AFTER the impact they were charged for. Re-electing at spend
+		 * time keeps one of the two costlier ones (1,209 without it). */
 		check("fixture same-record unseen shots claimed without cost", [
 			matched, unseen.pill, unseen.tank,
-		], [20846, 1217, 1116]);
+		], [20846, 1210, 1116]);
 
 		/* The end-side mirror: every chain end with no forward story gets
 		 * a class; the census must equal the unmatched-forward count less
@@ -254,7 +260,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture end-side census reconciles", [
 			ends_described, ends_described === unfated, end_reasons_sound,
 			fate_open,
-		], [145, true, true, 22]);
+		], [145, true, true, 25]);
 	}
 
 	/* The truth axis: every pill link scored against the statement-roster
@@ -3443,6 +3449,125 @@ if (!fs.existsSync(log2)) {
 	check("fast-ring fixture pill links: re-sends excluded, no contradictions", [
 		score.links, score.restated, score.vouched, score.contradicted,
 	], [80429, 1679, 27006, 0]);
+}
+
+// Same-tick records keep separate shot budgets, including after a second
+// residual pass (as used after contradictory links are removed).
+{
+	let motion = require("../viewer/motion.js");
+	let snapshots = [0, 10, 10, 10, 20].map(time => ({
+		time, shells: [], terminals: [], pillbox_sources: [], tank_sources: [],
+		unclaimed_pillbox_sources: [], unclaimed_tank_sources: [],
+	}));
+	let source = (pixel_x, count) => ({
+		pixel_x, pixel_y: 100, direction: 4, count,
+	});
+	snapshots[1].unclaimed_tank_sources = [source(100, 2)];
+	snapshots[2].unclaimed_tank_sources = [source(700, 1)];
+	snapshots[1].unclaimed_pillbox_sources = [source(1500, 1)];
+	snapshots[2].unclaimed_pillbox_sources = [source(2500, 2)];
+	// One tank shot is consumed by an observed birth. An unreachable fate
+	// keeps both resolver calls active without spending the remaining shots.
+	snapshots[4].shells = [{ pixel_x: 120, pixel_y: 100, direction: 4 }];
+	snapshots[4].terminals = [{
+		type: "point", event_type: "shell_falls", pixel_x: 1000, pixel_y: 1000,
+	}];
+	let remaining = key => snapshots.map(snapshot =>
+		snapshot[key].map(shot => [shot.pixel_x, shot.count]));
+	for (let pass = 1; pass <= 2; pass++) {
+		motion.resolve_residual_shell_fates(snapshots);
+		check(`same-tick tank budgets stay with their records, pass ${pass}`,
+			remaining("unclaimed_tank_sources"),
+			[[], [[100, 1]], [[700, 1]], [], []]);
+		check(`same-tick pill budgets stay with their records, pass ${pass}`,
+			remaining("unclaimed_pillbox_sources"),
+			[[], [[1500, 1]], [[2500, 2]], [], []]);
+	}
+	check("residual budget regression consumes one tank shot for a birth",
+		snapshots[4].shells[0].starts_at_tank, true);
+}
+
+// Equivalence claims may share a muzzle, but only shots in an impact's
+// flight window can supply it. Unrelated shots must retain their capacity.
+{
+	let motion = require("../viewer/motion.js");
+	let orbit = require("../viewer/pillbox_shell_orbits.js").orbits
+		.find(orbit => orbit.coarse_direction === 4);
+	for (let [kind, unrelated_time, shot_count] of [
+		["tank", 10, 1], ["tank", 700, 1],
+		["pillbox", 10, 2], ["pillbox", 700, 2],
+	]) {
+		let key = `unclaimed_${kind}_sources`;
+		let unseen_key = `unseen_${kind}_source`;
+		let endpoint = kind === "pillbox" ? orbit.positions[3] : [20, 0];
+		let snapshots = [0, 10, 210, 211, 220, 221, 222, 223, 700, 710]
+			.map(time => ({
+				time, shells: [], terminals: [], pillbox_sources: [], tank_sources: [],
+				unclaimed_pillbox_sources: [], unclaimed_tank_sources: [],
+			}));
+		for (let time of [210, 211, unrelated_time]) {
+			snapshots.find(snapshot => snapshot.time === time)
+				[key].push({
+					pixel_x: 100, pixel_y: 100, direction: 4,
+					count: time === 210 ? shot_count : 1,
+				});
+		}
+		let impact_times = Array.from({ length: shot_count + 2 }, (_, i) => 220 + i);
+		for (let time of impact_times) {
+			snapshots.find(snapshot => snapshot.time === time).terminals.push({
+				type: "point", event_type: "shell_falls", direction: 4,
+				pixel_x: 100 + endpoint[0], pixel_y: 100 + endpoint[1],
+			});
+		}
+		motion.resolve_residual_shell_fates(snapshots);
+		check(`${kind} shot at ${unrelated_time} cannot fund earlier or expired impacts`,
+			snapshots.flatMap(snapshot => snapshot.terminals)
+				.map(terminal => !!terminal[unseen_key]),
+			[...Array(shot_count + 1).fill(true), false]);
+		check(`ineligible ${kind} shot at ${unrelated_time} stays unspent`,
+			snapshots.flatMap(snapshot => snapshot[key]
+				.map(source => [snapshot.time, source.count])),
+			[[unrelated_time, 1]]);
+	}
+}
+
+// The equivalence phase re-elects at spend time. Two shots from one tank
+// muzzle, at ticks 100 and 105, and two impacts at 120 and 121, each 40 or
+// 42 px out: the tick-100 shot is the cheap story for both (cost 0), the
+// tick-105 shot a legal but costlier one (cost 5, outside the margin). The
+// first impact spends the cheap shot; the second must then take the
+// costlier one, as it would have had the cheap shot never existed. A
+// rival muzzle 2 px west with a shot at 105 (cost 6 for either impact,
+// inside the new margin, outside the old) makes the two remaining stories
+// compete, and the second impact stays open with both shots unspent.
+{
+	let motion = require("../viewer/motion.js");
+	let scene = rival => {
+		let snapshots = [0, 100, 105, 120, 121, 200].map(time => ({
+			time, shells: [], terminals: [], pillbox_sources: [], tank_sources: [],
+			unclaimed_pillbox_sources: [], unclaimed_tank_sources: [],
+		}));
+		let shot = (pixel_x, count) => ({ pixel_x, pixel_y: 100, direction: 4, count });
+		snapshots[1].unclaimed_tank_sources = [shot(100, 1)];
+		snapshots[2].unclaimed_tank_sources = rival ? [shot(100, 1), shot(98, 1)] : [shot(100, 1)];
+		for (let [index, out] of [[3, 40], [4, 42]]) {
+			snapshots[index].terminals.push({
+				type: "point", event_type: "shell_falls", direction: 4,
+				pixel_x: 100 + out, pixel_y: 100,
+			});
+		}
+		motion.resolve_residual_shell_fates(snapshots);
+		return {
+			attributed: snapshots.flatMap(snapshot => snapshot.terminals)
+				.map(terminal => terminal.unseen_tank_source ? terminal.tank_source_x : null),
+			unspent: snapshots.flatMap(snapshot => snapshot.unclaimed_tank_sources
+				.map(source => [snapshot.time, source.pixel_x, source.count])),
+		};
+	};
+	check("the second impact re-elects the costlier same-muzzle shot once the cheap one is spent",
+		scene(false), { attributed: [100, 100], unspent: [] });
+	check("a rival muzzle inside the new margin keeps the second impact open",
+		scene(true), { attributed: [100, null], unspent: [[105, 100, 1], [105, 98, 1]] });
 }
 
 process.exit(failures ? 1 : 0);
