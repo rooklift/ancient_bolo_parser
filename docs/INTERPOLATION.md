@@ -612,18 +612,22 @@ before, only now with the true continuations in the window. A ladder of
 shells one reload apart has aliases one rung either side of the truth,
 each with one vote fewer, and a shell that died over the pair votes for
 the alias alone (its only pairing is the spurious hop onto its
-successor's landing), so a shell some terminal of the next record could
-take under the stamps' readings abstains, as the roster vote's doubtful
-members do. That abstention is blanket: a per-advance doubt, where a
-shell abstains only from advances within whose flight a terminal lies,
-was measured and lost on every fixture, because a leader that hit late
-in the interval is still a live voter for the short alias. Its price is
-the pair where the wrong story's own hop ends at a terminal, such as the
-fixture scene above, whose leader reaches a fall 51 px on and abstains;
-that pair keeps the stamps' readings. The rates tool counts the pairs
-read (`pairs_advance_read`) and those whose reading sits outside every
-stamp reading by more than the match window (`pairs_advance_novel`);
-the fixture doc's section has the numbers.
+successor's landing), so a shell that may have died abstains, as the
+roster vote's doubtful members do, and the doubt is the terminal's
+nearest explainer: a terminal of the next record was struck by the first
+shell to reach it, so each terminal marks the nearest shell that could
+have reached it doubtful, and the rest keep their votes. Two other
+rules were measured first: blanket doubt (any terminal in reach under
+the stamps) silenced the fixture scene's live leader, 51 px short of a
+fall that belonged to the shell sitting on it; per-advance doubt (a
+terminal within a flight of the advance being counted) lost on every
+fixture, because a leader that hit late in the interval is still a live
+voter for the short alias. The stitching and residual passes read the
+same clock composed across the snapshots a join spans (`sender_clock`):
+each pair's reading where one was taken, the stamps elsewhere. The
+rates tool counts the pairs read (`pairs_advance_read`) and those whose
+reading sits outside every stamp reading by more than the match window
+(`pairs_advance_novel`); the fixture doc's section has the numbers.
 
 The match rates count explanations, not what the viewer draws, and the
 two can move in opposite directions. `tools/audit-drawn-motion.cjs` is

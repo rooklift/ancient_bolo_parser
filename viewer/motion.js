@@ -2662,30 +2662,50 @@ function link_stale_restatements(previous, next) {
  * aliases one rung either side of the truth, each with one vote fewer,
  * and a shell that died over the pair votes for the alias alone: its
  * only pairing is the spurious short hop onto its successor's landing.
- * So a shell that MAY have died -- one some terminal of the next record
- * could take under the stamps' readings, by the pairwise pass's own
- * terminal test -- abstains, as the roster vote's doubtful members and
- * the tank lockstep's do. Abstention only ever costs an alias a vote,
- * and it is blanket, not per advance: a per-advance doubt (a terminal
- * within a flight of the advance being counted) was measured and lost
- * on every fixture, since a leader that hit late in the interval is
- * still a live voter for the short alias, and that is the common death.
- * The price is the pair where the wrong story's own hop ends at a
- * terminal: the fixture scene's leader reaches a fall 51 px on, the
- * alias the stamps invite, so it abstains, and that pair keeps the
- * stamps' readings. A tie among the rest, as when a shell died and
- * another was born over the pair, is no reading. Recorded on the next
- * snapshot as advance_duration (ticks) and advance_support for the
- * measurement tools. */
+ * So a shell that MAY have died abstains, as the roster vote's doubtful
+ * members and the tank lockstep's do, and the doubt is the terminal's
+ * nearest explainer: a terminal of the next record was struck by the
+ * first shell to reach it, the one nearest it in flight order among
+ * those the pairwise pass's own terminal test says could have, so each
+ * terminal marks its nearest reaching shell doubtful (greedily, nearest
+ * pairing first, a shell dying once and a terminal taking one shell)
+ * and the rest keep their votes. Two other rules were measured first.
+ * Blanket doubt -- any terminal in reach under the stamps' readings --
+ * silenced the fixture scene's live leader, 51 px short of a fall that
+ * belonged to the shell sitting on it; per-advance doubt, a terminal
+ * within a flight of the advance being counted, lost on every fixture,
+ * since a leader that hit late in the interval is still a live voter
+ * for the short alias, and that is the common death. Abstention only
+ * ever costs an alias a vote. A tie among the rest, as when a shell
+ * died and another was born over the pair, is no reading. Recorded on
+ * the next snapshot as advance_duration (ticks) and advance_support for
+ * the measurement tools. */
 const ADVANCE_READING_MIN_SUPPORT = 2;
 function tank_advance_reading(previous, next, duration, long_duration,
 	stamped_duration) {
 	let members = previous.shells.filter(shell =>
 		shell.next_time === undefined && !shell_from_pillbox(shell) &&
-		(shell.starts_at_tank || shell.birth_time !== undefined) &&
-		!next.terminals.some(terminal => shell_terminal_match(shell, terminal,
-			duration, previous.time, 0, 0, long_duration, stamped_duration)));
+		(shell.starts_at_tank || shell.birth_time !== undefined));
 	if (members.length < ADVANCE_READING_MIN_SUPPORT) return undefined;
+	let claims = [];
+	for (let shell of members) {
+		for (let terminal of next.terminals) {
+			let match = shell_terminal_match(shell, terminal, duration,
+				previous.time, 0, 0, long_duration, stamped_duration);
+			if (match) claims.push({ shell, terminal, distance: match.distance });
+		}
+	}
+	if (claims.length) {
+		claims.sort((a, b) => a.distance - b.distance);
+		let doubtful = new Set(), taken = new Set();
+		for (let claim of claims) {
+			if (doubtful.has(claim.shell) || taken.has(claim.terminal)) continue;
+			doubtful.add(claim.shell);
+			taken.add(claim.terminal);
+		}
+		members = members.filter(shell => !doubtful.has(shell));
+		if (members.length < ADVANCE_READING_MIN_SUPPORT) return undefined;
+	}
 	let targets = next.shells.filter(target =>
 		!target.matched_from_previous && !target.starts_at_pillbox);
 	let pairings = [];
@@ -3489,9 +3509,41 @@ function propagate_states_down_chain(first_shell, first_time) {
 	}
 }
 
+/* The sender's clock across its snapshots, for the passes that join
+ * across more than one pair: each pair's tank advance reading where the
+ * pairwise pass took one (tank_advance_reading), the stamps where it did
+ * not, summed. A stitch or residual join from snapshot i to snapshot j
+ * then has one more reading of its span, `at[j] - at[i]`, offered only
+ * when some pair inside the span was read -- elsewhere the composition
+ * is the stamps and adds nothing. The pairwise pass is the only place
+ * the reading was consulted before this, and the corpus at `43efbbb`
+ * found the stitcher holding nearly every inversion left (123 of 155 on
+ * the tank axis, 128 of 137 on the pill's) and both new contradictions:
+ * chain ends the pairwise pass had freed, joined under the stamps the
+ * reading had just refused. */
+function sender_clock(snapshots) {
+	let at = [0], read = [0];
+	for (let index = 1; index < snapshots.length; index++) {
+		let snapshot = snapshots[index];
+		let stamped = snapshot.time - snapshots[index - 1].time;
+		at.push(at[index - 1] + (snapshot.advance_duration ?? stamped));
+		read.push(read[index - 1] +
+			(snapshot.advance_duration !== undefined ? 1 : 0));
+	}
+	return { at, read };
+}
+
+function clock_reading(clock, end, start) {
+	if (!clock || end.index === undefined || start.index === undefined ||
+		clock.read[start.index] <= clock.read[end.index]) return undefined;
+	let reading = clock.at[start.index] - clock.at[end.index];
+	return reading > 0 ? reading : undefined;
+}
+
 /* One end-to-start continuation candidate, or null. Shared between the
- * margin-based stitching pass and the forced-assignment residual pass. */
-function stitch_candidate(end, start, reference = null) {
+ * margin-based stitching pass and the forced-assignment residual pass.
+ * `clock` (sender_clock) lends the span the tank's reading of it. */
+function stitch_candidate(end, start, reference = null, clock = null) {
 	let duration = start.time - end.time;
 	if (duration <= 0 || duration > MAX_STITCH_GAP_TICKS) return null;
 	if (end.shell.birth_time !== undefined &&
@@ -3504,7 +3556,8 @@ function stitch_candidate(end, start, reference = null) {
 			start.shell.pillbox_source_y !== end.shell.pillbox_source_y)) {
 		return null;
 	}
-	let match = shell_match_cost(end.shell, start.shell, duration);
+	let match = shell_match_cost(end.shell, start.shell, duration, duration,
+		duration, clock_reading(clock, end, start));
 	if (!match) return null;
 	/* Dilated matches stay out of stitching: a stitch picks winners by
 	 * cost margins, and margins between dilated stories are meaningless
@@ -3956,6 +4009,7 @@ function first_at_or_after(items, time, time_of = item => item.time) {
  * against same-time contenders and against rival ends. */
 function stitch_shell_chains(snapshots) {
 	let reference = build_pill_lockstep_reference(snapshots);
+	let clock = sender_clock(snapshots);
 	let ends = [];
 	let starts = [];
 	for (let index = 0; index < snapshots.length; index++) {
@@ -3963,11 +4017,11 @@ function stitch_shell_chains(snapshots) {
 		let final = index === snapshots.length - 1;
 		for (let shell of snapshot.shells) {
 			if (shell.next_time === undefined && !final) {
-				ends.push({ shell, time: snapshot.time });
+				ends.push({ shell, time: snapshot.time, index });
 			}
 			if (index > 0 && !shell.matched_from_previous &&
 				!shell.starts_at_tank && !shell.starts_at_pillbox) {
-				starts.push({ shell, time: snapshot.time });
+				starts.push({ shell, time: snapshot.time, index });
 			}
 		}
 	}
@@ -3981,7 +4035,7 @@ function stitch_shell_chains(snapshots) {
 			i < starts.length &&
 			starts[i].time - end.time <= MAX_STITCH_GAP_TICKS; i++) {
 			let start = starts[i];
-			let candidate = stitch_candidate(end, start, reference);
+			let candidate = stitch_candidate(end, start, reference, clock);
 			if (!candidate) continue;
 			if (!by_end.has(end)) by_end.set(end, []);
 			by_end.get(end).push(candidate);
@@ -4453,6 +4507,7 @@ function apply_forced_unseen(creation, fate, units, match) {
 
 function resolve_residual_shell_fates(snapshots) {
 	let reference = build_pill_lockstep_reference(snapshots);
+	let clock = sender_clock(snapshots);
 	let ends = [];
 	let starts = [];
 	let fate_groups = [];
@@ -4470,11 +4525,11 @@ function resolve_residual_shell_fates(snapshots) {
 		let gap = index > 0 ? snapshot.time - snapshots[index - 1].time : 0;
 		for (let shell of snapshot.shells) {
 			if (shell.next_time === undefined && !final) {
-				ends.push({ shell, time: snapshot.time, gap });
+				ends.push({ shell, time: snapshot.time, gap, index });
 			}
 			if (index > 0 && !shell.matched_from_previous &&
 				!shell.starts_at_tank && !shell.starts_at_pillbox) {
-				starts.push({ shell, time: snapshot.time });
+				starts.push({ shell, time: snapshot.time, index });
 			}
 		}
 		/* Snapshot times never decrease, so every group sharing this
@@ -4545,7 +4600,7 @@ function resolve_residual_shell_fates(snapshots) {
 			let right = rights[ri];
 			if (left.kind === "end" && right.kind === "start") {
 				let candidate = stitch_candidate(left.end, right.start,
-					reference) ||
+					reference, clock) ||
 					dilated_join_candidate(left.end, right.start, reference);
 				if (candidate) {
 					edges.push({ left: li, right: ri, candidate,
@@ -4773,7 +4828,7 @@ function resolve_residual_shell_fates(snapshots) {
 					if (other.matched_from_previous || other.starts_at_tank ||
 						other.starts_at_pillbox) continue;
 					let start = { shell: other, time: snapshots[j].time };
-					let candidate = stitch_candidate(end, start, reference) ||
+					let candidate = stitch_candidate(end, start, reference, clock) ||
 						dilated_join_candidate(end, start, reference);
 					if (candidate) {
 						continuation_cost = Math.min(continuation_cost,

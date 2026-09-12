@@ -222,7 +222,7 @@ if (!fs.existsSync(log1)) {
 			described, described === unexplained, reasons_sound,
 			classes.get("explosion:no_candidate:-"),
 			classes.get("pillbox_damage:end_continued:T"),
-		], [901, true, true, 240, 88]);
+		], [901, true, true, 240, 89]);
 		/* Spending only where a shot could have flown leaves seven more
 		 * pill impacts unexplained. The old pool charged thirteen units
 		 * on this fixture: four to within-margin shots, two to legal but
@@ -231,7 +231,7 @@ if (!fs.existsSync(log1)) {
 		 * time keeps one of the two costlier ones (1,209 without it). */
 		check("fixture same-record unseen shots claimed without cost", [
 			matched, unseen.pill, unseen.tank,
-		], [20848, 1210, 1116]);
+		], [20847, 1211, 1116]);
 
 		/* The end-side mirror: every chain end with no forward story gets
 		 * a class; the census must equal the unmatched-forward count less
@@ -260,7 +260,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture end-side census reconciles", [
 			ends_described, ends_described === unfated, end_reasons_sound,
 			fate_open,
-		], [137, true, true, 23]);
+		], [129, true, true, 22]);
 	}
 
 	/* The truth axis: every pill link scored against the statement-roster
@@ -285,7 +285,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture pill links scored against the roster vote", [
 			score.links, score.vouched, score.contradicted, score.unvouched,
 			score.unpinned, score.restated, [...score.clients],
-		], [52768, 20091, 0, 12870, 5, 0, []]);
+		], [52777, 20093, 0, 12869, 5, 0, []]);
 		/* The elections themselves: most pills cannot vote at all (under
 		 * three pinned sources), and of those that can, a vote inside the
 		 * margin stands down. The scene that motivated abstention is
@@ -324,18 +324,17 @@ if (!fs.existsSync(log1)) {
 			order.pairs, order.kept, order.blurred, order.inverted,
 			inversions.map(record => [record.time, record.next_time,
 				record.leader_next.stitched, record.trailer_next.stitched]),
-		], [58171, 58168, 0, 3, [
+		], [58182, 58181, 0, 1, [
 			[9355584, 9355598, true, false],
-			[9547346, 9547367, true, true],
-			[9547346, 9547367, true, false],
 		]]);
 		/* The tank-side axis (score_tank_order): same-sector pairs of one
 		 * tank's shells, which keep their order along the heading since a
-		 * shell outruns a tank two to one. The fixture carries one
+		 * shell outruns a tank two to one. The fixture carried one
 		 * inversion, an identity swap between two eastbound shells on one
-		 * line -- the crossing and the non-crossing assignment cost the
-		 * same total distance, and the stitch took the crossing -- and
-		 * one blurred flip, pinned as measured. */
+		 * line in a record stamped a dropped restatement late, until the
+		 * tank's clock (tank_advance_reading, with the terminal's nearest
+		 * explainer the only doubtful voter) read the pair; one blurred
+		 * flip remains, pinned as measured. */
 		let tank_order = { pairs: 0, kept: 0, blurred: 0, inverted: 0 };
 		let tank_inversions = [];
 		for (let snapshots of game.shell_positions) {
@@ -349,7 +348,7 @@ if (!fs.existsSync(log1)) {
 			tank_inversions.map(record => [record.time, record.next_time,
 				record.sector, record.leader_next.stitched,
 				record.trailer_next.stitched]),
-		], [9140, 9138, 1, 1, [[9713165, 9713188, 4, true, false]]]);
+		], [9159, 9158, 1, 0, []]);
 	}
 
 	let pill_burst = { total: 0, matched: 0 };
@@ -3542,6 +3541,32 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 	]);
 	check("a ladder tied one rung either way is no reading",
 		ladder.shell_positions[0][2].advance_duration, undefined);
+	/* A terminal marks only its nearest explainer doubtful. The leader
+	 * sits on the wall it strikes; the two behind it, 25 and 50 px back,
+	 * are both within the stamps' window of the wall too, but the wall
+	 * was struck by the first shell to reach it, so they keep their
+	 * votes and agree on 28 px against the one-rung hops of 3 and 53. */
+	let struck = BoloGame.build([
+		record(60, [tank]),
+		record(100, [
+			{ type: "shot_fired", direction: 4 },
+			{ type: "shot_fired", direction: 4 },
+			{ type: "shot_fired", direction: 4 },
+			shell_list(4, [[1600, 2137], [1575, 2137], [1550, 2137]]),
+		]),
+		record(123, [
+			{ type: "explosion", code: 11, x: 100, y: 133 },
+			shell_list(4, [[1603, 2137], [1578, 2137]]),
+		]),
+		record(137, [shell_list(4, [[1631, 2137], [1606, 2137]])]),
+	]);
+	let struck_pair = struck.shell_positions[0][2];
+	check("a terminal marks only its nearest explainer doubtful", [
+		Math.round(struck_pair.advance_duration * 100) / 100,
+		struck_pair.advance_support,
+		struck.shell_positions[0][1].shells.map(shell => shell.next_shell
+			? shell.next_shell.pixel_x : shell.next_terminal_event_type),
+	], [14, 2, ["explosion", 1603, 1578]]);
 }
 
 // The fast-ring fixture: two sender packets in one recorder tick are
