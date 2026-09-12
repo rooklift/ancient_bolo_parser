@@ -2507,10 +2507,14 @@ function enforce_roster_lockstep_candidates(previous_shells, target_groups,
 		 * alias -- harmless as a pruning rule, since the re-sends were
 		 * linked before it ran, but a six-tick lie on a one-tick pair as a
 		 * clock (040601.6 at 2427063, where it re-pinned a stitched orbit a
-		 * step on and made the fixture's first contradiction). The pairwise
-		 * pass is not touched by this -- it already acts on the election
-		 * directly. */
-		if (next && !next.shells.some(shell => shell.stale_restatement)) {
+		 * step on and made the fixture's first contradiction). Nor on a
+		 * tie-break: the orphan rule decides an election the margin gate
+		 * would not, and a rung alias can win it by one -- the corpus at
+		 * `0c90f1e` made three contradictions in one scene under a composed
+		 * clock a rung high. The pairwise pass is not touched by this -- it
+		 * already acts on the election directly. */
+		if (next && !by.endsWith("_tiebreak") &&
+			!next.shells.some(shell => shell.stale_restatement)) {
 			let ticks = best * TICKS_PER_SHELL_UPDATE;
 			if (next.pill_advance_duration === undefined) {
 				next.pill_advance_duration = ticks;
