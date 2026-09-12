@@ -595,8 +595,35 @@ links each took a different reading of one stall-widened interval, and
 the swapped hops were the only candidates each shell had. The common
 advance the lockstep sees is in fact the interval's true length -- every
 tank shell agreeing on 28 px says the gap was 14 ticks -- and reading the
-clock off it, rather than pruning under it, is the change that would
-reach those scenes.
+clock off it, rather than pruning under it, is the change that reaches
+those scenes.
+
+`tank_advance_reading` does that: the tank's shells as the pair's clock.
+Before the candidates are built, every pairing of a tank shell of the
+previous record with a same-list-label shell of the next that lies ahead
+of it within the direction tolerance is read as its distance; pairings
+within the lockstep tolerance form a cluster whose support is the number
+of distinct shells and distinct landings it joins, and a decisive
+cluster -- support of at least two, strictly more than every rival --
+gives the interval one more reading, which `nearest_expected_distance`
+scores against and the windows admit beside the stall readings. Nothing
+is decided by it: the cost, the lockstep and the margin gates decide as
+before, only now with the true continuations in the window. A ladder of
+shells one reload apart has aliases one rung either side of the truth,
+each with one vote fewer, and a shell that died over the pair votes for
+the alias alone (its only pairing is the spurious hop onto its
+successor's landing), so a shell some terminal of the next record could
+take under the stamps' readings abstains, as the roster vote's doubtful
+members do. That abstention is blanket: a per-advance doubt, where a
+shell abstains only from advances within whose flight a terminal lies,
+was measured and lost on every fixture, because a leader that hit late
+in the interval is still a live voter for the short alias. Its price is
+the pair where the wrong story's own hop ends at a terminal, such as the
+fixture scene above, whose leader reaches a fall 51 px on and abstains;
+that pair keeps the stamps' readings. The rates tool counts the pairs
+read (`pairs_advance_read`) and those whose reading sits outside every
+stamp reading by more than the match window (`pairs_advance_novel`);
+the fixture doc's section has the numbers.
 
 The match rates count explanations, not what the viewer draws, and the
 two can move in opposite directions. `tools/audit-drawn-motion.cjs` is

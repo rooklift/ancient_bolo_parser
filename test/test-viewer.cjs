@@ -151,7 +151,7 @@ if (!fs.existsSync(log1)) {
 	}
 	check("fixture orbit-membership and stream-provenance birth claims",
 		[orbit_births.unseen, orbit_births.stream, orbit_births.sound],
-		[7, 3, true]);
+		[6, 4, true]);
 
 	/* Turning-tank sector correction: a fresh muzzle shell listed one
 	 * sector from its own fire nibble carries the nibble as `sector`,
@@ -222,7 +222,7 @@ if (!fs.existsSync(log1)) {
 			described, described === unexplained, reasons_sound,
 			classes.get("explosion:no_candidate:-"),
 			classes.get("pillbox_damage:end_continued:T"),
-		], [903, true, true, 240, 88]);
+		], [901, true, true, 240, 88]);
 		/* Spending only where a shot could have flown leaves seven more
 		 * pill impacts unexplained. The old pool charged thirteen units
 		 * on this fixture: four to within-margin shots, two to legal but
@@ -231,7 +231,7 @@ if (!fs.existsSync(log1)) {
 		 * time keeps one of the two costlier ones (1,209 without it). */
 		check("fixture same-record unseen shots claimed without cost", [
 			matched, unseen.pill, unseen.tank,
-		], [20846, 1210, 1116]);
+		], [20848, 1210, 1116]);
 
 		/* The end-side mirror: every chain end with no forward story gets
 		 * a class; the census must equal the unmatched-forward count less
@@ -260,7 +260,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture end-side census reconciles", [
 			ends_described, ends_described === unfated, end_reasons_sound,
 			fate_open,
-		], [145, true, true, 25]);
+		], [137, true, true, 23]);
 	}
 
 	/* The truth axis: every pill link scored against the statement-roster
@@ -285,7 +285,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture pill links scored against the roster vote", [
 			score.links, score.vouched, score.contradicted, score.unvouched,
 			score.unpinned, score.restated, [...score.clients],
-		], [52762, 20091, 0, 12870, 5, 0, []]);
+		], [52768, 20091, 0, 12870, 5, 0, []]);
 		/* The elections themselves: most pills cannot vote at all (under
 		 * three pinned sources), and of those that can, a vote inside the
 		 * margin stands down. The scene that motivated abstention is
@@ -349,7 +349,7 @@ if (!fs.existsSync(log1)) {
 			tank_inversions.map(record => [record.time, record.next_time,
 				record.sector, record.leader_next.stitched,
 				record.trailer_next.stitched]),
-		], [9129, 9127, 1, 1, [[9713165, 9713188, 4, true, false]]]);
+		], [9140, 9138, 1, 1, [[9713165, 9713188, 4, true, false]]]);
 	}
 
 	let pill_burst = { total: 0, matched: 0 };
@@ -3457,6 +3457,93 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 }
 
 
+// The tank's shells as the pair's clock (tank_advance_reading). Two
+// eastbound shells 25 px apart, both restated 28 px on in a record
+// stamped 23 ticks after the last -- a dropped restatement's worth late,
+// as the fixture scene at 9713165 is -- so the stamps' 46 px window
+// admits only the leader's 53 px hop onto the trailer's restatement and
+// the two identities cross. The shells' agreeing 28 px is a reading of
+// 14 ticks, under which both true continuations link. A leader with a
+// terminal in reach abstains, and a ladder whose leader died and whose
+// tail was fired anew ties one rung either way: no reading.
+{
+	let shell_list = (direction, points) => ({
+		type: "shells", count: points.length, direction,
+		shells: points.map((point, index) => index === 0 ? {
+			direction,
+			x: point[0] >> 4,
+			y: point[1] >> 4,
+			pixel: (point[1] & 0x0f) * 16 + (point[0] & 0x0f),
+		} : {
+			offsetX: point[0] - points[index - 1][0],
+			offsetY: point[1] - points[index - 1][1],
+		}),
+	});
+	let record = (time, lists, player = 0) => ({
+		time, seq: time, status: 0, player, tankStatus: 0, tankDir: 4,
+		subpackets: lists,
+	});
+	/* The tank stands 56 px behind the leader, forty ticks before the
+	 * volley, so both shots are claimed as its own. */
+	let tank = { type: "tank_position", x: 96, y: 133, pixelX: 8, pixelY: 9,
+		direction: 4, inBoat: false, hidden: false, dying: false,
+		speed: 0, motion: 0 };
+	let late_stamp = BoloGame.build([
+		record(60, [tank]),
+		record(100, [
+			{ type: "shot_fired", direction: 4 },
+			{ type: "shot_fired", direction: 4 },
+			shell_list(4, [[1600, 2137], [1575, 2137]]),
+		]),
+		record(123, [shell_list(4, [[1628, 2137], [1603, 2137]])]),
+		record(137, [shell_list(4, [[1656, 2137], [1631, 2137]])]),
+	]);
+	let volley = late_stamp.shell_positions[0][1].shells;
+	let restated = late_stamp.shell_positions[0][2];
+	check("two shells agreeing on an advance read the pair's clock", [
+		volley.map(shell => !!shell.starts_at_tank),
+		Math.round(restated.advance_duration * 100) / 100,
+		restated.advance_support,
+		volley.map(shell => shell.next_shell &&
+			[shell.next_shell.pixel_x, shell.next_time]),
+	], [[true, true], 14, 2, [[1628, 123], [1603, 123]]]);
+	/* The same pair with the leader's wall ahead: the leader may have
+	 * died, so it abstains, and one voter is no vote. */
+	let leader_wall = BoloGame.build([
+		record(60, [tank]),
+		record(100, [
+			{ type: "shot_fired", direction: 4 },
+			{ type: "shot_fired", direction: 4 },
+			shell_list(4, [[1600, 2137], [1575, 2137]]),
+		]),
+		record(123, [
+			{ type: "explosion", code: 11, x: 102, y: 133 },
+			shell_list(4, [[1603, 2137]]),
+		]),
+	]);
+	check("a shell with a terminal in reach abstains from the clock",
+		leader_wall.shell_positions[0][2].advance_duration, undefined);
+	/* A ladder of three 25 px apart whose leader hit and whose tail was
+	 * fired anew over the pair: the truth (28 px) and the one-rung alias
+	 * (3 px) each hold two live voters, and the tie is no reading. */
+	let ladder = BoloGame.build([
+		record(60, [tank]),
+		record(100, [
+			{ type: "shot_fired", direction: 4 },
+			{ type: "shot_fired", direction: 4 },
+			{ type: "shot_fired", direction: 4 },
+			shell_list(4, [[1600, 2137], [1575, 2137], [1550, 2137]]),
+		]),
+		record(123, [
+			{ type: "shot_fired", direction: 4 },
+			{ type: "explosion", code: 11, x: 102, y: 133 },
+			shell_list(4, [[1603, 2137], [1578, 2137], [1553, 2137]]),
+		]),
+	]);
+	check("a ladder tied one rung either way is no reading",
+		ladder.shell_positions[0][2].advance_duration, undefined);
+}
+
 // The fast-ring fixture: two sender packets in one recorder tick are
 // common there, so it is where a time-keyed vote table hands a one-hop
 // link the composed two-hop advance and calls it a contradiction (381 of
@@ -3476,7 +3563,7 @@ if (!fs.existsSync(log2)) {
 	}
 	check("fast-ring fixture pill links: re-sends excluded, no contradictions", [
 		score.links, score.restated, score.vouched, score.contradicted,
-	], [80429, 1679, 27006, 0]);
+	], [80467, 1679, 27006, 0]);
 }
 
 // Same-tick records keep separate shot budgets, including after a second
