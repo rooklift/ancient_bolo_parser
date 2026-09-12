@@ -2354,7 +2354,11 @@ engines side by side (`12d9a1d` | next-pair | chain-composed):
   847 | 809; `hover_links` 14 | 19 | 19
 
 The overshoot's slow links come back to steady and the hovers to
-baseline on the pairs; the fast ring's five extra hovers stay.
+baseline on the pairs; the fast ring's five extra hovers stay. Corpus:
+`a3cbd20` in [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md),
+`rate_links_steady` 0.965122 -> **0.967019**, a record past the
+pre-clock 0.966863; the `2.5-3.0` bucket alone keeps the fast ring's
+uniformly stale chains.
 
 The fast ring's fast links are a different shape and stay. Dumped
 whole, its chains run at two pixels a tick raw on a two-tick cadence
