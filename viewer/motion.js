@@ -2678,7 +2678,7 @@ function match_shell_snapshots(previous, next) {
 			 * independent of any drawing choice. `draw_end_time` is what the
 			 * viewer renders: for a shell fall, whose splash has no coupled
 			 * state change, the uncapped physics arrival even past the
-			 * record (the fall segments draw the overhang); an object
+			 * record (the gap segments draw the overhang); an object
 			 * impact's flash belongs beside its authoritative state change,
 			 * so everything else draws the capped value too. */
 			match.end_time = target.terminal
@@ -5809,24 +5809,35 @@ function build_shell_births(shell_positions) {
 	});
 }
 
-/* The mirror of the birth segments, at the other end of a shell's life. A
- * shell fall keeps its physics arrival even when that is later than the
- * record reporting it (the sender's restatement clock was lying), but the
- * renderer draws packet-state shells only, and the fall record drops the
- * shell from state — so without help the sprite would vanish mid-flight,
- * short of its own splash. Each segment is the tail of the drawn link,
- * from the moment state loses the shell to the retimed splash, replaying
- * exactly the lerp `shell_position_at` was drawing so the handoff is
- * seamless. */
-function build_shell_fall_segments(shell_positions) {
+/* The mirror of the birth segments, at the other end of a link. The
+ * renderer draws packet state: a shell is drawn from the sender's latest
+ * record, lerping toward its link target, and the sender's NEXT record
+ * replaces that list. A link whose target lies beyond that next record
+ * -- a shell fall whose physics arrival is later than the record that
+ * reported it, a stitch or a residual join across a dropped or refused
+ * restatement, a forced terminal reached a record or two on -- has
+ * nothing left to draw it from the moment the list is replaced, and the
+ * sprite vanishes mid-flight, short of its own splash or its own
+ * continuation. Each segment is the tail of such a link, from the moment
+ * state loses the shell to the link's end, replaying exactly the lerp
+ * `shell_position_at` was drawing so the handoff is seamless. It adds no
+ * speed of its own: whatever pace the link was drawn at before the drop,
+ * it finishes at. Over the fixtures and the ten pairs, 157 links in
+ * 417,452 outlive their record other than by a fall, 81% of them at the
+ * steady 2 px/tick; the audit had always read every link as drawn end to
+ * end, which this makes true.
+ *
+ * Returned per client as the segments sorted by end time together with
+ * the longest span among them, which bounds the sampler's scan. */
+function build_shell_gap_segments(shell_positions) {
 	return shell_positions.map(snapshots => {
 		let segments = [];
+		let longest_span = 0;
 		for (let index = 0; index + 1 < snapshots.length; index++) {
 			let snapshot = snapshots[index];
 			let drop_time = snapshots[index + 1].time;
 			for (let shell of snapshot.shells) {
-				if (!shell.next_terminal ||
-					shell.next_terminal_event_type !== "shell_falls" ||
+				if (shell.next_time === undefined ||
 					!(shell.next_time > drop_time)) continue;
 				segments.push({
 					start_time: drop_time,
@@ -5840,10 +5851,11 @@ function build_shell_fall_segments(shell_positions) {
 					to_y: shell.smooth_next_pixel_y ?? shell.next_pixel_y,
 					direction: shell_sector(shell),
 				});
+				longest_span = Math.max(longest_span, shell.next_time - drop_time);
 			}
 		}
 		segments.sort((a, b) => a.end_time - b.end_time);
-		return segments;
+		return { segments, longest_span };
 	});
 }
 
@@ -6030,18 +6042,19 @@ function shell_birth_positions_at(game, player, tick) {
 	return positions;
 }
 
-function shell_fall_positions_at(game, player, tick) {
-	let segments = game.shell_fall_segments && game.shell_fall_segments[player];
-	if (!segments || !segments.length) return [];
+function shell_gap_positions_at(game, player, tick) {
+	let gaps = game.shell_gap_segments && game.shell_gap_segments[player];
+	if (!gaps || !gaps.segments.length) return [];
+	let segments = gaps.segments;
 	let lo = 0, hi = segments.length;
 	while (lo < hi) {
 		let mid = (lo + hi) >> 1;
 		if (segments[mid].end_time <= tick) lo = mid + 1;
 		else hi = mid;
 	}
-	/* Sorted by end_time; a segment's span is bounded by the lead
-	 * allowance, so anything starting at or before `tick` ends soon. */
-	let latest_end = tick + MAX_POSITION_INTERPOLATION_TICKS * 2;
+	/* Sorted by end_time, so from the first still to end, only those
+	 * ending within the longest span can have started by `tick`. */
+	let latest_end = tick + gaps.longest_span;
 	let positions = [];
 	for (let i = lo; i < segments.length &&
 		segments[i].end_time <= latest_end; i++) {
@@ -6067,10 +6080,10 @@ const BoloMotion = {
 	build_tank_positions, build_tank_directions, build_lgm_positions, track_pixel_at,
 	smooth_track_positions,
 	build_shell_positions, build_shell_positions_steps, drain,
-	build_shell_births, build_shell_fall_segments,
+	build_shell_births, build_shell_gap_segments,
 	resolve_residual_shell_fates,
 	tank_position_at, tank_direction_at, lgm_position_at, shell_position_at,
-	shell_birth_positions_at, shell_fall_positions_at,
+	shell_birth_positions_at, shell_gap_positions_at,
 	describe_unmatched_terminals, describe_unfated_ends, score_pill_links,
 	score_pill_order, score_tank_order, sweep_contradicted_links,
 	enforce_tank_lockstep_candidates,

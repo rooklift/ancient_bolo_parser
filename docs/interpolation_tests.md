@@ -2117,6 +2117,66 @@ the second impact stays open and both shots stay unspent.
 
 Corpus: `8289438` and `ae527fd` in [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md).
 
+## Every link is drawn to its end -- `cfc6bd0`
+
+The third complaint of the review that produced the two accounting
+fixes above, and the one they left open: the renderer draws packet
+state, so a shell is drawn from the sender's latest record, lerping
+toward its link target, and the sender's next record replaces that
+list. A link whose target lies beyond that next record had nothing to
+draw it from the moment the list was replaced, and the sprite vanished
+mid-flight. The fall segments already carried one such class, a shell
+fall retimed to its physics arrival past the record that reported it;
+`cfc6bd0` makes them the gap segments (`build_shell_gap_segments`,
+`shell_gap_positions_at`) and carries every such link -- stitches and
+residual joins across a dropped or refused restatement, visual joins,
+forced terminals reached a record or two on -- replaying the same lerp
+at the same pace from the moment state loses the shell to the link's
+end. Drawing only: no link, timing or effect changes, and the
+drawn-motion audit, which has always read every link as drawn end to
+end, is byte-identical by construction and now describes what is drawn.
+
+Measured first by hand and then by `tools/measure-gap-segments.cjs`,
+which counts the links past their record other than by a fall, by what
+they reach and by drawn speed, over the two fixtures and the ten pairs:
+
+* 157 links in 417,452 (0.04%), 1,935 ticks undrawn between them; 14
+  on `n20021018.2` (the eight stitches the review named and six
+  non-fall terminals, 159 ticks), 55 on `040601.6` (786 ticks), 0 to
+  21 per pair log. The falls the segments already carried: 4,012.
+* by drawn speed, the audit's buckets: 127 steady (1.8-2.2 px/tick),
+  18 slow, 2 hovers (both stitches on the fast ring at 0.33 px/tick),
+  9 fast, 1 rush (a pillbox hit at 3.6 over a five-tick link). Against
+  95% steady for non-fall links generally, 81%: the classes that outlive
+  a record are the stitches and capped arrivals the audit already counts
+  as hovers and rushes, and the segments add no speed of their own -- a
+  link that drew slow before the drop finishes slow. A speed gate on the
+  segments was considered and not built: a link too dilated to draw is a
+  matching question, and the hover residue is tracked under roadmap
+  item 8.
+* what the intermediate records held: of the 157, 39 had an observation
+  absorption refused as ambiguous (the shell was there, in a crowd), 48
+  an unlinked same-direction shell; the rest had no candidate for the
+  shell at all, a restatement dropped or matched into another chain.
+
+Corpus, `cfc6bd0-gap-segments.txt` (the run was taken with this
+section drafted and uncommitted beside it, so the tool stamped
+`cfc6bd0-dirty`; the line is corrected by hand, the engine and the tool
+being `cfc6bd0`'s), 443 files: 5,124 links in 9,798,481
+(0.052%), 55,956 ticks undrawn, the longest gap 53 ticks; 3,368
+stitches, 229 visual joins, 1,037 pillbox hits, 234 base hits, 150 tank
+hits, 106 explosions; 4,453 steady, 431 slow, 46 hovers, 192 fast, 2
+rushes; 370 of the 443 logs have at least one, the most affected 151 in
+148,335 links. The 96,952 falls past their record are the class the
+segments carried before.
+
+The unit tests keep the fall scene and add a stitch across a record
+that restates no shells: the stitch links through it, packet state
+holds nothing inside the gap, and the segment is sampled inside the
+gap (12.75, 10.5 at tick 118 for a shell from 160,160 at 100 to 208,160
+at 124), absent a tick before the empty record, present from it, and
+gone at the tick the continuation's record takes over.
+
 ## Where the line stands -- `0263483`
 
 The same three headline rates at the points a reader is likely to want,
@@ -2138,6 +2198,7 @@ all on the fixture, all from the sections above:
 | a tank hit is tried against the statements the sender held | 0.998034 | 0.001017 | 0.865877 |
 | a tank's shells advance in lockstep | 0.998034 | 0.001017 | 0.865877 |
 | a shot is spent only where it could have flown | 0.998034 | 0.001017 | 0.865877 |
+| every link is drawn to its end | 0.998034 | 0.001017 | 0.865877 |
 
 * **Every headline record is held by the current head.** Unlinked
   shells are down to 75, a sixteenth of the branch point's rate; forward

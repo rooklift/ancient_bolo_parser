@@ -1,0 +1,27 @@
+# GENERATED - links the gap segments draw, for one repo state; nothing written to disk.
+commit	cfc6bd0
+files	443
+files_failed	0
+links	9798481
+links_past_record	5124
+links_past_record_falls	96952
+ticks_past_record	55956.4
+longest_past_record	53.0
+rate_links_past_record	0.000523
+files_with_any	370
+kind:stitch	3368
+kind:terminal:base_damage	234
+kind:terminal:explosion	106
+kind:terminal:pillbox_damage	1037
+kind:terminal:tank_hit	150
+kind:visual	229
+speed:hover	46
+speed:slow	431
+speed:steady	4453
+speed:fast	192
+speed:rush	2
+example	20030619.2~bf4fb6 151 148335 1511
+example	20021012.4~c739a3 117 216358 1180
+example	20030619.1~ada0a4 107 108588 910
+example	20010406.3~a043dd 87 94181 884
+example	20040805.1~7775b2 87 77427 789
