@@ -3852,6 +3852,41 @@ head (`800f57c`) is the shape of the fix. The change stands as
 measured, with the two contradictions and the steady rate on the
 books, both to be read on the `--describe-links` run.
 
+The `--describe-links` run (`43efbbb-links.txt`, taken before the
+beyond-stamps counters existed, so it carries the scenes and not
+those) reads the two alarms:
+
+* **The two contradictions are one scene.** All fourteen of
+  `ee502e9-links.txt` are still there, and the two new ones are two
+  consecutive stitched links of one pill's stream in one replay
+  (`20010416.1~21c1bd`, pill (1856,2048), records 7713347 -> 7713357
+  -> 7713360). The first stitch advances the shell three steps over a
+  ten-tick gap where the post-hoc roster reads six (`vote=-`: no
+  election at match time, five sources of which four land six on);
+  the second advances it four steps over a three-tick gap where the
+  vote passed at one, confident 4 to 1. Both are the stitcher's, made
+  under its own readings after the pairwise pass -- which is the only
+  pass that consults the tank's clock -- had left the shell's chain
+  ends free. The stitcher and the residual passes read the stamps as
+  before; a stitch that spans one pair could read that pair's clock,
+  and the next point says the same from the other side.
+* **The inversions left are the stitcher's too.** Of the 155 tank
+  inversions, the leader's link is a stitch in 123 (117 with a
+  pairwise trailer, 6 with a stitched one), a pairwise link crossing a
+  stitched trailer in 10, and both pairwise in only 22; the pill
+  axis's 137 read the same way (`pill|stitched|pairwise` 91,
+  `pairwise|stitched` 37, both pairwise 9). Their leading gaps sit at
+  8-24 px, one to three steps: the leader's chain end stitched onto
+  its trailer's next statement across a gap the pairwise pass did not
+  bridge. The clock the pairwise pass now has is what the stitcher
+  lacks.
+
+So the change stands, with two contradictions in one stitched scene
+against 36 fewer pill inversions and 183 fewer tank ones, and the
+next dial is named: hand the pair's reading to the stitcher, for a
+stitch spanning that one pair, and re-read both alarms. The
+fast-link question waits on a run that carries `links_beyond_stamps`.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch
