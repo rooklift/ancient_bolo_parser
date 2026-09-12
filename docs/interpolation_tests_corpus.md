@@ -3698,6 +3698,58 @@ structure without the abstention (its roster vote has it); the fixture
 doc's section records a measurement of adding it, a wash on the pairs,
 and leaves it for a section of its own.
 
+## A shot is spent only where it could have flown -- `8289438`
+
+The fixture doc's section has the two faults and the fixture numbers.
+`081d8aa` (the same-tick writeback) moved no rate on either fixture and
+was not run on the corpus alone; the run archived here is the head with
+both fixes, and the reading below assigns its movement to `8289438`.
+
+Corpus, `8289438-report.txt` and `8289438-audit.txt` against
+`364174f-*`, 443 files, zero failures, the same input:
+
+* the books: `terminals_unseen_pillbox_source` 166,978 -> **165,516**
+  (-1,462), `terminals_unseen_tank_source` 77,117 -> 77,112. Impacts
+  with no story of any kind, matched or unseen, 68,959 -> 70,416: 1,457
+  attributions leave the ledger, funded on the old code by a shot fired
+  after the impact or by a costlier same-source shot that a cheaper
+  sibling's spend had left as the only story. Nothing is drawn
+  differently for that; an unseen attribution names a source and draws
+  no shell.
+* coverage, and a gain the accounting did not promise:
+  `terminals_matched` 1,633,385 -> **1,633,395**, all ten of them
+  `pillbox_damage` (544,780 -> 544,790), `rate_terminals_matched`
+  0.839166 -> **0.839171**; `shells_matched_forward` 9,798,472 ->
+  **9,798,481** (`to_terminal` +10, `to_snapshot` -1),
+  `shells_unmatched_forward` 18,889 -> 18,880, `shells_unlinked` 7,890
+  unchanged, `rate_shells_matched_forward` 0.998076 -> 0.998077;
+  `flow_components` 127,421 -> 127,432, `shells_with_birth` -2,
+  `pairs_tank_order` -1 with the 338 inversions, and the pill axes
+  (14 contradicted, 173 inverted, 2,918,768 vouched), byte-identical.
+* the drawn audit: `pop_outs` 18,703 -> **18,694**, `pop_ins` 21,613 ->
+  21,614, backwards and forward pairs unchanged at 801 and 1,948;
+  `terminal_links_rushed` 69,695 -> 69,699 (`timed` 13,230 -> 13,232,
+  `instant` 860 -> 862); `hover_links` 4,544 and `rush_links` 7,321
+  unchanged, `rate_links_steady` 0.966863 unchanged, the `1.8-2.2`
+  bucket 7,894,522 unchanged, seam jumps 0.
+
+Reading. Phase three only marks terminals, so on one pass it can move
+nothing but the unseen lines, and on the fixtures nothing else moved.
+The ten terminals and nine pop-outs can only come from the second
+pass: where the contradiction sweep fires, the resolver runs again
+over the freed pieces, and a terminal the first pass had given to a
+shot fired after it was closed to every observed shell on the second
+-- a fate group admits only terminals with no match and no unseen
+source. So ten pillbox hits that an observed shell's forced terminal
+could explain were being held by a shot that could not have made
+them, and the shell popped out mid-air with its hit unexplained. The
+four new rushed terminal links are those forced arrivals capped at
+their event records, the shape every forced terminal has. The size
+of the gain says how rare the sweep's second pass is, not how rare
+the fault was: on a single pass the wrongly funded attributions cost
+nothing drawn and closed nothing to a live shell, which is why both
+fixtures' audits are byte-identical.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch

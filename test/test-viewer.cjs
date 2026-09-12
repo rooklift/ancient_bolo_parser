@@ -224,8 +224,10 @@ if (!fs.existsSync(log1)) {
 			classes.get("pillbox_damage:end_continued:T"),
 		], [904, true, true, 240, 88]);
 		/* Candidate-specific spending leaves eight more pill impacts
-		 * unexplained: seven consumed future shots, and one consumed
-		 * a shot outside the equivalence cost margin. */
+		 * unexplained. The old pool charged thirteen units on this
+		 * fixture: four to within-margin shots, two to legal but
+		 * costlier shots of the same source, and seven to shots fired
+		 * AFTER the impact they were charged for. */
 		check("fixture same-record unseen shots claimed without cost", [
 			matched, unseen.pill, unseen.tank,
 		], [20846, 1209, 1116]);

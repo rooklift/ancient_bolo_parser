@@ -2038,6 +2038,75 @@ exact pixel read where the bradians agree, and pill and unattributed
 shells kept out of the group. Corpus: `e46dd5e` in
 [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md).
 
+## A shot is spent only where it could have flown -- `081d8aa`, `8289438`
+
+Two accounting faults in `resolve_residual_shell_fates`, found by a
+review of the code rather than by a scene, both in how the pass keeps
+its books on fired shots.
+
+`081d8aa`: the writeback of unspent shots to the snapshots was keyed by
+record time, so two snapshots stamped on one tick -- the fast-ring
+shape, 662 adjacent pairs on `040601.6` and none on `n20021018.2` --
+each received the other's leftovers as well as its own. A second pass
+(the one the contradiction sweep runs) then read both copies, and the
+terminal diagnostics read them too. The writeback is now keyed by the
+snapshot the shot came from. A hand-built scene in the unit tests puts
+shots on two same-tick records and runs the resolver twice: on the old
+code the leftovers doubled at each pass, two copies and then four.
+
+`8289438`: the equivalence phase (phase three) drew its capacity from a
+pool per source identity -- pill or tank, muzzle pixel, direction --
+summed over every unspent shot from that muzzle at ANY time, and then
+charged the spend to the identity's earliest unspent members. The
+identity test was taken over the fate's within-margin candidates, as it
+should be; the capacity was not, so a shot fired long after the impact
+could fund the attribution and be charged for it. Instrumented on the
+old code, the pool's charges on the two fixtures:
+
+| fixture | within the margin | legal, outside the margin | not a candidate |
+| --- | --- | --- | --- |
+| `n20021018.2` | 4 | 2 | 7 |
+| `040601.6` | 3 | 2 | 5 |
+
+The "not a candidate" column is shots fired AFTER the impact they were
+charged for, 8 to 3,609 ticks after it. The fix spends a fate's
+attribution only from its own within-margin candidates, each checked
+for unspent capacity at spend time and each applied with its own match
+(the alternate-pill entry of a direction-0 F4 was formerly taken from
+the first candidate for every unit). A hand-built scene in the unit
+tests fires at ticks 210 and 211 and once more at 10 or at 700, lands
+three or four impacts from tick 220 on, and checks that the shots at
+210 and 211 fund all but the last, which the unrelated shot must
+neither fund nor be charged for, for tank and pill sources both.
+
+Fixtures, `8289438` against `364174f`. The `081d8aa` step alone moves
+no rate on either fixture; it corrects one class of the fast ring's
+terminal diagnostics, `tank_hit:creation_unforced:T` 1 ->
+`tank_hit:direction:T` 2, where a phantom leftover had dressed a spent
+shot up as an open story. With both:
+
+* `n20021018.2`: `terminals_unseen_pillbox_source` 1,217 -> **1,209**,
+  every other line byte-identical (matched forward 0.998034, unlinked
+  0.001017, terminals matched 0.865877). The census pins move with it:
+  unexplained terminals 896 -> 904, `fate_open` ends 22 -> 25.
+* `040601.6`: `terminals_unseen_pillbox_source` 312 -> **309**, every
+  other line byte-identical.
+* the ten pairs: the paired audit is byte-identical.
+* the drawn audit is byte-identical on both fixtures.
+
+Two of the fixture's eight lost attributions were legal stories: a
+same-source shot inside the flight window whose cost sat outside the
+margin of a cheaper sibling that an earlier fate had already spent.
+Had the sibling not existed, that shot would have been the within set
+on its own. A variant that re-elects among the still-unspent candidates
+at spend time, identity test and live-shell test included, was
+measured: 1,210 on `n20021018.2`, 309 on `040601.6` -- one attribution
+in the fixture's favour, nothing on the fast ring. Not applied; the
+stricter reading stands, and the variant is on record here should the
+corpus ever make the case for it.
+
+Corpus: `8289438` in [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md).
+
 ## Where the line stands -- `0263483`
 
 The same three headline rates at the points a reader is likely to want,
@@ -2058,6 +2127,7 @@ all on the fixture, all from the sections above:
 | the pair after a stall carries two readings as well | 0.996529 | 0.001586 | 0.861225 |
 | a tank hit is tried against the statements the sender held | 0.998034 | 0.001017 | 0.865877 |
 | a tank's shells advance in lockstep | 0.998034 | 0.001017 | 0.865877 |
+| a shot is spent only where it could have flown | 0.998034 | 0.001017 | 0.865877 |
 
 * **Every headline record is held by the current head.** Unlinked
   shells are down to 75, a sixteenth of the branch point's rate; forward
