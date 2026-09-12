@@ -629,6 +629,14 @@ rates tool counts the pairs read (`pairs_advance_read`) and those whose
 reading sits outside every stamp reading by more than the match window
 (`pairs_advance_novel`); the fixture doc's section has the numbers.
 
+The drawing reads the clock too: a record the reading marks late -- the
+next pair read longer than its longest stamp reading -- slides its chain
+heads before smoothing as a stalled record's do (`slide_delayed_chain_heads`),
+to the tick and on a smaller excess, capped by the reading's lateness.
+A uniformly stale chain, statement and hit alike, is beyond any anchor
+slide and stays drawn fast; the fixture doc's section "A record the
+reading marks late slides its heads" has the measurement and the shape.
+
 The match rates count explanations, not what the viewer draws, and the
 two can move in opposite directions. `tools/audit-drawn-motion.cjs` is
 the second measurement axis: it samples the drawn link structure

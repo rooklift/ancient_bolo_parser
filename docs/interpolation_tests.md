@@ -2306,6 +2306,61 @@ more, and two alarms are on the books: `links_pill_contradicted` 14 ->
 px/tick, which the report's new `links_beyond_stamps` counters read on
 the next run.
 
+## A record the reading marks late slides its heads -- drawing only
+
+The `43efbbb` corpus run doubled the drawn audit's `2.5-3.0` bucket,
+and `91b9174`'s `links_beyond_stamps_novel` (8,751) said what the
+links were: continuations only a reading longer than the stamps
+admitted, drawn at the stamps' clock. Classified on the fixtures by
+the audit's own drawn speed, though, the fast links are not those
+pairs' links drawn raw -- a novel-long pair's own links smooth to
+speed, as the scene at 20030330.2-B 325.5 s shows once smoothed --
+but interior links of smoothed chains whose HEAD sits on a record the
+ring delivered late with no stall detected: the disease
+`slide_delayed_chain_heads` treats for records marked by
+`stall_before`, spread along the chain by the smoother because the
+head anchor is never moved. The reading is a second detector of a
+late record: a reading on the next pair longer than that pair's
+longest stamp reading says this record's contents predate its stamp
+by the difference. So the pass now also slides heads on records the
+reading marks late, and reads the lateness to the tick
+(`READ_LATE_MIN_TICKS` 1): on a fast ring the cadence is a few ticks
+and a whole cadence of lie sits under the match window the matcher's
+"novel" gate uses. A read-late head slides on a smaller excess than a
+stalled one (`READ_LATE_SLIDE_THRESHOLD_PIXELS` 2 against 8), by no
+more than the reading's lateness plus that slack, since the link's
+excess also carries the head's own quantisation. The report is
+byte-identical by construction; only the drawn audit moves.
+
+Drawn audit (`tools/audit-drawn-motion.cjs`), against `12d9a1d`:
+
+* the ten pairs: `rate_links_steady` 0.961311 -> **0.962717**,
+  `link_speed:2.2-2.5` 2,398 -> 1,866, `2.5-3.0` 226 -> 189, `3.0+` 8
+  -> 7, `1.5-1.8` 4,428 -> 4,689, `hover_links` 164 -> 174
+* `n20021018.2`: `rate_links_steady` 0.978627 -> **0.979214** (a
+  record; 0.979076 at `ee502e9`), `2.2-2.5` 444 -> 385, `2.5-3.0` 34 ->
+  31, hovers unchanged
+* `040601.6`: `rate_links_steady` 0.961897 -> 0.961773, `2.5-3.0` 365
+  -> 347, `2.2-2.5` 621 -> 558, `1.5-1.8` 749 -> 847, `hover_links` 14
+  -> 19
+
+The fast ring's fast links are a different shape and stay. Dumped
+whole, its chains run at two pixels a tick raw on a two-tick cadence
+and end in a tank hit whose record sits two ticks behind a last
+statement fifteen pixels short of the box, so the last statement is
+stale by six ticks and the whole stream with it, statement and hit
+alike -- a uniform lag no pair reading can see, since a constant
+offset cancels between pairs. The tail slide puts the last shell where
+it truly was at its stamp, correctly, and the smoother then re-times
+the chain between that and a head anchor as stale as the tail was,
+every link at 2.54 px/tick. No head slide can absorb twelve pixels on
+a four-pixel first link. The honest drawing of a uniformly stale chain
+is a time shift, every statement drawn δ earlier, which is a change to
+the drawing accessor rather than to an anchor, and is not made here.
+That class was 66 links in the `2.5-3.0` bucket before the clock
+linked those chains (they popped) and 365 after; on the corpus it is
+most of what the `43efbbb` entry measured.
+
 ## Where the line stands -- `0263483`
 
 The same three headline rates at the points a reader is likely to want,
