@@ -1241,7 +1241,7 @@ function* build_steps(records) {
 	yield after_shells;
 	let shell_births = BoloMotion.build_shell_births(shell_positions);
 	yield after_shells + (1 - after_shells) / 4;
-	let shell_fall_segments = BoloMotion.build_shell_fall_segments(shell_positions);
+	let shell_gap_segments = BoloMotion.build_shell_gap_segments(shell_positions);
 	yield after_shells + (1 - after_shells) / 2;
 	/* After shell matching: tank-hit boxes and birth refinement read the
 	 * tracks through track_pixel_at, which stays on packet coordinates;
@@ -1262,7 +1262,7 @@ function* build_steps(records) {
 		lgm_positions,
 		shell_positions,
 		shell_births,
-		shell_fall_segments,
+		shell_gap_segments,
 		badMapRuns: seed.badRuns,
 		network: BoloNetwork.network_conditions(records),
 		recorder: recorder_identity(records),
@@ -1328,7 +1328,7 @@ const BoloGame = {
 	lgm_position_at: BoloMotion.lgm_position_at,
 	shell_position_at: BoloMotion.shell_position_at,
 	shell_birth_positions_at: BoloMotion.shell_birth_positions_at,
-	shell_fall_positions_at: BoloMotion.shell_fall_positions_at,
+	shell_gap_positions_at: BoloMotion.shell_gap_positions_at,
 	extract_initial_map,
 };
 

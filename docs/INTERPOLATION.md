@@ -408,14 +408,28 @@ normally capped at the event record's time — an object impact's flash
 belongs beside its authoritative state change, and the record drops the
 shell from packet state — but a *shell fall* has no coupled state, so its
 arrival stays on the 2 px/tick schedule even past the record: the splash
-moves with it, and fall segments (the mirror of birth segments) carry the
-sprite from the moment state loses it to the retimed splash. This is what
-keeps early-record falls from drawing as rushed final links. Note the
-retime is a knowing lie about the splash's time, not a recovery of it —
-the sender-side fall happened before its record arrived — accepted
-because the drawn timeline is already built from the restatement clock,
-and a splash coinciding with the drawn shell beats a splash the shell
-visibly hasn't reached.
+moves with it. This is what keeps early-record falls from drawing as
+rushed final links. Note the retime is a knowing lie about the splash's
+time, not a recovery of it — the sender-side fall happened before its
+record arrived — accepted because the drawn timeline is already built
+from the restatement clock, and a splash coinciding with the drawn shell
+beats a splash the shell visibly hasn't reached.
+
+The renderer draws packet state, so a link is drawn from the sender's
+latest record and that record's list is replaced by the sender's next.
+Any link whose target lies beyond that next record — the retimed fall
+above, a stitch or residual join across a dropped or refused
+restatement, a forced terminal reached a record or two on — would lose
+its sprite at the replacement, mid-flight. *Gap segments*
+(`build_shell_gap_segments`, the mirror of birth segments) carry it from
+the moment state loses the shell to the link's end, replaying the same
+lerp at the same pace, so a link finishes at whatever speed it was
+already drawn at and the handoff to the continuation or the effect is
+seamless. Falls were covered first; the other classes are 157 links in
+417,452 over the fixtures and the ten pairs, four in five of them at the
+steady 2 px/tick, the rest the dilated joins and capped arrivals the
+audit already counts as hovers and rushes. The drawn-motion audit reads
+every link as drawn end to end, which the segments make true.
 
 A chain end with no forward story at all — no successor, no terminal —
 draws at its last restatement and then vanishes, rather than hanging at

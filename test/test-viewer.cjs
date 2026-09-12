@@ -782,12 +782,40 @@ if (!fs.existsSync(log1)) {
 	check("splash effect is retimed to the shell's arrival",
 		rounded(precise_impact.effects.find(e => e.type === "splash").time),
 		124.3693);
-	let fall_positions = BoloGame.shell_fall_positions_at(precise_impact, 0, 124.2);
+	let fall_positions = BoloGame.shell_gap_positions_at(precise_impact, 0, 124.2);
 	check("fall segment carries the shell past the fall record",
 		[fall_positions.length, rounded(fall_positions[0].x),
 			rounded(fall_positions[0].y)], [1, 13.4795, 11.2449]);
 	check("fall segment ends at the splash",
-		BoloGame.shell_fall_positions_at(precise_impact, 0, 124.4).length, 0);
+		BoloGame.shell_gap_positions_at(precise_impact, 0, 124.4).length, 0);
+
+	/* The same segments carry every link that outlives the sender's next
+	 * record, not only falls. Here the sender's record at 112 restates no
+	 * shells, so the stitch from 100 to 124 has nothing in packet state to
+	 * draw it from 112 on; the gap segment flies the same lerp to the
+	 * continuation, and hands over the moment the record at 124 takes it. */
+	let stitched_gap = BoloGame.build([
+		record(100, [shell_list(4, [[160, 160]])]),
+		record(112, []),
+		record(124, [shell_list(4, [[208, 160]])]),
+	]);
+	let gap_end = stitched_gap.shell_positions[0][0].shells[0];
+	check("a stitch across an empty record links through it",
+		[gap_end.next_time, gap_end.next_shell === stitched_gap.shell_positions[0][2].shells[0]],
+		[124, true]);
+	check("nothing in packet state draws the shell inside the gap",
+		BoloGame.state_at(stitched_gap, 118).state.shells[0].length, 0);
+	let gap_positions = BoloGame.shell_gap_positions_at(stitched_gap, 0, 118);
+	check("the gap segment carries the stitched shell across the empty record",
+		[gap_positions.length, rounded(gap_positions[0].x), rounded(gap_positions[0].y),
+			gap_positions[0].direction], [1, 12.75, 10.5, 4]);
+	check("the gap segment starts where packet state loses the shell",
+		[BoloGame.shell_gap_positions_at(stitched_gap, 0, 111.9).length,
+			BoloGame.shell_gap_positions_at(stitched_gap, 0, 112).length], [0, 1]);
+	check("the gap segment ends where the continuation takes over",
+		[BoloGame.shell_gap_positions_at(stitched_gap, 0, 123.9).length,
+			BoloGame.shell_gap_positions_at(stitched_gap, 0, 124).length,
+			rounded(position(stitched_gap, 124).x)], [1, 0, 13.5]);
 
 	let tile_impact = BoloGame.build([
 		record(100, [shell_list(4, [[160, 160]])]),
