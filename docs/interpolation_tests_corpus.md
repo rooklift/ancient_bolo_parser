@@ -4185,13 +4185,19 @@ Reverted; the engine and the pinned counts are back at `0c90f1e`.
   bracketed to `6c937e1` or `15770f0`, both named "Stuff". The corpus makes the
   regression far better characterised but does not locate it, since `6c937e1`
   was not among the ten commits measured.
-* **The measured line ends at the stale-box walk, `0263483`**, the current
-  head, with `b9db294` one section earlier holding every record in the
-  headline table's four matching columns. (When this file first closed
-  the current pair was `e8f0415`/`ffb7fd3`, later `c1d6625`/`6b4140d`,
-  then the `8d310e3` guard
-  run with `main` unmeasured past it. Since resolved: `main`'s HEAD was
-  measured at `28fa3b0` and the line extended commit by commit -- see the
-  headline table and the sections.)
+* **The measured line ends at the pill's clock, `0c90f1e`**, the
+  current engine, holding every record in the headline table's matching
+  columns and the drawn audit's steady rate; the tie-break experiment
+  after it (`a7f8196`) was measured and reverted. Since the tank order
+  question was first asked at `422354a` the line has gone: forward
+  matched 9,798,295 -> 9,801,837, unlinked 7,953 -> 5,946, terminals
+  1,633,352 -> 1,633,884, tank inversions 338 -> 96, pill inversions 173
+  -> 126, backwards pops 832 -> 629, the steady rate 0.966797 ->
+  0.968080, contradictions 14 -> 16. (When this file first closed the
+  current pair was `e8f0415`/`ffb7fd3`, later `c1d6625`/`6b4140d`, then
+  the `8d310e3` guard run with `main` unmeasured past it, then the
+  stale-box walk `0263483`; each time `main`'s HEAD was measured and the
+  line extended commit by commit -- see the headline table and the
+  sections.)
 
 <!-- Remember to update the "headline table" at top! -->

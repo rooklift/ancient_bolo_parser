@@ -2455,10 +2455,16 @@ all on the fixture, all from the sections above:
 | a tank's shells advance in lockstep | 0.998034 | 0.001017 | 0.865877 |
 | a shot is spent only where it could have flown | 0.998034 | 0.001017 | 0.865877 |
 | every link is drawn to its end | 0.998034 | 0.001017 | 0.865877 |
+| the tank's shells as the pair's clock | 0.998142 | 0.000963 | 0.865961 |
+| the terminal's nearest explainer is the doubtful voter; the stitcher reads the clock | 0.998251 | 0.000895 | 0.865919 |
+| a record the reading marks late slides its heads (drawing only) | 0.998251 | 0.000895 | 0.865919 |
+| a pill's passed election is the sender's clock for the joins | 0.998251 | 0.000895 | 0.865919 |
 
-* **Every headline record is held by the current head.** Unlinked
-  shells are down to 75, a sixteenth of the branch point's rate; forward
-  matching has closed nineteen twentieths of the gap the branch point left;
+* **Every headline record is held by the current head** (the terminal
+  rate by one shell: the clock's nearest-explainer reading gave back one
+  `base_damage` for eight forward matches). Unlinked shells are down to
+  66, an eighteenth of the branch point's rate; forward matching has
+  closed twenty-one twenty-seconds of the gap the branch point left;
   terminals matched is 4.9 points above it, `tank_hit` 2,826 -> 3,329.
   The stall reading barely touches this fixture -- a clean game, sixteen
   stalls in 137 minutes, no link spanning one -- and its row is here for
@@ -2466,11 +2472,12 @@ all on the fixture, all from the sections above:
 * **The truth axes agree with the coverage axes**, which they were
   built to be able to refuse to do. Pill-link contradictions 6 -> 0
   since the metric was introduced; drawn-motion pop-outs 1,465 at the
-  pre-branch state -> 145; steady links 0.787 -> 0.9791; seam jumps 0
-  at every state ever audited. Nothing on the fixture's books is a
-  match rate bought with a rendering lie. The corpus is a shade less
-  clean (94 contradictions at `0263483`, per the corpus file), and that is where
-  the next dial is.
+  pre-branch state -> 129; steady links 0.787 -> 0.9810; the tank order
+  axis's one inversion gone and the pill axis's three down to one; seam
+  jumps 0 at every state ever audited. Nothing on the fixture's books is
+  a match rate bought with a rendering lie. The corpus is a shade less
+  clean (16 contradictions at `0c90f1e`, per the corpus file, in two
+  scenes it names), and that is where the next dial is.
 * **Two eras are measured only on the corpus.** The unseen-shot,
   provenance-birth and pill-lockstep arcs (from `dc3bd3b` through
   `efe9ab2`) have no fixture sections; `pop_outs` moves 384 -> 299
