@@ -4093,6 +4093,36 @@ pill's election stands down -- and a clock composed of stamps is the
 stamps. Reading them needs a vote that passes where these do not, or a
 join that refuses a rung on other grounds, and neither is cheap.
 
+## The clock lends only outright passes -- `a7f8196`, measured, reverted
+
+The `0c90f1e` entry's cheap experiment: an election passed by the
+tie-break -- the orphan rule deciding what the margin gate would not,
+where a rung alias can win by one -- is not lent to `sender_clock`.
+One line. No row in the headline table, as for `8a54fd8`.
+
+Corpus, `a7f8196-report.txt`, `-links.txt` and `-audit.txt` against
+`0c90f1e-*`, 443 files, the same input:
+
+* `pairs_pill_clock_read` 445,000 -> 407,177 (-37,823, the tie-break
+  passes, one in twelve)
+* `links_pill_contradicted` **16**, the same sixteen scenes: the three
+  `20010605` joins stand, so the election a rung high on their span
+  passed the gates outright, not by the tie-break
+* the cost of the tenth fewer readings: `shells_matched_forward`
+  9,801,837 -> 9,801,821 (-16), `shells_unlinked` 5,946 -> 5,962 (+16),
+  `terminals_matched` +3, `pairs_tank_order` -12 pairs with the
+  inversions unchanged, `rate_links_steady` 0.968080 -> 0.967934,
+  `pop_outs` +16, `pop_ins` +15
+
+Reading. The tie-break passes were right where they were read: they
+bought sixteen links and a sliver of steady rate and cost nothing the
+axes can see. The alias behind the `20010605` scene won an outright
+pass, so the door is elsewhere -- an election over a roster whose
+statements are themselves a rung aliased, which the gates cannot tell
+from a clean one -- and finding it means reading that scene's pairs
+with `--describe-links` on the votes, not gating the clock blind.
+Reverted; the engine and the pinned counts are back at `0c90f1e`.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch

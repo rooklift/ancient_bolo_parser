@@ -2429,7 +2429,9 @@ pill clock alone reads (`pairs_pill_clock_read`). Corpus: `0c90f1e` in
 [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md) --
 445,000 pairs read, unlinked 6,009 -> 5,946, terminals +24, pill
 inversions 128 -> 126, steady rate 0.967019 -> 0.968080; contradictions
-level at 16 with three cleared and three new in one scene.
+level at 16 with three cleared and three new in one scene. Lending
+only outright passes and not tie-breaks (`a7f8196`) was measured on the
+corpus and reverted: the same sixteen scenes, sixteen fewer links.
 
 ## Where the line stands -- `0263483`
 
