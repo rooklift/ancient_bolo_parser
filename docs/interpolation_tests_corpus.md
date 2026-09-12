@@ -178,6 +178,7 @@ Constant at all ten commits, and worth having once:
 | `91b9174` | the terminal's nearest explainer is the doubtful voter; the stitcher reads the clock (engine `26863ca`) | **0.998408** | **0.000612** | **0.839410** | **242,335** | 13,565 | **635** | 16 |
 | `7c99ab5` | a record the reading marks late slides its heads, against the next record (drawing only) | 0.998408 | 0.000612 | 0.839410 | 242,335 | 13,565 | **633** | 16 |
 | `a3cbd20` | a read-late head slides by its lateness against the chain's tail (drawing only) | 0.998408 | 0.000612 | 0.839410 | 242,335 | 13,565 | **633** | 16 |
+| `0c90f1e` | a pill's passed election is the sender's clock for the joins | **0.998419** | **0.000606** | **0.839422** | 242,335 | 13,563 | **629** | 16 |
 
 The three right-hand columns are lower-is-better counts from the drawn
 audit and the vouched-link score, added so that a drawing-only commit
@@ -4032,6 +4033,65 @@ uniformly stale chains, statement and hit alike, which the fixture
 doc's section describes and which no anchor slide reaches. The change
 stands as measured, and the drawing now reads the clock the matcher
 reads.
+
+## A pill's passed election is the sender's clock for the joins -- `0c90f1e`
+
+The fixture doc's section of the same name has the change, its guard
+and the fast-ring scene that earned it. A passed pill roster election
+writes its advance onto the snapshot, and `sender_clock` reads it
+where the tank gave no reading, for the stitching and residual passes
+and the read-late head slide; withheld on a pair carrying a stale
+restatement, where the election is a rung alias. The pairwise pass is
+untouched.
+
+Corpus, `0c90f1e-report.txt` (the report lines of the `--describe-links`
+run), `0c90f1e-links.txt` and `0c90f1e-audit.txt` against `91b9174-*`
+and `a3cbd20-audit.txt`, 443 files, the same input. 445,000 pairs read
+by the pill clock alone (`pairs_pill_clock_read`), against 880,631 the
+tank reads.
+
+* coverage: `shells_matched_forward` 9,801,732 -> **9,801,837** (+105,
+  off `shells_unmatched_forward`), `shells_unlinked` 6,009 -> **5,946**,
+  `terminals_matched` 1,633,860 -> **1,633,884** (`pillbox_damage` +17,
+  `explosion` +7, `base_damage` +1, `shell_falls` -1),
+  `shells_visual_joins` 713 -> 700, `flow_components` 121,396 -> 121,127;
+  every headline rate a record.
+* the truth axes: `pairs_pill_order_inverted` 128 -> **126**,
+  `pairs_tank_order_inverted` **96** unchanged, `links_pill_vouched` +12,
+  `links_pill_unpinned` 2,326 -> 2,325; `links_pill_contradicted`
+  **16**, but not the same sixteen: three left (both remaining
+  `20020911` stitches and the `20040729.3` one, every one a stitched
+  link the vote at match time had not seen) and three came, all in one
+  replay and one pill (`20010605~dc3b51`, pill (2144,2272)), two
+  stitches spanning several pairs and one pairwise link that stood down
+  5 to 4, each advancing two steps more than the post-hoc roster reads.
+  The `20010416.1` pair stands.
+* the drawn audit: `rate_links_steady` 0.967019 -> **0.968080**
+  (`2.2-2.5` 61,883 -> 53,666, `1.8-2.2` +8,744), `pop_outs` 15,443 ->
+  **15,338**, `pop_ins` 18,868 -> 18,796, `pops_paired_forward` 1,263 ->
+  1,221, `pops_paired_backwards` 633 -> **629**, `rush_links` 7,969 ->
+  7,887, `hover_links` 4,524 -> 4,529; seam jumps still zero.
+
+Reading. The pill's clock reaches 445 thousand pairs the tank's could
+not, and what it buys is the shape of the tank's at a tenth the size:
+links, terminals, both pop counts and the steady rate move together,
+and the three contradictions it clears are the stitches made blind
+that the `43efbbb` entry named. What it costs is three contradictions
+in one scene of its own, the same shape from the other side: a
+composed clock four ticks long, a pill election on some pair of the
+span passed a rung high, and the joins made under it a step or two
+long. The count is level at sixteen and every other axis moves on, so
+the change stands as measured; the `20010605` scene is the next thing
+to read, and the cheap experiment is to lend only elections that
+passed the gates outright, not the tie-break, since a tie-break is
+exactly where a rung alias can win by one.
+
+The inversions left keep their shape: of the 96 tank ones the leader's
+link is a stitch in 68, of the 126 pill ones in 81. Those pairs carry
+no reading of either kind -- the tank's voters tie or abstain, the
+pill's election stands down -- and a clock composed of stamps is the
+stamps. Reading them needs a vote that passes where these do not, or a
+join that refuses a rung on other grounds, and neither is cheap.
 
 ## Findings
 
