@@ -365,14 +365,20 @@ function stall_excess_by_record(records) {
  * their mirror sit between the extremes; elsewhere the four collapse
  * to two. */
 function nearest_expected_distance(distance, duration, long_duration,
-	stamped_duration = long_duration) {
+	stamped_duration = long_duration, advance_duration = undefined) {
 	let short = duration * SHELL_SPEED_PIXELS_PER_TICK;
-	if (long_duration === duration) return short;
+	if (long_duration === duration && advance_duration === undefined) return short;
 	let readings = [short, long_duration * SHELL_SPEED_PIXELS_PER_TICK];
 	if (stamped_duration !== duration && stamped_duration !== long_duration) {
 		readings.push(stamped_duration * SHELL_SPEED_PIXELS_PER_TICK,
 			(duration + long_duration - stamped_duration) *
 				SHELL_SPEED_PIXELS_PER_TICK);
+	}
+	/* The tank's own clock for the pair (tank_advance_reading): its
+	 * shells agreeing on one advance say how long the interval really
+	 * was, whatever the stamps read. */
+	if (advance_duration !== undefined) {
+		readings.push(advance_duration * SHELL_SPEED_PIXELS_PER_TICK);
 	}
 	let best = short;
 	for (let reading of readings) {
@@ -646,10 +652,11 @@ function track_pixel_at(track, tick) {
 }
 
 function shell_match_cost(previous, next, duration,
-	long_duration = duration, stamped_duration = long_duration) {
+	long_duration = duration, stamped_duration = long_duration,
+	advance_duration = undefined) {
 	if (previous.direction !== next.direction) return null;
 	let orbit_states = pillbox_shell_successor_states(previous, next, duration,
-		long_duration, stamped_duration);
+		long_duration, stamped_duration, advance_duration);
 	if (orbit_states && !orbit_states.length) return null;
 	if (orbit_states) {
 		let cost = Math.min(...orbit_states.map(state => state.cost));
@@ -666,7 +673,7 @@ function shell_match_cost(previous, next, duration,
 	}
 
 	let tank_states = tank_shell_successor_states(previous, next, duration,
-		long_duration);
+		long_duration, advance_duration);
 	if (tank_states && !tank_states.length) return null;
 
 	let previous_pixel_x = previous.tank_exact_pixel_x ?? previous.pixel_x;
@@ -675,7 +682,7 @@ function shell_match_cost(previous, next, duration,
 	let delta_y = next.pixel_y - previous_pixel_y;
 	let distance = Math.hypot(delta_x, delta_y);
 	let expected_distance = nearest_expected_distance(distance, duration,
-		long_duration, stamped_duration);
+		long_duration, stamped_duration, advance_duration);
 	let distance_error = Math.abs(distance - expected_distance);
 	if (distance_error > SHELL_MATCH_ERROR_PIXELS || distance === 0) return null;
 	let heading_x = previous.heading_x;
@@ -838,14 +845,16 @@ function advance_bradian_axis(lo, hi, velocity, obs_lo, obs_hi, m_lo, m_hi) {
  * bradian tracking; an empty array proves the proposed continuation
  * physically impossible. */
 function tank_shell_successor_states(previous, next, duration,
-	long_duration = duration) {
+	long_duration = duration, advance_duration = undefined) {
 	if (!previous.tank_bradian_states) return undefined;
 	let uncertainty = next.position_uncertainty || 0;
 	let [obs_lo_x, obs_hi_x] = shell_internal_bounds(next.pixel_x, uncertainty);
 	let [obs_lo_y, obs_hi_y] = shell_internal_bounds(next.pixel_y, uncertainty);
-	let m_lo = Math.max(0, Math.floor(duration / TICKS_PER_SHELL_UPDATE) -
+	let shortest = Math.min(duration, advance_duration ?? duration);
+	let longest = Math.max(long_duration, advance_duration ?? long_duration);
+	let m_lo = Math.max(0, Math.floor(shortest / TICKS_PER_SHELL_UPDATE) -
 		TANK_BRADIAN_UPDATE_JITTER);
-	let m_hi = Math.ceil(long_duration / TICKS_PER_SHELL_UPDATE) +
+	let m_hi = Math.ceil(longest / TICKS_PER_SHELL_UPDATE) +
 		TANK_BRADIAN_UPDATE_JITTER;
 	let states = [];
 	for (let state of previous.tank_bradian_states) {
@@ -980,15 +989,16 @@ function refine_pillbox_orbits_from_shell_lists(snapshot) {
 }
 
 function pillbox_shell_successor_states(previous, next, duration,
-	long_duration = duration, stamped_duration = long_duration) {
+	long_duration = duration, stamped_duration = long_duration,
+	advance_duration = undefined) {
 	if (!previous.pillbox_orbit_states) return undefined;
 	let relative_x = next.pixel_x - previous.pillbox_source_x;
 	let relative_y = next.pixel_y - previous.pillbox_source_y;
 	/* Dilated fallback window, the widen-in-time-only principle
 	 * `pill_states_reachable` uses: a lying record clock can put a
 	 * restatement off the uniform-time schedule, but never off its orbit. */
-	let step_window = Math.ceil(long_duration / TICKS_PER_SHELL_UPDATE) +
-		DILATED_UPDATE_SLACK;
+	let step_window = Math.ceil(Math.max(long_duration, advance_duration ?? 0) /
+		TICKS_PER_SHELL_UPDATE) + DILATED_UPDATE_SLACK;
 	let states_by_key = new Map();
 	for (let previous_state of previous.pillbox_orbit_states) {
 		let orbit = PILLBOX_ORBITS_BY_BRADIAN.get(previous_state.bradian);
@@ -1002,7 +1012,7 @@ function pillbox_shell_successor_states(previous, next, duration,
 			let distance = Math.hypot(position[0] - previous_position[0],
 				position[1] - previous_position[1]);
 			let cost = Math.abs(distance - nearest_expected_distance(distance,
-				duration, long_duration, stamped_duration));
+				duration, long_duration, stamped_duration, advance_duration));
 			let dilated = cost > SHELL_MATCH_ERROR_PIXELS;
 			if (dilated) {
 				if (step - previous_state.step > step_window) continue;
@@ -1033,7 +1043,8 @@ function pillbox_shell_successor_states(previous, next, duration,
 
 function pillbox_shell_terminal_match(previous, terminal, duration, start_time,
 	lead_pixels = 0,
-	long_duration = duration, stamped_duration = long_duration) {
+	long_duration = duration, stamped_duration = long_duration,
+	advance_duration = undefined) {
 	if (!previous.pillbox_orbit_states) return undefined;
 	let matches = [];
 	for (let previous_state of previous.pillbox_orbit_states) {
@@ -1147,7 +1158,8 @@ function pillbox_shell_terminal_match(previous, terminal, duration, start_time,
 		}
 		if (match) matches.push(match);
 	}
-	let long_distance = long_duration * SHELL_SPEED_PIXELS_PER_TICK;
+	let long_distance = Math.max(long_duration, advance_duration ?? 0) *
+		SHELL_SPEED_PIXELS_PER_TICK;
 	for (let match of matches) {
 		match.pixel_x = previous.pillbox_source_x + match.position[0];
 		match.pixel_y = previous.pillbox_source_y + match.position[1];
@@ -1156,7 +1168,8 @@ function pillbox_shell_terminal_match(previous, terminal, duration, start_time,
 				match.pixel_y - previous.pixel_y);
 		}
 		match.cost = Math.abs(match.distance - nearest_expected_distance(
-			match.distance, duration, long_duration, stamped_duration));
+			match.distance, duration, long_duration, stamped_duration,
+			advance_duration));
 		/* Same rule as the ordinary branch below: a match only reachable
 		 * through the lead allowance carries the dilated penalty, so an
 		 * in-window story is always preferred. The stamps bound the flight. */
@@ -1343,7 +1356,8 @@ function shell_from_pillbox(shell) {
 
 function shell_terminal_match(previous, terminal, duration, start_time,
 	lead_pixels = 0, pillbox_lead_pixels = lead_pixels,
-	long_duration = duration, stamped_duration = long_duration) {
+	long_duration = duration, stamped_duration = long_duration,
+	advance_duration = undefined) {
 	if (terminal.direction !== null &&
 		terminal.direction !== shell_sector(previous)) return null;
 	if (!terminal_takes_pillbox_shell(terminal) && shell_from_pillbox(previous)) {
@@ -1356,11 +1370,13 @@ function shell_terminal_match(previous, terminal, duration, start_time,
 	 * no lead and keeps the strict window for both branches; the diagnostics
 	 * still pass the two leads separately to relax one constraint at a time. */
 	let pillbox_match = pillbox_shell_terminal_match(previous, terminal, duration,
-		start_time, pillbox_lead_pixels, long_duration, stamped_duration);
+		start_time, pillbox_lead_pixels, long_duration, stamped_duration,
+		advance_duration);
 	if (pillbox_match !== undefined) return pillbox_match;
 	/* the pair's longer reading bounds the flight; the cost reads against
 	 * the nearer of the two */
-	let long_distance = long_duration * SHELL_SPEED_PIXELS_PER_TICK;
+	let long_distance = Math.max(long_duration, advance_duration ?? 0) *
+		SHELL_SPEED_PIXELS_PER_TICK;
 	/* A recovered exact trajectory can miss an authoritative object hit by
 	 * about a pixel and a half, the same phenomenon SHELL_TANK_HIT_TOLERANCE
 	 * covers where an exact pill orbit meets a reconstructed tank: the tile
@@ -1424,7 +1440,7 @@ function shell_terminal_match(previous, terminal, duration, start_time,
 			let lead_penalty = endpoint.distance > long_distance +
 				SHELL_MATCH_ERROR_PIXELS ? DILATED_JOIN_PENALTY_PIXELS : 0;
 			let expected_distance = nearest_expected_distance(endpoint.distance,
-				duration, long_duration, stamped_duration);
+				duration, long_duration, stamped_duration, advance_duration);
 			matches.push({
 				cost: lead_penalty +
 					(stale_box ? STALE_TANK_BOX_PENALTY_PIXELS : 0) +
@@ -2618,6 +2634,132 @@ function link_stale_restatements(previous, next) {
 	}
 }
 
+/* The tank's shells as the pair's clock. Every shell the sender
+ * simulates flies 2 px per tick of the sender's own time, so when two or
+ * more of its tank's shells each have a same-sector restatement one
+ * common distance on, that distance is the interval's true length in
+ * pixels, whatever the stamps read. The stamps lie in a way the stall
+ * readings do not cover: a dropped restatement leaves a record stamped
+ * one cadence late, so a 14-tick gap reads 23 and every true 28 px
+ * continuation falls outside the 46 px window; the cost then takes a
+ * 51 px hop and the stitcher a 5 px one, and two identities cross
+ * (n20021018.2 at 9713165, score_tank_order's inversions all have this
+ * shape). This estimator does not decide any link: it adds one more
+ * reading of the interval for nearest_expected_distance to score
+ * against and for the windows to admit, and the cost, the lockstep and
+ * the margin gates decide as before.
+ *
+ * The vote: every pairing of a tank shell of the previous record (tank
+ * provenance, not already continued by a re-send) with a same-list-label
+ * shell of the next record that lies ahead of it within the direction
+ * tolerance and the shell's range, read as its distance; pairings
+ * within TANK_LOCKSTEP_TOLERANCE_PIXELS plus the chained-offset slack
+ * of either end form a cluster, whose support is the number of
+ * distinct shells and distinct targets it joins, whichever is fewer. A
+ * reading is taken only from a decisive cluster: support of at least
+ * ADVANCE_READING_MIN_SUPPORT, and strictly more than every cluster
+ * outside its tolerance. A ladder of shells one reload apart has
+ * aliases one rung either side of the truth, each with one vote fewer,
+ * and a shell that died over the pair votes for the alias alone: its
+ * only pairing is the spurious short hop onto its successor's landing.
+ * So a shell that MAY have died abstains, as the roster vote's doubtful
+ * members and the tank lockstep's do, and the doubt is the terminal's
+ * nearest explainer: a terminal of the next record was struck by the
+ * first shell to reach it, the one nearest it in flight order among
+ * those the pairwise pass's own terminal test says could have, so each
+ * terminal marks its nearest reaching shell doubtful (greedily, nearest
+ * pairing first, a shell dying once and a terminal taking one shell)
+ * and the rest keep their votes. Two other rules were measured first.
+ * Blanket doubt -- any terminal in reach under the stamps' readings --
+ * silenced the fixture scene's live leader, 51 px short of a fall that
+ * belonged to the shell sitting on it; per-advance doubt, a terminal
+ * within a flight of the advance being counted, lost on every fixture,
+ * since a leader that hit late in the interval is still a live voter
+ * for the short alias, and that is the common death. Abstention only
+ * ever costs an alias a vote. A tie among the rest, as when a shell
+ * died and another was born over the pair, is no reading. Recorded on
+ * the next snapshot as advance_duration (ticks) and advance_support for
+ * the measurement tools. */
+const ADVANCE_READING_MIN_SUPPORT = 2;
+function tank_advance_reading(previous, next, duration, long_duration,
+	stamped_duration) {
+	let members = previous.shells.filter(shell =>
+		shell.next_time === undefined && !shell_from_pillbox(shell) &&
+		(shell.starts_at_tank || shell.birth_time !== undefined));
+	if (members.length < ADVANCE_READING_MIN_SUPPORT) return undefined;
+	let claims = [];
+	for (let shell of members) {
+		for (let terminal of next.terminals) {
+			let match = shell_terminal_match(shell, terminal, duration,
+				previous.time, 0, 0, long_duration, stamped_duration);
+			if (match) claims.push({ shell, terminal, distance: match.distance });
+		}
+	}
+	if (claims.length) {
+		claims.sort((a, b) => a.distance - b.distance);
+		let doubtful = new Set(), taken = new Set();
+		for (let claim of claims) {
+			if (doubtful.has(claim.shell) || taken.has(claim.terminal)) continue;
+			doubtful.add(claim.shell);
+			taken.add(claim.terminal);
+		}
+		members = members.filter(shell => !doubtful.has(shell));
+		if (members.length < ADVANCE_READING_MIN_SUPPORT) return undefined;
+	}
+	let targets = next.shells.filter(target =>
+		!target.matched_from_previous && !target.starts_at_pillbox);
+	let pairings = [];
+	for (let member of members) {
+		let exact = member.tank_exact_pixel_x !== undefined;
+		let origin_x = exact ? member.tank_exact_pixel_x : member.pixel_x;
+		let origin_y = exact ? member.tank_exact_pixel_y : member.pixel_y;
+		let slack = exact ? 0 : (member.position_uncertainty || 0) * Math.SQRT2;
+		let heading_x = member.heading_x, heading_y = member.heading_y;
+		if (heading_x === undefined) {
+			let angle = shell_sector(member) * Math.PI / 8;
+			heading_x = Math.sin(angle);
+			heading_y = -Math.cos(angle);
+		}
+		for (let target of targets) {
+			if (target.direction !== member.direction) continue;
+			let delta_x = target.pixel_x - origin_x;
+			let delta_y = target.pixel_y - origin_y;
+			let forward = delta_x * heading_x + delta_y * heading_y;
+			if (forward <= 0) continue;
+			let lateral = Math.abs(delta_x * heading_y - delta_y * heading_x);
+			if (Math.atan2(lateral, forward) > SHELL_DIRECTION_TOLERANCE) continue;
+			let distance = Math.hypot(delta_x, delta_y);
+			if (distance > SHELL_RANGE_PIXELS) continue;
+			pairings.push({ member, target, distance,
+				tolerance: TANK_LOCKSTEP_TOLERANCE_PIXELS + slack +
+					(target.position_uncertainty || 0) * Math.SQRT2 });
+		}
+	}
+	if (pairings.length < ADVANCE_READING_MIN_SUPPORT) return undefined;
+	let clusters = pairings.map(seed => {
+		let shells = new Set(), landings = new Set(), sum = 0, count = 0;
+		for (let pairing of pairings) {
+			if (Math.abs(pairing.distance - seed.distance) >
+				Math.max(pairing.tolerance, seed.tolerance)) continue;
+			shells.add(pairing.member);
+			landings.add(pairing.target);
+			sum += pairing.distance;
+			count++;
+		}
+		return { seed, support: Math.min(shells.size, landings.size),
+			distance: sum / count };
+	});
+	clusters.sort((a, b) => b.support - a.support);
+	let best = clusters[0];
+	if (best.support < ADVANCE_READING_MIN_SUPPORT) return undefined;
+	let rival = clusters.find(cluster => cluster !== best &&
+		Math.abs(cluster.seed.distance - best.seed.distance) >
+			Math.max(cluster.seed.tolerance, best.seed.tolerance));
+	if (rival && rival.support >= best.support) return undefined;
+	next.advance_support = best.support;
+	return best.distance / SHELL_SPEED_PIXELS_PER_TICK;
+}
+
 /* Match only mutually best candidates, and only when each wins by a useful
  * margin over its alternatives. Shell lists carry no IDs and may gain or
  * lose entries at any restatement, so an unmatched pop is safer than a
@@ -2647,6 +2789,11 @@ function match_shell_snapshots(previous, next) {
 	if (stamped_duration < 0 || duration > MAX_SHELL_INTERPOLATION_TICKS) return;
 	link_stale_restatements(previous, next);
 	mark_new_pillbox_shells(previous, next);
+	let advance_duration = duration > MAX_POSITION_INTERPOLATION_TICKS
+		? undefined
+		: tank_advance_reading(previous, next, duration, long_duration,
+			stamped_duration);
+	next.advance_duration = advance_duration;
 
 	let target_groups = shell_target_groups(next);
 	let by_previous = Array.from({ length: previous.shells.length }, () => []);
@@ -2662,10 +2809,11 @@ function match_shell_snapshots(previous, next) {
 			if (target.terminal) {
 				if (duration > MAX_POSITION_INTERPOLATION_TICKS) continue;
 				match = shell_terminal_match(previous.shells[previous_index], target,
-					duration, previous.time, 0, 0, long_duration, stamped_duration);
+					duration, previous.time, 0, 0, long_duration, stamped_duration,
+					advance_duration);
 			} else {
 				match = shell_match_cost(previous.shells[previous_index], target,
-					duration, long_duration, stamped_duration);
+					duration, long_duration, stamped_duration, advance_duration);
 				if (match) {
 					match.pixel_x = target.pixel_x;
 					match.pixel_y = target.pixel_y;
@@ -3361,9 +3509,41 @@ function propagate_states_down_chain(first_shell, first_time) {
 	}
 }
 
+/* The sender's clock across its snapshots, for the passes that join
+ * across more than one pair: each pair's tank advance reading where the
+ * pairwise pass took one (tank_advance_reading), the stamps where it did
+ * not, summed. A stitch or residual join from snapshot i to snapshot j
+ * then has one more reading of its span, `at[j] - at[i]`, offered only
+ * when some pair inside the span was read -- elsewhere the composition
+ * is the stamps and adds nothing. The pairwise pass is the only place
+ * the reading was consulted before this, and the corpus at `43efbbb`
+ * found the stitcher holding nearly every inversion left (123 of 155 on
+ * the tank axis, 128 of 137 on the pill's) and both new contradictions:
+ * chain ends the pairwise pass had freed, joined under the stamps the
+ * reading had just refused. */
+function sender_clock(snapshots) {
+	let at = [0], read = [0];
+	for (let index = 1; index < snapshots.length; index++) {
+		let snapshot = snapshots[index];
+		let stamped = snapshot.time - snapshots[index - 1].time;
+		at.push(at[index - 1] + (snapshot.advance_duration ?? stamped));
+		read.push(read[index - 1] +
+			(snapshot.advance_duration !== undefined ? 1 : 0));
+	}
+	return { at, read };
+}
+
+function clock_reading(clock, end, start) {
+	if (!clock || end.index === undefined || start.index === undefined ||
+		clock.read[start.index] <= clock.read[end.index]) return undefined;
+	let reading = clock.at[start.index] - clock.at[end.index];
+	return reading > 0 ? reading : undefined;
+}
+
 /* One end-to-start continuation candidate, or null. Shared between the
- * margin-based stitching pass and the forced-assignment residual pass. */
-function stitch_candidate(end, start, reference = null) {
+ * margin-based stitching pass and the forced-assignment residual pass.
+ * `clock` (sender_clock) lends the span the tank's reading of it. */
+function stitch_candidate(end, start, reference = null, clock = null) {
 	let duration = start.time - end.time;
 	if (duration <= 0 || duration > MAX_STITCH_GAP_TICKS) return null;
 	if (end.shell.birth_time !== undefined &&
@@ -3376,7 +3556,8 @@ function stitch_candidate(end, start, reference = null) {
 			start.shell.pillbox_source_y !== end.shell.pillbox_source_y)) {
 		return null;
 	}
-	let match = shell_match_cost(end.shell, start.shell, duration);
+	let match = shell_match_cost(end.shell, start.shell, duration, duration,
+		duration, clock_reading(clock, end, start));
 	if (!match) return null;
 	/* Dilated matches stay out of stitching: a stitch picks winners by
 	 * cost margins, and margins between dilated stories are meaningless
@@ -3828,6 +4009,7 @@ function first_at_or_after(items, time, time_of = item => item.time) {
  * against same-time contenders and against rival ends. */
 function stitch_shell_chains(snapshots) {
 	let reference = build_pill_lockstep_reference(snapshots);
+	let clock = sender_clock(snapshots);
 	let ends = [];
 	let starts = [];
 	for (let index = 0; index < snapshots.length; index++) {
@@ -3835,11 +4017,11 @@ function stitch_shell_chains(snapshots) {
 		let final = index === snapshots.length - 1;
 		for (let shell of snapshot.shells) {
 			if (shell.next_time === undefined && !final) {
-				ends.push({ shell, time: snapshot.time });
+				ends.push({ shell, time: snapshot.time, index });
 			}
 			if (index > 0 && !shell.matched_from_previous &&
 				!shell.starts_at_tank && !shell.starts_at_pillbox) {
-				starts.push({ shell, time: snapshot.time });
+				starts.push({ shell, time: snapshot.time, index });
 			}
 		}
 	}
@@ -3853,7 +4035,7 @@ function stitch_shell_chains(snapshots) {
 			i < starts.length &&
 			starts[i].time - end.time <= MAX_STITCH_GAP_TICKS; i++) {
 			let start = starts[i];
-			let candidate = stitch_candidate(end, start, reference);
+			let candidate = stitch_candidate(end, start, reference, clock);
 			if (!candidate) continue;
 			if (!by_end.has(end)) by_end.set(end, []);
 			by_end.get(end).push(candidate);
@@ -4325,6 +4507,7 @@ function apply_forced_unseen(creation, fate, units, match) {
 
 function resolve_residual_shell_fates(snapshots) {
 	let reference = build_pill_lockstep_reference(snapshots);
+	let clock = sender_clock(snapshots);
 	let ends = [];
 	let starts = [];
 	let fate_groups = [];
@@ -4342,11 +4525,11 @@ function resolve_residual_shell_fates(snapshots) {
 		let gap = index > 0 ? snapshot.time - snapshots[index - 1].time : 0;
 		for (let shell of snapshot.shells) {
 			if (shell.next_time === undefined && !final) {
-				ends.push({ shell, time: snapshot.time, gap });
+				ends.push({ shell, time: snapshot.time, gap, index });
 			}
 			if (index > 0 && !shell.matched_from_previous &&
 				!shell.starts_at_tank && !shell.starts_at_pillbox) {
-				starts.push({ shell, time: snapshot.time });
+				starts.push({ shell, time: snapshot.time, index });
 			}
 		}
 		/* Snapshot times never decrease, so every group sharing this
@@ -4417,7 +4600,7 @@ function resolve_residual_shell_fates(snapshots) {
 			let right = rights[ri];
 			if (left.kind === "end" && right.kind === "start") {
 				let candidate = stitch_candidate(left.end, right.start,
-					reference) ||
+					reference, clock) ||
 					dilated_join_candidate(left.end, right.start, reference);
 				if (candidate) {
 					edges.push({ left: li, right: ri, candidate,
@@ -4645,7 +4828,7 @@ function resolve_residual_shell_fates(snapshots) {
 					if (other.matched_from_previous || other.starts_at_tank ||
 						other.starts_at_pillbox) continue;
 					let start = { shell: other, time: snapshots[j].time };
-					let candidate = stitch_candidate(end, start, reference) ||
+					let candidate = stitch_candidate(end, start, reference, clock) ||
 						dilated_join_candidate(end, start, reference);
 					if (candidate) {
 						continuation_cost = Math.min(continuation_cost,
@@ -6086,7 +6269,7 @@ const BoloMotion = {
 	shell_birth_positions_at, shell_gap_positions_at,
 	describe_unmatched_terminals, describe_unfated_ends, score_pill_links,
 	score_pill_order, score_tank_order, sweep_contradicted_links,
-	enforce_tank_lockstep_candidates,
+	enforce_tank_lockstep_candidates, tank_advance_reading,
 	set_roster_vote_recording, reset_flow_component_stats,
 	flow_component_stats: () => flow_component_stats,
 };

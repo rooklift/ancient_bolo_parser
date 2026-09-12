@@ -89,6 +89,22 @@ and packaging, so v1.0.8's numbers are still `main`'s.
   3 inverted, 0 blurred: all three are stitched links crossing a pairwise
   one, the leader's stitch landing three steps on where the trailer's link
   landed seven or nine.
+* `pairs_advance_read` / `pairs_advance_novel` -- the tank's shells as the
+  pair's clock (`tank_advance_reading` in `viewer/motion.js`): snapshot
+  pairs where two or more of the sender's tank shells, none with a
+  terminal in reach, agreed on one advance and set a reading of the
+  interval, and of those the readings outside every stamp reading by more
+  than the match window, the ones that can admit a continuation the
+  stamps refused. On the fixture 6,019 and 26. `pairs_advance_novel_short`
+  / `_long` split the novel readings by side of the stamps, and
+  `links_beyond_stamps` / `links_beyond_stamps_read` count the pairwise
+  links longer than the longest stamp reading plus the match window --
+  links drawn faster than 2 px/tick because the drawing keeps the
+  stamps' clock -- and of those the ones made in a pair with a reading;
+  `links_beyond_stamps_novel` narrows that to pairs whose reading is
+  novel and longer than the stamps, the links the reading alone
+  admitted. On `040601.6` under main's engine and this one, 104 -> 184
+  links beyond the stamps and 79 novel: the two are the same links.
 * `pairs_tank_order` / `pairs_tank_order_kept` / `pairs_tank_order_blurred`
   / `pairs_tank_order_inverted` and `rate_pairs_tank_order_inverted` -- the
   tank-side order axis (`score_tank_order` in `viewer/motion.js`). A shell
@@ -2176,6 +2192,119 @@ holds nothing inside the gap, and the segment is sampled inside the
 gap (12.75, 10.5 at tick 118 for a shell from 160,160 at 100 to 208,160
 at 124), absent a tick before the empty record, present from it, and
 gone at the tick the continuation's record takes over.
+
+## The tank's shells as the pair's clock
+
+The change the tank order axis pointed at. In every inversion scene the
+true continuations lay outside the interval's readings: a record
+stamped a dropped restatement late, so three shells that all flew 28 px
+in a "23-tick" gap fell outside the 46 px window, and the cost took a
+51 px hop while the stitcher took a 5 px one. The tank lockstep could
+prune among candidates but not create them. `tank_advance_reading`
+reads the interval off the shells themselves: every pairing of a tank
+shell of the previous record with a same-list-label shell of the next
+that lies ahead of it within the direction tolerance, clustered by
+distance within the lockstep tolerance, the cluster's support the
+distinct shells and distinct landings it joins; a decisive cluster
+(support at least two, strictly more than every rival) is one more
+reading of the pair, scored and windowed beside the stall readings, and
+the cost, the lockstep and the margin gates decide as before.
+
+Three cuts were measured, on the two fixtures, the ten pairs and the
+paired audit:
+
+* **Every shell votes.** Snapshot links rise everywhere (`n20021018.2`
+  +33, `040601.6` +38, the pairs +161) and the paired audit's conflicts
+  fall 379 -> 294, but terminals go with them (`n20021018.2` 20,846 ->
+  20,811, the pairs 54,993 -> 54,873, `pillbox_damage` and `base_damage`
+  almost all of it) and `shell_births` with them (the pairs -206). The
+  rung-shift alias: a ladder of shells one reload apart, its leader
+  dead over the pair and its tail fired anew, has every shell landing on
+  its trailer's restatement, and the dead leader's spurious hop gives
+  that story one vote more than the truth; the newborn is absorbed as a
+  continuation and the leader continues past its hit.
+* **Blanket abstention.** A shell some terminal of the next record could
+  take under the stamps' readings, by the pairwise pass's own terminal
+  test, does not vote. Every fixture set improves on every headline
+  column; the numbers are below. The price: the fixture's own inversion
+  scene stays, because its leader's wrong 51 px hop ends at a fall, so
+  it abstains and the pair keeps the stamps.
+* **Per-advance doubt.** A shell abstains only from advances within
+  whose flight a terminal lies, so the fixture scene's leader votes for
+  28 (its fall is 51 on) and abstains from 51. Worse than the blanket
+  rule on every axis (`n20021018.2` terminals 20,846 -> 20,807 and
+  unlinked 75 -> 90, the pairs terminals -92, conflicts 339): a leader
+  that hit late in the interval is still a live voter for the short
+  alias, and that is the common death. Not taken.
+* **Nearest-explainer doubt** (the rule that stands, measured after the
+  blanket rule's corpus run, below). A terminal of the next record was
+  struck by the first shell to reach it, so each terminal marks the
+  nearest shell that could have reached it doubtful, greedily, and the
+  rest vote. It keeps the blanket rule's gains and reaches the fixture
+  scene: its fall belongs to the shell sitting on it, and the leader 51
+  px short of it votes. With it, and the stitching and residual passes
+  reading the same clock composed across the snapshots a join spans
+  (`sender_clock`), against the blanket rule: `n20021018.2`
+  `shells_unmatched_forward` 137 -> **129**, `shells_unlinked` 71 ->
+  **66**, `pairs_tank_order_inverted` 1 -> **0**, `pairs_pill_order_inverted`
+  3 -> **1**, `links_pill_vouched` +2, `terminals_matched` -1
+  (`base_damage`), 6,019 pairs read and 26 novel; `040601.6`
+  byte-identical but for 18 more pairs read; the ten pairs
+  `shells_unmatched_forward` 547 -> **525**, `shells_unlinked` 227 ->
+  **211**, `terminals_matched` +1, `pairs_tank_order_blurred` 2 -> 0,
+  the two builds of a game agreeing on 128,796 -> **128,853** forward
+  stories, conflicts 265 -> **230**, births agreed 48,405 -> **48,441**.
+  The stitcher's clock alone, measured first, was near neutral on the
+  fixtures (conflicts 265 -> 261, one shell linked, one terminal lost):
+  the stitched inversions sit in pairs no clock reached, which is what
+  the doubt rule then opened. Corpus: `91b9174` in
+  [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md) --
+  tank inversions 155 -> 96, pill 137 -> 128, unlinked 6,405 -> 6,009,
+  terminals +93, backwards pops 791 -> 635, contradictions 16 unchanged.
+
+The blanket rule, against `abe761d` (main after the lockstep):
+
+* `n20021018.2`: `rate_shells_matched_forward` 0.998034 -> **0.998142**
+  (`shells_unmatched_forward` 145 -> 137), `rate_shells_unlinked`
+  0.001017 -> **0.000963** (75 -> 71), `rate_terminals_matched` 0.865877
+  -> **0.865961** (`base_damage` +1, `pillbox_damage` +1), `links_shell`
+  52,762 -> 52,768, `shells_unseen_pillbox_birth` 7 -> 6 and
+  `shells_stream_birth` 3 -> 4, `flow_components` 1,188 -> 1,183; the
+  pill axes unchanged, `pairs_tank_order` 9,129 -> 9,140 with its one
+  inversion standing. 4,826 pairs read, 12 novel.
+* `040601.6`: `rate_shells_matched_forward` 0.998704 -> **0.999163**
+  (`shells_unmatched_forward` 110 -> 71), `rate_shells_unlinked`
+  0.000295 -> **0.000153** (25 -> 13), `terminals_matched` 4,317 ->
+  4,318, `shells_visual_joins` 4 -> **0**, `links_shell` 80,429 ->
+  80,467, `flow_components` 302 -> 283. 8,948 pairs read, 35 novel, 32
+  of them longer than the long reading: the fast ring's records run
+  early as often as late.
+* the ten pairs: `rate_shells_matched_forward` 0.997594 -> **0.997894**
+  (`shells_unmatched_forward` 625 -> 547), `shells_unlinked` 268 ->
+  **227**, `terminals_matched` 54,993 -> **55,003** (`pillbox_damage`
+  +10, `explosion` +2, `shell_falls` -2), `shells_visual_joins` 28 -> 14,
+  `pairs_tank_order_inverted` 14 -> **9** and `blurred` 2 -> 0,
+  `pairs_pill_order_inverted` 5 -> 3, `links_pill_unpinned` 24 -> 21;
+  the two builds of a game agree on 128,614 -> **128,796** forward
+  stories, conflicts 379 -> **265**, abstentions 127 / 85 -> 80 / 64,
+  births agreed 48,219 -> **48,405** (A only 135 -> 88, B only 272 ->
+  155), roster elections differing 54 -> 51. 21,742 pairs read, 148
+  novel.
+
+The unit tests build the scene by hand: two eastbound shells 25 px
+apart restated 28 px on in a record stamped 23 ticks late, where the
+stamps alone link the trailer onto the leader's restatement and leave
+the leader, and the reading (14 ticks, support 2) links both true
+continuations; the same pair with the leader's wall in reach, where it
+abstains and one voter is no vote; and a ladder of three whose leader
+hit and whose tail was fired anew, tied one rung either way, no
+reading. The moved fixture pins are the numbers above. Corpus:
+`43efbbb` in [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md)
+-- every headline record moves on, both order axes fall by a third or
+more, and two alarms are on the books: `links_pill_contradicted` 14 ->
+16, and eleven thousand links moved from the steady bucket to 2.5-3.0
+px/tick, which the report's new `links_beyond_stamps` counters read on
+the next run.
 
 ## Where the line stands -- `0263483`
 
