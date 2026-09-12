@@ -2510,6 +2510,16 @@ if (!fs.existsSync(log1)) {
 		[[10.75, 10.5, 4]]);
 	check("synthetic muzzle segment hands off at the real restatement",
 		BoloGame.shell_birth_positions_at(tank_muzzle, 0, 100), []);
+	/* The renderer layers shells by origin: tank shells over live pills,
+	 * pill shells under their own pill. */
+	check("tank muzzle segment names its origin",
+		BoloGame.shell_birth_positions_at(tank_muzzle, 0, 98)
+			.map(shell => shell.origin), ["tank"]);
+	check("restated tank shell names its origin", (() => {
+		let state = BoloGame.state_at(tank_muzzle, 100).state;
+		return BoloGame.shell_position_at(tank_muzzle, 0,
+			state.shells[0][0], 0, 100).origin;
+	})(), "tank");
 
 	let pillbox_muzzle = BoloGame.build([
 		record(80, [{ type: "pillbox_list", items: [{
@@ -2527,6 +2537,14 @@ if (!fs.existsSync(log1)) {
 		[[10.6875, 10.5, 4]]);
 	check("synthetic pillbox segment hands off at the real restatement",
 		BoloGame.shell_birth_positions_at(pillbox_muzzle, 0, 100), []);
+	check("pillbox muzzle segment names its origin",
+		BoloGame.shell_birth_positions_at(pillbox_muzzle, 0, 98)
+			.map(shell => shell.origin), ["pillbox"]);
+	check("restated pillbox shell names its origin", (() => {
+		let state = BoloGame.state_at(pillbox_muzzle, 100).state;
+		return BoloGame.shell_position_at(pillbox_muzzle, 0,
+			state.shells[0][0], 0, 100).origin;
+	})(), "pillbox");
 
 	let quantised_pillbox_muzzle = BoloGame.build([
 		record(80, [{ type: "pillbox_list", items: [{

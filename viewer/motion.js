@@ -5139,10 +5139,20 @@ function classify_terminal_candidate(shell, end_time, gap, terminal,
 	return "edge_unforced";
 }
 
+/* Which weapon fired a tracked shell, as far as the engine has settled it:
+ * "pillbox", "tank", or undefined for a chain no fire event ever claimed
+ * (about 1% of restatements over the fixtures). The renderer layers on
+ * this: pill shells emerge from under their own pill, tank shells fly
+ * over live pills to strike them. */
+function shell_origin(shell) {
+	if (shell_from_pillbox(shell)) return "pillbox";
+	if (shell.starts_at_tank || shell.birth_time !== undefined) return "tank";
+	return undefined;
+}
+
 function terminal_candidate_kind(shell) {
-	if (shell_from_pillbox(shell)) return "P";
-	if (shell.starts_at_tank || shell.birth_time !== undefined) return "T";
-	return "?";
+	let origin = shell_origin(shell);
+	return origin === "pillbox" ? "P" : origin === "tank" ? "T" : "?";
 }
 
 function describe_terminal_failure(snapshots, index, terminal) {
@@ -6063,6 +6073,7 @@ function build_shell_births(shell_positions) {
 					heading_x,
 					heading_y,
 					direction: shell_sector(shell),
+					origin: shell.starts_at_pillbox ? "pillbox" : "tank",
 				});
 			}
 		}
@@ -6111,6 +6122,7 @@ function build_shell_gap_segments(shell_positions) {
 					to_x: shell.smooth_next_pixel_x ?? shell.next_pixel_x,
 					to_y: shell.smooth_next_pixel_y ?? shell.next_pixel_y,
 					direction: shell_sector(shell),
+					origin: shell_origin(shell),
 				});
 				longest_span = Math.max(longest_span, shell.next_time - drop_time);
 			}
@@ -6254,10 +6266,12 @@ function shell_position_at(game, player, shell, index, tick) {
 	/* The sprite points the way the shell flies, which for a shell born
 	 * on a sector boundary is its corrected sector, not its list label. */
 	let direction = shell_sector(position);
+	let origin = shell_origin(position);
 	let exact_position = () => ({
 		x: pixel_x / 16 + 0.5,
 		y: pixel_y / 16 + 0.5,
 		direction,
+		origin,
 	});
 	/* No forward story: a shell is either in flight at 2 px/tick or gone,
 	 * so holding it at its last restatement until the sender's next record
@@ -6276,7 +6290,7 @@ function shell_position_at(game, player, shell, index, tick) {
 	let target_y = position.smooth_next_pixel_y ?? position.next_pixel_y;
 	pixel_x += (target_x - pixel_x) * amount;
 	pixel_y += (target_y - pixel_y) * amount;
-	return { x: pixel_x / 16 + 0.5, y: pixel_y / 16 + 0.5, direction };
+	return { x: pixel_x / 16 + 0.5, y: pixel_y / 16 + 0.5, direction, origin };
 }
 
 function shell_birth_positions_at(game, player, tick) {
@@ -6298,6 +6312,7 @@ function shell_birth_positions_at(game, player, tick) {
 			x: (birth.pixel_x + birth.heading_x * distance) / 16 + 0.5,
 			y: (birth.pixel_y + birth.heading_y * distance) / 16 + 0.5,
 			direction: birth.direction,
+			origin: birth.origin,
 		});
 	}
 	return positions;
@@ -6329,6 +6344,7 @@ function shell_gap_positions_at(game, player, tick) {
 			y: (segment.from_y + (segment.to_y - segment.from_y) * amount) /
 				16 + 0.5,
 			direction: segment.direction,
+			origin: segment.origin,
 		});
 	}
 	return positions;
@@ -6344,7 +6360,7 @@ const BoloMotion = {
 	build_shell_births, build_shell_gap_segments,
 	resolve_residual_shell_fates,
 	tank_position_at, tank_direction_at, lgm_position_at, shell_position_at,
-	shell_birth_positions_at, shell_gap_positions_at,
+	shell_birth_positions_at, shell_gap_positions_at, shell_origin,
 	describe_unmatched_terminals, describe_unfated_ends, score_pill_links,
 	score_pill_order, score_tank_order, sweep_contradicted_links,
 	enforce_tank_lockstep_candidates, tank_advance_reading,
