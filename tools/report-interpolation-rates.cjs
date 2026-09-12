@@ -272,6 +272,15 @@ function empty_totals() {
 		 * admit a continuation the stamps refused. */
 		pairs_advance_read: null,
 		pairs_advance_novel: null,
+		pairs_advance_novel_short: null,
+		pairs_advance_novel_long: null,
+		/* Pairwise links whose distance exceeds the pair's longest stamp
+		 * reading by more than the match window -- links the stamps alone
+		 * would not have admitted, drawn faster than 2 px/tick because the
+		 * drawing keeps the stamps' clock -- and of those the ones made in
+		 * a pair the tank's shells gave a reading. */
+		links_beyond_stamps: null,
+		links_beyond_stamps_read: null,
 
 		/* Residual-flow components: what forced_bipartite_assignments in
 		 * viewer/motion.js actually solves, and whether its pathological-
@@ -399,21 +408,39 @@ function count_advance_readings(totals, engines, game) {
 	if (typeof engines.motion?.tank_advance_reading !== "function") return;
 	if (!Array.isArray(game.shell_positions)) return;
 	const WINDOW_TICKS = 4; /* SHELL_MATCH_ERROR_PIXELS at 2 px/tick */
-	add(totals, "pairs_advance_read", 0);
-	add(totals, "pairs_advance_novel", 0);
+	for (let key of ["pairs_advance_read", "pairs_advance_novel",
+		"pairs_advance_novel_short", "pairs_advance_novel_long",
+		"links_beyond_stamps", "links_beyond_stamps_read"]) add(totals, key, 0);
 	for (let snapshots of game.shell_positions) {
 		if (!Array.isArray(snapshots)) continue;
+		let index_of = new Map();
+		snapshots.forEach((snapshot, index) => {
+			for (let shell of snapshot.shells) index_of.set(shell, index);
+		});
 		for (let i = 1; i < snapshots.length; i++) {
 			let previous = snapshots[i - 1], next = snapshots[i];
-			if (next.advance_duration === undefined) continue;
-			add(totals, "pairs_advance_read", 1);
 			let stamped = next.time - previous.time;
 			let short = Math.max(0, stamped - (next.stall_before ?? 0));
 			let long = stamped + (previous.stall_before ?? 0);
+			let read = next.advance_duration !== undefined;
+			for (let shell of previous.shells) {
+				let successor = shell.next_shell;
+				if (!successor || index_of.get(successor) !== i) continue;
+				let distance = Math.hypot(successor.pixel_x - shell.pixel_x,
+					successor.pixel_y - shell.pixel_y);
+				if (distance > (long + WINDOW_TICKS) * 2) {
+					add(totals, "links_beyond_stamps", 1);
+					if (read) add(totals, "links_beyond_stamps_read", 1);
+				}
+			}
+			if (!read) continue;
+			add(totals, "pairs_advance_read", 1);
 			let readings = [short, long, stamped, short + long - stamped];
 			if (readings.every(reading =>
 				Math.abs(next.advance_duration - reading) > WINDOW_TICKS)) {
 				add(totals, "pairs_advance_novel", 1);
+				add(totals, next.advance_duration < short
+					? "pairs_advance_novel_short" : "pairs_advance_novel_long", 1);
 			}
 		}
 	}

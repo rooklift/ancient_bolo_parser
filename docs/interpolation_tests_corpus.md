@@ -174,6 +174,7 @@ Constant at all ten commits, and worth having once:
 | `ee502e9` | a tank hit tried against the statements the sender held | **0.998058** | **0.000810** | **0.839149** | **242,287** | 13,237 | **832** | 14 |
 | `e46dd5e` | a tank's shells advance in lockstep | **0.998081** | **0.000801** | 0.839074 | 242,286 | 13,226 | **783** | 14 |
 | `364174f` | a shell that may have died abstains from the tank lockstep (engine `7290254`) | 0.998076 | 0.000804 | **0.839166** | **242,293** | 13,230 | 801 | 14 |
+| `43efbbb` | the tank's shells as the pair's clock | **0.998337** | **0.000652** | **0.839362** | **242,334** | 13,560 | 791 | 16 |
 
 The three right-hand columns are lower-is-better counts from the drawn
 audit and the vouched-link score, added so that a drawing-only commit
@@ -3778,6 +3779,78 @@ do not move says the same thing the fixtures said, that the equivalence
 phase's spend is bookkeeping on one pass; the four flow components are
 the second pass finding a slightly different residue, at no change to
 anything drawn or matched.
+
+## The tank's shells as the pair's clock -- `43efbbb`
+
+The fixture doc's section of the same name has the change and the
+three cuts measured on the fixtures. `tank_advance_reading` reads the
+interval off the sender's tank shells: pairings of a previous-record
+tank shell with a next-record shell ahead of it on the same list
+label, clustered by distance, and a decisive cluster (two or more
+distinct shells and landings, strictly ahead of every rival) is one
+more reading of the pair beside the stall readings, which the cost
+scores against and the windows admit; a shell some terminal could take
+under the stamps abstains. Nothing is decided by it.
+
+Corpus, `43efbbb-report.txt` and `43efbbb-audit.txt` against
+`ae527fd-*` (443 files, zero failures, the same input; `cfc6bd0`
+between them is drawing only and has no report):
+
+* coverage, the largest move since the stale-box walk:
+  `shells_matched_forward` 9,798,481 -> **9,801,034** (+2,553, every one
+  off `shells_unmatched_forward`, 18,880 -> 16,327), `shells_unlinked`
+  7,890 -> **6,405** (-18.8%), `terminals_matched` 1,633,395 ->
+  **1,633,767** (+372: `pillbox_damage` +273, `explosion` +51, `tank_hit`
+  +41, `base_damage` +27, `shell_falls` -20), `shells_visual_joins` 1,095
+  -> 714, `flow_components` 127,428 -> 122,262; `rate_shells_matched_forward`
+  0.998077 -> **0.998337**, `rate_shells_unlinked` 0.000804 ->
+  **0.000652**, `rate_terminals_matched` 0.839171 -> **0.839362**. Every
+  headline record moves on. 840,191 pairs read, 5,909 of them novel
+  (outside every stamp reading by more than the match window).
+* the order axes, both: `pairs_tank_order_inverted` 338 -> **155**
+  (`blurred` 17 -> 13), `pairs_pill_order_inverted` 173 -> **137**
+  (`blurred` 6 -> 3) -- the sender's clock is the pill's clock too, and
+  the reading reaches pill continuations the stamps refused:
+  `links_pill_vouched` 2,918,768 -> 2,919,627 (+859), `links_pill_unpinned`
+  2,597 -> **2,380**, `roster_votes_passed` 564,278 -> 564,480,
+  `stood_down` 184,354 -> 184,226.
+* the alarm: `links_pill_contradicted` 14 -> **16**. Two links the
+  sender's statement roster contradicts, after the sweep
+  (`shells_sweep_unlinked` 127 -> 116, `rejoined` 45 -> 43). The
+  metric's first rise since it was introduced; the two scenes are not
+  in this run (a `--describe-links` run names them) and are the next
+  thing to look at.
+* the drawn audit, the pops: `pop_outs` 18,694 -> **16,141** (-2,553,
+  the forward gain exactly), `pop_ins` 21,614 -> **19,452**,
+  `pops_paired_forward` 1,948 -> **1,369**, `pops_paired_backwards` 801
+  -> 791, `hover_links` 4,544 -> **4,503**; seam jumps still zero.
+* the drawn audit, the speeds: `rate_links_steady` 0.966863 ->
+  0.965208, `link_speed:1.8-2.2` 7,894,522 -> 7,883,111 (-11,411) with
+  `2.5-3.0` 9,503 -> **19,480** (+9,977) and `3.0+` 7,341 -> 8,739
+  (+1,398, which is `rush_links` 7,321 -> 8,719 and `rush_links_timed`
+  1,379 -> 2,697); `terminal_links_rushed_timed` 13,232 -> 13,560,
+  `terminal_links_static` 55,605 -> 55,435; `1.5-1.8` +1,685, `1.0-1.5`
+  +414.
+
+Reading. Eleven thousand links moved from steady into the fast
+buckets while the link count rose two thousand: most are links that
+existed before with another partner, now re-assigned, and a link
+faster than the stamps allow is what a continuation admitted by a
+reading LONGER than the stamps looks like when the drawing keeps the
+stamps' clock. That mechanism is inferred here, not measured -- the
+`e46dd5e` entry read a slow-link shift the same way and was wrong --
+so the report now carries `pairs_advance_novel_short` / `_long` and
+`links_beyond_stamps` / `_read` (pairwise links longer than the
+longest stamp reading plus the window, and those made under a
+reading), and the next run says how much of the shift is the reading's.
+What is measured: the pops, the unlinked count, the terminals and both
+order axes all move the right way at once, and on the ten pairs the two
+recorders agree on 182 more forward stories with conflicts 379 -> 265.
+Where a fast link is the reading's, the fault is the drawing's clock,
+not the link, and the drawing correction that slides a delayed chain
+head (`800f57c`) is the shape of the fix. The change stands as
+measured, with the two contradictions and the steady rate on the
+books, both to be read on the `--describe-links` run.
 
 ## Findings
 

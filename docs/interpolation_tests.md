@@ -95,7 +95,12 @@ and packaging, so v1.0.8's numbers are still `main`'s.
   terminal in reach, agreed on one advance and set a reading of the
   interval, and of those the readings outside every stamp reading by more
   than the match window, the ones that can admit a continuation the
-  stamps refused. On the fixture 4,826 and 12.
+  stamps refused. On the fixture 4,826 and 12. `pairs_advance_novel_short`
+  / `_long` split the novel readings by side of the stamps, and
+  `links_beyond_stamps` / `links_beyond_stamps_read` count the pairwise
+  links longer than the longest stamp reading plus the match window --
+  links drawn faster than 2 px/tick because the drawing keeps the
+  stamps' clock -- and of those the ones made in a pair with a reading.
 * `pairs_tank_order` / `pairs_tank_order_kept` / `pairs_tank_order_blurred`
   / `pairs_tank_order_inverted` and `rate_pairs_tank_order_inverted` -- the
   tank-side order axis (`score_tank_order` in `viewer/motion.js`). A shell
@@ -2264,7 +2269,13 @@ the leader, and the reading (14 ticks, support 2) links both true
 continuations; the same pair with the leader's wall in reach, where it
 abstains and one voter is no vote; and a ladder of three whose leader
 hit and whose tail was fired anew, tied one rung either way, no
-reading. The moved fixture pins are the numbers above.
+reading. The moved fixture pins are the numbers above. Corpus:
+`43efbbb` in [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md)
+-- every headline record moves on, both order axes fall by a third or
+more, and two alarms are on the books: `links_pill_contradicted` 14 ->
+16, and eleven thousand links moved from the steady bucket to 2.5-3.0
+px/tick, which the report's new `links_beyond_stamps` counters read on
+the next run.
 
 ## Where the line stands -- `0263483`
 
