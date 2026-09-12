@@ -197,17 +197,17 @@ measure the false-claim risk before believing it. Explicitly optional.
   costlier same-muzzle story is taken once the cheap one is spent
   elsewhere: 231 of those attributions come back, nothing else moves.
   DONE.
-* Links that outlive the sender's next record are not drawn past it.
+* Links that outlived the sender's next record were not drawn past it.
   The renderer draws packet state plus birth and fall segments, so a
-  stitch or a forced terminal whose target lies beyond the sender's
-  next snapshot has no sprite from that record to the target. Measured
-  over the two fixtures and the ten pairs: 157 such links in 417,452
-  (shell falls excluded, since fall segments already cover them), 14 on
-  `n20021018.2` (eight stitches, six non-fall terminals), 55 on the
-  fast ring, each invisible for 5-25 ticks typically, 1,935 ticks in
-  all. The drawn audit reads every link as drawn end to end and cannot
-  see this class. Fall segments solve it for falls; generalising them
-  to every such link is a drawing-only change. Open.
+  stitch or a forced terminal whose target lay beyond the sender's next
+  snapshot had no sprite from that record to the target: 157 such links
+  in 417,452 over the two fixtures and the ten pairs, 5,124 in 9.8
+  million over the corpus, four in five at the steady 2 px/tick. The
+  drawn audit reads every link as drawn end to end and could not see
+  the class. `cfc6bd0` generalises the fall segments to every such link
+  (the gap segments), drawing-only, no speed gate; the fixture doc's
+  "Every link is drawn to its end" has the census, and
+  `tools/measure-gap-segments.cjs` keeps it. DONE.
 
 ## 9. The pill lockstep arc -- DONE
 
