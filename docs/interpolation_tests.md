@@ -95,7 +95,7 @@ and packaging, so v1.0.8's numbers are still `main`'s.
   terminal in reach, agreed on one advance and set a reading of the
   interval, and of those the readings outside every stamp reading by more
   than the match window, the ones that can admit a continuation the
-  stamps refused. On the fixture 4,826 and 12. `pairs_advance_novel_short`
+  stamps refused. On the fixture 6,019 and 26. `pairs_advance_novel_short`
   / `_long` split the novel readings by side of the stamps, and
   `links_beyond_stamps` / `links_beyond_stamps_read` count the pairwise
   links longer than the longest stamp reading plus the match window --
@@ -2236,6 +2236,28 @@ paired audit:
   unlinked 75 -> 90, the pairs terminals -92, conflicts 339): a leader
   that hit late in the interval is still a live voter for the short
   alias, and that is the common death. Not taken.
+* **Nearest-explainer doubt** (the rule that stands, measured after the
+  blanket rule's corpus run, below). A terminal of the next record was
+  struck by the first shell to reach it, so each terminal marks the
+  nearest shell that could have reached it doubtful, greedily, and the
+  rest vote. It keeps the blanket rule's gains and reaches the fixture
+  scene: its fall belongs to the shell sitting on it, and the leader 51
+  px short of it votes. With it, and the stitching and residual passes
+  reading the same clock composed across the snapshots a join spans
+  (`sender_clock`), against the blanket rule: `n20021018.2`
+  `shells_unmatched_forward` 137 -> **129**, `shells_unlinked` 71 ->
+  **66**, `pairs_tank_order_inverted` 1 -> **0**, `pairs_pill_order_inverted`
+  3 -> **1**, `links_pill_vouched` +2, `terminals_matched` -1
+  (`base_damage`), 6,019 pairs read and 26 novel; `040601.6`
+  byte-identical but for 18 more pairs read; the ten pairs
+  `shells_unmatched_forward` 547 -> **525**, `shells_unlinked` 227 ->
+  **211**, `terminals_matched` +1, `pairs_tank_order_blurred` 2 -> 0,
+  the two builds of a game agreeing on 128,796 -> **128,853** forward
+  stories, conflicts 265 -> **230**, births agreed 48,405 -> **48,441**.
+  The stitcher's clock alone, measured first, was near neutral on the
+  fixtures (conflicts 265 -> 261, one shell linked, one terminal lost):
+  the stitched inversions sit in pairs no clock reached, which is what
+  the doubt rule then opened.
 
 The blanket rule, against `abe761d` (main after the lockstep):
 
