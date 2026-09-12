@@ -5378,13 +5378,66 @@ function slide_compressed_chain_tails(snapshots) {
  * before smoothing, as the tail does, the smoother anchors on the
  * honest position, and the post-smoothing head slide finds nothing
  * left. Only heads on a delayed record: everywhere else the
- * post-smoothing slide keeps its measured behaviour. Drawing only. */
+ * post-smoothing slide keeps its measured behaviour. A record is
+ * delayed by the ring's account (`stall_before`) or by the sender's
+ * own: when the tank's shells read the next pair longer than its
+ * longest stamp reading (tank_advance_reading), this record's contents
+ * predate its stamp by the difference. The clock admitted the links
+ * across such records that used to pop, and left to the smoother they
+ * drew as chains at three pixels a tick -- the corpus's `2.5-3.0`
+ * bucket doubled at `43efbbb` -- because the head's lie was spread
+ * rather than slid. The lateness that matters is the head's against
+ * the chain's TAIL, the anchor the smoother re-times toward, and the
+ * composed clock (sender_clock) gives it: the chain's true span less
+ * its stamped span, each pair's reading where one was taken and the
+ * stamps elsewhere. Reading it against the next record alone was
+ * measured first and overshot on the corpus -- 15,499 links left the
+ * `2.2-2.5` bucket and 12,944 landed in `1.5-1.8` -- since a backlog
+ * drains over several records and the tail is then still late by part
+ * of what the next pair read. The lateness is read to the tick: on a
+ * fast ring the cadence is a few ticks and a whole cadence of lie sits
+ * under the match window, so the "novel" gate the matcher uses is too
+ * coarse here, and two shells agreeing within the lockstep tolerance
+ * put the reading within a pixel or two. So a read-late head slides on
+ * a smaller excess than a stalled one (READ_LATE_SLIDE_THRESHOLD_PIXELS
+ * against CHAIN_HEAD_SLIDE_THRESHOLD_PIXELS), and by no more than that
+ * lateness plus the slack, since the link's excess also carries the
+ * head's own quantisation. Drawing only. */
+const READ_LATE_MIN_TICKS = 1;
+const READ_LATE_SLIDE_THRESHOLD_PIXELS = 2;
+function chain_read_late_ticks(snapshots, clock, index_of, head, index) {
+	let tail = head, hops = 0;
+	while (tail.next_shell && !tail.next_terminal && hops++ < MAX_CHAIN_WALK) {
+		tail = tail.next_shell;
+	}
+	let tail_index = index_of.get(tail);
+	if (tail_index === undefined || tail_index <= index ||
+		clock.read[tail_index] <= clock.read[index]) return 0;
+	let late = (clock.at[tail_index] - clock.at[index]) -
+		(snapshots[tail_index].time - snapshots[index].time);
+	return late >= READ_LATE_MIN_TICKS ? late : 0;
+}
+
 function slide_delayed_chain_heads(snapshots) {
-	for (let snapshot of snapshots) {
-		if (!(snapshot.stall_before > 0)) continue;
+	let clock = sender_clock(snapshots);
+	let index_of = new Map();
+	snapshots.forEach((snapshot, index) => {
+		for (let shell of snapshot.shells) index_of.set(shell, index);
+	});
+	for (let index = 0; index < snapshots.length; index++) {
+		let snapshot = snapshots[index];
+		let stalled = snapshot.stall_before > 0;
 		for (let shell of snapshot.shells) {
 			if (shell.matched_from_previous || !shell.next_shell ||
 				shell.next_terminal) continue;
+			let read_late = stalled ? 0
+				: chain_read_late_ticks(snapshots, clock, index_of, shell, index);
+			if (!stalled && !read_late) continue;
+			let threshold = stalled ? CHAIN_HEAD_SLIDE_THRESHOLD_PIXELS
+				: READ_LATE_SLIDE_THRESHOLD_PIXELS;
+			let cap = stalled ? Infinity
+				: read_late * SHELL_SPEED_PIXELS_PER_TICK +
+					READ_LATE_SLIDE_THRESHOLD_PIXELS;
 			let window = shell.next_time - snapshot.time;
 			if (!(window >= 0)) continue;
 			let from_x = shell.pillbox_orbit_pixel_x ??
@@ -5398,8 +5451,8 @@ function slide_delayed_chain_heads(snapshots) {
 				next.pixel_y;
 			let distance = Math.hypot(to_x - from_x, to_y - from_y);
 			let excess = distance - window * SHELL_SPEED_PIXELS_PER_TICK;
-			if (excess <= CHAIN_HEAD_SLIDE_THRESHOLD_PIXELS) continue;
-			let amount = Math.min(excess / distance, 1);
+			if (excess <= threshold) continue;
+			let amount = Math.min(Math.min(excess, cap) / distance, 1);
 			shell.smooth_pixel_x = from_x + (to_x - from_x) * amount;
 			shell.smooth_pixel_y = from_y + (to_y - from_y) * amount;
 		}

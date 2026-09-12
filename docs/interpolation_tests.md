@@ -2306,6 +2306,77 @@ more, and two alarms are on the books: `links_pill_contradicted` 14 ->
 px/tick, which the report's new `links_beyond_stamps` counters read on
 the next run.
 
+## A record the reading marks late slides its heads -- drawing only
+
+The `43efbbb` corpus run doubled the drawn audit's `2.5-3.0` bucket,
+and `91b9174`'s `links_beyond_stamps_novel` (8,751) said what the
+links were: continuations only a reading longer than the stamps
+admitted, drawn at the stamps' clock. Classified on the fixtures by
+the audit's own drawn speed, though, the fast links are not those
+pairs' links drawn raw -- a novel-long pair's own links smooth to
+speed, as the scene at 20030330.2-B 325.5 s shows once smoothed --
+but interior links of smoothed chains whose HEAD sits on a record the
+ring delivered late with no stall detected: the disease
+`slide_delayed_chain_heads` treats for records marked by
+`stall_before`, spread along the chain by the smoother because the
+head anchor is never moved. The reading is a second detector of a
+late record: a reading on the next pair longer than that pair's
+longest stamp reading says this record's contents predate its stamp
+by the difference. So the pass now also slides heads on records the
+reading marks late, and reads the lateness to the tick
+(`READ_LATE_MIN_TICKS` 1): on a fast ring the cadence is a few ticks
+and a whole cadence of lie sits under the match window the matcher's
+"novel" gate uses. A read-late head slides on a smaller excess than a
+stalled one (`READ_LATE_SLIDE_THRESHOLD_PIXELS` 2 against 8), by no
+more than the lateness plus that slack, since the link's excess also
+carries the head's own quantisation. The report is byte-identical by
+construction; only the drawn audit moves.
+
+Which lateness: `7c99ab5` read the head's against the next record
+alone, and the corpus (`7c99ab5-audit.txt`) said that overshoots --
+`rate_links_steady` 0.965122 -> 0.965654, but 15,499 links left the
+`2.2-2.5` bucket and 12,944 landed in `1.5-1.8`, `hover_links` +68 --
+because the smoother re-times the chain against its TAIL, and a
+backlog drains over several records, so the tail is still late by part
+of what the next pair read. The lateness that matters is the head's
+against the tail, and the composed clock (`sender_clock`) gives it:
+the chain's true span less its stamped span. Drawn audit, the three
+engines side by side (`12d9a1d` | next-pair | chain-composed):
+
+* the ten pairs: `rate_links_steady` 0.961311 | 0.962717 |
+  **0.964108**; `2.2-2.5` 2,398 | 1,866 | 1,829; `2.5-3.0` 226 | 189 |
+  186; `1.5-1.8` 4,428 | 4,689 | 4,467; `hover_links` 164 | 174 | 164
+* `n20021018.2`: `rate_links_steady` 0.978627 | 0.979214 |
+  **0.979726** (a record; 0.979076 at `ee502e9`); `2.2-2.5` 444 | 385 |
+  377; `1.5-1.8` 604 | 635 | 616; hovers unchanged
+* `040601.6`: `rate_links_steady` 0.961897 | 0.961773 | **0.962382**;
+  `2.2-2.5` 621 | 558 | 544; `2.5-3.0` 365 | 347 | 347; `1.5-1.8` 749 |
+  847 | 809; `hover_links` 14 | 19 | 19
+
+The overshoot's slow links come back to steady and the hovers to
+baseline on the pairs; the fast ring's five extra hovers stay. Corpus:
+`a3cbd20` in [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md),
+`rate_links_steady` 0.965122 -> **0.967019**, a record past the
+pre-clock 0.966863; the `2.5-3.0` bucket alone keeps the fast ring's
+uniformly stale chains.
+
+The fast ring's fast links are a different shape and stay. Dumped
+whole, its chains run at two pixels a tick raw on a two-tick cadence
+and end in a tank hit whose record sits two ticks behind a last
+statement fifteen pixels short of the box, so the last statement is
+stale by six ticks and the whole stream with it, statement and hit
+alike -- a uniform lag no pair reading can see, since a constant
+offset cancels between pairs. The tail slide puts the last shell where
+it truly was at its stamp, correctly, and the smoother then re-times
+the chain between that and a head anchor as stale as the tail was,
+every link at 2.54 px/tick. No head slide can absorb twelve pixels on
+a four-pixel first link. The honest drawing of a uniformly stale chain
+is a time shift, every statement drawn δ earlier, which is a change to
+the drawing accessor rather than to an anchor, and is not made here.
+That class was 66 links in the `2.5-3.0` bucket before the clock
+linked those chains (they popped) and 365 after; on the corpus it is
+most of what the `43efbbb` entry measured.
+
 ## Where the line stands -- `0263483`
 
 The same three headline rates at the points a reader is likely to want,
