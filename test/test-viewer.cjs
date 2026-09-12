@@ -3445,4 +3445,40 @@ if (!fs.existsSync(log2)) {
 	], [80429, 1679, 27006, 0]);
 }
 
+// Same-tick records keep separate shot budgets, including after a second
+// residual pass (as used after contradictory links are removed).
+{
+	let motion = require("../viewer/motion.js");
+	let snapshots = [0, 10, 10, 10, 20].map(time => ({
+		time, shells: [], terminals: [], pillbox_sources: [], tank_sources: [],
+		unclaimed_pillbox_sources: [], unclaimed_tank_sources: [],
+	}));
+	let source = (pixel_x, count) => ({
+		pixel_x, pixel_y: 100, direction: 4, count,
+	});
+	snapshots[1].unclaimed_tank_sources = [source(100, 2)];
+	snapshots[2].unclaimed_tank_sources = [source(700, 1)];
+	snapshots[1].unclaimed_pillbox_sources = [source(1500, 1)];
+	snapshots[2].unclaimed_pillbox_sources = [source(2500, 2)];
+	// One tank shot is consumed by an observed birth. An unreachable fate
+	// keeps both resolver calls active without spending the remaining shots.
+	snapshots[4].shells = [{ pixel_x: 120, pixel_y: 100, direction: 4 }];
+	snapshots[4].terminals = [{
+		type: "point", event_type: "shell_falls", pixel_x: 1000, pixel_y: 1000,
+	}];
+	let remaining = key => snapshots.map(snapshot =>
+		snapshot[key].map(shot => [shot.pixel_x, shot.count]));
+	for (let pass = 1; pass <= 2; pass++) {
+		motion.resolve_residual_shell_fates(snapshots);
+		check(`same-tick tank budgets stay with their records, pass ${pass}`,
+			remaining("unclaimed_tank_sources"),
+			[[], [[100, 1]], [[700, 1]], [], []]);
+		check(`same-tick pill budgets stay with their records, pass ${pass}`,
+			remaining("unclaimed_pillbox_sources"),
+			[[], [[1500, 1]], [[2500, 2]], [], []]);
+	}
+	check("residual budget regression consumes one tank shot for a birth",
+		snapshots[4].shells[0].starts_at_tank, true);
+}
+
 process.exit(failures ? 1 : 0);

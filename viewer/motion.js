@@ -4329,6 +4329,7 @@ function resolve_residual_shell_fates(snapshots) {
 	let starts = [];
 	let fate_groups = [];
 	let creation_groups = [];
+	let creations_by_snapshot = new Map();
 	let fate_run_time = null;
 	let fate_run_start = 0;
 	for (let index = 0; index < snapshots.length; index++) {
@@ -4365,16 +4366,19 @@ function resolve_residual_shell_fates(snapshots) {
 		}
 		let pill_sources = snapshot.unclaimed_pillbox_sources ??
 			group_shot_sources(snapshot.pillbox_sources);
+		let snapshot_creations = [];
 		for (let source of pill_sources) {
-			creation_groups.push({ kind: "pill", time: snapshot.time, gap,
+			snapshot_creations.push({ kind: "pill", time: snapshot.time, gap,
 				...source });
 		}
 		let tank_sources = snapshot.unclaimed_tank_sources ??
 			group_shot_sources(snapshot.tank_sources);
 		for (let source of tank_sources) {
-			creation_groups.push({ kind: "tank", time: snapshot.time, gap,
+			snapshot_creations.push({ kind: "tank", time: snapshot.time, gap,
 				...source });
 		}
+		creation_groups.push(...snapshot_creations);
+		creations_by_snapshot.set(snapshot, snapshot_creations);
 	}
 	if ((!ends.length && !creation_groups.length) ||
 		(!starts.length && !fate_groups.length)) return;
@@ -4838,23 +4842,17 @@ function resolve_residual_shell_fates(snapshots) {
 	 * resolver claimed for an origin or an impact is not available to
 	 * explain anything else, and counting it again would dress exhausted
 	 * sources up as open stories. */
-	let creations_by_time = new Map();
-	for (let creation of creation_groups) {
-		let run = creations_by_time.get(creation.time);
-		if (!run) creations_by_time.set(creation.time, run = []);
-		run.push(creation);
-	}
 	for (let snapshot of snapshots) {
 		for (let [key, kind] of [
 			["unclaimed_pillbox_sources", "pill"],
 			["unclaimed_tank_sources", "tank"],
 		]) {
 			if (!snapshot[key]) continue;
-			/* Indexed by time rather than filtered per snapshot: the
-			 * filter walked every creation group for every snapshot,
-			 * quadratic in replay length and the pass's largest cost. */
+			/* Records can share a timestamp. Return each creation's
+			 * remaining capacity only to its originating snapshot;
+			 * the index keeps this writeback linear in replay length. */
 			let remaining = [];
-			for (let creation of creations_by_time.get(snapshot.time) || []) {
+			for (let creation of creations_by_snapshot.get(snapshot) || []) {
 				if (creation.kind !== kind) continue;
 				let count = creation.count -
 					(creation_spent.get(creation) || 0);
@@ -6076,6 +6074,7 @@ const BoloMotion = {
 	smooth_track_positions,
 	build_shell_positions, build_shell_positions_steps, drain,
 	build_shell_births, build_shell_fall_segments,
+	resolve_residual_shell_fates,
 	tank_position_at, tank_direction_at, lgm_position_at, shell_position_at,
 	shell_birth_positions_at, shell_fall_positions_at,
 	describe_unmatched_terminals, describe_unfated_ends, score_pill_links,
