@@ -3884,8 +3884,31 @@ those) reads the two alarms:
 So the change stands, with two contradictions in one stitched scene
 against 36 fewer pill inversions and 183 fewer tank ones, and the
 next dial is named: hand the pair's reading to the stitcher, for a
-stitch spanning that one pair, and re-read both alarms. The
-fast-link question waits on a run that carries `links_beyond_stamps`.
+stitch spanning that one pair, and re-read both alarms.
+
+The second `--describe-links` run (`75a1bc8-links.txt`: the same
+engine, the same sixteen scenes, the report byte-identical in every
+shared line, plus the counters) reads the fast links. Of the 5,909
+novel readings, 3,127 are shorter than the shortest stamp reading and
+2,782 longer than the longest; `links_beyond_stamps` 30,901 pairwise
+links exceed the longest stamp reading by more than the window, 8,689
+of them in a pair with a reading. The counter has no `ae527fd`
+baseline, so the fixtures stand in: under `abe761d`'s engine and this
+one, `040601.6` has 104 -> 184 links beyond the stamps and 79 of this
+engine's sit in pairs whose reading is novel and long
+(`links_beyond_stamps_novel`, added at this point for the next run);
+`n20021018.2` 125 -> 133 and 12. The links the long readings admit
+are the links beyond the stamps that are new, near enough one for
+one, at two and a half links per novel-long pair. At that rate the
+corpus's 2,782 novel-long pairs carry about seven thousand such
+links, which is the bulk of the 9,977 that entered the `2.5-3.0`
+bucket, the rest being re-assignments beside them. So the steady
+rate's fall is the reading's, and it is the drawing that is wrong
+about them: a link admitted because the sender's own shells say the
+previous statement predates its stamp is drawn from that stamp. The
+fix is the drawing's and is the shape of `800f57c`'s slide, applied
+to the earlier statement of a pair with a novel-long reading; it does
+not touch a single link.
 
 ## Findings
 

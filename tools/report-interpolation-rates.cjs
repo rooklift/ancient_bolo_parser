@@ -281,6 +281,10 @@ function empty_totals() {
 		 * a pair the tank's shells gave a reading. */
 		links_beyond_stamps: null,
 		links_beyond_stamps_read: null,
+		/* ...and the ones made in a pair whose reading was novel and
+		 * longer than the longest stamp reading: the links the reading
+		 * alone admitted, the fast-drawn population it creates. */
+		links_beyond_stamps_novel: null,
 
 		/* Residual-flow components: what forced_bipartite_assignments in
 		 * viewer/motion.js actually solves, and whether its pathological-
@@ -410,7 +414,8 @@ function count_advance_readings(totals, engines, game) {
 	const WINDOW_TICKS = 4; /* SHELL_MATCH_ERROR_PIXELS at 2 px/tick */
 	for (let key of ["pairs_advance_read", "pairs_advance_novel",
 		"pairs_advance_novel_short", "pairs_advance_novel_long",
-		"links_beyond_stamps", "links_beyond_stamps_read"]) add(totals, key, 0);
+		"links_beyond_stamps", "links_beyond_stamps_read",
+		"links_beyond_stamps_novel"]) add(totals, key, 0);
 	for (let snapshots of game.shell_positions) {
 		if (!Array.isArray(snapshots)) continue;
 		let index_of = new Map();
@@ -423,6 +428,10 @@ function count_advance_readings(totals, engines, game) {
 			let short = Math.max(0, stamped - (next.stall_before ?? 0));
 			let long = stamped + (previous.stall_before ?? 0);
 			let read = next.advance_duration !== undefined;
+			let readings = [short, long, stamped, short + long - stamped];
+			let novel = read && readings.every(reading =>
+				Math.abs(next.advance_duration - reading) > WINDOW_TICKS);
+			let novel_long = novel && next.advance_duration > long;
 			for (let shell of previous.shells) {
 				let successor = shell.next_shell;
 				if (!successor || index_of.get(successor) !== i) continue;
@@ -431,13 +440,12 @@ function count_advance_readings(totals, engines, game) {
 				if (distance > (long + WINDOW_TICKS) * 2) {
 					add(totals, "links_beyond_stamps", 1);
 					if (read) add(totals, "links_beyond_stamps_read", 1);
+					if (novel_long) add(totals, "links_beyond_stamps_novel", 1);
 				}
 			}
 			if (!read) continue;
 			add(totals, "pairs_advance_read", 1);
-			let readings = [short, long, stamped, short + long - stamped];
-			if (readings.every(reading =>
-				Math.abs(next.advance_duration - reading) > WINDOW_TICKS)) {
+			if (novel) {
 				add(totals, "pairs_advance_novel", 1);
 				add(totals, next.advance_duration < short
 					? "pairs_advance_novel_short" : "pairs_advance_novel_long", 1);

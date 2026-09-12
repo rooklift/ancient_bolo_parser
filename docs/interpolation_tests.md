@@ -100,7 +100,11 @@ and packaging, so v1.0.8's numbers are still `main`'s.
   `links_beyond_stamps` / `links_beyond_stamps_read` count the pairwise
   links longer than the longest stamp reading plus the match window --
   links drawn faster than 2 px/tick because the drawing keeps the
-  stamps' clock -- and of those the ones made in a pair with a reading.
+  stamps' clock -- and of those the ones made in a pair with a reading;
+  `links_beyond_stamps_novel` narrows that to pairs whose reading is
+  novel and longer than the stamps, the links the reading alone
+  admitted. On `040601.6` under main's engine and this one, 104 -> 184
+  links beyond the stamps and 79 novel: the two are the same links.
 * `pairs_tank_order` / `pairs_tank_order_kept` / `pairs_tank_order_blurred`
   / `pairs_tank_order_inverted` and `rate_pairs_tank_order_inverted` -- the
   tank-side order axis (`score_tank_order` in `viewer/motion.js`). A shell
