@@ -175,6 +175,7 @@ Constant at all ten commits, and worth having once:
 | `e46dd5e` | a tank's shells advance in lockstep | **0.998081** | **0.000801** | 0.839074 | 242,286 | 13,226 | **783** | 14 |
 | `364174f` | a shell that may have died abstains from the tank lockstep (engine `7290254`) | 0.998076 | 0.000804 | **0.839166** | **242,293** | 13,230 | 801 | 14 |
 | `43efbbb` | the tank's shells as the pair's clock | **0.998337** | **0.000652** | **0.839362** | **242,334** | 13,560 | 791 | 16 |
+| `91b9174` | the terminal's nearest explainer is the doubtful voter; the stitcher reads the clock (engine `26863ca`) | **0.998408** | **0.000612** | **0.839410** | **242,335** | 13,565 | **635** | 16 |
 
 The three right-hand columns are lower-is-better counts from the drawn
 audit and the vouched-link score, added so that a drawing-only commit
@@ -3909,6 +3910,68 @@ previous statement predates its stamp is drawn from that stamp. The
 fix is the drawing's and is the shape of `800f57c`'s slide, applied
 to the earlier statement of a pair with a novel-long reading; it does
 not touch a single link.
+
+## The terminal's nearest explainer is the doubtful voter, and the stitcher reads the clock -- `26863ca`, measured at `91b9174`
+
+The fixture doc's section "The tank's shells as the pair's clock" has
+both changes under its nearest-explainer bullet. The stitching and
+residual passes read the sender's clock composed across the snapshots a
+join spans (`sender_clock`), and the doubt that keeps a shell out of
+the advance vote is the terminal's nearest explainer -- each terminal
+of the next record marks the nearest shell that could have reached it
+doubtful, greedily, and the rest vote -- in place of the blanket rule,
+under which any terminal in reach silenced a shell.
+
+Corpus, `91b9174-report.txt`, `91b9174-audit.txt` and `91b9174-links.txt`
+(decoded from the UTF-16 the shell redirect wrote) against `43efbbb-*`,
+443 files, zero failures, the same input:
+
+* coverage: `shells_matched_forward` 9,801,034 -> **9,801,732** (+698,
+  every one off `shells_unmatched_forward`, 16,327 -> 15,629),
+  `shells_unlinked` 6,405 -> **6,009**, `terminals_matched` 1,633,767
+  -> **1,633,860** (`pillbox_damage` +85, `explosion` +9, `base_damage`
+  +8, `tank_hit` +1, `shell_falls` -10), `shells_with_birth` +1,067,
+  `flow_components` 122,262 -> 121,396; `rate_shells_matched_forward`
+  0.998337 -> **0.998408**, `rate_shells_unlinked` 0.000652 ->
+  **0.000612**, `rate_terminals_matched` 0.839362 -> **0.839410**. The
+  vote reads 880,631 pairs (+40,440), 7,009 of them novel (+1,100:
+  3,949 shorter than the stamps, 3,060 longer).
+* the order axes: `pairs_tank_order_inverted` 155 -> **96** (`blurred`
+  13 -> 8), `pairs_pill_order_inverted` 137 -> **128** (`blurred` 3 ->
+  2); `links_pill_vouched` +102, `links_pill_unpinned` 2,380 ->
+  **2,326**, `links_pill_contradicted` **16**, the same sixteen scenes
+  -- the `20010416.1` stitched pair is still there, both links still
+  made under `vote=-` and a confident 4-to-1 vote for one step.
+* the drawn audit: `pop_outs` 16,141 -> **15,443** (-698, the forward
+  gain), `pop_ins` 19,452 -> **18,868**, `pops_paired_forward` 1,369 ->
+  **1,260**, `pops_paired_backwards` 791 -> **635** (a record, from 832
+  before the tank work), `hover_links` 4,503 -> **4,478**; `rush_links`
+  8,719 -> 8,735, `terminal_links_rushed` 69,840 -> 69,831,
+  `rate_links_steady` 0.965208 -> 0.965122; seam jumps still zero.
+* the fast links, now measured: `links_beyond_stamps` 31,311,
+  `links_beyond_stamps_read` 9,557, `links_beyond_stamps_novel`
+  **8,751** -- pairwise links longer than the longest stamp reading
+  plus the window, made in a pair whose reading is novel and long, so
+  links only the reading admitted. Against `ae527fd` the `2.5-3.0`
+  bucket is +10,043 and `3.0+` +1,414; 8,751 of the 11,457 are the
+  reading's, three quarters, and the `43efbbb` entry's estimate of
+  seven thousand stands corrected upward. The rest are the
+  re-assignments beside them. The steady rate's fall is the reading's,
+  drawn at the stamps' clock; the drawing correction named there is
+  the fix and touches no link.
+
+Reading. The nearest-explainer rule opens forty thousand pairs the
+blanket rule had left unread, and what they buy is on every axis at
+once: 59 fewer tank inversions, 9 fewer pill ones, 396 fewer unlinked
+shells, 93 more terminals, 156 fewer backwards pops. The inversions
+left keep the shape the `43efbbb` links run found -- 68 of the 96 tank
+ones and 81 of the 128 pill ones have a stitched leader link, at gaps
+of one to three steps -- and the two `20010416.1` contradictions are
+unchanged, so the stitcher's clock did not reach them: those pairs
+carry no reading (the pill's shells are the sender's only shells, or
+the tank's voters tie), and a composed clock of stamps is the stamps.
+The change stands as measured; every headline record but the timed
+column moves on.
 
 ## Findings
 

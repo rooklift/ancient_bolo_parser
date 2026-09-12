@@ -2257,7 +2257,10 @@ paired audit:
   The stitcher's clock alone, measured first, was near neutral on the
   fixtures (conflicts 265 -> 261, one shell linked, one terminal lost):
   the stitched inversions sit in pairs no clock reached, which is what
-  the doubt rule then opened.
+  the doubt rule then opened. Corpus: `91b9174` in
+  [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md) --
+  tank inversions 155 -> 96, pill 137 -> 128, unlinked 6,405 -> 6,009,
+  terminals +93, backwards pops 791 -> 635, contradictions 16 unchanged.
 
 The blanket rule, against `abe761d` (main after the lockstep):
 
