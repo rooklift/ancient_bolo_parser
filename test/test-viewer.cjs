@@ -222,10 +222,13 @@ if (!fs.existsSync(log1)) {
 			described, described === unexplained, reasons_sound,
 			classes.get("explosion:no_candidate:-"),
 			classes.get("pillbox_damage:end_continued:T"),
-		], [896, true, true, 240, 88]);
+		], [904, true, true, 240, 88]);
+		/* Candidate-specific spending leaves eight more pill impacts
+		 * unexplained: seven consumed future shots, and one consumed
+		 * a shot outside the equivalence cost margin. */
 		check("fixture same-record unseen shots claimed without cost", [
 			matched, unseen.pill, unseen.tank,
-		], [20846, 1217, 1116]);
+		], [20846, 1209, 1116]);
 
 		/* The end-side mirror: every chain end with no forward story gets
 		 * a class; the census must equal the unmatched-forward count less
@@ -254,7 +257,7 @@ if (!fs.existsSync(log1)) {
 		check("fixture end-side census reconciles", [
 			ends_described, ends_described === unfated, end_reasons_sound,
 			fate_open,
-		], [145, true, true, 22]);
+		], [145, true, true, 25]);
 	}
 
 	/* The truth axis: every pill link scored against the statement-roster
@@ -3479,6 +3482,50 @@ if (!fs.existsSync(log2)) {
 	}
 	check("residual budget regression consumes one tank shot for a birth",
 		snapshots[4].shells[0].starts_at_tank, true);
+}
+
+// Equivalence claims may share a muzzle, but only shots in an impact's
+// flight window can supply it. Unrelated shots must retain their capacity.
+{
+	let motion = require("../viewer/motion.js");
+	let orbit = require("../viewer/pillbox_shell_orbits.js").orbits
+		.find(orbit => orbit.coarse_direction === 4);
+	for (let [kind, unrelated_time, shot_count] of [
+		["tank", 10, 1], ["tank", 700, 1],
+		["pillbox", 10, 2], ["pillbox", 700, 2],
+	]) {
+		let key = `unclaimed_${kind}_sources`;
+		let unseen_key = `unseen_${kind}_source`;
+		let endpoint = kind === "pillbox" ? orbit.positions[3] : [20, 0];
+		let snapshots = [0, 10, 210, 211, 220, 221, 222, 223, 700, 710]
+			.map(time => ({
+				time, shells: [], terminals: [], pillbox_sources: [], tank_sources: [],
+				unclaimed_pillbox_sources: [], unclaimed_tank_sources: [],
+			}));
+		for (let time of [210, 211, unrelated_time]) {
+			snapshots.find(snapshot => snapshot.time === time)
+				[key].push({
+					pixel_x: 100, pixel_y: 100, direction: 4,
+					count: time === 210 ? shot_count : 1,
+				});
+		}
+		let impact_times = Array.from({ length: shot_count + 2 }, (_, i) => 220 + i);
+		for (let time of impact_times) {
+			snapshots.find(snapshot => snapshot.time === time).terminals.push({
+				type: "point", event_type: "shell_falls", direction: 4,
+				pixel_x: 100 + endpoint[0], pixel_y: 100 + endpoint[1],
+			});
+		}
+		motion.resolve_residual_shell_fates(snapshots);
+		check(`${kind} shot at ${unrelated_time} cannot fund earlier or expired impacts`,
+			snapshots.flatMap(snapshot => snapshot.terminals)
+				.map(terminal => !!terminal[unseen_key]),
+			[...Array(shot_count + 1).fill(true), false]);
+		check(`ineligible ${kind} shot at ${unrelated_time} stays unspent`,
+			snapshots.flatMap(snapshot => snapshot[key]
+				.map(source => [snapshot.time, source.count])),
+			[[unrelated_time, 1]]);
+	}
 }
 
 process.exit(failures ? 1 : 0);

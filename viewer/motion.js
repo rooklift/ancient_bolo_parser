@@ -4753,9 +4753,10 @@ function resolve_residual_shell_fates(snapshots) {
 	 * the cheapest, and attribute only when they all name one source
 	 * identity AND no live shell story competes inside that margin (a
 	 * costlier shell story was already beaten by phase-one cost-forcing
-	 * standards; a competing one keeps the fate open). Claims draw down
-	 * a shared per-identity capacity pool, cheapest fate first, so a
-	 * muzzle never explains more impacts than it has unspent shots. */
+	 * standards; a competing one keeps the fate open). Cheapest fates
+	 * claim first, spending only their within-margin candidate shots:
+	 * sharing a muzzle does not make a future or expired shot eligible,
+	 * and overlapping candidate sets must share the actual shot counts. */
 	let identity_of = creation => `${creation.kind}:${creation.pixel_x},` +
 		`${creation.pixel_y},${creation.direction}`;
 	let live_end_cost = new Map();
@@ -4768,13 +4769,6 @@ function resolve_residual_shell_fates(snapshots) {
 		if (best === undefined || edge.cost < best) {
 			live_end_cost.set(right.fate, edge.cost);
 		}
-	}
-	let pool = new Map();
-	for (let creation of creation_groups) {
-		let unspent = creation.count - (creation_spent.get(creation) || 0);
-		if (unspent <= 0) continue;
-		let identity = identity_of(creation);
-		pool.set(identity, (pool.get(identity) || 0) + unspent);
 	}
 	let eligible = [];
 	for (let { fate, count } of open_fates()) {
@@ -4802,37 +4796,20 @@ function resolve_residual_shell_fates(snapshots) {
 		let identities = new Set(within.map(candidate =>
 			identity_of(candidate.creation)));
 		if (identities.size !== 1) continue;
-		eligible.push({ fate, count, best,
-			identity: [...identities][0],
-			creation: within[0].creation,
-			match: within[0].match });
+		eligible.push({ fate, count, best, candidates: within });
 	}
 	eligible.sort((a, b) => a.best - b.best);
-	let members_by_identity = new Map();
-	for (let creation of creation_groups) {
-		let identity = identity_of(creation);
-		if (!members_by_identity.has(identity)) {
-			members_by_identity.set(identity, []);
-		}
-		members_by_identity.get(identity).push(creation);
-	}
-	for (let { fate, count, identity, creation, match } of eligible) {
-		let capacity = pool.get(identity) || 0;
-		if (capacity <= 0) continue;
-		let units = Math.min(count, capacity);
-		apply_forced_unseen(creation, fate, units, match);
-		pool.set(identity, capacity - units);
-		/* Charge the spend across the identity's members greedily; the
-		 * pool never exceeds their remaining counts, so it always fits. */
-		let owed = units;
-		for (let member of members_by_identity.get(identity)) {
-			if (owed <= 0) break;
-			let unspent = member.count - (creation_spent.get(member) || 0);
+	for (let { fate, count, candidates } of eligible) {
+		let remaining = count;
+		for (let { creation, match } of candidates) {
+			if (remaining <= 0) break;
+			let unspent = creation.count - (creation_spent.get(creation) || 0);
 			if (unspent <= 0) continue;
-			let charge = Math.min(unspent, owed);
-			creation_spent.set(member,
-				(creation_spent.get(member) || 0) + charge);
-			owed -= charge;
+			let units = Math.min(unspent, remaining);
+			apply_forced_unseen(creation, fate, units, match);
+			creation_spent.set(creation,
+				(creation_spent.get(creation) || 0) + units);
+			remaining -= units;
 		}
 	}
 
