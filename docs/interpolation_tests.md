@@ -101,6 +101,8 @@ and packaging, so v1.0.8's numbers are still `main`'s.
   links longer than the longest stamp reading plus the match window --
   links drawn faster than 2 px/tick because the drawing keeps the
   stamps' clock -- and of those the ones made in a pair with a reading;
+  `pairs_pill_clock_read` counts the pairs with no tank reading where a
+  pill's passed election supplied the joins' clock instead;
   `links_beyond_stamps_novel` narrows that to pairs whose reading is
   novel and longer than the stamps, the links the reading alone
   admitted. On `040601.6` under main's engine and this one, 104 -> 184
@@ -2376,6 +2378,54 @@ the drawing accessor rather than to an anchor, and is not made here.
 That class was 66 links in the `2.5-3.0` bucket before the clock
 linked those chains (they popped) and 365 after; on the corpus it is
 most of what the `43efbbb` entry measured.
+
+## A pill's passed election is the sender's clock -- the joins
+
+The `91b9174` corpus run left the stitcher holding nearly every
+inversion (68 of 96 tank, 81 of 128 pill) and the two `20010416.1`
+contradictions, in pairs that carry no tank reading: the sender's only
+shells are a pill's, or the tank's voters tie, and a clock composed of
+stamps is the stamps. The pill roster vote already elects an advance
+for a pill's shells over a pair and knows when it passed, and the
+corpus found no pair where two pills of one sender elected different
+advances ([E:sender-lockstep]); so a passed election is the sender's
+clock for that pair as much as the tank's shells are. The election now
+writes its advance onto the snapshot (`pill_advance_duration`, two ticks
+a step; a second pill electing otherwise withdraws it), and
+`sender_clock` reads it where the tank gave no reading, for the
+stitching and residual passes and the read-late head slide. The
+pairwise pass is untouched: it acts on the election directly. This is
+the reverted `8a54fd8` idea in its cheap form -- a reading for joins,
+not a lent vote on the pairwise pass -- and it earned its guard the
+same way. Measured first without one, the fast-ring fixture gained its
+first pill contradiction (`links_pill_contradicted` 0 -> 1, `unpinned`
+71 -> 79): at 2427063 a record re-sends the pill's whole roster
+verbatim, the election cannot elect zero and passes at the fire
+cadence, three steps, a rung alias -- harmless as a pruning rule,
+since the re-sends were linked before it ran, but a six-tick lie on a
+one-tick pair as a clock, which the composed clock carried into a
+stitch's orbit states and pinned a shell a step on. So a pair carrying
+a stale restatement lends nothing.
+
+Guarded, against the merged `c345ce5`:
+
+* `n20021018.2`: the report byte-identical (2,915 pairs read by the
+  pill clock alone); drawn `rate_links_steady` 0.979726 -> **0.981033**
+  (`2.2-2.5` 377 -> 309)
+* `040601.6`: the report byte-identical (4,118 pairs); drawn
+  `rate_links_steady` 0.962382 -> **0.962631**, `2.5-3.0` 347 -> 335
+* the ten pairs: `shells_matched_forward` +1, `terminals_matched` +1,
+  `links_pill_unpinned` 21 -> **17**, `links_pill_vouched` +6 (11,033
+  pairs read by the pill clock); the two builds of a game agree on one
+  more forward story, conflicts 230 unchanged; drawn `rate_links_steady`
+  0.964108 -> **0.965861**, `2.2-2.5` 1,829 -> 1,462, `2.5-3.0` 186 ->
+  160, hovers unchanged
+
+The matcher's gains on the fixtures are small: their stitched
+inversions were the tank's, already read. The drawing's are not, since
+the read-late slide now sees the pill's late records too. The corpus
+is where the pill-side stitches live. The report counts the pairs the
+pill clock alone reads (`pairs_pill_clock_read`).
 
 ## Where the line stands -- `0263483`
 

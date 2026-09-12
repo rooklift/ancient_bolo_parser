@@ -2496,6 +2496,28 @@ function enforce_roster_lockstep_candidates(previous_shells, target_groups,
 			landings: [...landings.keys()].sort((a, b) => a - b).join(","),
 		});
 		if (by === null) continue;
+		/* The passed election is the sender's clock for this pair as much
+		 * as the tank's shells are (the corpus found no pair where two
+		 * pills of one sender elected different advances,
+		 * [E:sender-lockstep]): lend it to sender_clock, for the joins that
+		 * span pairs the tank could not read. A second pill electing
+		 * otherwise withdraws it (null). Not on a pair carrying a stale
+		 * restatement: the roster re-sent verbatim advanced nothing, the
+		 * election cannot elect zero and passes at the fire cadence, a rung
+		 * alias -- harmless as a pruning rule, since the re-sends were
+		 * linked before it ran, but a six-tick lie on a one-tick pair as a
+		 * clock (040601.6 at 2427063, where it re-pinned a stitched orbit a
+		 * step on and made the fixture's first contradiction). The pairwise
+		 * pass is not touched by this -- it already acts on the election
+		 * directly. */
+		if (next && !next.shells.some(shell => shell.stale_restatement)) {
+			let ticks = best * TICKS_PER_SHELL_UPDATE;
+			if (next.pill_advance_duration === undefined) {
+				next.pill_advance_duration = ticks;
+			} else if (next.pill_advance_duration !== ticks) {
+				next.pill_advance_duration = null;
+			}
+		}
 
 		for (let member of pill.members) {
 			for (let candidate of by_previous[member.index]) {
@@ -3526,9 +3548,12 @@ function sender_clock(snapshots) {
 	for (let index = 1; index < snapshots.length; index++) {
 		let snapshot = snapshots[index];
 		let stamped = snapshot.time - snapshots[index - 1].time;
-		at.push(at[index - 1] + (snapshot.advance_duration ?? stamped));
-		read.push(read[index - 1] +
-			(snapshot.advance_duration !== undefined ? 1 : 0));
+		/* the tank's reading first, else a pill's passed election
+		 * (enforce_roster_lockstep_candidates), else the stamps */
+		let reading = snapshot.advance_duration ??
+			snapshot.pill_advance_duration ?? undefined;
+		at.push(at[index - 1] + (reading ?? stamped));
+		read.push(read[index - 1] + (reading !== undefined ? 1 : 0));
 	}
 	return { at, read };
 }

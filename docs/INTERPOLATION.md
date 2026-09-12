@@ -624,7 +624,9 @@ terminal within a flight of the advance being counted) lost on every
 fixture, because a leader that hit late in the interval is still a live
 voter for the short alias. The stitching and residual passes read the
 same clock composed across the snapshots a join spans (`sender_clock`):
-each pair's reading where one was taken, the stamps elsewhere. The
+each pair's reading where one was taken, else a pill's passed roster
+election (two ticks a step, withheld on a pair carrying a stale
+restatement, where the election is a rung alias), else the stamps. The
 rates tool counts the pairs read (`pairs_advance_read`) and those whose
 reading sits outside every stamp reading by more than the match window
 (`pairs_advance_novel`); the fixture doc's section has the numbers.
