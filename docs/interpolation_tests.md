@@ -2038,7 +2038,7 @@ exact pixel read where the bradians agree, and pill and unattributed
 shells kept out of the group. Corpus: `e46dd5e` in
 [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md).
 
-## A shot is spent only where it could have flown -- `081d8aa`, `8289438`
+## A shot is spent only where it could have flown -- `081d8aa`, `8289438`, `ae527fd`
 
 Two accounting faults in `resolve_residual_shell_fates`, found by a
 review of the code rather than by a scene, both in how the pass keeps
@@ -2098,14 +2098,24 @@ Two of the fixture's eight lost attributions were legal stories: a
 same-source shot inside the flight window whose cost sat outside the
 margin of a cheaper sibling that an earlier fate had already spent.
 Had the sibling not existed, that shot would have been the within set
-on its own. A variant that re-elects among the still-unspent candidates
-at spend time, identity test and live-shell test included, was
-measured: 1,210 on `n20021018.2`, 309 on `040601.6` -- one attribution
-in the fixture's favour, nothing on the fast ring. Not applied; the
-stricter reading stands, and the variant is on record here should the
-corpus ever make the case for it.
+on its own, so the outcome depended on the order the fate's siblings
+were served in, which is not a fact about the fate. `ae527fd` holds
+the election again at spend time, over the candidates still unspent:
+the new cheapest, the within set around it, one muzzle required, and
+the live-shell test re-run against the new cheapest, since a rival
+that sat outside the old margin can sit inside the new one. Fixtures,
+against `8289438`: `n20021018.2` `terminals_unseen_pillbox_source`
+1,209 -> **1,210** (unexplained terminals 904 -> 903), `040601.6`
+byte-identical at 309, the ten pairs and both drawn audits
+byte-identical. The unit tests add the two scenes by hand: two shots
+from one tank muzzle at ticks 100 and 105 and two impacts at 120 and
+121, where the first impact spends the cheap tick-100 story and the
+second takes the costlier tick-105 one (Astra's code left it open);
+and the same with a rival muzzle 2 px west whose tick-105 shot costs 6
+for either impact -- inside the new margin, outside the old -- where
+the second impact stays open and both shots stay unspent.
 
-Corpus: `8289438` in [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md).
+Corpus: `8289438` and `ae527fd` in [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md).
 
 ## Where the line stands -- `0263483`
 

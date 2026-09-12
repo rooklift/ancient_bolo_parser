@@ -3750,6 +3750,35 @@ the fault was: on a single pass the wrongly funded attributions cost
 nothing drawn and closed nothing to a live shell, which is why both
 fixtures' audits are byte-identical.
 
+### The re-election -- `ae527fd`
+
+The fixture doc's section has the argument and the two scenes.
+`ae527fd-report.txt` and `ae527fd-audit.txt` against `8289438-*`, 443
+files, zero failures. The report was taken on the working tree that
+became `ae527fd`, before the commit, and its tool stamped
+`d972fc6-dirty`; the line is corrected by hand, the engine being
+`ae527fd`'s byte for byte. The audit ran after the commit and stamps
+itself. Both runs read the corpus from a fresh clone of the holder's
+repository, whose 443 files match the holder's own md5 listing; the
+`input` line hashes the directory's path, not its contents, and so
+differs from every earlier run for no reason that matters.
+
+* `terminals_unseen_pillbox_source` 165,516 -> **165,736** (+220),
+  `terminals_unseen_tank_source` 77,112 -> **77,123** (+11),
+  `flow_components` 127,432 -> 127,428. Every other line of the
+  report is byte-identical: coverage, the three truth axes, births,
+  the histogram.
+* the drawn audit is byte-identical, timings aside.
+
+Reading. Of the 1,467 attributions `8289438` took off the ledger, 231
+come back as the costlier same-muzzle story, and 1,236 stay off: shots
+that could not have flown into the impact, or fallbacks a rival muzzle
+inside the new margin contests. That the coverage lines and the audit
+do not move says the same thing the fixtures said, that the equivalence
+phase's spend is bookkeeping on one pass; the four flow components are
+the second pass finding a slightly different residue, at no change to
+anything drawn or matched.
+
 ## Findings
 
 * **The fixture's headline conclusions all survive the scale-up.** The branch

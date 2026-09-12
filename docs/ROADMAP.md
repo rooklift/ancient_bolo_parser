@@ -192,7 +192,11 @@ measure the false-claim risk before believing it. Explicitly optional.
   other's leftover shots in the writeback, and the equivalence phase's
   capacity pool let a shot fired after an impact fund it. Corpus: 1,462
   unseen attributions leave the ledger, ten pillbox hits go to observed
-  shells instead, nine pop-outs gone, every other line a wash. DONE.
+  shells instead, nine pop-outs gone, every other line a wash. `ae527fd`
+  then re-elects among the shots still unspent at spend time, so a
+  costlier same-muzzle story is taken once the cheap one is spent
+  elsewhere: 231 of those attributions come back, nothing else moves.
+  DONE.
 * Links that outlive the sender's next record are not drawn past it.
   The renderer draws packet state plus birth and fall segments, so a
   stitch or a forced terminal whose target lies beyond the sender's
