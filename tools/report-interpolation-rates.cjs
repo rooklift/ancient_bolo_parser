@@ -272,6 +272,10 @@ function empty_totals() {
 		 * admit a continuation the stamps refused. */
 		pairs_advance_read: null,
 		pairs_advance_novel: null,
+		/* Pairs with no tank reading where a pill's passed roster election
+		 * supplied the clock instead (pill_advance_duration), for the
+		 * joining passes' composed clock. */
+		pairs_pill_clock_read: null,
 		pairs_advance_novel_short: null,
 		pairs_advance_novel_long: null,
 		/* Pairwise links whose distance exceeds the pair's longest stamp
@@ -413,6 +417,7 @@ function count_advance_readings(totals, engines, game) {
 	if (!Array.isArray(game.shell_positions)) return;
 	const WINDOW_TICKS = 4; /* SHELL_MATCH_ERROR_PIXELS at 2 px/tick */
 	for (let key of ["pairs_advance_read", "pairs_advance_novel",
+		"pairs_pill_clock_read",
 		"pairs_advance_novel_short", "pairs_advance_novel_long",
 		"links_beyond_stamps", "links_beyond_stamps_read",
 		"links_beyond_stamps_novel"]) add(totals, key, 0);
@@ -443,7 +448,12 @@ function count_advance_readings(totals, engines, game) {
 					if (novel_long) add(totals, "links_beyond_stamps_novel", 1);
 				}
 			}
-			if (!read) continue;
+			if (!read) {
+				if (next.pill_advance_duration != null) {
+					add(totals, "pairs_pill_clock_read", 1);
+				}
+				continue;
+			}
 			add(totals, "pairs_advance_read", 1);
 			if (novel) {
 				add(totals, "pairs_advance_novel", 1);
