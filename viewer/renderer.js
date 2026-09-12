@@ -712,8 +712,14 @@ function draw() {
 
 	draw_bases();
 	draw_pills(true);
-	draw_shells();
+	/* Pill shells are born under their own pill and emerge from beneath
+	 * it; tank shells fly over live pills to strike them, so they layer
+	 * above. A shell of unknown origin (a chain no fire event claimed,
+	 * about 1%) goes with the tanks: a shell stopping at a live pill is
+	 * the case worth seeing. */
+	draw_shells("pillbox");
 	draw_pills(false);
+	draw_shells("tank");
 	draw_pillbox_labels();
 	draw_effects();
 	draw_men(false);
@@ -936,7 +942,11 @@ function draw_men(parachuting) {
 	}
 }
 
-function draw_shells() {
+/* One layer of the shells: `layer` is "pillbox" for shells the engine
+ * traced to a pill, "tank" for everything else (see shell_origin in
+ * motion.js). The raw debug positions have no provenance and all draw in
+ * the pillbox pass. */
+function draw_shells(layer) {
 	let z = view.zoom;
 	ctx.fillStyle = use_big_shots ? "#ffe678" : "#fff";
 	let radius = Math.max(1, z * 0.12);
@@ -963,6 +973,8 @@ function draw_shells() {
 		ctx.arc(cx, cy, radius, 0, Math.PI * 2);
 		ctx.fill();
 	};
+	let in_layer = position =>
+		(position.origin === "pillbox") === (layer === "pillbox");
 	/* Debug mode: the raw packet-stated shell positions, drawn in the
 	 * current art style in place of the reconstructed ones. The raw
 	 * position is the sender's last claim (delayed, quantised,
@@ -970,6 +982,7 @@ function draw_shells() {
 	 * toggling between the two shows exactly how far the interpolation
 	 * departs from the literal log. */
 	if (raw_shells_enabled) {
+		if (layer !== "pillbox") return;
 		for (let p = 0; p < 16; p++) {
 			for (let sh of cur.shells[p]) {
 				/* same pixel-to-tile centring as shell_position_at */
@@ -988,14 +1001,14 @@ function draw_shells() {
 			/* same half-tile centring as every other positioned object;
 			 * verified against 3k muzzle samples (shell vs firing tank) */
 			let position = BoloGame.shell_position_at(game, p, sh, i, clock);
-			if (!position) continue;
+			if (!position || !in_layer(position)) continue;
 			draw_shell(position, position.direction ?? sh.direction);
 		}
 		for (let birth of BoloGame.shell_birth_positions_at(game, p, clock)) {
-			draw_shell(birth, birth.direction);
+			if (in_layer(birth)) draw_shell(birth, birth.direction);
 		}
 		for (let gap of BoloGame.shell_gap_positions_at(game, p, clock)) {
-			draw_shell(gap, gap.direction);
+			if (in_layer(gap)) draw_shell(gap, gap.direction);
 		}
 	}
 }
