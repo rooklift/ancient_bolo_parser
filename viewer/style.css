@@ -129,19 +129,6 @@ body {
 	background-size: 5px 5px, 5px 5px;
 	background-repeat: no-repeat;
 }
-/* The open list is painted from the options' own styles where the engine
- * paints it at all (Safari passes them to the platform menu), so give
- * every row the box's colours and the picked and hovered rows the
- * export button's blue rather than the system's selection colour. */
-#transport option, .exportRow option {
-	background-color: #232b3d;
-	color: #cfd6e4;
-}
-#transport option:checked, .exportRow option:checked,
-#transport option:hover, .exportRow option:hover {
-	background-color: #2c4a7c;
-	color: #ffffff;
-}
 #seek { flex: 1; accent-color: #5b8def; }
 
 /* Transport controls are mouse-driven (all keys are global), so never show
