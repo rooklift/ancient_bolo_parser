@@ -49,13 +49,14 @@
  *
  * Logs shorter than MIN_GAME_MINUTES of play (--min=N overrides), with
  * fewer than MIN_PLAYER_MINUTES of player time, or never showing two
- * live tanks at once are scanned but not ranked. Two recordings of one game (the
+ * live tanks at once (--players=N asks for more) are scanned but not
+ * ranked. Two recordings of one game (the
  * pairs the corpus is known to hold) share a game id, host IP plus
  * start time from `F1 01`, and only the longer recording is ranked.
  *
  * Usage: node tools/measure-excitement.cjs [file | directory ...]
  *          [--top=N] [--sort=rate|peak|total] [--window=SECONDS]
- *          [--min=MINUTES] [--names]
+ *          [--min=MINUTES] [--players=N] [--names]
  * With no target the corpus root from corpus.json / BOLO_CORPUS is read.
  * Logs print by their hashed label (tools/corpus.cjs); --names prints
  * the file basenames instead, for the corpus holder.
@@ -84,7 +85,7 @@ const WEIGHTS = {
 	pillbox_damage: 0.25,
 };
 
-let opts = { top: 10, sort: "rate", window: 60, min: MIN_GAME_MINUTES, names: false };
+let opts = { top: 10, sort: "rate", window: 60, min: MIN_GAME_MINUTES, players: 2, names: false };
 let targets = [];
 for (let arg of process.argv.slice(2)) {
 	let m = arg.match(/^--([a-z]+)(?:=(.*))?$/);
@@ -94,6 +95,7 @@ for (let arg of process.argv.slice(2)) {
 	else if (m[1] === "sort") opts.sort = m[2];
 	else if (m[1] === "window") opts.window = parseInt(m[2], 10) || 60;
 	else if (m[1] === "min") opts.min = parseFloat(m[2]) || 0;
+	else if (m[1] === "players") opts.players = parseInt(m[2], 10) || 2;
 	else { console.error(`unknown option ${arg}`); process.exit(2); }
 }
 if (!["rate", "peak", "total"].includes(opts.sort)) {
@@ -258,7 +260,7 @@ for (let r of results) {
 	else { duplicates++; if (r.records > held.records) by_game.set(key, r); }
 }
 let ranked = [...by_game.values()].filter(r =>
-	r.minutes >= opts.min && r.player_minutes >= MIN_PLAYER_MINUTES && r.peak_players >= 2);
+	r.minutes >= opts.min && r.player_minutes >= MIN_PLAYER_MINUTES && r.peak_players >= opts.players);
 let unranked = by_game.size - ranked.length;
 ranked.sort((a, b) => b[opts.sort] - a[opts.sort]);
 
@@ -268,7 +270,7 @@ function mmss(s) {
 
 console.log(`logs ${results.length}  not logs ${unparsed}  duplicate recordings ${duplicates}  ranked ${ranked.length}  too short or lonely ${unranked}`);
 console.log(`weights: ${Object.entries(WEIGHTS).map(([k, v]) => `${k} ${v}`).join(", ")}`);
-console.log(`sorted by ${opts.sort}; rate and peak are weighted events per player-minute, peak over a ${opts.window} s window; play of at least ${opts.min} min from the first base capture\n`);
+console.log(`sorted by ${opts.sort}; rate and peak are weighted events per player-minute, peak over a ${opts.window} s window; play of at least ${opts.min} min from the first base capture, at least ${opts.players} tanks alive at once\n`);
 
 let shown = ranked.slice(0, opts.top);
 let name_width = Math.max(5, ...shown.map(r => r.label.length));
