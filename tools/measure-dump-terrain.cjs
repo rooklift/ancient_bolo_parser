@@ -58,6 +58,8 @@ const roots = args.length ? args : [require("./corpus.cjs").corpus_root()];
 
 const MAP_SIZE = 256;
 const PATH_LIMIT = 200;  /* path positions considered when matching a pickup */
+const QUIT_POSITION_STALE_TICKS = 50 * 10; /* as viewer/game.js */
+const DUMP_EDGE = 10; /* as viewer/game.js: the outermost rows and columns a dump refuses */
 const NAMES = {
 	0: "building", 1: "river", 2: "swamp", 3: "crater", 4: "road",
 	5: "forest", 6: "rubble", 7: "grass", 8: "shot building", 9: "boat",
@@ -105,7 +107,7 @@ const totals = {
 	logs: 0, dumps: 0, dumped_pills: 0, observed: 0, ambiguous: 0,
 	unobserved: 0, same_record: 0, order_violations: 0,
 	used: {}, skipped: {}, skipped_occupied: 0, skipped_tainted: 0,
-	skipped_offmap: 0, raced: 0,
+	skipped_offmap: 0, skipped_edge: 0, raced: 0,
 	control_exact: 0, control_off: {}, /* evented-position pickups: tank tile vs known pill tile */
 };
 
@@ -137,7 +139,8 @@ function process_log(file) {
 		const gridSnap = rec.subpackets.some(s => s.type === "tank_death" || s.type === "quit")
 			? state.grid.slice() : null;
 		const tankSnap = state.tanks[rec.player]
-			? { x: state.tanks[rec.player].x, y: state.tanks[rec.player].y, px: state.tanks[rec.player].px, py: state.tanks[rec.player].py }
+			? { x: state.tanks[rec.player].x, y: state.tanks[rec.player].y, px: state.tanks[rec.player].px, py: state.tanks[rec.player].py,
+				position_time: state.tanks[rec.player].position_time }
 			: null;
 		const occSnap = gridSnap ? {
 			pills: state.pills.map((p, k) => ({ x: p.x, y: p.y, ground: p.inTank === null, modelled: modelled[k] })),
@@ -190,11 +193,18 @@ function process_log(file) {
 		if (!ids.length) continue;
 
 		/* death square: the tank_death effect carries the engine's own
-		 * computation; a quit dump falls back to the pre-record tank */
+		 * computation; a quit dump is at the quit record's own position,
+		 * or at the pre-record tank when that is stale enough for the
+		 * quitter to be a ghost (the engine's rule, [E:quit-pills]) */
 		let dsq = null;
 		const deathEffect = effects.find(e => e.type === "tank_death" && e.player === rec.player);
 		if (deathEffect) dsq = [deathEffect.x, deathEffect.y];
-		else if (tankSnap) dsq = [(tankSnap.x * 16 + tankSnap.px + 8) >> 4, (tankSnap.y * 16 + tankSnap.py + 8) >> 4];
+		else {
+			let own = tp ? centre_square(tp) : null;
+			if (tankSnap && (!own || rec.time - tankSnap.position_time > QUIT_POSITION_STALE_TICKS))
+				own = [(tankSnap.x * 16 + tankSnap.px + 8) >> 4, (tankSnap.y * 16 + tankSnap.py + 8) >> 4];
+			dsq = own;
+		}
 		if (!dsq) continue;
 
 		const squares = path_squares(dsq[0], dsq[1]).map(([x, y]) => {
@@ -273,6 +283,11 @@ function process_log(file) {
 				for (let k = floor; k < o.index; k++) {
 					const sq = dump.squares[k];
 					if (sq.offmap) { totals.skipped_offmap++; continue; }
+					if (sq.x < DUMP_EDGE || sq.y < DUMP_EDGE || sq.x >= MAP_SIZE - DUMP_EDGE || sq.y >= MAP_SIZE - DUMP_EDGE) {
+						totals.skipped_edge++;
+						if (VERBOSE) console.log(`  skip ${replay_label(dump.file)} rec ${dump.rec} path[${k}] (${sq.x},${sq.y}) map edge`);
+						continue;
+					}
 					if (sq.tainted) { totals.skipped_tainted++; continue; }
 					if (sq.pill || sq.base) { totals.skipped_occupied++; continue; }
 					if (sq.terrain !== sq.after) { totals.raced++; continue; }
@@ -289,6 +304,9 @@ function process_log(file) {
 				bump(totals.used, sq.terrain);
 				/* a rest on refused terrain is either method noise (see the
 				 * control) or a hole in the predicate: always shown */
+				if (sq.x < DUMP_EDGE || sq.y < DUMP_EDGE || sq.x >= MAP_SIZE - DUMP_EDGE || sq.y >= MAP_SIZE - DUMP_EDGE) {
+					console.log(`EDGE USE ${replay_label(dump.file)} dump rec ${dump.rec} pill ${o.id} path[${o.index}] (${sq.x},${sq.y}) rests inside the refused edge band (picked up rec ${o.pkRec})`);
+				}
 				if (sq.terrain === 0 || sq.terrain === 8 || sq.terrain === 9) {
 					console.log(`REFUSED-TERRAIN USE ${replay_label(dump.file)} dump rec ${dump.rec} pill ${o.id} path[${o.index}] (${sq.x},${sq.y}) ` +
 						`${NAMES[sq.terrain]} (picked up rec ${o.pkRec})`);
@@ -313,7 +331,7 @@ console.log(`logs: ${totals.logs}   serpentine dumps: ${totals.dumps} (${totals.
 console.log(`pill squares observed via pickup: ${totals.observed}` +
 	`   (ambiguous ${totals.ambiguous}, multi-pickup ${totals.same_record}, unobservable ${totals.unobserved})`);
 console.log(`order violations: ${totals.order_violations}`);
-console.log(`skips excluded: ${totals.skipped_occupied} occupied, ${totals.skipped_tainted} tainted by modelled pills, ${totals.skipped_offmap} off-map`);
+console.log(`skips excluded: ${totals.skipped_occupied} occupied, ${totals.skipped_tainted} tainted by modelled pills, ${totals.skipped_edge} at the map edge, ${totals.skipped_offmap} off-map`);
 console.log(`squares quarantined (terrain changed within the dump record): ${totals.raced}`);
 console.log("");
 console.log("terrain            used   skipped");

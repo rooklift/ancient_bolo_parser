@@ -112,8 +112,9 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   fatally **(corpus, [E:terrain-hits]: of 8.8 million live tank centre
   squares, 43 are a building or shot building, the model a record behind,
   while every other terrain occurs in bulk)**. The death dump's search
-  refuses exactly building, shot building and boat, and no other terrain
-  **(corpus, [E:dump-terrain])**.
+  refuses exactly building, shot building and boat, and no other terrain,
+  plus the outermost ten rows and columns of the map **(corpus,
+  [E:dump-terrain])**.
 - **Bases as obstacles.** A hostile base is impassable to an enemy tank
   until its armour is down to 9 or less, at which point driving on captures
   it **(owner; measured, see Bases)**. Terrain is not the only obstacle:

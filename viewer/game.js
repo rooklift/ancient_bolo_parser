@@ -22,6 +22,17 @@ const GONE = -2; /* inTank value: pill left the game with a quitting carrier */
  * gets it. */
 const DEPARTED = 17;
 const NODE_JOIN_RESTATEMENT_TICKS = TICKS_PER_SECOND * 5;
+/* A quit record's own tank position is where the quitter's pills drop,
+ * unless his previous statement is older than this: then he is a ghost
+ * of a netsplit and the position is not his tank's [E:quit-pills]. The
+ * two witnesses sit at 2.4 s and 5 minutes; the threshold is anywhere
+ * between. */
+const QUIT_POSITION_STALE_TICKS = TICKS_PER_SECOND * 10;
+/* A dumped pill never rests within this many squares of the map edge:
+ * measured on the west edge alone, where a dump in a boat at x = 9 put
+ * all five pills on x = 10 and 11, refusing every square at x = 8 and 9
+ * [E:dump-terrain]. The other three edges are assumed to mirror it. */
+const DUMP_EDGE = 10;
 
 /* Subpacket types of map-transfer / node records, which appear alone and
  * carry no player state (see the shell-clearing rule in apply_record). */
@@ -280,9 +291,10 @@ function superboom(s, x, y) {
  * was observed skipping building 20 times, shot building 28 and boat 2,
  * and no other terrain ever — deep sea included, which is accepted like
  * any land square (60 observed rests, none skipped), so there is no
- * river-over-deep-sea preference [E:dump-terrain]. */
+ * river-over-deep-sea preference [E:dump-terrain]. The map's outermost
+ * DUMP_EDGE rows and columns are refused too. */
 function pill_dumpable(s, x, y) {
-	if (x < 0 || y < 0 || x >= MAP_SIZE || y >= MAP_SIZE) return false;
+	if (x < DUMP_EDGE || y < DUMP_EDGE || x >= MAP_SIZE - DUMP_EDGE || y >= MAP_SIZE - DUMP_EDGE) return false;
 	const t = s.grid[y * MAP_SIZE + x];
 	if (t === 0 || t === 8 || t === 9) return false;
 	return !pill_at(s, x, y) && !base_at(s, x, y);
@@ -394,8 +406,9 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 	const mapNodeOnly = rec.subpackets.length > 0 && rec.subpackets.every(sub => MAP_NODE_TYPES.has(sub.type));
 
 	/* The sender's tank as of the PREVIOUS record (tank_position replaces
-	 * the object, so this snapshot survives): a quit record can restate a
-	 * bogus far-away position, but its pills drop at the last genuine one. */
+	 * the object, so this snapshot survives): a ghost's quit record can
+	 * restate a bogus far-away position, and its pills drop at the last
+	 * genuine one. */
 	const tankBefore = s.tanks[pl];
 
 	/* A GHOST: a quit-flagged slot sending records again, past the
@@ -897,12 +910,11 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 				s.men[pl] = null;
 				s.shells[pl] = [];
 				/* Pills a quitter carries are dumped on the ground around
-				 * the last tank position, tank-death style, with no events
-				 * (verified: in two mid-game quits-while-carrying, the
-				 * pills were picked up later within a tile of the
-				 * quitter's last tank centre — in one case both at once,
-				 * lying together). With no known tank position they leave
-				 * the game (GONE). Planted pills stay with his alliance
+				 * his tank, tank-death style, with no events (corpus: 16
+				 * quit dumps picked up later, every pill within the first
+				 * two rings of the quitter's tank square). With no known
+				 * tank position they leave the game (GONE). Planted pills
+				 * stay with his alliance
 				 * [E:pill-target]: they go to the lowest-index remaining
 				 * ally who has a tank, as on alliance-leave, or, with none
 				 * (a netsplit takes a whole team at once; a lone ally may
@@ -910,10 +922,18 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 				 * owner's own name rejoining recovers them. Alliance links
 				 * stay. */
 				{
-					/* dump at the pre-record position: a ghost-split quit
-					 * record was seen restating a position 50 tiles from
-					 * where the pills verifiably dropped */
-					const t = tankBefore || s.tanks[pl];
+					/* The quit record's own position, when it carries one,
+					 * is where the tank was: a quit 2.4 s after the last
+					 * statement restated the tank two squares on, and the
+					 * pill was picked up there. A ghost's is not: a slot
+					 * silent for five minutes quit restating a position
+					 * 56 squares away with zero pixel offsets, and the pill
+					 * was picked up at the last genuine position. */
+					let t = s.tanks[pl];
+					if (tankBefore && t !== tankBefore &&
+						rec.time - tankBefore.position_time > QUIT_POSITION_STALE_TICKS) {
+						t = tankBefore;
+					}
 					if (t) {
 						const sq = tank_square(t);
 						dump_carried_pills(s, pl, sq.x, sq.y);
