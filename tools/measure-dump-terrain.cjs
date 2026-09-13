@@ -82,14 +82,17 @@ function* walk(dir) {
 	}
 }
 
-/* Same serpentine as viewer/game.js dump_path, truncated. */
+/* Same spiral as viewer/game.js dump_path, truncated: each ring starts
+ * due north, runs clockwise, and ends with the top-edge squares west of
+ * north. */
 function path_squares(x0, y0) {
 	const out = [[x0, y0]];
 	outer: for (let r = 1; r < MAP_SIZE; r++) {
-		for (let x = -(r - 1); x <= r; x++) { out.push([x0 + x, y0 - r]); if (out.length >= PATH_LIMIT) break outer; }
+		for (let x = 0; x <= r; x++) { out.push([x0 + x, y0 - r]); if (out.length >= PATH_LIMIT) break outer; }
 		for (let y = -(r - 1); y <= r; y++) { out.push([x0 + r, y0 + y]); if (out.length >= PATH_LIMIT) break outer; }
 		for (let x = r - 1; x >= -r; x--) { out.push([x0 + x, y0 + r]); if (out.length >= PATH_LIMIT) break outer; }
 		for (let y = r - 1; y >= -r; y--) { out.push([x0 - r, y0 + y]); if (out.length >= PATH_LIMIT) break outer; }
+		for (let x = -(r - 1); x <= -1; x++) { out.push([x0 + x, y0 - r]); if (out.length >= PATH_LIMIT) break outer; }
 	}
 	return out;
 }

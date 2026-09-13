@@ -80,19 +80,25 @@ function classify_node_joins(records) {
 	return joins;
 }
 
-/* Serpentine search path used when a dying tank's carried pills are dumped
- * around the death square (from Carl Osterwald's notes; first ring exact,
+/* Spiral search path used when a dying tank's carried pills are dumped
+ * around the death square (the first ring from Carl Osterwald's notes;
  * outer rings continue the same clockwise pattern until the map is
  * exhausted). Yields (dx, dy) offsets from the death square, in placement
- * order: each ring starts one square left of its NE-ward corner, runs the
- * top edge eastward, then clockwise round the other three edges. */
+ * order: each ring starts on the square due north, runs the top edge
+ * eastward, then clockwise round the other three edges, and finishes with
+ * the top-edge squares west of north. On the first ring the finish is
+ * empty; on the second, the square NNW of the death square comes last,
+ * not first: a six-pill dump that spilled into the second ring passed
+ * that square over and put its fifth pill due north, and both pills were
+ * picked up where this order lands them [E:dump-terrain]. */
 function* dump_path() {
 	yield [0, 0];
 	for (let r = 1; r < MAP_SIZE; r++) {
-		for (let x = -(r - 1); x <= r; x++) yield [x, -r];
+		for (let x = 0; x <= r; x++) yield [x, -r];
 		for (let y = -(r - 1); y <= r; y++) yield [r, y];
 		for (let x = r - 1; x >= -r; x--) yield [x, r];
 		for (let y = r - 1; y >= -r; y--) yield [-r, y];
+		for (let x = -(r - 1); x <= -1; x++) yield [x, -r];
 	}
 }
 

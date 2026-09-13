@@ -622,6 +622,28 @@ if (!fs.existsSync(log1)) {
 	check("second pill skips the building, takes the next river square", [st.pills[1].x, st.pills[1].y], [11, 9]);
 }
 
+// The dump spiral's second ring starts due north of the death square and
+// ends on the square NNW of it, so the tenth pill of a dump goes due
+// north and the NNW square is the ring's last. Verified by pickups: a
+// six-pill dump beside a row of buildings spilled into the second ring,
+// passed the NNW square over, put its fifth pill due north and its sixth
+// past the buildings, and both were picked up exactly there
+// [E:dump-terrain].
+{
+	const st = BoloGame.initial_state();
+	st.present[0] = true; st.names[0] = "p0";
+	st.grid.fill(7, 0, 256 * 20); /* grass rows 0-19 */
+	st.tanks[0] = { x: 10, y: 10, px: 0, py: 0, dir: 0, inBoat: false, hidden: false, dying: false, speed: 0, lastSeen: 0, dead: false };
+	st.pills = Array.from({ length: 25 }, () => ({ x: 0, y: 0, owner: 0, armour: 15, speed: 50, inTank: 0 }));
+	BoloGame.apply_record(st, { time: 0, seq: 0, status: 0, player: 0, tankStatus: 7, tankDir: 0, subpackets: [{ type: "tank_death", code: 1 }] }, null, null);
+	check("first ring starts due north", [st.pills[1].x, st.pills[1].y], [10, 9]);
+	check("first ring ends NW", [st.pills[8].x, st.pills[8].y], [9, 9]);
+	check("second ring starts due north, not NNW", [st.pills[9].x, st.pills[9].y], [10, 8]);
+	check("second ring runs clockwise", [st.pills[15].x, st.pills[15].y], [12, 12]);
+	check("second ring ends NNW", [st.pills[24].x, st.pills[24].y], [9, 8]);
+	check("every square taken once", new Set(st.pills.map(p => `${p.x},${p.y}`)).size, 25);
+}
+
 // A dumped pill landing on a mined square removes the mine (emulator-
 // observed). The emulator plays an explosion sound but the terrain is
 // not cratered: the mine is simply gone. Unmined neighbours are left
