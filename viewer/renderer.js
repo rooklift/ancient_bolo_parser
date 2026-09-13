@@ -712,14 +712,15 @@ function draw() {
 
 	draw_bases();
 	draw_pills(true);
-	/* Pill shells are born under their own pill and emerge from beneath
-	 * it; tank shells fly over live pills to strike them, so they layer
-	 * above. A shell of unknown origin (a chain no fire event claimed,
-	 * about 1%) goes with the tanks: a shell stopping at a live pill is
-	 * the case worth seeing. */
-	draw_shells("pillbox");
+	/* A shell still within a tile of the weapon that fired it draws under
+	 * the live pills: a pill shell is born under its own pill and emerges
+	 * from beneath it. One that has flown a whole tile is clear of its
+	 * weapon and draws over them, so a shot striking a pill is seen to
+	 * arrive. A shell of unknown age (a chain no fire event claimed,
+	 * about 1%) is not known to be clear, so it stays under. */
+	draw_shells("near");
 	draw_pills(false);
-	draw_shells("tank");
+	draw_shells("far");
 	draw_pillbox_labels();
 	draw_effects();
 	draw_men(false);
@@ -942,10 +943,15 @@ function draw_men(parachuting) {
 	}
 }
 
-/* One layer of the shells: `layer` is "pillbox" for shells the engine
- * traced to a pill, "tank" for everything else (see shell_origin in
- * motion.js). The raw debug positions have no provenance and all draw in
- * the pillbox pass. */
+/* A shell has flown clear of the weapon that fired it once it is a whole
+ * tile from the source pixel the engine settled for it. */
+const SHELL_CLEAR_PIXELS = 16;
+
+/* One layer of the shells: `layer` is "far" for shells known to have
+ * flown clear of their weapon, "near" for the rest, those still within a
+ * tile of it or of unknown birth (see shell_source_pixel in motion.js).
+ * The raw debug positions have no provenance and all draw in the near
+ * pass. */
 function draw_shells(layer) {
 	let z = view.zoom;
 	ctx.fillStyle = use_big_shots ? "#ffe678" : "#fff";
@@ -974,7 +980,7 @@ function draw_shells(layer) {
 		ctx.fill();
 	};
 	let in_layer = position =>
-		(position.origin === "pillbox") === (layer === "pillbox");
+		(position.flown_pixels >= SHELL_CLEAR_PIXELS) === (layer === "far");
 	/* Debug mode: the raw packet-stated shell positions, drawn in the
 	 * current art style in place of the reconstructed ones. The raw
 	 * position is the sender's last claim (delayed, quantised,
@@ -982,7 +988,7 @@ function draw_shells(layer) {
 	 * toggling between the two shows exactly how far the interpolation
 	 * departs from the literal log. */
 	if (raw_shells_enabled) {
-		if (layer !== "pillbox") return;
+		if (layer !== "near") return;
 		for (let p = 0; p < 16; p++) {
 			for (let sh of cur.shells[p]) {
 				/* same pixel-to-tile centring as shell_position_at */
