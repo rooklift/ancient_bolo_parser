@@ -22,12 +22,20 @@ const GONE = -2; /* inTank value: pill left the game with a quitting carrier */
  * gets it. */
 const DEPARTED = 17;
 const NODE_JOIN_RESTATEMENT_TICKS = TICKS_PER_SECOND * 5;
-/* A quit record's own tank position is where the quitter's pills drop,
- * unless his previous statement is older than this: then he is a ghost
- * of a netsplit and the position is not his tank's [E:quit-pills]. The
- * two witnesses sit at 2.4 s and 5 minutes; the threshold is anywhere
- * between. */
-const QUIT_POSITION_STALE_TICKS = TICKS_PER_SECOND * 10;
+/* A player the ring drops (a netsplit: he goes silent, with no quit
+ * record) leaves his carried pills on the ground around his last tank
+ * position, tank-death style, and does not get them back on rejoining
+ * [E:quit-pills]. The log cannot see the ring drop him, only his silence,
+ * and a silence in one recorder's log is a noisy proxy: a player was
+ * seen silent for 15 s while the ring turned 124 records and then plant
+ * the pill he still carried, while another's cargo was on the ground 13 s
+ * after his last record. So the drop is taken at a classified rejoin,
+ * always, and before that only after a silence longer than any a player
+ * survived in the corpus, while the ring turns without him (a ring-wide
+ * stall silences everyone and drops nobody). A missed drop corrects
+ * itself at the next pickup; a false one would lose a later plant. */
+const SPLIT_SILENCE_TICKS = TICKS_PER_SECOND * 16;
+const SPLIT_RING_RECORDS = 100;
 /* A dumped pill never rests within this many squares of the map edge:
  * measured on the west edge alone, where a dump in a boat at x = 9 put
  * all five pills on x = 10 and 11, refusing every square at x = 8 and 9
@@ -165,6 +173,8 @@ function initial_state(seed) {
 		present: Array.from({ length: 16 }, () => false),
 		quit: Array.from({ length: 16 }, () => false),
 		quitTime: Array.from({ length: 16 }, () => -Infinity),
+		silence: Array.from({ length: 16 }, () => 0),
+			/* live records from other slots since this slot's last */
 		gameInfo: null,
 		lastAllianceEvent: -Infinity, /* tick of the last request, accept or leave */
 	};
@@ -185,6 +195,7 @@ function clone_state(s) {
 		present: s.present.slice(),
 		quit: s.quit.slice(),
 		quitTime: s.quitTime.slice(),
+		silence: s.silence.slice(),
 		gameInfo: s.gameInfo,
 		lastAllianceEvent: s.lastAllianceEvent,
 	};
@@ -300,14 +311,15 @@ function pill_dumpable(s, x, y) {
 	return !pill_at(s, x, y) && !base_at(s, x, y);
 }
 
-function dump_carried_pills(s, player, x, y) {
+function dump_carried_pills(s, player, x, y, with_man) {
 	let carried = s.pills.filter(p => p.inTank === player);
 	/* A man out of the tank carrying a pill (status C) has it in his
 	 * hands, not in the exploding tank: the lowest-index carried pill
 	 * (the one a plant would use) stays with him. Verified: every
 	 * engine no-op plant in the fixture followed a tank death with the
-	 * man out carrying — the man went on to plant that pill. */
-	if (s.men[player] && s.men[player].carryingPill && carried.length) {
+	 * man out carrying — the man went on to plant that pill. A player
+	 * leaving the game takes his man with him, so then it drops too. */
+	if (!with_man && s.men[player] && s.men[player].carryingPill && carried.length) {
 		carried = carried.slice(1);
 	}
 	const path = dump_path(); /* shared iterator: the search never backtracks */
@@ -338,6 +350,40 @@ function dump_carried_pills(s, player, x, y) {
 		 * crater, just the mine gone. */
 		demine_square(s, p.x, p.y);
 	}
+}
+
+/* A player leaving the game, by a quit or dropped by the ring, leaves
+ * everything he carried: the tank's cargo spirals out from the tank
+ * square, and a pill in his man's hands drops where the man stands (one
+ * witness: a man out carrying on 113,113 beside a tank whose square was
+ * a base, and the pill was picked up on 113,113, not on the spiral's
+ * next free square) [E:quit-pills]. The effects carry the squares for
+ * the measurement tools; the renderer draws nothing for them. */
+function leave_dump(s, player, x, y, time, effects) {
+	const man = s.men[player];
+	if (man && man.carryingPill) {
+		const p = lowest_carried(s, player);
+		if (p) {
+			p.inTank = null;
+			p.x = man.x;
+			p.y = man.y;
+			p.armour = 0;
+			demine_square(s, p.x, p.y);
+			if (effects) effects.push({ time, type: "man_pill_drop", x: p.x, y: p.y, player });
+		}
+	}
+	if (!s.pills.some(p => p.inTank === player)) return;
+	if (effects) effects.push({ time, type: "leave_dump", x, y, player });
+	dump_carried_pills(s, player, x, y, true);
+}
+
+/* A player the ring lost drops everything around his last tank position,
+ * and stays dropped: a returning player drives back to collect his own
+ * pills (14 of 14 rejoins with cargo in the corpus) [E:quit-pills]. */
+function split_dump(s, player, time, effects) {
+	if (!s.pills.some(p => p.inTank === player) || !s.tanks[player]) return;
+	const sq = tank_square(s.tanks[player]);
+	leave_dump(s, player, sq.x, sq.y, time, effects);
 }
 
 /* Lowest-index pill carried by this player (Bolo's plant convention). */
@@ -406,9 +452,8 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 	const mapNodeOnly = rec.subpackets.length > 0 && rec.subpackets.every(sub => MAP_NODE_TYPES.has(sub.type));
 
 	/* The sender's tank as of the PREVIOUS record (tank_position replaces
-	 * the object, so this snapshot survives): a ghost's quit record can
-	 * restate a bogus far-away position, and its pills drop at the last
-	 * genuine one. */
+	 * the object, so this snapshot survives): a join record's cargo drops
+	 * where the slot's previous occupant last was [E:quit-pills]. */
 	const tankBefore = s.tanks[pl];
 
 	/* A GHOST: a quit-flagged slot sending records again, past the
@@ -430,6 +475,20 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 	 * ride on position freshness alone. */
 	if (rec.tankStatus !== 0x0f && s.tanks[pl]) {
 		s.tanks[pl].lastSeen = rec.time;
+	}
+
+	/* The ring turning without a slot: a carrier silent past
+	 * SPLIT_SILENCE_TICKS while SPLIT_RING_RECORDS live records came from
+	 * the others has been dropped, and his cargo lies around his last
+	 * tank position [E:quit-pills]. */
+	if (rec.tankStatus !== 0x0f && !mapNodeOnly) {
+		for (let i = 0; i < 16; i++) {
+			if (i === pl) { s.silence[i] = 0; continue; }
+			s.silence[i]++;
+			if (s.silence[i] < SPLIT_RING_RECORDS || s.quit[i] || !s.tanks[i] ||
+				rec.time - s.tanks[i].lastSeen <= SPLIT_SILENCE_TICKS) continue;
+			split_dump(s, i, rec.time, effects);
+		}
 	}
 
 	/* Every record restates the sender's LGM state in the status nibble:
@@ -798,6 +857,14 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 				 * identical history. */
 				let joining = s.quit[pl] || (node_joins && node_joins.has(rec));
 				let old = joining ? null : s.names[pl];
+				/* whoever this slot was, he is out of the ring: what he
+				 * carried is on the ground around his last tank position,
+				 * whether the same name is reconnecting or a stranger is
+				 * taking the slot [E:quit-pills] */
+				if (joining && tankBefore) {
+					s.tanks[pl] = tankBefore;
+					split_dump(s, pl, rec.time, effects);
+				}
 				if (joining && s.names[pl] === sub.name && sub.name !== null) {
 					/* the SAME name is a RECONNECT: the person keeps his
 					 * alliance links (Rejoin restored them with no accept
@@ -907,7 +974,6 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 			case "quit":
 				s.quit[pl] = true;
 				s.quitTime[pl] = rec.time;
-				s.men[pl] = null;
 				s.shells[pl] = [];
 				/* Pills a quitter carries are dumped on the ground around
 				 * his tank, tank-death style, with no events (corpus: 16
@@ -925,19 +991,18 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 					/* The quit record's own position, when it carries one,
 					 * is where the tank was: a quit 2.4 s after the last
 					 * statement restated the tank two squares on, and the
-					 * pill was picked up there. A ghost's is not: a slot
-					 * silent for five minutes quit restating a position
-					 * 56 squares away with zero pixel offsets, and the pill
-					 * was picked up at the last genuine position. */
-					let t = s.tanks[pl];
-					if (tankBefore && t !== tankBefore &&
-						rec.time - tankBefore.position_time > QUIT_POSITION_STALE_TICKS) {
-						t = tankBefore;
-					}
+					 * pill was picked up there. A netsplit ghost's quit,
+					 * minutes after his last statement, restates a position
+					 * that is not his tank's (56 squares off, pixel offsets
+					 * zero), but by then the ring has dropped him and the
+					 * split rule above has put his cargo around the last
+					 * genuine position, where it was picked up. */
+					const t = s.tanks[pl];
 					if (t) {
 						const sq = tank_square(t);
-						dump_carried_pills(s, pl, sq.x, sq.y);
+						leave_dump(s, pl, sq.x, sq.y, rec.time, effects);
 					}
+					s.men[pl] = null; /* his man leaves with him, pill dropped above */
 				}
 				hand_over_pills(s, pl, lowest_remaining_ally(s, pl, true));
 				for (const p of s.pills) {

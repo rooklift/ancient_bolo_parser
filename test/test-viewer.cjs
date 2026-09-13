@@ -696,18 +696,75 @@ if (!fs.existsSync(log1)) {
 	check("quit dumps at the quit record's own position", [st.pills[0].x, st.pills[0].y], [32, 30]);
 }
 
-// ...unless the quitter is a ghost: silent for minutes, then a quit
-// restating a far-off position. The pill drops at the last genuine one.
+// A player the ring drops takes nothing with him: silent past 16 s while
+// the others keep sending, his cargo lies around his last tank position.
+// A ghost's later quit, restating a far-off position, then has nothing
+// to dump; the pill stays where the split put it [E:quit-pills].
 {
 	const st = BoloGame.initial_state();
 	st.present[0] = true; st.names[0] = "p0";
+	st.present[1] = true; st.names[1] = "p1";
 	st.grid.fill(7, 0, 256 * 40); /* grass rows 0-39 */
 	st.tanks[0] = { x: 30, y: 30, px: 0, py: 0, dir: 0, inBoat: false, hidden: false, dying: false, speed: 0, lastSeen: 1000, dead: false, position_time: 1000 };
 	st.pills = [{ x: 0, y: 0, owner: 0, armour: 15, speed: 50, inTank: 0 }];
+	const other = (time, x) => BoloGame.apply_record(st, { time, seq: 0, status: 0, player: 1, tankStatus: 8, tankDir: 0, subpackets: [
+		{ type: "tank_position", x, y: 35, pixelX: 0, pixelY: 0, direction: 0, inBoat: false, hidden: false, dying: false, speed: 0 }] }, null, null);
+	for (let n = 0; n < 99; n++) other(1000 + 10 * n, 20 + (n % 10));
+	check("99 ring records in 15 s drop nothing", st.pills[0].inTank, 0);
+	other(1000 + 10 * 99, 25);
+	check("the 100th ring record, past 16 s, drops the cargo on the last tank square", [st.pills[0].inTank, st.pills[0].x, st.pills[0].y], [null, 30, 30]);
+	check("dropped cargo is dead", st.pills[0].armour, 0);
 	BoloGame.apply_record(st, { time: 1000 + 15596, seq: 0, status: 0, player: 0, tankStatus: 9, tankDir: 0, subpackets: [
 		{ type: "tank_position", x: 20, y: 36, pixelX: 0, pixelY: 0, direction: 0, inBoat: false, hidden: false, dying: false, speed: 0 },
 		{ type: "quit", fields: [] }] }, null, null);
-	check("a ghost's quit dumps at the last genuine position", [st.pills[0].x, st.pills[0].y], [30, 30]);
+	check("a ghost's quit finds nothing to dump", [st.pills[0].inTank, st.pills[0].x, st.pills[0].y], [null, 30, 30]);
+}
+
+// A leaving player's man drops the pill in his hands where he stands;
+// the tank's cargo spirals out from the tank. One witness: a man out
+// carrying on 113,113 beside a tank on a base square, and the pill was
+// picked up on 113,113 [E:quit-pills].
+{
+	const st = BoloGame.initial_state();
+	st.present[0] = true; st.names[0] = "p0";
+	st.grid.fill(7, 0, 256 * 40);
+	st.tanks[0] = { x: 30, y: 30, px: 0, py: 0, dir: 0, inBoat: false, hidden: false, dying: false, speed: 0, lastSeen: 1000, dead: false, position_time: 1000 };
+	st.men[0] = { x: 34, y: 33, px: 3, py: 6, parachute: false, carryingPill: true, lastSeen: 1000, position_time: 1000 };
+	st.pills = [{ x: 0, y: 0, owner: 0, armour: 15, speed: 50, inTank: 0 }, { x: 0, y: 0, owner: 0, armour: 15, speed: 50, inTank: 0 }];
+	BoloGame.apply_record(st, { time: 1100, seq: 0, status: 0x0c, player: 0, tankStatus: 8, tankDir: 0, subpackets: [
+		{ type: "lgm_position", x: 34, y: 33, pixelX: 3, pixelY: 6, carryingPill: true },
+		{ type: "quit", fields: [] }] }, null, null);
+	check("the man's pill drops on the man's square", [st.pills[0].inTank, st.pills[0].x, st.pills[0].y, st.pills[0].armour], [null, 34, 33, 0]);
+	check("the tank's cargo drops on the tank square", [st.pills[1].inTank, st.pills[1].x, st.pills[1].y], [null, 30, 30]);
+}
+
+// A ring-wide stall silences everyone and drops nobody: however long the
+// gap, no record from anyone means no split.
+{
+	const st = BoloGame.initial_state();
+	st.present[0] = true; st.names[0] = "p0";
+	st.present[1] = true; st.names[1] = "p1";
+	st.grid.fill(7, 0, 256 * 40);
+	st.tanks[0] = { x: 30, y: 30, px: 0, py: 0, dir: 0, inBoat: false, hidden: false, dying: false, speed: 0, lastSeen: 1000, dead: false, position_time: 1000 };
+	st.pills = [{ x: 0, y: 0, owner: 0, armour: 15, speed: 50, inTank: 0 }];
+	BoloGame.apply_record(st, { time: 1000 + 3000, seq: 0, status: 0, player: 1, tankStatus: 8, tankDir: 0, subpackets: [
+		{ type: "tank_position", x: 20, y: 35, pixelX: 0, pixelY: 0, direction: 0, inBoat: false, hidden: false, dying: false, speed: 0 }] }, null, null);
+	check("one record after a minute's stall drops nothing", st.pills[0].inTank, 0);
+}
+
+// A classified rejoin drops the cargo at once, however short the silence
+// looked from here: the returning player collects his own pills.
+{
+	const st = BoloGame.initial_state();
+	st.present[0] = true; st.names[0] = "p0";
+	st.grid.fill(7, 0, 256 * 40);
+	st.tanks[0] = { x: 30, y: 30, px: 0, py: 0, dir: 0, inBoat: false, hidden: false, dying: false, speed: 0, lastSeen: 1000, dead: false, position_time: 1000 };
+	st.pills = [{ x: 0, y: 0, owner: 0, armour: 15, speed: 50, inTank: 0 }, { x: 0, y: 0, owner: 0, armour: 15, speed: 50, inTank: 0 }];
+	const join = { time: 1500, seq: 0, status: 0, player: 0, tankStatus: 7, tankDir: 0, subpackets: [{ type: "node_id", name: "p0" }] };
+	BoloGame.apply_record(st, join, null, null, null, new Set([join]));
+	check("rejoin drops the cargo on the last tank square and due north", [st.pills[0].x, st.pills[0].y, st.pills[1].x, st.pills[1].y], [30, 30, 30, 29]);
+	check("the returning player carries nothing", st.pills.some(p => p.inTank === 0), false);
+	check("the returning player keeps his name", st.names[0], "p0");
 }
 
 // Shell-list offsets are CHAINED (each relative to the previous shell),

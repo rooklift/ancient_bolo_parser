@@ -58,7 +58,6 @@ const roots = args.length ? args : [require("./corpus.cjs").corpus_root()];
 
 const MAP_SIZE = 256;
 const PATH_LIMIT = 200;  /* path positions considered when matching a pickup */
-const QUIT_POSITION_STALE_TICKS = 50 * 10; /* as viewer/game.js */
 const DUMP_EDGE = 10; /* as viewer/game.js: the outermost rows and columns a dump refuses */
 const NAMES = {
 	0: "building", 1: "river", 2: "swamp", 3: "crater", 4: "road",
@@ -136,12 +135,11 @@ function process_log(file) {
 	for (let i = 0; i < recs.length; i++) {
 		const rec = recs[i];
 		const before = state.pills.map(p => ({ inTank: p.inTank, x: p.x, y: p.y }));
-		const gridSnap = rec.subpackets.some(s => s.type === "tank_death" || s.type === "quit")
+		/* a dump can happen on any record: a split drops a silent carrier's
+		 * cargo when someone else's record shows the ring turned without
+		 * him, so snapshot whenever anyone holds cargo */
+		const gridSnap = state.pills.some(p => p.inTank !== null && p.inTank >= 0)
 			? state.grid.slice() : null;
-		const tankSnap = state.tanks[rec.player]
-			? { x: state.tanks[rec.player].x, y: state.tanks[rec.player].y, px: state.tanks[rec.player].px, py: state.tanks[rec.player].py,
-				position_time: state.tanks[rec.player].position_time }
-			: null;
 		const occSnap = gridSnap ? {
 			pills: state.pills.map((p, k) => ({ x: p.x, y: p.y, ground: p.inTank === null, modelled: modelled[k] })),
 			bases: state.bases.map(b => ({ x: b.x, y: b.y })),
@@ -165,10 +163,13 @@ function process_log(file) {
 		const effects = [];
 		BoloGame.apply_record(state, rec, effects, null);
 
-		/* evented placements this record — not serpentine dumps */
+		/* evented placements this record — not serpentine dumps; a
+		 * leaving player's man drops his pill where he stands, which the
+		 * engine reports as an effect */
 		const evented = rec.subpackets
 			.filter(s => s.type === "pill_plant" || s.type === "pill_dumped_by_dead_lgm")
-			.map(s => `${s.x},${s.y}`);
+			.map(s => `${s.x},${s.y}`)
+			.concat(effects.filter(e => e.type === "man_pill_drop").map(e => `${e.x},${e.y}`));
 
 		for (const sub of rec.subpackets) {
 			if (sub.type === "pill_pickup" && state.pills[sub.pillbox]) modelled[sub.pillbox] = false;
@@ -182,29 +183,27 @@ function process_log(file) {
 
 		if (!gridSnap) continue;
 
-		const ids = [];
+		/* dumped pills, grouped by the carrier they fell from */
+		const by_carrier = new Map();
 		state.pills.forEach((p, k) => {
-			if (before[k].inTank === rec.player && p.inTank === null &&
+			if (before[k].inTank !== null && before[k].inTank >= 0 && p.inTank === null &&
 				!evented.includes(`${p.x},${p.y}`)) {
-				ids.push(k);
+				const c = before[k].inTank;
+				if (!by_carrier.has(c)) by_carrier.set(c, []);
+				by_carrier.get(c).push(k);
 				modelled[k] = true;
 			}
 		});
-		if (!ids.length) continue;
+		for (const [carrier, ids] of by_carrier) {
 
 		/* death square: the tank_death effect carries the engine's own
-		 * computation; a quit dump is at the quit record's own position,
-		 * or at the pre-record tank when that is stale enough for the
-		 * quitter to be a ghost (the engine's rule, [E:quit-pills]) */
+		 * computation, as does the leave_dump effect of a quit or of a
+		 * carrier the ring dropped */
 		let dsq = null;
-		const deathEffect = effects.find(e => e.type === "tank_death" && e.player === rec.player);
+		const deathEffect = effects.find(e => e.type === "tank_death" && e.player === carrier);
+		const splitEffect = effects.find(e => e.type === "leave_dump" && e.player === carrier);
 		if (deathEffect) dsq = [deathEffect.x, deathEffect.y];
-		else {
-			let own = tp ? centre_square(tp) : null;
-			if (tankSnap && (!own || rec.time - tankSnap.position_time > QUIT_POSITION_STALE_TICKS))
-				own = [(tankSnap.x * 16 + tankSnap.px + 8) >> 4, (tankSnap.y * 16 + tankSnap.py + 8) >> 4];
-			dsq = own;
-		}
+		else if (splitEffect) dsq = [splitEffect.x, splitEffect.y];
 		if (!dsq) continue;
 
 		const squares = path_squares(dsq[0], dsq[1]).map(([x, y]) => {
@@ -224,9 +223,10 @@ function process_log(file) {
 				base: occSnap.bases.some(b => b.x === x && b.y === y),
 			};
 		});
-		dumps.push({ file, rec: i, time: rec.time, player: rec.player, dsq, squares, pills: ids });
+		dumps.push({ file, rec: i, time: rec.time, player: carrier, dsq, squares, pills: ids });
 		totals.dumps++;
 		totals.dumped_pills += ids.length;
+		}
 	}
 
 	/* Second pass: each dumped pill's next pickup gives its true square. */
