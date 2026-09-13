@@ -2510,16 +2510,14 @@ if (!fs.existsSync(log1)) {
 		[[10.75, 10.5, 4]]);
 	check("synthetic muzzle segment hands off at the real restatement",
 		BoloGame.shell_birth_positions_at(tank_muzzle, 0, 100), []);
-	/* The renderer layers shells by origin: tank shells over live pills,
-	 * pill shells under their own pill. */
-	check("tank muzzle segment names its origin",
+	/* The renderer draws a pill shell under the live pills only while it
+	 * still overlaps its own pill's sprite; a tank shell always flies over
+	 * them, so it reports no pill offset. */
+	check("tank muzzle segment is not measured from any pill",
 		BoloGame.shell_birth_positions_at(tank_muzzle, 0, 98)
-			.map(shell => shell.origin), ["tank"]);
-	check("restated tank shell names its origin", (() => {
-		let state = BoloGame.state_at(tank_muzzle, 100).state;
-		return BoloGame.shell_position_at(tank_muzzle, 0,
-			state.shells[0][0], 0, 100).origin;
-	})(), "tank");
+			.map(shell => shell.pillbox_offset_pixels), [undefined]);
+	check("restated tank shell is not measured from any pill",
+		position(tank_muzzle, 100).pillbox_offset_pixels, undefined);
 
 	let pillbox_muzzle = BoloGame.build([
 		record(80, [{ type: "pillbox_list", items: [{
@@ -2537,14 +2535,36 @@ if (!fs.existsSync(log1)) {
 		[[10.6875, 10.5, 4]]);
 	check("synthetic pillbox segment hands off at the real restatement",
 		BoloGame.shell_birth_positions_at(pillbox_muzzle, 0, 100), []);
-	check("pillbox muzzle segment names its origin",
+	/* A pill shell reports its larger axis offset from its pill's centre. */
+	check("pillbox muzzle segment measures its offset from the pill",
 		BoloGame.shell_birth_positions_at(pillbox_muzzle, 0, 98)
-			.map(shell => shell.origin), ["pillbox"]);
-	check("restated pillbox shell names its origin", (() => {
-		let state = BoloGame.state_at(pillbox_muzzle, 100).state;
-		return BoloGame.shell_position_at(pillbox_muzzle, 0,
-			state.shells[0][0], 0, 100).origin;
-	})(), "pillbox");
+			.map(shell => shell.pillbox_offset_pixels), [3]);
+	check("restated pillbox shell measures its offset from the pill",
+		position(pillbox_muzzle, 100).pillbox_offset_pixels, 7);
+
+	/* Gap segments follow the same rule: a tank shell's has no pill to
+	 * measure from, nor has a chain no fire event claimed. */
+	let tank_gap = BoloGame.build([
+		record(90, [{
+			type: "tank_position", x: 10, y: 10, pixelX: 0, pixelY: 0,
+			direction: 4, inBoat: false, hidden: false, dying: false,
+			speed: 0, motion: 0,
+		}]),
+		record(100, [
+			{ type: "shot_fired", direction: 4 },
+			shell_list(4, [[168, 160]]),
+		]),
+		record(110, []),
+		record(120, [shell_list(4, [[208, 160]])]),
+	]);
+	check("tank shell gap segment is not measured from any pill",
+		[BoloGame.shell_gap_positions_at(tank_gap, 0, 114).length,
+			BoloGame.shell_gap_positions_at(tank_gap, 0, 114)[0]
+				.pillbox_offset_pixels], [1, undefined]);
+	check("a shell of unknown birth is not measured from any pill",
+		[position(stitched_gap, 100).pillbox_offset_pixels,
+			BoloGame.shell_gap_positions_at(stitched_gap, 0, 118)[0]
+				.pillbox_offset_pixels], [undefined, undefined]);
 
 	let quantised_pillbox_muzzle = BoloGame.build([
 		record(80, [{ type: "pillbox_list", items: [{

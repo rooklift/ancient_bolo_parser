@@ -5141,13 +5141,23 @@ function classify_terminal_candidate(shell, end_time, gap, terminal,
 
 /* Which weapon fired a tracked shell, as far as the engine has settled it:
  * "pillbox", "tank", or undefined for a chain no fire event ever claimed
- * (about 1% of restatements over the fixtures). The renderer layers on
- * this: pill shells emerge from under their own pill, tank shells fly
- * over live pills to strike them. */
+ * (about 1% of restatements over the fixtures). */
 function shell_origin(shell) {
 	if (shell_from_pillbox(shell)) return "pillbox";
 	if (shell.starts_at_tank || shell.birth_time !== undefined) return "tank";
 	return undefined;
+}
+
+/* The larger axis offset, in pixels, of a shell drawn at (pixel_x,
+ * pixel_y) from the centre of the pill that fired it, or undefined for a
+ * shell the engine has not traced to a pill. The renderer draws a pill
+ * shell under the live pills only while it still overlaps its own pill's
+ * sprite, from which it is emerging; every other shot flies over them, so
+ * a shot striking a pill is seen to arrive. */
+function pillbox_offset_pixels(pillbox_x, pillbox_y, pixel_x, pixel_y) {
+	if (pillbox_x === undefined) return undefined;
+	return Math.max(Math.abs(pixel_x - pillbox_x),
+		Math.abs(pixel_y - pillbox_y));
 }
 
 function terminal_candidate_kind(shell) {
@@ -6073,7 +6083,7 @@ function build_shell_births(shell_positions) {
 					heading_x,
 					heading_y,
 					direction: shell_sector(shell),
-					origin: shell.starts_at_pillbox ? "pillbox" : "tank",
+					pillbox: Boolean(shell.starts_at_pillbox),
 				});
 			}
 		}
@@ -6122,7 +6132,8 @@ function build_shell_gap_segments(shell_positions) {
 					to_x: shell.smooth_next_pixel_x ?? shell.next_pixel_x,
 					to_y: shell.smooth_next_pixel_y ?? shell.next_pixel_y,
 					direction: shell_sector(shell),
-					origin: shell_origin(shell),
+					pillbox_x: shell.pillbox_source_x,
+					pillbox_y: shell.pillbox_source_y,
 				});
 				longest_span = Math.max(longest_span, shell.next_time - drop_time);
 			}
@@ -6266,12 +6277,13 @@ function shell_position_at(game, player, shell, index, tick) {
 	/* The sprite points the way the shell flies, which for a shell born
 	 * on a sector boundary is its corrected sector, not its list label. */
 	let direction = shell_sector(position);
-	let origin = shell_origin(position);
+	let offset = () => pillbox_offset_pixels(position.pillbox_source_x,
+		position.pillbox_source_y, pixel_x, pixel_y);
 	let exact_position = () => ({
 		x: pixel_x / 16 + 0.5,
 		y: pixel_y / 16 + 0.5,
 		direction,
-		origin,
+		pillbox_offset_pixels: offset(),
 	});
 	/* No forward story: a shell is either in flight at 2 px/tick or gone,
 	 * so holding it at its last restatement until the sender's next record
@@ -6290,7 +6302,12 @@ function shell_position_at(game, player, shell, index, tick) {
 	let target_y = position.smooth_next_pixel_y ?? position.next_pixel_y;
 	pixel_x += (target_x - pixel_x) * amount;
 	pixel_y += (target_y - pixel_y) * amount;
-	return { x: pixel_x / 16 + 0.5, y: pixel_y / 16 + 0.5, direction, origin };
+	return {
+		x: pixel_x / 16 + 0.5,
+		y: pixel_y / 16 + 0.5,
+		direction,
+		pillbox_offset_pixels: offset(),
+	};
 }
 
 function shell_birth_positions_at(game, player, tick) {
@@ -6308,11 +6325,16 @@ function shell_birth_positions_at(game, player, tick) {
 		let birth = births[i];
 		if (birth.start_time > tick) continue;
 		let distance = (tick - birth.start_time) * SHELL_SPEED_PIXELS_PER_TICK;
+		/* A pill's segment starts at the pill's centre, so the offset
+		 * from it is the distance flown along each axis. */
+		let offset_x = birth.heading_x * distance;
+		let offset_y = birth.heading_y * distance;
 		positions.push({
-			x: (birth.pixel_x + birth.heading_x * distance) / 16 + 0.5,
-			y: (birth.pixel_y + birth.heading_y * distance) / 16 + 0.5,
+			x: (birth.pixel_x + offset_x) / 16 + 0.5,
+			y: (birth.pixel_y + offset_y) / 16 + 0.5,
 			direction: birth.direction,
-			origin: birth.origin,
+			pillbox_offset_pixels: birth.pillbox
+				? Math.max(Math.abs(offset_x), Math.abs(offset_y)) : undefined,
 		});
 	}
 	return positions;
@@ -6338,13 +6360,14 @@ function shell_gap_positions_at(game, player, tick) {
 		if (segment.start_time > tick) continue;
 		let amount = (tick - segment.link_time) /
 			(segment.end_time - segment.link_time);
+		let pixel_x = segment.from_x + (segment.to_x - segment.from_x) * amount;
+		let pixel_y = segment.from_y + (segment.to_y - segment.from_y) * amount;
 		positions.push({
-			x: (segment.from_x + (segment.to_x - segment.from_x) * amount) /
-				16 + 0.5,
-			y: (segment.from_y + (segment.to_y - segment.from_y) * amount) /
-				16 + 0.5,
+			x: pixel_x / 16 + 0.5,
+			y: pixel_y / 16 + 0.5,
 			direction: segment.direction,
-			origin: segment.origin,
+			pillbox_offset_pixels: pillbox_offset_pixels(segment.pillbox_x,
+				segment.pillbox_y, pixel_x, pixel_y),
 		});
 	}
 	return positions;
