@@ -712,14 +712,13 @@ function draw() {
 
 	draw_bases();
 	draw_pills(true);
-	/* Pill shells are born under their own pill and emerge from beneath
-	 * it; tank shells fly over live pills to strike them, so they layer
-	 * above. A shell of unknown origin (a chain no fire event claimed,
-	 * about 1%) goes with the tanks: a shell stopping at a live pill is
-	 * the case worth seeing. */
-	draw_shells("pillbox");
+	/* A pill shell is born under its own pill and emerges from beneath
+	 * it, so while it still overlaps that pill's sprite it draws under the
+	 * live pills. Every other shot flies over them, so a shot striking a
+	 * pill is seen to arrive. */
+	draw_shells("under");
 	draw_pills(false);
-	draw_shells("tank");
+	draw_shells("over");
 	draw_pillbox_labels();
 	draw_effects();
 	draw_men(false);
@@ -942,10 +941,15 @@ function draw_men(parachuting) {
 	}
 }
 
-/* One layer of the shells: `layer` is "pillbox" for shells the engine
- * traced to a pill, "tank" for everything else (see shell_origin in
- * motion.js). The raw debug positions have no provenance and all draw in
- * the pillbox pass. */
+/* A pill shell still overlaps its own pill's sprite while its centre is
+ * within half the pill's tile plus half the shell sprite's width (the
+ * shell art is at most 4 px wide) of the pill's centre on both axes. */
+const SHELL_OVER_OWN_PILLBOX_PIXELS = 8 + 2;
+
+/* One layer of the shells: `layer` is "under" for a pill shell still
+ * overlapping its own pill's sprite (see pillbox_offset_pixels in
+ * motion.js), "over" for every other shot. The raw debug positions have
+ * no provenance and all draw in the over pass. */
 function draw_shells(layer) {
 	let z = view.zoom;
 	ctx.fillStyle = use_big_shots ? "#ffe678" : "#fff";
@@ -974,7 +978,8 @@ function draw_shells(layer) {
 		ctx.fill();
 	};
 	let in_layer = position =>
-		(position.origin === "pillbox") === (layer === "pillbox");
+		(position.pillbox_offset_pixels < SHELL_OVER_OWN_PILLBOX_PIXELS) ===
+			(layer === "under");
 	/* Debug mode: the raw packet-stated shell positions, drawn in the
 	 * current art style in place of the reconstructed ones. The raw
 	 * position is the sender's last claim (delayed, quantised,
@@ -982,7 +987,7 @@ function draw_shells(layer) {
 	 * toggling between the two shows exactly how far the interpolation
 	 * departs from the literal log. */
 	if (raw_shells_enabled) {
-		if (layer !== "pillbox") return;
+		if (layer !== "over") return;
 		for (let p = 0; p < 16; p++) {
 			for (let sh of cur.shells[p]) {
 				/* same pixel-to-tile centring as shell_position_at */
