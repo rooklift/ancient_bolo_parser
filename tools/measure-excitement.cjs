@@ -41,14 +41,21 @@
  * window's start printed as mm:ss from the first record, for seeking to
  * in the viewer.
  *
- * Logs shorter than MIN_GAME_MINUTES of game time, with fewer than
- * MIN_PLAYER_MINUTES of player time, or never showing two live tanks
- * at once are scanned but not ranked. Two recordings of one game (the
+ * PLAY starts at the first base capture: before it the players are
+ * still joining, chatting and waiting for the map, and that lobby time
+ * would dilute a rate and pad a duration. Nothing before the first
+ * capture is counted, and the printed minutes and every mm:ss run from
+ * it. A log with no capture at all is taken from its first record.
+ *
+ * Logs shorter than MIN_GAME_MINUTES of play (--min=N overrides), with
+ * fewer than MIN_PLAYER_MINUTES of player time, or never showing two
+ * live tanks at once are scanned but not ranked. Two recordings of one game (the
  * pairs the corpus is known to hold) share a game id, host IP plus
  * start time from `F1 01`, and only the longer recording is ranked.
  *
  * Usage: node tools/measure-excitement.cjs [file | directory ...]
- *          [--top=N] [--sort=rate|peak|total] [--window=SECONDS] [--names]
+ *          [--top=N] [--sort=rate|peak|total] [--window=SECONDS]
+ *          [--min=MINUTES] [--names]
  * With no target the corpus root from corpus.json / BOLO_CORPUS is read.
  * Logs print by their hashed label (tools/corpus.cjs); --names prints
  * the file basenames instead, for the corpus holder.
@@ -77,7 +84,7 @@ const WEIGHTS = {
 	pillbox_damage: 0.25,
 };
 
-let opts = { top: 10, sort: "rate", window: 60, names: false };
+let opts = { top: 10, sort: "rate", window: 60, min: MIN_GAME_MINUTES, names: false };
 let targets = [];
 for (let arg of process.argv.slice(2)) {
 	let m = arg.match(/^--([a-z]+)(?:=(.*))?$/);
@@ -86,6 +93,7 @@ for (let arg of process.argv.slice(2)) {
 	else if (m[1] === "top") opts.top = parseInt(m[2], 10) || 10;
 	else if (m[1] === "sort") opts.sort = m[2];
 	else if (m[1] === "window") opts.window = parseInt(m[2], 10) || 60;
+	else if (m[1] === "min") opts.min = parseFloat(m[2]) || 0;
 	else { console.error(`unknown option ${arg}`); process.exit(2); }
 }
 if (!["rate", "peak", "total"].includes(opts.sort)) {
@@ -121,7 +129,8 @@ function* walk(target) {
 }
 
 function scan(file, recs) {
-	let t0 = recs[0].time;
+	let first_capture = recs.find(r => r.tankStatus !== 0x0f && r.subpackets.some(s => s.type === "base_capture"));
+	let t0 = first_capture ? first_capture.time : recs[0].time;
 	let span = recs[recs.length - 1].time - t0;
 	let seconds = Math.floor(span / TPS) + 1;
 	let counts = { tank_death: 0, pill_pickup: 0, base_capture_hostile: 0, base_capture_neutral: 0,
@@ -141,7 +150,9 @@ function scan(file, recs) {
 	for (let rec of recs) {
 		if (rec.tankStatus === 0x0f) continue;
 		let p = rec.player;
+		let before = rec.time < t0;
 		for (let sub of rec.subpackets) {
+			if (before && sub.type !== "game_info" && sub.type !== "base_list") continue;
 			switch (sub.type) {
 			case "game_info":
 				if (!game_id) { game_id = sub.gameId; map_name = sub.mapName; }
@@ -247,7 +258,7 @@ for (let r of results) {
 	else { duplicates++; if (r.records > held.records) by_game.set(key, r); }
 }
 let ranked = [...by_game.values()].filter(r =>
-	r.minutes >= MIN_GAME_MINUTES && r.player_minutes >= MIN_PLAYER_MINUTES && r.peak_players >= 2);
+	r.minutes >= opts.min && r.player_minutes >= MIN_PLAYER_MINUTES && r.peak_players >= 2);
 let unranked = by_game.size - ranked.length;
 ranked.sort((a, b) => b[opts.sort] - a[opts.sort]);
 
@@ -257,7 +268,7 @@ function mmss(s) {
 
 console.log(`logs ${results.length}  not logs ${unparsed}  duplicate recordings ${duplicates}  ranked ${ranked.length}  too short or lonely ${unranked}`);
 console.log(`weights: ${Object.entries(WEIGHTS).map(([k, v]) => `${k} ${v}`).join(", ")}`);
-console.log(`sorted by ${opts.sort}; rate and peak are weighted events per player-minute, peak over a ${opts.window} s window\n`);
+console.log(`sorted by ${opts.sort}; rate and peak are weighted events per player-minute, peak over a ${opts.window} s window; play of at least ${opts.min} min from the first base capture\n`);
 
 let shown = ranked.slice(0, opts.top);
 let name_width = Math.max(5, ...shown.map(r => r.label.length));
@@ -276,4 +287,4 @@ shown.forEach((r, i) => {
 		r.total.toFixed(1).padStart(7), r.rate.toFixed(2).padStart(6), r.peak.toFixed(1).padStart(6), mmss(r.peak_at).padStart(6)];
 	console.log(row.join("  "));
 });
-console.log("\nbase = hostile+neutral captures; ply = most tanks alive at once; peak@ = window start, mm:ss from the first record");
+console.log("\nbase = hostile+neutral captures; ply = most tanks alive at once; peak@ = window start, mm:ss from the first base capture");
