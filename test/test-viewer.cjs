@@ -592,13 +592,13 @@ if (!fs.existsSync(log1)) {
 {
 	const st = BoloGame.initial_state();
 	st.present[0] = true; st.names[0] = "p0";
-	st.grid.fill(7, 0, 256 * 20); /* grass rows 0-19 */
-	st.tanks[0] = { x: 10, y: 10, px: 0, py: 0, dir: 0, inBoat: false, hidden: false, dying: false, speed: 0, lastSeen: 0, dead: false };
+	st.grid.fill(7, 0, 256 * 40); /* grass rows 0-39 */
+	st.tanks[0] = { x: 30, y: 30, px: 0, py: 0, dir: 0, inBoat: false, hidden: false, dying: false, speed: 0, lastSeen: 0, dead: false };
 	st.pills = [{ x: 0, y: 0, owner: 0, armour: 15, speed: 50, inTank: 0 }];
 	BoloGame.apply_record(st, { time: 0, seq: 0, status: 0, player: 0, tankStatus: 7, tankDir: 0, subpackets: [{ type: "quit", fields: [] }] }, null, null);
 	const p = st.pills[0];
 	check("quitter's pill dumped on the ground", p.inTank, null);
-	check("dumped dead near the tank", p.armour === 0 && Math.abs(p.x - 10) <= 1 && Math.abs(p.y - 10) <= 1, true);
+	check("dumped dead near the tank", p.armour === 0 && Math.abs(p.x - 30) <= 1 && Math.abs(p.y - 30) <= 1, true);
 }
 
 // A tank dying in a river dumps its pills into the water: the search
@@ -610,16 +610,38 @@ if (!fs.existsSync(log1)) {
 {
 	const st = BoloGame.initial_state();
 	st.present[0] = true; st.names[0] = "p0";
-	st.grid.fill(1, 0, 256 * 20); /* river rows 0-19 */
-	st.grid[9 * 256 + 10] = 0; /* a building one square north of the tank */
-	st.tanks[0] = { x: 10, y: 10, px: 0, py: 0, dir: 0, inBoat: false, hidden: false, dying: false, speed: 0, lastSeen: 0, dead: false };
+	st.grid.fill(1, 0, 256 * 40); /* river rows 0-39 */
+	st.grid[29 * 256 + 30] = 0; /* a building one square north of the tank */
+	st.tanks[0] = { x: 30, y: 30, px: 0, py: 0, dir: 0, inBoat: false, hidden: false, dying: false, speed: 0, lastSeen: 0, dead: false };
 	st.pills = [
 		{ x: 0, y: 0, owner: 0, armour: 15, speed: 50, inTank: 0 },
 		{ x: 0, y: 0, owner: 0, armour: 15, speed: 50, inTank: 0 },
 	];
 	BoloGame.apply_record(st, { time: 0, seq: 0, status: 0, player: 0, tankStatus: 7, tankDir: 0, subpackets: [{ type: "tank_death", code: 1 }] }, null, null);
-	check("first pill dumped on the river death square", [st.pills[0].x, st.pills[0].y], [10, 10]);
-	check("second pill skips the building, takes the next river square", [st.pills[1].x, st.pills[1].y], [11, 9]);
+	check("first pill dumped on the river death square", [st.pills[0].x, st.pills[0].y], [30, 30]);
+	check("second pill skips the building, takes the next river square", [st.pills[1].x, st.pills[1].y], [31, 29]);
+}
+
+// The dump spiral's second ring starts due north of the death square and
+// ends on the square NNW of it, so the tenth pill of a dump goes due
+// north and the NNW square is the ring's last. Verified by pickups: a
+// six-pill dump beside a row of buildings spilled into the second ring,
+// passed the NNW square over, put its fifth pill due north and its sixth
+// past the buildings, and both were picked up exactly there
+// [E:dump-terrain].
+{
+	const st = BoloGame.initial_state();
+	st.present[0] = true; st.names[0] = "p0";
+	st.grid.fill(7, 0, 256 * 40); /* grass rows 0-39 */
+	st.tanks[0] = { x: 30, y: 30, px: 0, py: 0, dir: 0, inBoat: false, hidden: false, dying: false, speed: 0, lastSeen: 0, dead: false };
+	st.pills = Array.from({ length: 25 }, () => ({ x: 0, y: 0, owner: 0, armour: 15, speed: 50, inTank: 0 }));
+	BoloGame.apply_record(st, { time: 0, seq: 0, status: 0, player: 0, tankStatus: 7, tankDir: 0, subpackets: [{ type: "tank_death", code: 1 }] }, null, null);
+	check("first ring starts due north", [st.pills[1].x, st.pills[1].y], [30, 29]);
+	check("first ring ends NW", [st.pills[8].x, st.pills[8].y], [29, 29]);
+	check("second ring starts due north, not NNW", [st.pills[9].x, st.pills[9].y], [30, 28]);
+	check("second ring runs clockwise", [st.pills[15].x, st.pills[15].y], [32, 32]);
+	check("second ring ends NNW", [st.pills[24].x, st.pills[24].y], [29, 28]);
+	check("every square taken once", new Set(st.pills.map(p => `${p.x},${p.y}`)).size, 25);
 }
 
 // A dumped pill landing on a mined square removes the mine (emulator-
@@ -629,15 +651,120 @@ if (!fs.existsSync(log1)) {
 {
 	const st = BoloGame.initial_state();
 	st.present[0] = true; st.names[0] = "p0";
-	st.grid.fill(7, 0, 256 * 20); /* grass rows 0-19 */
-	st.grid[10 * 256 + 10] = 15; /* mined grass on the death square */
-	st.grid[9 * 256 + 11] = 15; /* mined grass off the drop path */
-	st.tanks[0] = { x: 10, y: 10, px: 0, py: 0, dir: 0, inBoat: false, hidden: false, dying: false, speed: 0, lastSeen: 0, dead: false };
+	st.grid.fill(7, 0, 256 * 40); /* grass rows 0-39 */
+	st.grid[30 * 256 + 30] = 15; /* mined grass on the death square */
+	st.grid[29 * 256 + 31] = 15; /* mined grass off the drop path */
+	st.tanks[0] = { x: 30, y: 30, px: 0, py: 0, dir: 0, inBoat: false, hidden: false, dying: false, speed: 0, lastSeen: 0, dead: false };
 	st.pills = [{ x: 0, y: 0, owner: 0, armour: 15, speed: 50, inTank: 0 }];
 	BoloGame.apply_record(st, { time: 0, seq: 0, status: 0, player: 0, tankStatus: 7, tankDir: 0, subpackets: [{ type: "tank_death", code: 1 }] }, null, null);
-	check("pill dumped on the mined death square", [st.pills[0].x, st.pills[0].y], [10, 10]);
-	check("mine removed under the dumped pill", st.grid[10 * 256 + 10], 7);
-	check("mine off the drop square survives", st.grid[9 * 256 + 11], 15);
+	check("pill dumped on the mined death square", [st.pills[0].x, st.pills[0].y], [30, 30]);
+	check("mine removed under the dumped pill", st.grid[30 * 256 + 30], 7);
+	check("mine off the drop square survives", st.grid[29 * 256 + 31], 15);
+}
+
+// The dump refuses the map's outermost ten rows and columns. Measured on
+// the west edge: a tank in a boat died at x = 9 carrying five pills, and
+// every one was picked up at x = 10 or 11 -- the death square and every
+// other square at x = 8 or 9 on the path refused, the first square at
+// x = 10 taken [E:dump-terrain]. The other edges are assumed to mirror it.
+{
+	const st = BoloGame.initial_state();
+	st.present[0] = true; st.names[0] = "p0";
+	st.grid.fill(255, 0, 256 * 40); /* deep sea rows 0-39 */
+	st.tanks[0] = { x: 9, y: 30, px: 0, py: 0, dir: 0, inBoat: true, hidden: false, dying: false, speed: 0, lastSeen: 0, dead: false };
+	st.pills = Array.from({ length: 5 }, () => ({ x: 0, y: 0, owner: 0, armour: 15, speed: 50, inTank: 0 }));
+	BoloGame.apply_record(st, { time: 0, seq: 0, status: 0, player: 0, tankStatus: 7, tankDir: 0, subpackets: [{ type: "tank_death", code: 3 }] }, null, null);
+	check("edge dump: first pill skips the death square at x = 9 for the NE square", [st.pills[0].x, st.pills[0].y], [10, 29]);
+	check("edge dump: second pill east", [st.pills[1].x, st.pills[1].y], [10, 30]);
+	check("edge dump: third pill SE", [st.pills[2].x, st.pills[2].y], [10, 31]);
+	check("edge dump: fourth pill skips the west side and the NNW square for the second ring at x = 10", [st.pills[3].x, st.pills[3].y], [10, 28]);
+	check("edge dump: fifth pill NE corner of the second ring", [st.pills[4].x, st.pills[4].y], [11, 28]);
+}
+
+// A quit record carrying its own tank position dumps the pills there: a
+// tank quit 2.4 s after its last statement, two squares on, and the pill
+// was picked up on the restated square [E:quit-pills].
+{
+	const st = BoloGame.initial_state();
+	st.present[0] = true; st.names[0] = "p0";
+	st.grid.fill(7, 0, 256 * 40); /* grass rows 0-39 */
+	st.tanks[0] = { x: 30, y: 30, px: 0, py: 0, dir: 0, inBoat: false, hidden: false, dying: false, speed: 0, lastSeen: 1000, dead: false, position_time: 1000 };
+	st.pills = [{ x: 0, y: 0, owner: 0, armour: 15, speed: 50, inTank: 0 }];
+	BoloGame.apply_record(st, { time: 1118, seq: 0, status: 0, player: 0, tankStatus: 8, tankDir: 0, subpackets: [
+		{ type: "tank_position", x: 32, y: 30, pixelX: 0, pixelY: 0, direction: 0, inBoat: false, hidden: false, dying: false, speed: 0 },
+		{ type: "quit", fields: [] }] }, null, null);
+	check("quit dumps at the quit record's own position", [st.pills[0].x, st.pills[0].y], [32, 30]);
+}
+
+// A player the ring drops takes nothing with him: silent past 16 s while
+// the others keep sending, his cargo lies around his last tank position.
+// A ghost's later quit, restating a far-off position, then has nothing
+// to dump; the pill stays where the split put it [E:quit-pills].
+{
+	const st = BoloGame.initial_state();
+	st.present[0] = true; st.names[0] = "p0";
+	st.present[1] = true; st.names[1] = "p1";
+	st.grid.fill(7, 0, 256 * 40); /* grass rows 0-39 */
+	st.tanks[0] = { x: 30, y: 30, px: 0, py: 0, dir: 0, inBoat: false, hidden: false, dying: false, speed: 0, lastSeen: 1000, dead: false, position_time: 1000 };
+	st.pills = [{ x: 0, y: 0, owner: 0, armour: 15, speed: 50, inTank: 0 }];
+	const other = (time, x) => BoloGame.apply_record(st, { time, seq: 0, status: 0, player: 1, tankStatus: 8, tankDir: 0, subpackets: [
+		{ type: "tank_position", x, y: 35, pixelX: 0, pixelY: 0, direction: 0, inBoat: false, hidden: false, dying: false, speed: 0 }] }, null, null);
+	for (let n = 0; n < 99; n++) other(1000 + 10 * n, 20 + (n % 10));
+	check("99 ring records in 15 s drop nothing", st.pills[0].inTank, 0);
+	other(1000 + 10 * 99, 25);
+	check("the 100th ring record, past 16 s, drops the cargo on the last tank square", [st.pills[0].inTank, st.pills[0].x, st.pills[0].y], [null, 30, 30]);
+	check("dropped cargo is dead", st.pills[0].armour, 0);
+	BoloGame.apply_record(st, { time: 1000 + 15596, seq: 0, status: 0, player: 0, tankStatus: 9, tankDir: 0, subpackets: [
+		{ type: "tank_position", x: 20, y: 36, pixelX: 0, pixelY: 0, direction: 0, inBoat: false, hidden: false, dying: false, speed: 0 },
+		{ type: "quit", fields: [] }] }, null, null);
+	check("a ghost's quit finds nothing to dump", [st.pills[0].inTank, st.pills[0].x, st.pills[0].y], [null, 30, 30]);
+}
+
+// A leaving player's man drops the pill in his hands where he stands;
+// the tank's cargo spirals out from the tank. One witness: a man out
+// carrying on 113,113 beside a tank on a base square, and the pill was
+// picked up on 113,113 [E:quit-pills].
+{
+	const st = BoloGame.initial_state();
+	st.present[0] = true; st.names[0] = "p0";
+	st.grid.fill(7, 0, 256 * 40);
+	st.tanks[0] = { x: 30, y: 30, px: 0, py: 0, dir: 0, inBoat: false, hidden: false, dying: false, speed: 0, lastSeen: 1000, dead: false, position_time: 1000 };
+	st.men[0] = { x: 34, y: 33, px: 3, py: 6, parachute: false, carryingPill: true, lastSeen: 1000, position_time: 1000 };
+	st.pills = [{ x: 0, y: 0, owner: 0, armour: 15, speed: 50, inTank: 0 }, { x: 0, y: 0, owner: 0, armour: 15, speed: 50, inTank: 0 }];
+	BoloGame.apply_record(st, { time: 1100, seq: 0, status: 0x0c, player: 0, tankStatus: 8, tankDir: 0, subpackets: [
+		{ type: "lgm_position", x: 34, y: 33, pixelX: 3, pixelY: 6, carryingPill: true },
+		{ type: "quit", fields: [] }] }, null, null);
+	check("the man's pill drops on the man's square", [st.pills[0].inTank, st.pills[0].x, st.pills[0].y, st.pills[0].armour], [null, 34, 33, 0]);
+	check("the tank's cargo drops on the tank square", [st.pills[1].inTank, st.pills[1].x, st.pills[1].y], [null, 30, 30]);
+}
+
+// A ring-wide stall silences everyone and drops nobody: however long the
+// gap, no record from anyone means no split.
+{
+	const st = BoloGame.initial_state();
+	st.present[0] = true; st.names[0] = "p0";
+	st.present[1] = true; st.names[1] = "p1";
+	st.grid.fill(7, 0, 256 * 40);
+	st.tanks[0] = { x: 30, y: 30, px: 0, py: 0, dir: 0, inBoat: false, hidden: false, dying: false, speed: 0, lastSeen: 1000, dead: false, position_time: 1000 };
+	st.pills = [{ x: 0, y: 0, owner: 0, armour: 15, speed: 50, inTank: 0 }];
+	BoloGame.apply_record(st, { time: 1000 + 3000, seq: 0, status: 0, player: 1, tankStatus: 8, tankDir: 0, subpackets: [
+		{ type: "tank_position", x: 20, y: 35, pixelX: 0, pixelY: 0, direction: 0, inBoat: false, hidden: false, dying: false, speed: 0 }] }, null, null);
+	check("one record after a minute's stall drops nothing", st.pills[0].inTank, 0);
+}
+
+// A classified rejoin drops the cargo at once, however short the silence
+// looked from here: the returning player collects his own pills.
+{
+	const st = BoloGame.initial_state();
+	st.present[0] = true; st.names[0] = "p0";
+	st.grid.fill(7, 0, 256 * 40);
+	st.tanks[0] = { x: 30, y: 30, px: 0, py: 0, dir: 0, inBoat: false, hidden: false, dying: false, speed: 0, lastSeen: 1000, dead: false, position_time: 1000 };
+	st.pills = [{ x: 0, y: 0, owner: 0, armour: 15, speed: 50, inTank: 0 }, { x: 0, y: 0, owner: 0, armour: 15, speed: 50, inTank: 0 }];
+	const join = { time: 1500, seq: 0, status: 0, player: 0, tankStatus: 7, tankDir: 0, subpackets: [{ type: "node_id", name: "p0" }] };
+	BoloGame.apply_record(st, join, null, null, null, new Set([join]));
+	check("rejoin drops the cargo on the last tank square and due north", [st.pills[0].x, st.pills[0].y, st.pills[1].x, st.pills[1].y], [30, 30, 30, 29]);
+	check("the returning player carries nothing", st.pills.some(p => p.inTank === 0), false);
+	check("the returning player keeps his name", st.names[0], "p0");
 }
 
 // Shell-list offsets are CHAINED (each relative to the previous shell),
