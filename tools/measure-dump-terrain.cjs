@@ -83,9 +83,9 @@ function* walk(dir) {
 	}
 }
 
-/* Same spiral as viewer/game.js dump_path, truncated: each ring starts
- * due north, runs clockwise, and ends with the top-edge squares west of
- * north. */
+/* Same spiral as viewer/game.js dump_path, truncated: the death square,
+ * then each ring in turn, every ring starting due north and going
+ * clockwise all the way round. */
 function path_squares(x0, y0) {
 	const out = [[x0, y0]];
 	outer: for (let r = 1; r < MAP_SIZE; r++) {
