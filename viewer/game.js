@@ -36,10 +36,12 @@ const NODE_JOIN_RESTATEMENT_TICKS = TICKS_PER_SECOND * 5;
  * itself at the next pickup; a false one would lose a later plant. */
 const SPLIT_SILENCE_TICKS = TICKS_PER_SECOND * 16;
 const SPLIT_RING_RECORDS = 100;
-/* A dumped pill never rests within this many squares of the map edge:
- * measured on the west edge alone, where a dump in a boat at x = 9 put
- * all five pills on x = 10 and 11, refusing every square at x = 8 and 9
- * [E:dump-terrain]. The other three edges are assumed to mirror it. */
+/* The map's mined border: its outermost ten rows and columns carry
+ * indestructible mines. Every tank that reached the tenth square from
+ * any edge died within two seconds (9 of 9, all boats, all four edges),
+ * and tanks sit on the eleventh unharmed. A dumped pill never rests
+ * there: a dump in a boat at x = 9 put all five pills on x = 10 and 11,
+ * refusing every square at x = 8 and 9 [E:dump-terrain]. */
 const DUMP_EDGE = 10;
 
 /* Subpacket types of map-transfer / node records, which appear alone and
@@ -299,8 +301,8 @@ function superboom(s, x, y) {
  * was observed skipping building 20 times, shot building 28 and boat 2,
  * and no other terrain ever — deep sea included, which is accepted like
  * any land square (60 observed rests, none skipped), so there is no
- * river-over-deep-sea preference [E:dump-terrain]. The map's outermost
- * DUMP_EDGE rows and columns are refused too. */
+ * river-over-deep-sea preference [E:dump-terrain]. The mined border, the
+ * map's outermost DUMP_EDGE rows and columns, is refused too. */
 function pill_dumpable(s, x, y) {
 	if (x < DUMP_EDGE || y < DUMP_EDGE || x >= MAP_SIZE - DUMP_EDGE || y >= MAP_SIZE - DUMP_EDGE) return false;
 	const t = s.grid[y * MAP_SIZE + x];

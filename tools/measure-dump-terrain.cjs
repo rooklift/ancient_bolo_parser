@@ -58,7 +58,7 @@ const roots = args.length ? args : [require("./corpus.cjs").corpus_root()];
 
 const MAP_SIZE = 256;
 const PATH_LIMIT = 200;  /* path positions considered when matching a pickup */
-const DUMP_EDGE = 10; /* as viewer/game.js: the outermost rows and columns a dump refuses */
+const DUMP_EDGE = 10; /* as viewer/game.js: the mined border, which a dump refuses */
 const NAMES = {
 	0: "building", 1: "river", 2: "swamp", 3: "crater", 4: "road",
 	5: "forest", 6: "rubble", 7: "grass", 8: "shot building", 9: "boat",
