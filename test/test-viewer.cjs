@@ -3756,6 +3756,38 @@ if (!fs.existsSync(log2)) {
 	], [80467, 1679, 27006, 0]);
 }
 
+// The eight-player fixture is the log that settled the dump spiral's
+// second ring: at 5:45.49 a tank dies on 51,151 carrying six pills beside
+// a wall of buildings, two of them spill into the second ring, and the
+// pickups put the fifth due north on 51,149 and the sixth past the
+// buildings on 53,153. Every one of the log's 147 pickups lands on the
+// square the model gave the pill [E:dump-terrain].
+const log3 = path.join(root, "fixtures", "20010316.4");
+if (!fs.existsSync(log3)) {
+	console.log("skip: fixtures/20010316.4 not present; dump spiral fixture test skipped");
+} else {
+	const recs3 = [...BoloLog.records(new Uint8Array(fs.readFileSync(log3)))];
+	const joins3 = BoloGame.classify_node_joins(recs3);
+	const st = BoloGame.initial_state(BoloGame.extract_initial_map(recs3, joins3));
+	let pickups = 0, exact = 0, dump = null;
+	for (const rec of recs3) {
+		const tp = rec.subpackets.find(sub => sub.type === "tank_position");
+		for (const sub of rec.subpackets) {
+			if (sub.type !== "pill_pickup" || !tp) continue;
+			const p = st.pills[sub.pillbox];
+			const cx = (tp.x * 16 + tp.pixelX + 8) >> 4, cy = (tp.y * 16 + tp.pixelY + 8) >> 4;
+			pickups++;
+			if (p && p.inTank === null && p.x === cx && p.y === cy) exact++;
+		}
+		BoloGame.apply_record(st, rec, null, null, null, joins3);
+		if (rec.time === 833657 && rec.player === 5 && rec.subpackets.some(sub => sub.type === "tank_death")) {
+			dump = st.pills.filter((p, i) => [4, 9, 10, 11, 14, 15].includes(i)).map(p => `${p.x},${p.y}`);
+		}
+	}
+	check("spiral fixture: the six-pill dump at 5:45.49", dump, ["51,151", "51,150", "52,152", "50,152", "51,149", "53,153"]);
+	check("spiral fixture: every pickup lands on the modelled square", [pickups, exact], [147, 147]);
+}
+
 // Same-tick records keep separate shot budgets, including after a second
 // residual pass (as used after contradictory links are removed).
 {
