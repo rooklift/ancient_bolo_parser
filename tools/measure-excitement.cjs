@@ -10,7 +10,9 @@
  *                        the first from the same slot (F901 then F902
  *                        mid-animation) is the same death
  *   pill_pickup      4   the capture event (`FF 0n`); repairs and plants
- *                        change nothing and are not counted
+ *                        change nothing and are not counted. Every
+ *                        pickup counts: lifting three pills off a wreck
+ *                        is a bigger swing than lifting one
  *   base_capture     3   from an owner; 1 from neutral, since grabbing
  *                        empty bases at the start is a race, not a fight.
  *                        Owners come from the `F1 03` list and follow
@@ -253,7 +255,7 @@ function mmss(s) {
 	return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 }
 
-console.log(`logs ${results.length}  unparsed ${unparsed}  duplicate recordings ${duplicates}  ranked ${ranked.length}  too short or lonely ${unranked}`);
+console.log(`logs ${results.length}  not logs ${unparsed}  duplicate recordings ${duplicates}  ranked ${ranked.length}  too short or lonely ${unranked}`);
 console.log(`weights: ${Object.entries(WEIGHTS).map(([k, v]) => `${k} ${v}`).join(", ")}`);
 console.log(`sorted by ${opts.sort}; rate and peak are weighted events per player-minute, peak over a ${opts.window} s window\n`);
 
