@@ -113,8 +113,13 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   squares, 43 are a building or shot building, the model a record behind,
   while every other terrain occurs in bulk)**. The death dump's search
   refuses exactly building, shot building and boat, and no other terrain,
-  plus the outermost ten rows and columns of the map **(corpus,
-  [E:dump-terrain])**.
+  plus the map's mined border **(corpus, [E:dump-terrain])**.
+- **The mined border.** The outermost ten rows and columns of the map
+  (x or y of 0 to 9, and 246 to 255) carry indestructible sea mines
+  **(owner)**. Every tank that reached the tenth square from any edge died
+  within two seconds, 9 of 9, all in boats, and boats sit on the eleventh
+  square unharmed; the death is logged as `F9` code 3, the same as sinking
+  **(corpus, [E:dump-terrain])**.
 - **Bases as obstacles.** A hostile base is impassable to an enemy tank
   until its armour is down to 9 or less, at which point driving on captures
   it **(owner; measured, see Bases)**. Terrain is not the only obstacle:
