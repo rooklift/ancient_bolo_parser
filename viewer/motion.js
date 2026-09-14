@@ -1388,7 +1388,9 @@ function shell_terminal_match(previous, terminal, duration, start_time,
 	 * earn the wider graze; bounded ones already enumerate their slack. */
 	let graze_tolerance = previous.tank_exact_pixel_x !== undefined
 		? SHELL_TANK_HIT_TOLERANCE_PIXELS : SHELL_BOX_GRAZE_TOLERANCE_PIXELS;
-	let matches = [];
+	/* The cheapest match so far; a tie keeps the earlier variant, as the
+	 * stable sort this replaces did. */
+	let best = null;
 	/* A box terminal is tried as the packet box first and then, only when
 	 * no variant reaches that, as each of the victim's earlier statements
 	 * (see STALE_TANK_BOX_PENALTY_PIXELS); a point terminal has one
@@ -1445,12 +1447,14 @@ function shell_terminal_match(previous, terminal, duration, start_time,
 				SHELL_MATCH_ERROR_PIXELS ? DILATED_JOIN_PENALTY_PIXELS : 0;
 			let expected_distance = nearest_expected_distance(endpoint.distance,
 				duration, long_duration, stamped_duration, advance_duration);
-			matches.push({
-				cost: lead_penalty +
-					(stale_box ? STALE_TANK_BOX_PENALTY_PIXELS : 0) +
-					Math.abs(endpoint.distance - expected_distance) +
-					angle_error * expected_distance +
-					(endpoint.graze_distance || 0),
+			let cost = lead_penalty +
+				(stale_box ? STALE_TANK_BOX_PENALTY_PIXELS : 0) +
+				Math.abs(endpoint.distance - expected_distance) +
+				angle_error * expected_distance +
+				(endpoint.graze_distance || 0);
+			if (best && !(cost < best.cost)) continue;
+			best = {
+				cost,
 				pixel_x: endpoint.pixel_x,
 				pixel_y: endpoint.pixel_y,
 				distance: endpoint.distance,
@@ -1459,13 +1463,11 @@ function shell_terminal_match(previous, terminal, duration, start_time,
 				/* the effect follows the box the shell entered */
 				hitbox_pixel_x: stale_box ? box.min_x : undefined,
 				hitbox_pixel_y: stale_box ? box.min_y : undefined,
-			});
+			};
 		}
-		if (matches.length) break;
+		if (best) break;
 	}
-	if (!matches.length) return null;
-	matches.sort((first, second) => first.cost - second.cost);
-	return matches[0];
+	return best;
 }
 
 function same_shell_terminal(first, second) {
@@ -2873,15 +2875,23 @@ function match_shell_snapshots(previous, next) {
 	 * a newly plausible corner from stealing a real successor or impact in a
 	 * dense anonymous stream. */
 	let rejected_grazes = new Set();
+	/* Whether each list holds an exact candidate is settled once, on the
+	 * first graze that asks, rather than rescanned for every graze. */
+	let previous_has_exact = null, target_has_exact = null;
 	for (let choices of by_previous) {
 		for (let candidate of choices) {
 			if (!(candidate.graze_distance > 0) ||
 				candidate.bounded_position) continue;
-			let previous_has_exact = choices.some(alternative =>
-				!(alternative.graze_distance > 0));
-			let target_has_exact = by_next[candidate.next_index].some(alternative =>
-				!(alternative.graze_distance > 0));
-			if (previous_has_exact || target_has_exact) rejected_grazes.add(candidate);
+			if (!previous_has_exact) {
+				let has_exact = list => list.some(alternative =>
+					!(alternative.graze_distance > 0));
+				previous_has_exact = by_previous.map(has_exact);
+				target_has_exact = by_next.map(has_exact);
+			}
+			if (previous_has_exact[candidate.previous_index] ||
+				target_has_exact[candidate.next_index]) {
+				rejected_grazes.add(candidate);
+			}
 		}
 	}
 	if (rejected_grazes.size) {
