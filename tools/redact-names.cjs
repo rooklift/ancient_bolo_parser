@@ -17,6 +17,14 @@
  * stays byte-identical in every shared record after the swap. A
  * mapping that changes a length is refused.
  *
+ * Only the name fields the parser identifies are patched, at the
+ * offsets it reports; the bytes of a name are never searched for, so a
+ * coordinate or a shell list that happens to spell a name is left as
+ * recorded. A search is still made afterwards: an original name found
+ * in bytes the parser could not read is a leak and stops the tool, and
+ * one found inside parsed gameplay data is a coincidence, counted and
+ * reported. (A real node id is twenty-odd bytes, so neither happens.)
+ *
  * Chat (`FA`) is left alone. It may quote the names too, and wants a
  * reading rather than a substitution; the tool counts the messages
  * whose text contains an original name so that is not forgotten (a
@@ -96,19 +104,25 @@ function map_node_id(map, name) {
 
 /* ---------- the names in a log ---------- */
 
-const NAMED = { node_id: "name", history: "name", attached_log: "name" };
+const NAMED = new Set(["node_id", "history", "attached_log"]);
 
+/* Every name field in the log: the record it sits in, the offset of its
+ * Pascal length byte within that record's payload, and the name. */
 function collect_names(bytes) {
+	let fields = [];
 	let names = new Set();
 	let messages = [];
 	for (let raw of BoloLog.rawRecords(bytes)) {
 		let rec = BoloLog.parseRecord(raw);
 		for (let sub of rec.subpackets) {
-			if (sub.type in NAMED && sub[NAMED[sub.type]]) names.add(sub[NAMED[sub.type]]);
+			if (NAMED.has(sub.type) && sub.name) {
+				fields.push({ offset: raw.offset, at: sub.at, name: sub.name });
+				names.add(sub.name);
+			}
 			if (sub.type === "message") messages.push(sub.text);
 		}
 	}
-	return { names, messages };
+	return { fields, names, messages };
 }
 
 /* ---------- patching ---------- */
@@ -127,7 +141,7 @@ function find_pascal(data, needle) {
 }
 
 function redact(bytes, mapping) {
-	let { names, messages } = collect_names(bytes);
+	let { fields, names, messages } = collect_names(bytes);
 	let unmapped = new Set();
 	let table = new Map();
 	for (let name of names) {
@@ -140,17 +154,15 @@ function redact(bytes, mapping) {
 	}
 	let out = Uint8Array.from(bytes);
 	let patched = 0;
-	for (let raw of BoloLog.rawRecords(bytes)) {
-		let base = raw.offset + 5;
-		for (let [from, to] of table) {
-			let old_bytes = to_mac_roman(from), new_bytes = to_mac_roman(to);
-			for (let at of find_pascal(raw.data, old_bytes)) {
-				for (let i = 0; i < old_bytes.length; i++) {
-					out[base + at + i] = bytes[base + at + i] ^ old_bytes[i] ^ new_bytes[i];
-				}
-				patched++;
-			}
+	for (let { offset, at, name } of fields) {
+		let old_bytes = to_mac_roman(name), new_bytes = to_mac_roman(table.get(name));
+		/* The string's bytes start after the length byte; the payload
+		 * starts after the 4-byte time tag and the length byte. */
+		let base = offset + 5 + at + 1;
+		for (let i = 0; i < old_bytes.length; i++) {
+			out[base + i] = bytes[base + i] ^ old_bytes[i] ^ new_bytes[i];
 		}
+		patched++;
 	}
 	let quoted = 0;
 	let halves = new Set();
@@ -163,23 +175,45 @@ function redact(bytes, mapping) {
 	for (let text of messages) {
 		if ([...halves].some(half => text.includes(half))) quoted++;
 	}
-	return { out, table, patched, messages: messages.length, quoted };
+	return { out, table, fields, patched, messages: messages.length, quoted };
 }
 
 /* The written file, read back: every name it now carries must be a
- * replacement, and no original may survive anywhere outside chat. */
-function verify(out, table) {
-	let { names } = collect_names(out);
+ * replacement, its name fields must be exactly where they were, and no
+ * original may survive in bytes the parser could not read. Returns the
+ * number of times an original's bytes occur inside parsed gameplay data,
+ * where they are a coincidence and were rightly left alone. */
+function verify(out, table, before) {
+	let { fields, names } = collect_names(out);
 	let expected = new Set(table.values());
 	for (let name of names) {
 		if (!expected.has(name)) throw new Error(`after patching, an unexpected name remains: ${JSON.stringify(name)}`);
 	}
-	for (let from of table.keys()) {
-		let needle = to_mac_roman(from);
-		for (let raw of BoloLog.rawRecords(out)) {
-			if (find_pascal(raw.data, needle).length) throw new Error(`after patching, ${JSON.stringify(from)} survives at offset ${raw.offset}`);
+	if (before) {
+		if (fields.length !== before.length) throw new Error(`after patching, ${fields.length} name fields where there were ${before.length}`);
+		for (let i = 0; i < fields.length; i++) {
+			let a = before[i], b = fields[i];
+			if (a.offset !== b.offset || a.at !== b.at || table.get(a.name) !== b.name) {
+				throw new Error(`after patching, the name field at offset ${a.offset} reads ${JSON.stringify(b.name)}, not ${JSON.stringify(table.get(a.name))}`);
+			}
 		}
 	}
+	let coincidences = 0;
+	for (let raw of BoloLog.rawRecords(out)) {
+		let rec = null;
+		for (let from of table.keys()) {
+			let needle = to_mac_roman(from);
+			for (let at of find_pascal(raw.data, needle)) {
+				if (rec === null) rec = BoloLog.parseRecord(raw);
+				let unread = rec.unparsed ? raw.data.length - rec.unparsed.length / 2 : raw.data.length;
+				if (at - 1 + 1 + needle.length > unread) {
+					throw new Error(`after patching, ${JSON.stringify(from)} survives in unparsed bytes at offset ${raw.offset}`);
+				}
+				coincidences++;
+			}
+		}
+	}
+	return coincidences;
 }
 
 function main() {
@@ -194,11 +228,14 @@ function main() {
 	if (bytes.length < HEADER_SIZE || String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3]) !== "Bolo") {
 		throw new Error(`${in_file}: not a Bolo log`);
 	}
-	let { out, table, patched, messages, quoted } = redact(bytes, mapping);
-	verify(out, table);
+	let { out, table, fields, patched, messages, quoted } = redact(bytes, mapping);
+	let coincidences = verify(out, table, fields);
 	fs.writeFileSync(out_file, out);
-	console.log(`${path.basename(in_file)} -> ${path.basename(out_file)}: ${table.size} node ids, ${patched} occurrences patched, ` +
+	console.log(`${path.basename(in_file)} -> ${path.basename(out_file)}: ${table.size} node ids, ${patched} name fields patched, ` +
 		`${messages} chat messages left as they are (${quoted} quoting an original name)`);
+	if (coincidences) {
+		console.log(`  ${coincidences} place(s) where gameplay data spells an original name by coincidence, left as recorded`);
+	}
 	for (let [from, to] of [...table].sort()) console.log(`  ${JSON.stringify(from)} -> ${JSON.stringify(to)}`);
 }
 
