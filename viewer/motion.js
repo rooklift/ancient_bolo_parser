@@ -3264,6 +3264,9 @@ function pill_states_reachable(end_shell, shell, duration) {
 const LOCKSTEP_REFERENCE_MIN_SCORE = 3;
 const LOCKSTEP_REFERENCE_MIN_MARGIN = 2;
 
+/* shared by every empty roster and advance table below; read only */
+const EMPTY_MAP = new Map();
+
 let record_roster_votes = false;
 function set_roster_vote_recording(on) {
 	record_roster_votes = !!on;
@@ -3286,12 +3289,16 @@ function build_pill_lockstep_reference(snapshots,
 		}
 		return by_pill;
 	};
-	let sources = snapshots.map(snapshot =>
-		roster(snapshot, shell => !shell.next_terminal));
-	let targets = snapshots.map(snapshot =>
-		roster(snapshot, shell => !shell.starts_at_pillbox &&
-			!shell.starts_at_tank));
-	let adjacent = snapshots.map(() => new Map());
+	/* A snapshot without shells has an empty roster either way, and most
+	 * snapshots have none; the rosters, and the per-snapshot advance
+	 * tables until their first entry, share one empty map, which nothing
+	 * here writes to. */
+	let sources = snapshots.map(snapshot => snapshot.shells.length
+		? roster(snapshot, shell => !shell.next_terminal) : EMPTY_MAP);
+	let targets = snapshots.map(snapshot => snapshot.shells.length
+		? roster(snapshot, shell => !shell.starts_at_pillbox &&
+			!shell.starts_at_tank) : EMPTY_MAP);
+	let adjacent = snapshots.map(() => EMPTY_MAP);
 	for (let i = 0; i + 1 < snapshots.length; i++) {
 		let duration = snapshots[i + 1].time - snapshots[i].time;
 		let max_advance = Math.ceil(duration / TICKS_PER_SHELL_UPDATE) +
@@ -3315,6 +3322,7 @@ function build_pill_lockstep_reference(snapshots,
 			}
 			if (best_score >= LOCKSTEP_REFERENCE_MIN_SCORE &&
 				best_score >= runner_up + LOCKSTEP_REFERENCE_MIN_MARGIN) {
+				if (adjacent[i] === EMPTY_MAP) adjacent[i] = new Map();
 				adjacent[i].set(pill, best);
 			}
 		}
@@ -4629,6 +4637,12 @@ function apply_forced_unseen(creation, fate, units, match) {
 	}
 }
 
+/* the snapshot fields holding unclaimed fire capacity, by weapon kind */
+const UNCLAIMED_SOURCE_KINDS = [
+	["unclaimed_pillbox_sources", "pill"],
+	["unclaimed_tank_sources", "tank"],
+];
+
 function resolve_residual_shell_fates(snapshots) {
 	let reference = build_pill_lockstep_reference(snapshots);
 	let clock = sender_clock(snapshots);
@@ -5144,10 +5158,7 @@ function resolve_residual_shell_fates(snapshots) {
 	 * explain anything else, and counting it again would dress exhausted
 	 * sources up as open stories. */
 	for (let snapshot of snapshots) {
-		for (let [key, kind] of [
-			["unclaimed_pillbox_sources", "pill"],
-			["unclaimed_tank_sources", "tank"],
-		]) {
+		for (let [key, kind] of UNCLAIMED_SOURCE_KINDS) {
 			if (!snapshot[key]) continue;
 			/* Records can share a timestamp. Return each creation's
 			 * remaining capacity only to its originating snapshot;
