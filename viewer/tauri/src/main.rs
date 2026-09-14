@@ -54,7 +54,25 @@ struct AppState {
 	next_log_id: u64,
 	loaded_file_path: Option<PathBuf>,
 	/* video export: the renderer streams the file as it encodes; one at a time */
-	export_file: Option<(fs::File, PathBuf)>,
+	export_file: Option<ExportFile>,
+}
+
+/* The bytes of an export go to a sibling of the chosen destination
+ * (dest + ".part"), which replaces the destination only once the export
+ * has ended cleanly. Anything short of that (cancel, failure, the page or
+ * window going away) removes the sibling and leaves whatever the
+ * destination held untouched: the user who picks an existing video and
+ * then cancels still has it. */
+struct ExportFile {
+	file: fs::File,
+	path: PathBuf, /* the destination */
+	temp: PathBuf, /* where the bytes go meanwhile */
+}
+
+fn export_temp_path(dest: &Path) -> PathBuf {
+	let mut name = dest.file_name().map(|name| name.to_os_string()).unwrap_or_default();
+	name.push(".part");
+	dest.with_file_name(name)
 }
 
 type Shared = Mutex<AppState>;
@@ -257,17 +275,38 @@ fn set_export_holds(app: &AppHandle, on: bool) {
 	}
 }
 
-fn close_export_file(app: &AppHandle) -> Option<PathBuf> {
-	let (file, path) = lock(app).export_file.take()?;
+/* Closes the file being written and returns its (destination, temp) paths,
+ * or None if no export was open. What becomes of the temp file is the
+ * caller's call. */
+fn close_export_file(app: &AppHandle) -> Option<(PathBuf, PathBuf)> {
+	let ExportFile { file, path, temp } = lock(app).export_file.take()?;
 	drop(file);
 	set_export_holds(app, false);
-	Some(path)
+	Some((path, temp))
 }
 
-/* Cancelled, failed, or the window went away: no half-written file left behind. */
+/* Cancelled, failed, or the page or window went away: the temp file goes,
+ * the destination is not touched. */
 fn abort_export(app: &AppHandle) {
-	if let Some(path) = close_export_file(app) {
-		let _ = fs::remove_file(path);
+	if let Some((_, temp)) = close_export_file(app) {
+		let _ = fs::remove_file(temp);
+	}
+}
+
+/* Ended cleanly: the temp file becomes the destination. */
+fn finish_export(app: &AppHandle) -> Result<PathBuf, String> {
+	{
+		let mut state = lock(app);
+		let export = state.export_file.as_mut().ok_or_else(|| "no export in progress".to_string())?;
+		let _ = export.file.sync_all(); /* the rename below still goes ahead */
+	}
+	let (path, temp) = close_export_file(app).ok_or_else(|| "no export in progress".to_string())?;
+	match fs::rename(&temp, &path) {
+		Ok(()) => Ok(path),
+		Err(err) => {
+			let _ = fs::remove_file(&temp);
+			Err(err.to_string())
+		}
 	}
 }
 
@@ -405,9 +444,10 @@ async fn video_begin(app: AppHandle, window: WebviewWindow, default_name: String
 	if state.export_file.is_some() {
 		return FileResult::error("an export is already in progress");
 	}
-	match fs::File::create(&path) {
+	let temp = export_temp_path(&path);
+	match fs::File::create(&temp) {
 		Ok(file) => {
-			state.export_file = Some((file, path.clone()));
+			state.export_file = Some(ExportFile { file, path: path.clone(), temp });
 			drop(state);
 			remember_directory(&app, LAST_SAVE_DIRECTORY, &path);
 			set_export_holds(&app, true);
@@ -421,8 +461,8 @@ async fn video_begin(app: AppHandle, window: WebviewWindow, default_name: String
 fn video_write(app: AppHandle, request: Request<'_>) -> Result<(), String> {
 	let bytes = raw_body(&request)?;
 	let mut state = lock(&app);
-	let Some((file, _)) = state.export_file.as_mut() else { return Err("no export in progress".to_string()) };
-	file.write_all(bytes).map_err(|err| err.to_string())
+	let Some(export) = state.export_file.as_mut() else { return Err("no export in progress".to_string()) };
+	export.file.write_all(bytes).map_err(|err| err.to_string())
 }
 
 /* Patch the header fields only known at the end, leaving the write position alone. */
@@ -433,7 +473,7 @@ fn video_patch(app: AppHandle, request: Request<'_>) -> Result<(), String> {
 		.ok_or_else(|| "bad patch offset".to_string())?;
 	let bytes = raw_body(&request)?;
 	let mut state = lock(&app);
-	let Some((file, _)) = state.export_file.as_mut() else { return Err("no export in progress".to_string()) };
+	let Some(export) = state.export_file.as_mut() else { return Err("no export in progress".to_string()) };
 	let patch = |file: &mut fs::File| -> std::io::Result<()> {
 		let position = file.stream_position()?;
 		file.seek(SeekFrom::Start(offset))?;
@@ -441,14 +481,12 @@ fn video_patch(app: AppHandle, request: Request<'_>) -> Result<(), String> {
 		file.seek(SeekFrom::Start(position))?;
 		Ok(())
 	};
-	patch(file).map_err(|err| err.to_string())
+	patch(&mut export.file).map_err(|err| err.to_string())
 }
 
 #[tauri::command]
 fn video_end(app: AppHandle) -> Result<String, String> {
-	close_export_file(&app)
-		.map(|path| path_string(&path))
-		.ok_or_else(|| "no export in progress".to_string())
+	finish_export(&app).map(|path| path_string(&path))
 }
 
 #[tauri::command]
