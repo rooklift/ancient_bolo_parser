@@ -1089,12 +1089,16 @@ function extract_initial_map_pass(records, death_pill_squares) {
 	let pills = null, bases = null, starts = null;
 	let badRuns = 0;
 	const tanks = {};
+	/* record indices of the first tank death and the last map run, for
+	 * extract_initial_map to tell whether the death mask can matter */
+	let first_death_index = null, last_map_run_index = null;
 
 	const taint = (x, y) => {
 		if (x >= 0 && y >= 0 && x < MAP_SIZE && y < MAP_SIZE) tainted[y * MAP_SIZE + x] = 1;
 	};
 
-	for (const rec of records) {
+	for (let index = 0; index < records.length; index++) {
+		const rec = records[index];
 		for (const sub of rec.subpackets) {
 			switch (sub.type) {
 				case "pillbox_list":
@@ -1109,6 +1113,7 @@ function extract_initial_map_pass(records, death_pill_squares) {
 				case "tank_position": {
 					tanks[rec.player] = sub;
 					if (sub.dying) {
+						if (first_death_index === null) first_death_index = index;
 						/* eventless forest clearing at tank death (see
 						 * apply_record): every wreck position uses the same
 						 * strict 15x15 integer box, except where a pill
@@ -1121,6 +1126,7 @@ function extract_initial_map_pass(records, death_pill_squares) {
 					break;
 				}
 				case "map_run": {
+					last_map_run_index = index;
 					const bytes = sub.run;
 					const y = bytes[1], startx = bytes[2], endx = bytes[3];
 					const nibs = [];
@@ -1173,6 +1179,8 @@ function extract_initial_map_pass(records, death_pill_squares) {
 	return {
 		grid,
 		badRuns,
+		first_death_index,
+		last_map_run_index,
 		pills: (pills || []).map(p => ({
 			x: p.x, y: p.y,
 			owner: p.owner > 15 ? 16 : p.owner,
@@ -1194,6 +1202,17 @@ function extract_initial_map_pass(records, death_pill_squares) {
  * by that record's F9 begin masking the following dying position. */
 function extract_initial_map(records, node_joins) {
 	const provisional = extract_initial_map_pass(records, null);
+	/* The death mask changes only which squares a map run may write.
+	 * When every run precedes the first tank death -- the whole map
+	 * written from Bolo's own dump at the start of the log, the usual
+	 * case -- a second pass would write exactly the first's grid, so the
+	 * replay is skipped. A death in the same record as a run counts as
+	 * before it, since tank positions precede map runs in a record. */
+	if (provisional.first_death_index === null ||
+		provisional.last_map_run_index === null ||
+		provisional.last_map_run_index < provisional.first_death_index) {
+		return provisional;
+	}
 	const state = initial_state(provisional);
 	const death_pill_squares = new WeakMap();
 	for (const rec of records) {
