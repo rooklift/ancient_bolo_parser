@@ -292,33 +292,32 @@ fn set_export_holds(app: &AppHandle, on: bool) {
 	}
 }
 
-/* Closes the file being written and returns its (destination, temp) paths,
- * or None if no export was open. What becomes of the temp file is the
- * caller's call. */
-fn close_export_file(app: &AppHandle) -> Option<(PathBuf, PathBuf)> {
-	let ExportFile { file, path, temp } = lock(app).export_file.take()?;
-	drop(file);
+/* Ends the export's claim on the app (one at a time, the holds) and hands
+ * the open file back, or None if no export was open. Closing it, and what
+ * becomes of the temp file, is the caller's call. */
+fn take_export_file(app: &AppHandle) -> Option<ExportFile> {
+	let taken = lock(app).export_file.take()?;
 	set_export_holds(app, false);
-	Some((path, temp))
+	Some(taken)
 }
 
 /* Cancelled, failed, or the page or window went away: the temp file goes,
  * the destination is not touched. */
 fn abort_export(app: &AppHandle) {
-	if let Some((_, temp)) = close_export_file(app) {
+	if let Some(ExportFile { file, temp, .. }) = take_export_file(app) {
+		drop(file);
 		let _ = fs::remove_file(temp);
 	}
 }
 
-/* Ended cleanly: the temp file becomes the destination. */
+/* Ended cleanly: the temp file becomes the destination, but only once its
+ * bytes are known to be on disk. A failed flush means they may not be,
+ * and then the destination keeps whatever it held. */
 fn finish_export(app: &AppHandle) -> Result<PathBuf, String> {
-	{
-		let mut state = lock(app);
-		let export = state.export_file.as_mut().ok_or_else(|| "no export in progress".to_string())?;
-		let _ = export.file.sync_all(); /* the rename below still goes ahead */
-	}
-	let (path, temp) = close_export_file(app).ok_or_else(|| "no export in progress".to_string())?;
-	match fs::rename(&temp, &path) {
+	let ExportFile { file, path, temp } = take_export_file(app).ok_or_else(|| "no export in progress".to_string())?;
+	let synced = file.sync_all();
+	drop(file);
+	match synced.and_then(|()| fs::rename(&temp, &path)) {
 		Ok(()) => Ok(path),
 		Err(err) => {
 			let _ = fs::remove_file(&temp);

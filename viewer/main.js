@@ -271,36 +271,46 @@ function open_export_temp(dest) {
 	}
 }
 
-/* Closes the file being written and returns { path, temp } (or null if no
- * export was open). What becomes of the temp file is the caller's call. */
-function close_export_file() {
+/* Ends the export's claim on the app (one at a time, the holds) and hands
+ * the open file back: { fd, path, temp }, or null if no export was open.
+ * Closing it, and what becomes of the temp file, is the caller's call. */
+function take_export_file() {
 	if (!export_file) return null;
-	let { path: p, temp } = export_file;
-	try { fs.closeSync(export_file.fd); } catch { /* already gone */ }
+	let taken = export_file;
 	export_file = null;
 	end_export_holds();
-	return { path: p, temp };
+	return taken;
 }
 
 /* Cancelled, failed, or the window went away: the temp file goes, the
  * destination is not touched. */
 function abort_export() {
-	let closed = close_export_file();
-	if (closed) {
-		try { fs.unlinkSync(closed.temp); } catch { /* best effort */ }
+	let taken = take_export_file();
+	if (taken) {
+		try { fs.closeSync(taken.fd); } catch { /* already gone */ }
+		try { fs.unlinkSync(taken.temp); } catch { /* best effort */ }
 	}
 }
 
-/* Ended cleanly: the temp file becomes the destination. */
+/* Ended cleanly: the temp file becomes the destination, but only once its
+ * bytes are known to be on disk. A failed flush or close means they may
+ * not be, and then the destination keeps whatever it held. */
 function finish_export() {
-	if (!export_file) return { error: "no export in progress" };
-	try { fs.fsyncSync(export_file.fd); } catch { /* the rename below still goes ahead */ }
-	let closed = close_export_file();
+	let taken = take_export_file();
+	if (!taken) return { error: "no export in progress" };
+	let { fd, path: p, temp } = taken;
+	let closed = false;
 	try {
-		fs.renameSync(closed.temp, closed.path);
-		return { path: closed.path };
+		fs.fsyncSync(fd);
+		closed = true; /* closeSync releases the fd whether or not it reports an error */
+		fs.closeSync(fd);
+		fs.renameSync(temp, p);
+		return { path: p };
 	} catch (err) {
-		try { fs.unlinkSync(closed.temp); } catch { /* best effort */ }
+		if (!closed) {
+			try { fs.closeSync(fd); } catch { /* already reporting an error */ }
+		}
+		try { fs.unlinkSync(temp); } catch { /* best effort */ }
 		return { error: String(err) };
 	}
 }
