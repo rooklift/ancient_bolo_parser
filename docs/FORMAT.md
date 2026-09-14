@@ -127,7 +127,7 @@ After the position subpackets, zero or more subpackets identified by their first
 
 ### Subpacket order within a record
 
-Tank position, LGM position, base drains, pill pickups, base captures, terrain changes, tank death, tank fires, pillbox fires, shell falls, tank hits, base/pill hits, terrain explosions, shell lists (oldest first), messages. Map and node subpackets normally appear alone.
+Usually: tank position, LGM position, base drains, pill pickups, base captures, terrain changes, tank death, tank fires, pillbox fires, shell falls, tank hits, base/pill hits, terrain explosions, shell lists (oldest first), messages. A shell list does sometimes follow the message (in about a thousand records over both collections, and they are real shells). Map and node subpackets normally appear alone.
 
 ### Start-of-log sequence
 

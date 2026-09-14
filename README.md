@@ -29,7 +29,7 @@ for (const rec of records(new Uint8Array(fs.readFileSync(file)))) {
 
 ## Fixtures
 
-`fixtures/` holds anonymised logs: three single games, and in `fixtures/pairs/` ten games each recorded on two machines at once, named by date (a second number telling apart two games of one day) with `-A` and `-B` for the two recorders. Player and machine names, chat and IP addresses are substituted byte for byte (`tools/redact-names.cjs`, `redact-chat.cjs`, `redact-addresses.cjs`); every other byte is as recorded, so the two logs of a pair still agree on every shared record. `tools/compare-recordings.cjs` lays the two logs of a pair side by side, and `tools/audit-paired-reconstruction.cjs` compares what the viewer's shell matcher makes of each: the same packets under two sets of timestamps.
+`fixtures/` holds anonymised logs: three single games, and in `fixtures/pairs/` ten games each recorded on two machines at once, named by date (a second number telling apart two games of one day) with `-A` and `-B` for the two recorders. Player and machine names, chat and IP addresses are substituted byte for byte (`tools/redact-names.cjs`, `redact-chat.cjs`, `redact-addresses.cjs`); every other byte is as recorded, so the two logs of a pair still agree on every shared record. `tools/compare-recordings.cjs` lays the two logs of a pair side by side, and `tools/audit-paired-reconstruction.cjs` compares what the viewer's shell matcher makes of each: the same packets under two sets of timestamps. `tools/fingerprint-build.cjs` digests the viewer's build of every fixture (`--save` before a change that should leave the reconstruction alone, `--check` after), so such a change is proven byte-identical rather than trusted.
 
 # Ancient Bolo Log Viewer
 
