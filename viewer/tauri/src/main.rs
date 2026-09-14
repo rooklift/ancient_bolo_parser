@@ -58,7 +58,7 @@ struct AppState {
 }
 
 /* The bytes of an export go to a sibling of the chosen destination
- * (dest + ".part"), which replaces the destination only once the export
+ * (dest + ".<tag>.part"), which replaces the destination only once the export
  * has ended cleanly. Anything short of that (cancel, failure, the page or
  * window going away) removes the sibling and leaves whatever the
  * destination held untouched: the user who picks an existing video and
@@ -69,10 +69,27 @@ struct ExportFile {
 	temp: PathBuf, /* where the bytes go meanwhile */
 }
 
-fn export_temp_path(dest: &Path) -> PathBuf {
-	let mut name = dest.file_name().map(|name| name.to_os_string()).unwrap_or_default();
-	name.push(".part");
-	dest.with_file_name(name)
+/* Creates the temp file exclusively, so a file already at the name (a
+ * leftover of a crash, or something of the user's own) is never opened
+ * and truncated: a fresh tag is tried instead. The tag only has to be
+ * unlikely to collide, and create_new catches it when it does. */
+fn create_export_temp(dest: &Path) -> std::io::Result<(fs::File, PathBuf)> {
+	let mut attempt: u32 = 0;
+	loop {
+		let nanos = std::time::SystemTime::now()
+			.duration_since(std::time::UNIX_EPOCH)
+			.map(|since| since.subsec_nanos())
+			.unwrap_or(0);
+		let tag = nanos.rotate_left(attempt) ^ std::process::id().wrapping_mul(2_654_435_761);
+		let mut name = dest.file_name().map(|name| name.to_os_string()).unwrap_or_default();
+		name.push(format!(".{tag:08x}.part"));
+		let temp = dest.with_file_name(name);
+		match fs::OpenOptions::new().write(true).create_new(true).open(&temp) {
+			Ok(file) => return Ok((file, temp)),
+			Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists && attempt < 16 => attempt += 1,
+			Err(err) => return Err(err),
+		}
+	}
 }
 
 type Shared = Mutex<AppState>;
@@ -444,9 +461,8 @@ async fn video_begin(app: AppHandle, window: WebviewWindow, default_name: String
 	if state.export_file.is_some() {
 		return FileResult::error("an export is already in progress");
 	}
-	let temp = export_temp_path(&path);
-	match fs::File::create(&temp) {
-		Ok(file) => {
+	match create_export_temp(&path) {
+		Ok((file, temp)) => {
 			state.export_file = Some(ExportFile { file, path: path.clone(), temp });
 			drop(state);
 			remember_directory(&app, LAST_SAVE_DIRECTORY, &path);

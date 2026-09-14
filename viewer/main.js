@@ -4,6 +4,7 @@
 const { app, BrowserWindow, Menu, dialog, ipcMain, shell, powerSaveBlocker } = require("electron");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 
 let win = null;
 let loaded_file_path = null;
@@ -230,7 +231,7 @@ ipcMain.handle("save-map", async (e, defaultName, data) => {
 /* Video export: the renderer streams the file as it encodes, then patches
  * the two header fields only known at the end. One export at a time.
  *
- * The bytes go to a sibling of the chosen destination (dest + ".part"),
+ * The bytes go to a sibling of the chosen destination (dest + ".<tag>.part"),
  * which replaces the destination only once the export has ended cleanly.
  * Anything short of that (cancel, failure, the window going away) removes
  * the sibling and leaves whatever the destination held untouched: the
@@ -256,8 +257,18 @@ function end_export_holds() {
 	}
 }
 
-function export_temp_path(dest) {
-	return dest + ".part";
+/* Creates the temp file exclusively, so a file already at the name (a
+ * leftover of a crash, or something of the user's own) is never opened
+ * and truncated: a fresh random tag is tried instead. Returns { fd, temp }. */
+function open_export_temp(dest) {
+	for (let attempt = 0; ; attempt++) {
+		let temp = `${dest}.${crypto.randomBytes(4).toString("hex")}.part`;
+		try {
+			return { fd: fs.openSync(temp, "wx"), temp };
+		} catch (err) {
+			if (err.code !== "EEXIST" || attempt >= 16) throw err;
+		}
+	}
 }
 
 /* Closes the file being written and returns { path, temp } (or null if no
@@ -306,8 +317,8 @@ ipcMain.handle("video-begin", async (e, default_name) => {
 	 * while the dialog was open must not open a second file */
 	if (export_file) return { canceled: true, error: "an export is already in progress" };
 	try {
-		let temp = export_temp_path(res.filePath);
-		export_file = { fd: fs.openSync(temp, "w"), path: res.filePath, temp };
+		let { fd, temp } = open_export_temp(res.filePath);
+		export_file = { fd, path: res.filePath, temp };
 		remember_save_directory(res.filePath);
 		begin_export_holds();
 		return { canceled: false, path: res.filePath };
