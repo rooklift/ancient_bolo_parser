@@ -1146,9 +1146,14 @@ const MAX_RECORDS = 2_000_000;    /* ~16x the 2h sample; caps memory */
  * time working rather than waiting on frames. */
 const PARSE_SHARE = 0.08, BUILD_SHARE = 0.9, LOADING_REPAINT_MS = 100;
 let loading_painted_at = -Infinity;
-/* Loads yield to the event loop many times, so a log dropped during a
- * load starts a second one: each load takes a generation, and an older
- * load abandons itself at its next yield once a newer one has begun. */
+/* Each request to load a log claims a generation as it is made, ahead of
+ * any file read, and a load only begins under the newest claim: reads
+ * that complete out of order can't open the wrong replay, as the bytes of
+ * an older request are dropped on arrival. A load also yields to the
+ * event loop many times, so a log dropped during a load starts a second
+ * one: load_generation is the claim of the newest load to have begun, and
+ * an older load abandons itself at its next yield once a newer one has. */
+let load_claims = 0;
 let load_generation = 0;
 const SUPERSEDED = Symbol("superseded");
 /* The viewer state as it was before the first of the pending loads, for
@@ -1196,8 +1201,9 @@ function loading_stage(label, progress) {
 	}));
 }
 
-async function load_log(bytes, name) {
+async function load_log(bytes, name, generation = ++load_claims) {
 	if (exporting) return; /* the export owns the viewer state until done */
+	if (generation !== load_claims) return; /* a later request owns the viewer */
 	/* Parse fully before touching viewer state, so a malformed file leaves
 	 * any currently loaded replay running. */
 	if (!loading) {
@@ -1208,7 +1214,7 @@ async function load_log(bytes, name) {
 		};
 	}
 	let header, recs, new_game;
-	let generation = ++load_generation;
+	load_generation = generation;
 	let progress = async (label, fraction) => {
 		await loading_progress(label, fraction);
 		if (generation !== load_generation) throw SUPERSEDED;
@@ -1754,13 +1760,19 @@ function take_file(f) {
 		return;
 	}
 	let file_path = window.api ? window.api.file_path(f) : f.name;
+	/* The claim is made here, not when the read completes: a slow read of
+	 * this file must lose to any file chosen after it. A read that fails
+	 * once a later file has been chosen is not worth an error dialog. */
+	let claim = ++load_claims;
 	f.arrayBuffer().then(
-		ab => load_log(new Uint8Array(ab), file_path),
-		err => show_error("Could not read file", String(err)));
+		ab => load_log(new Uint8Array(ab), file_path, claim),
+		err => { if (claim === load_claims) show_error("Could not read file", String(err)); });
 }
 
 /* Ask for a log: the native dialog in Electron (which remembers the last
- * directory), the browser's file picker on the web. */
+ * directory), the browser's file picker on the web. The host reads the
+ * file before answering, as it does for on_load_log, so those requests
+ * are claimed on arrival, by load_log itself. */
 function open_log() {
 	if (exporting) return;
 	if (WEB) {
