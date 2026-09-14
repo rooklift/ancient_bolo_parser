@@ -1906,7 +1906,7 @@ Corpus verification, run by the corpus holder at `956f1b7`
 ## Fast-ring verbatim re-sends -- `efe9ab2`
 
 Motivated by a user-supplied fast-ring log outside the corpus, since
-committed in redacted form as `fixtures/040601.6` (a two-player
+committed in redacted form as `fixtures/fast_ring` (a two-player
 low-latency game, token circulating every 1-3 ticks against
 the corpus-normal ~12): there the sender's packet rate outpaces its
 shell resampling, over half of all closely-spaced statements restate
@@ -3898,10 +3898,10 @@ novel readings, 3,127 are shorter than the shortest stamp reading and
 links exceed the longest stamp reading by more than the window, 8,689
 of them in a pair with a reading. The counter has no `ae527fd`
 baseline, so the fixtures stand in: under `abe761d`'s engine and this
-one, `040601.6` has 104 -> 184 links beyond the stamps and 79 of this
+one, `fast_ring` has 104 -> 184 links beyond the stamps and 79 of this
 engine's sit in pairs whose reading is novel and long
 (`links_beyond_stamps_novel`, added at this point for the next run);
-`n20021018.2` 125 -> 133 and 12. The links the long readings admit
+`long_game` 125 -> 133 and 12. The links the long readings admit
 are the links beyond the stamps that are new, near enough one for
 one, at two and a half links per novel-long pair. At that rate the
 corpus's 2,782 novel-long pairs carry about seven thousand such
