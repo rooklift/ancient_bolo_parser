@@ -19,14 +19,17 @@ function check(what, got, want) {
  * bridge as separate, deferred round trips. */
 function mock_host() {
 	let held = new Map();
+	let delays = new Map();
 	let next_id = 0;
 	let listeners = {};
 	let commands = {
-		take_log_bytes: ({ id }) => {
-			if (!held.has(id)) return Promise.reject(new Error("that log is no longer waiting"));
+		take_log_bytes: async ({ id }) => {
+			/* a fetch the host is slow to answer lands after later ones */
+			for (let i = delays.get(id) || 0; i > 0; i--) await new Promise(resolve => setImmediate(resolve));
+			if (!held.has(id)) throw new Error("that log is no longer waiting");
 			let data = held.get(id);
 			held.delete(id);
-			return Promise.resolve(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength));
+			return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
 		},
 		pending_logs: () => Promise.resolve([...held.keys()].map(id => ({ id, path: `startup${id}.log` }))),
 		open_log: () => {
@@ -54,6 +57,7 @@ function mock_host() {
 			if (listeners["load-log"]) listeners["load-log"]({ payload: { id, path: log_path } });
 		},
 		evict: id => held.delete(id),
+		delay: (id, ticks) => delays.set(id, ticks),
 		held_count: () => held.size,
 	};
 	return host;
@@ -86,6 +90,22 @@ async function settle() {
 			{ path: "b.log", data: [4, 5] },
 		]);
 		check("nothing left held", host.held_count(), 0);
+	}
+
+	// The page hears of drops in the order they arrived, even when the
+	// bytes of an earlier one take longer to fetch: the last drop must be
+	// the one the page ends up showing.
+	{
+		let host = mock_host();
+		let api = load_shim(host.window);
+		let got = [];
+		api.on_load_log(payload => got.push(payload.path));
+		await settle();
+		host.drop("slow.log", new Uint8Array([1]));
+		host.delay(1, 3);
+		host.drop("fast.log", new Uint8Array([2]));
+		await settle();
+		check("a slow fetch keeps its place in the order", got, ["slow.log", "fast.log"]);
 	}
 
 	// Logs waiting at startup are all listed, in arrival order, and one

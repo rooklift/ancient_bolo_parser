@@ -35,9 +35,13 @@
 
 	/* A log the host offered (by event, or listed at startup): fetch its
 	 * bytes and hand both to the page. One no longer held (taken already,
-	 * or evicted by later arrivals the page will hear of) is passed over. */
+	 * or evicted by later arrivals the page will hear of) is passed over.
+	 * The fetches go one at a time, in offer order, so the page hears of
+	 * the logs in the order they arrived however the round trips return:
+	 * the last of two quick drops must be the one it opens. */
+	let deliveries = Promise.resolve();
 	function deliver_log(cb, offer) {
-		take_log_bytes(offer.id).then(data => cb({ path: offer.path, data }), () => {});
+		deliveries = deliveries.then(() => take_log_bytes(offer.id).then(data => cb({ path: offer.path, data }), () => {}));
 	}
 
 	window.api = {
