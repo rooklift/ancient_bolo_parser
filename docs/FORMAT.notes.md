@@ -13,6 +13,7 @@ Corpus figures are from the 443-log set unless an entry says 446, in which case 
 - [`[E:shell-centre]`](#eshell-centre-shells-centre-at-8-px) — shells centre at +8 px
 - [`[E:tankpos-5]`](#etankpos-5-the-tank-position-subpacket-is-5-bytes) — the tank position subpacket is 5 bytes
 - [`[E:ext-bit]`](#eext-bit-the-lgm-parachute-position-extension) — the LGM / parachute position extension
+- [`[E:empty-chat]`](#eempty-chat-a-zero-length-chat-message-is-followed-by-junk) — a zero-length chat message is followed by junk
 
 **The ring and the network**
 
@@ -132,6 +133,12 @@ An early version of Osterwald's notes described a 6-byte layout with a leading `
 ### [E:ext-bit] — the LGM / parachute position extension
 
 Every record of both sample logs parses exactly to its length under this rule and fails without it. That bit 1 also carries the extension comes from bolorama's wire parser, which skips it for `senderFlags & 0xE0`.
+
+### [E:empty-chat] — a zero-length chat message is followed by junk
+
+Of 44,374 chat messages in both collections (1,030 logs), ten have a Pascal length byte of zero, and every one of the ten is followed in its record by bytes that are not subpackets, while no legitimately empty message exists at all. Read as subpackets the leavings are five terrain changes and explosions on deep sea, 79 to 195 squares from the sender's tank (one painted a shot building into open water at (104,32) of `20021024.3`, record 8617), and five three-shell lists at absurd positions. Their first byte is always printable — a letter or a space — and the rest reads as text under no encoding and under no shift of the XOR mask. Each trailer is exactly as long as the one subpacket its first byte would name (3 bytes after a letter, `6x`/`7x`; 8 bytes after a space, `20`), which says the sending machine sized the packet by walking its own buffer with the opcode table: it stepped into the leavings and copied what they claimed. It is the sender's fault, not the recorder's or the ring's: one of the ten is the recorder's own outgoing message (`20020912`, Palp's, record 137), and the other nine reached two different recorders at like rates and were logged whole, the junk inside the packet's length. The parser therefore ends the record at a zero-length message, keeps the leavings in `unparsed`, and warns.
+
+The rule is as narrow as it needs to be. Messages are not always last in a record: 995 records carry subpackets after a message, and the 1,290 shell lists among them are real — their distance from the sender's tank has the ordinary shell list's distribution (median 3.0 squares against 3.2, 90th percentile 6.0 against 6.0). Only the ten zero-length messages are followed by junk, and every trailing explosion or terrain change is one of them.
 
 ## The ring and the network
 
