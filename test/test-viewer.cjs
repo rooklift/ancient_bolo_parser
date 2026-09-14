@@ -8,7 +8,7 @@ const BoloGame = require("../viewer/game.js");
 const BoloNetwork = require("../viewer/network.js");
 
 const root = path.join(__dirname, "..");
-const log1 = path.join(root, "fixtures", "n20021018.2");
+const log1 = path.join(root, "fixtures", "long_game");
 
 let failures = 0;
 function check(what, got, want) {
@@ -30,7 +30,7 @@ function check(what, got, want) {
 }
 
 if (!fs.existsSync(log1)) {
-	console.log("skip: fixtures/n20021018.2 not present; log-based engine tests skipped");
+	console.log("skip: fixtures/long_game not present; log-based engine tests skipped");
 } else {
 	const buf = new Uint8Array(fs.readFileSync(log1));
 	const recs = [...BoloLog.records(buf)];
@@ -2951,8 +2951,8 @@ if (!fs.existsSync(log1)) {
 
 // Every pill_plant must find a carried pill: a tank death while the man is
 // out carrying (status C) must not dump the pill in the man's hands.
-if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
-	const recs = [...BoloLog.records(new Uint8Array(fs.readFileSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))))];
+if (fs.existsSync(path.join(__dirname, "..", "fixtures", "long_game"))) {
+	const recs = [...BoloLog.records(new Uint8Array(fs.readFileSync(path.join(__dirname, "..", "fixtures", "long_game"))))];
 	const st = BoloGame.initial_state(BoloGame.extract_initial_map(recs));
 	let noop = 0;
 	for (const r of recs) {
@@ -3739,9 +3739,9 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "n20021018.2"))) {
 // link the composed two-hop advance and calls it a contradiction (381 of
 // them, every one on a same-time pair). The scorer keys by snapshot index
 // and must find none; the verbatim re-sends it excludes are counted too.
-const log2 = path.join(root, "fixtures", "040601.6");
+const log2 = path.join(root, "fixtures", "fast_ring");
 if (!fs.existsSync(log2)) {
-	console.log("skip: fixtures/040601.6 not present; fast-ring scoring test skipped");
+	console.log("skip: fixtures/fast_ring not present; fast-ring scoring test skipped");
 } else {
 	const BoloMotion = require("../viewer/motion.js");
 	const game2 = BoloGame.build(
@@ -3762,9 +3762,9 @@ if (!fs.existsSync(log2)) {
 // pickups put the fifth due north on 51,149 and the sixth past the
 // buildings on 53,153. Every one of the log's 147 pickups lands on the
 // square the model gave the pill [E:dump-terrain].
-const log3 = path.join(root, "fixtures", "20010316.4");
+const log3 = path.join(root, "fixtures", "pill_dump");
 if (!fs.existsSync(log3)) {
-	console.log("skip: fixtures/20010316.4 not present; dump spiral fixture test skipped");
+	console.log("skip: fixtures/pill_dump not present; dump spiral fixture test skipped");
 } else {
 	const recs3 = [...BoloLog.records(new Uint8Array(fs.readFileSync(log3)))];
 	const joins3 = BoloGame.classify_node_joins(recs3);

@@ -8,7 +8,7 @@ points in the history. Produced with `tools/report-interpolation-rates.cjs`
 node tools/report-interpolation-rates.cjs -f <absolute path to the fixture>
 ```
 
-All ten runs read the same input, `fixtures/n20021018.2`
+All ten runs read the same input, `fixtures/long_game`
 (sha256 `100d68e2c2679cbac40a09bedc7cddeed9e357eed8de9205cba96bfe5a511ba9`). The
 fixture blob is identical at every commit measured, so nothing here is an
 artefact of the sample changing underneath the engine. The tool writes nothing
@@ -105,7 +105,7 @@ and packaging, so v1.0.8's numbers are still `main`'s.
   pill's passed election supplied the joins' clock instead;
   `links_beyond_stamps_novel` narrows that to pairs whose reading is
   novel and longer than the stamps, the links the reading alone
-  admitted. On `040601.6` under main's engine and this one, 104 -> 184
+  admitted. On `fast_ring` under main's engine and this one, 104 -> 184
   links beyond the stamps and 79 novel: the two are the same links.
 * `pairs_tank_order` / `pairs_tank_order_kept` / `pairs_tank_order_blurred`
   / `pairs_tank_order_inverted` and `rate_pairs_tank_order_inverted` -- the
@@ -124,7 +124,7 @@ and packaging, so v1.0.8's numbers are still `main`'s.
   lines as the pill axis, tagged `tank`, with each shell's advance along
   the line and its list index. On the fixture 9,129 pairs, 1 inverted, 1
   blurred; over the ten pairs 45,194 pairs, 14 inverted (seven scenes,
-  each seen by both recorders); on `040601.6` 22,332 pairs and none. Every
+  each seen by both recorders); on `fast_ring` 22,332 pairs and none. Every
   inversion is an identity swap between two shells on one line whose true
   continuations lie outside the interval's readings, so the swapped hops
   were the only candidates each shell had; the tank lockstep
@@ -628,21 +628,21 @@ keeps its old definition so the archived runs stay comparable:
   with no link drawn.
 
 The split reads the two fixtures very differently, and corrects the
-description above. On `n20021018.2` the 461 rushed terminal links are 5
+description above. On `long_game` the 461 rushed terminal links are 5
 timed and 456 static, all of the static ones box terminals (tank hits,
 pill and base damage, explosions) whose shell was last stated already
 inside the 16 px box: the effect draws where the shell was and there is
 nothing to animate. The "455 terminal links whose arrival is capped by
 an early event record" were never that; the capped class on an ordinary
-ring is five links. On the fast-ring `040601.6` the 831 are 377 timed,
+ring is five links. On the fast ring, `fast_ring`, the 831 are 377 timed,
 386 static and 68 instant -- the ring's 1-3 tick cadence lands event
 records against shells still in flight, so the cap bites there and
 nowhere else -- and its 1,104 rush links are 19 timed and 1,085 static,
 the decomposition the fast-ring re-sends entry (`efe9ab2`) had done by
 hand on that log. The `b9db294` step-zero matches land where the
 reasoning said they would: against `0263483` the first form's extra
-rushed links on `n20021018.2` are static 456 -> 592 with timed 5 -> 5,
-and on `040601.6` static 386 -> 412 with timed 377 -> 381.
+rushed links on `long_game` are static 456 -> 592 with timed 5 -> 5,
+and on `fast_ring` static 386 -> 412 with timed 377 -> 381.
 
 `--engine=DIR` runs the tool against another checkout's engine (a git
 worktree of an older commit) and reports that checkout's commit, so a
@@ -846,7 +846,7 @@ can now be scored against it after the fact (`score_pill_links` in
 `links_*` lines and the two `rate_links_pill_*` rates). Nothing in the
 engine changes; the scorer reads final state.
 
-Fixture (`n20021018.2`):
+Fixture (`long_game`):
 
 * 52,759 shell-to-shell links: 19,797 from chains with no pill source,
   3 visual joins, 0 verbatim re-sends, 52 with an unpinned end
@@ -877,7 +877,7 @@ Fixture (`n20021018.2`):
   elected 6. The first scenes the metric has named; on the books, not
   chased.
 
-Fast-ring fixture (`040601.6`):
+Fast-ring fixture (`fast_ring`):
 
 * 80,432 links, 1,679 of them verbatim re-sends, 33,142 without a pill
   source, 4 visual joins, 153 unpinned; 45,454 scored, 26,962 vouched
@@ -1035,7 +1035,7 @@ step zero, matched as a zero-length, zero-duration link where the
 track walk had found the collision a step or two on at 2 px/tick. The
 track now keeps first refusal over the whole walk, and the packet-box
 walk never starts at step zero. On the three local files that removes
-every one of the new rushed links (the three left on `040601.6` are
+every one of the new rushed links (the three left on `fast_ring` are
 rescued shells whose arrival is capped at a hit record one tick later,
 the cost already accepted for lagging events), at a price of two tank
 hits over the three files against the first form.
@@ -1047,7 +1047,7 @@ Fixture, against `7e3833b`:
 * `rate_terminals_matched` 0.859647 -> 0.860478 -- +20 net:
   `tank_hit` 3189 -> 3212, `pillbox_damage` -2, `shell_falls` -1
 * `links_pill_vouched` 20060 -> 20080, contradicted still 0
-* Over the fixture, `040601.6` and the motivating replay together:
+* Over the fixture, `fast_ring` and the motivating replay together:
   `tank_hit` 4285 -> 4327, unlinked 263 -> 248, contradicted 0
 * Audit: `pop_outs` 292 -> 273, `terminal_links_rushed` 461 -> 461
   (the first form had it at 598), seam jumps still zero
@@ -1111,7 +1111,7 @@ Fixture, against `1256974`:
 * Audit: `pop_outs` 273 -> 267, `pop_ins` 263 -> 235,
   `terminal_links_rushed` 461 -> 462, hovers 1 -> 1, seam jumps still
   zero, `rate_links_steady` unchanged
-* `040601.6` is byte-identical
+* `fast_ring` is byte-identical
 * The motivating replay: matched forward 0.993365 -> 0.994016, unlinked
   52 -> 45, terminals matched 5503 -> 5515 (`explosion` 451 -> 454,
   `pillbox_damage` 2045 -> 2054), tank origins 2257 -> 2284, unseen tank
@@ -1172,7 +1172,7 @@ Fixture, against `aa268f1` (main after the tank-window merge):
   pinned heads join the electorate
 * Audit: `pop_outs` 267 -> 262, `terminal_links_rushed` 462 -> 463,
   hovers and seam jumps unchanged
-* `040601.6`: every headline line identical; `links_pill_unpinned`
+* `fast_ring`: every headline line identical; `links_pill_unpinned`
   153 -> 145 and the vote tallies move with it
 * The motivating replay: matched forward 0.994016 -> 0.995447, unlinked
   45 -> 27, terminals matched 5515 -> 5538 (`pillbox_damage` +12,
@@ -1226,8 +1226,8 @@ question, noted here and not dialled; the die-at-impact section's
 continue-vs-die caution applies.
 
 Fixture, against `a5cddef` (main after the pill-window merge): every
-line identical; nothing on `n20021018.2` needed a lie that large. On
-`040601.6`, the fast-ring fixture, the bound refuses three joins
+line identical; nothing on `long_game` needed a lie that large. On
+`fast_ring`, the two-player fixture, the bound refuses three joins
 (`shells_unlinked` 25 -> 28, `pop_outs` 115 -> 118) and takes
 `hover_links` 46 -> 16 with them -- 27 of the 30 hovers found another
 story, three became pops, and `rate_links_steady` 0.964069 -> 0.964403.
@@ -1280,7 +1280,7 @@ lands:
 
 * `links_pill_unpinned` 23 -> 5; `links_pill_vouched` 20080 -> 20088,
   `links_pill_contradicted` still 0
-* `040601.6`: `links_pill_unpinned` 145 -> 71, vouched 26962 -> 27006,
+* `fast_ring`: `links_pill_unpinned` 145 -> 71, vouched 26962 -> 27006,
   contradicted 0; nothing else moves
 * The motivating replay: `links_pill_unpinned` 18 -> 2, vouched
   3387 -> 3391, contradicted 0; nothing else moves
@@ -1633,8 +1633,8 @@ scenes): across a stall of seconds the tanks are held and the shells
 creep, where the old engine had them vanish, and the creep reads as
 what it is, the net choking. The drawing keeps the stamps.
 
-The committed fixtures: `040601.6` byte-identical to the baseline;
-`n20021018.2` `shells_matched_forward` 73,495 -> 73,497 (two
+The committed fixtures: `fast_ring` byte-identical to the baseline;
+`long_game` `shells_matched_forward` 73,495 -> 73,497 (two
 `shell_falls`), `roster_votes_unvoted` 9,954 -> 9,956. Corpus:
 `fb4bd12` in [`interpolation_tests_corpus.md`](interpolation_tests_corpus.md)
 -- against the baseline matched forward +4,152, unlinked -1,828,
@@ -1788,7 +1788,7 @@ never outbid an on-schedule continuation or a fresher box: it is a
 fate for a shell that vanished from its sender's lists, not a rival.
 
 Two rules came from the first cut, which offered the boxes to every
-hit and let a stale box start at the statement. On `n20021018.2`
+hit and let a stale box start at the statement. On `long_game`
 that gained 138 hits and lost three continuations and two hits,
 and the losses were one shape: a pill barrage on the recorder's own
 tank (record 10646), where a shell already touching the box the
@@ -1807,7 +1807,7 @@ dilated link replaced by an on-schedule hit, and a two-shell line
 where the leader takes the hit the `FC` reports and the trailer
 takes the continuation the leader had.
 
-Fixture (`n20021018.2`), against `800f57c`:
+Fixture (`long_game`), against `800f57c`:
 
 * `rate_shells_matched_forward` 0.996529 -> **0.998034**
   (`shells_unmatched_forward` 256 -> 145)
@@ -1821,7 +1821,7 @@ Fixture (`n20021018.2`), against `800f57c`:
 * Audit: `pop_outs` 256 -> **145**, `terminal_links_rushed` 464 ->
   463, `terminal_links_static` 458 -> 457, `pop_ins` 224 -> 225,
   `rate_links_steady` 0.978830 -> 0.979076, seam jumps still zero
-* `040601.6` is byte-identical: 397 of its 478 hits are on the
+* `fast_ring` is byte-identical: 397 of its 478 hits are on the
   recorder's own tank, which carry no earlier boxes, and the 81 on
   other tanks gain nothing
 
@@ -1896,14 +1896,14 @@ they sit in the unmatched-terminal denominator with nothing that
 could ever match them. Excluding them would lift the terminal rate
 without changing a link, and the test wants care, since a listed
 shell craters squares too. That is the first thing to do if the
-terminal line is ever taken up. (`040601.6` has nine: eight round a
+terminal line is ever taken up. (`fast_ring` has nine: eight round a
 dead player, one same-record shot.)
 
 The 19 with a same-record shot are a real bug, small and known. A
 tank standing still and firing point-blank into the square beside
 it, once a record, has its shot and its impact reported in the same
 record every time, the shell dead before it could be listed
-(records 3936 to 3948 of `n20021018.2`, four shots into a shot
+(records 3936 to 3948 of `long_game`, four shots into a shot
 building, code `7B`). The residual pass builds its ordinary edges
 first, a shot in one record to an impact in a later one, and its
 same-record edges only on what is left; the ordinary edges reach
@@ -1942,8 +1942,8 @@ within three pixels plus chained-offset slack, closer than two shots a
 reload apart can be) or inverted, in the shape of `score_pill_order`,
 printed under the same `order_example` lines tagged `tank`.
 
-Fixtures at `422354a`: `n20021018.2` 9,129 pairs, **1** inverted, 1
-blurred; `040601.6` 22,319 pairs, none; the ten pairs 45,160 pairs,
+Fixtures at `422354a`: `long_game` 9,129 pairs, **1** inverted, 1
+blurred; `fast_ring` 22,319 pairs, none; the ten pairs 45,160 pairs,
 **14** inverted (seven scenes, each seen by both recorders). Every
 inversion is one shape. In the fixture's (records at 9713165 and
 9713188, sector 4) three eastbound shells of one tank sit at 1996,
@@ -1971,9 +1971,9 @@ in the matcher's pass loop after the pill lockstep passes.
 
 Fixtures at `e46dd5e`, against `422354a`:
 
-* `n20021018.2`: every rate unchanged, `flow_components` 1,193 ->
+* `long_game`: every rate unchanged, `flow_components` 1,193 ->
   1,188. The inversion stands: its shells had one candidate each.
-* `040601.6`: one more shell links forward (`links_shell` 80,428 ->
+* `fast_ring`: one more shell links forward (`links_shell` 80,428 ->
   80,429, `shells_unmatched_forward` 111 -> 110), `shells_with_birth`
   +20, `pairs_tank_order` 22,319 -> 22,332, still none inverted.
 * the ten pairs: `shells_matched_forward` 259,090 -> 259,097
@@ -2025,7 +2025,7 @@ The same structure is in `enforce_pillbox_lockstep_candidates`, whose
 members vote whether or not they hold a terminal candidate (the roster
 vote, `enforce_roster_lockstep_candidates`, already holds its election
 with and without its doubtful members). Measured on the fixtures and
-not applied: `n20021018.2` gains three forward matches, one terminal
+not applied: `long_game` gains three forward matches, one terminal
 and loses one of its three pinned inversions; the ten pairs lose one
 terminal, gain twelve vouched links and three inversions (5 -> 8), and
 the paired audit's conflicts go 379 -> 382. Every new inversion is a
@@ -2064,7 +2064,7 @@ its books on fired shots.
 
 `081d8aa`: the writeback of unspent shots to the snapshots was keyed by
 record time, so two snapshots stamped on one tick -- the fast-ring
-shape, 662 adjacent pairs on `040601.6` and none on `n20021018.2` --
+shape, 662 adjacent pairs on `fast_ring` and none on `long_game` --
 each received the other's leftovers as well as its own. A second pass
 (the one the contradiction sweep runs) then read both copies, and the
 terminal diagnostics read them too. The writeback is now keyed by the
@@ -2083,8 +2083,8 @@ old code, the pool's charges on the two fixtures:
 
 | fixture | within the margin | legal, outside the margin | not a candidate |
 | --- | --- | --- | --- |
-| `n20021018.2` | 4 | 2 | 7 |
-| `040601.6` | 3 | 2 | 5 |
+| `long_game` | 4 | 2 | 7 |
+| `fast_ring` | 3 | 2 | 5 |
 
 The "not a candidate" column is shots fired AFTER the impact they were
 charged for, 8 to 3,609 ticks after it. The fix spends a fate's
@@ -2103,11 +2103,11 @@ terminal diagnostics, `tank_hit:creation_unforced:T` 1 ->
 `tank_hit:direction:T` 2, where a phantom leftover had dressed a spent
 shot up as an open story. With both:
 
-* `n20021018.2`: `terminals_unseen_pillbox_source` 1,217 -> **1,209**,
+* `long_game`: `terminals_unseen_pillbox_source` 1,217 -> **1,209**,
   every other line byte-identical (matched forward 0.998034, unlinked
   0.001017, terminals matched 0.865877). The census pins move with it:
   unexplained terminals 896 -> 904, `fate_open` ends 22 -> 25.
-* `040601.6`: `terminals_unseen_pillbox_source` 312 -> **309**, every
+* `fast_ring`: `terminals_unseen_pillbox_source` 312 -> **309**, every
   other line byte-identical.
 * the ten pairs: the paired audit is byte-identical.
 * the drawn audit is byte-identical on both fixtures.
@@ -2122,8 +2122,8 @@ the election again at spend time, over the candidates still unspent:
 the new cheapest, the within set around it, one muzzle required, and
 the live-shell test re-run against the new cheapest, since a rival
 that sat outside the old margin can sit inside the new one. Fixtures,
-against `8289438`: `n20021018.2` `terminals_unseen_pillbox_source`
-1,209 -> **1,210** (unexplained terminals 904 -> 903), `040601.6`
+against `8289438`: `long_game` `terminals_unseen_pillbox_source`
+1,209 -> **1,210** (unexplained terminals 904 -> 903), `fast_ring`
 byte-identical at 309, the ten pairs and both drawn audits
 byte-identical. The unit tests add the two scenes by hand: two shots
 from one tank muzzle at ticks 100 and 105 and two impacts at 120 and
@@ -2159,8 +2159,8 @@ which counts the links past their record other than by a fall, by what
 they reach and by drawn speed, over the two fixtures and the ten pairs:
 
 * 157 links in 417,452 (0.04%), 1,935 ticks undrawn between them; 14
-  on `n20021018.2` (the eight stitches the review named and six
-  non-fall terminals, 159 ticks), 55 on `040601.6` (786 ticks), 0 to
+  on `long_game` (the eight stitches the review named and six
+  non-fall terminals, 159 ticks), 55 on `fast_ring` (786 ticks), 0 to
   21 per pair log. The falls the segments already carried: 4,012.
 * by drawn speed, the audit's buckets: 127 steady (1.8-2.2 px/tick),
   18 slow, 2 hovers (both stitches on the fast ring at 0.33 px/tick),
@@ -2215,9 +2215,9 @@ the cost, the lockstep and the margin gates decide as before.
 Three cuts were measured, on the two fixtures, the ten pairs and the
 paired audit:
 
-* **Every shell votes.** Snapshot links rise everywhere (`n20021018.2`
-  +33, `040601.6` +38, the pairs +161) and the paired audit's conflicts
-  fall 379 -> 294, but terminals go with them (`n20021018.2` 20,846 ->
+* **Every shell votes.** Snapshot links rise everywhere (`long_game`
+  +33, `fast_ring` +38, the pairs +161) and the paired audit's conflicts
+  fall 379 -> 294, but terminals go with them (`long_game` 20,846 ->
   20,811, the pairs 54,993 -> 54,873, `pillbox_damage` and `base_damage`
   almost all of it) and `shell_births` with them (the pairs -206). The
   rung-shift alias: a ladder of shells one reload apart, its leader
@@ -2234,7 +2234,7 @@ paired audit:
 * **Per-advance doubt.** A shell abstains only from advances within
   whose flight a terminal lies, so the fixture scene's leader votes for
   28 (its fall is 51 on) and abstains from 51. Worse than the blanket
-  rule on every axis (`n20021018.2` terminals 20,846 -> 20,807 and
+  rule on every axis (`long_game` terminals 20,846 -> 20,807 and
   unlinked 75 -> 90, the pairs terminals -92, conflicts 339): a leader
   that hit late in the interval is still a live voter for the short
   alias, and that is the common death. Not taken.
@@ -2246,11 +2246,11 @@ paired audit:
   scene: its fall belongs to the shell sitting on it, and the leader 51
   px short of it votes. With it, and the stitching and residual passes
   reading the same clock composed across the snapshots a join spans
-  (`sender_clock`), against the blanket rule: `n20021018.2`
+  (`sender_clock`), against the blanket rule: `long_game`
   `shells_unmatched_forward` 137 -> **129**, `shells_unlinked` 71 ->
   **66**, `pairs_tank_order_inverted` 1 -> **0**, `pairs_pill_order_inverted`
   3 -> **1**, `links_pill_vouched` +2, `terminals_matched` -1
-  (`base_damage`), 6,019 pairs read and 26 novel; `040601.6`
+  (`base_damage`), 6,019 pairs read and 26 novel; `fast_ring`
   byte-identical but for 18 more pairs read; the ten pairs
   `shells_unmatched_forward` 547 -> **525**, `shells_unlinked` 227 ->
   **211**, `terminals_matched` +1, `pairs_tank_order_blurred` 2 -> 0,
@@ -2266,7 +2266,7 @@ paired audit:
 
 The blanket rule, against `abe761d` (main after the lockstep):
 
-* `n20021018.2`: `rate_shells_matched_forward` 0.998034 -> **0.998142**
+* `long_game`: `rate_shells_matched_forward` 0.998034 -> **0.998142**
   (`shells_unmatched_forward` 145 -> 137), `rate_shells_unlinked`
   0.001017 -> **0.000963** (75 -> 71), `rate_terminals_matched` 0.865877
   -> **0.865961** (`base_damage` +1, `pillbox_damage` +1), `links_shell`
@@ -2274,7 +2274,7 @@ The blanket rule, against `abe761d` (main after the lockstep):
   `shells_stream_birth` 3 -> 4, `flow_components` 1,188 -> 1,183; the
   pill axes unchanged, `pairs_tank_order` 9,129 -> 9,140 with its one
   inversion standing. 4,826 pairs read, 12 novel.
-* `040601.6`: `rate_shells_matched_forward` 0.998704 -> **0.999163**
+* `fast_ring`: `rate_shells_matched_forward` 0.998704 -> **0.999163**
   (`shells_unmatched_forward` 110 -> 71), `rate_shells_unlinked`
   0.000295 -> **0.000153** (25 -> 13), `terminals_matched` 4,317 ->
   4,318, `shells_visual_joins` 4 -> **0**, `links_shell` 80,429 ->
@@ -2348,10 +2348,10 @@ engines side by side (`12d9a1d` | next-pair | chain-composed):
 * the ten pairs: `rate_links_steady` 0.961311 | 0.962717 |
   **0.964108**; `2.2-2.5` 2,398 | 1,866 | 1,829; `2.5-3.0` 226 | 189 |
   186; `1.5-1.8` 4,428 | 4,689 | 4,467; `hover_links` 164 | 174 | 164
-* `n20021018.2`: `rate_links_steady` 0.978627 | 0.979214 |
+* `long_game`: `rate_links_steady` 0.978627 | 0.979214 |
   **0.979726** (a record; 0.979076 at `ee502e9`); `2.2-2.5` 444 | 385 |
   377; `1.5-1.8` 604 | 635 | 616; hovers unchanged
-* `040601.6`: `rate_links_steady` 0.961897 | 0.961773 | **0.962382**;
+* `fast_ring`: `rate_links_steady` 0.961897 | 0.961773 | **0.962382**;
   `2.2-2.5` 621 | 558 | 544; `2.5-3.0` 365 | 347 | 347; `1.5-1.8` 749 |
   847 | 809; `hover_links` 14 | 19 | 19
 
@@ -2409,10 +2409,10 @@ a stale restatement lends nothing.
 
 Guarded, against the merged `c345ce5`:
 
-* `n20021018.2`: the report byte-identical (2,915 pairs read by the
+* `long_game`: the report byte-identical (2,915 pairs read by the
   pill clock alone); drawn `rate_links_steady` 0.979726 -> **0.981033**
   (`2.2-2.5` 377 -> 309)
-* `040601.6`: the report byte-identical (4,118 pairs); drawn
+* `fast_ring`: the report byte-identical (4,118 pairs); drawn
   `rate_links_steady` 0.962382 -> **0.962631**, `2.5-3.0` 347 -> 335
 * the ten pairs: `shells_matched_forward` +1, `terminals_matched` +1,
   `links_pill_unpinned` 21 -> **17**, `links_pill_vouched` +6 (11,033

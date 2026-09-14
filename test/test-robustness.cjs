@@ -116,7 +116,7 @@ check("header-only file yields no records", [...BoloLog.records(header())].lengt
 
 	// --- parity: both parser builds must agree on the whole sample log ---
 	const esm = await import("../src/parse.js");
-	const log1 = path.join(__dirname, "..", "fixtures", "n20021018.2");
+	const log1 = path.join(__dirname, "..", "fixtures", "long_game");
 	if (fs.existsSync(log1)) {
 		const buf = new Uint8Array(fs.readFileSync(log1));
 		const a = [...esm.records(buf)];
@@ -129,7 +129,7 @@ check("header-only file yields no records", [...BoloLog.records(header())].lengt
 		}
 		check("parity: all records identical (first divergence)", diverged, -1);
 	} else {
-		console.log("skip: fixtures/n20021018.2 not present; parity test skipped");
+		console.log("skip: fixtures/long_game not present; parity test skipped");
 	}
 	process.exitCode = failures ? 1 : 0;
 })();

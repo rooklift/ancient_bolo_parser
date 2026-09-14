@@ -16,9 +16,9 @@ const BoloGame = require("../viewer/game.js");
 const BoloLog = require("../viewer/logparse.js");
 
 const root = path.join(__dirname, "..");
-const default_source = path.join(root, "fixtures", "n20021018.2");
+const default_source = path.join(root, "fixtures", "long_game");
 const default_output = path.join(root, "test", "expected",
-	"n20021018.2-interpolation.tsv");
+	"long_game-interpolation.tsv");
 
 function report_cell(value) {
 	if (value === undefined || value === null) return "-";
@@ -42,7 +42,7 @@ function build_interpolation_report(game, metadata = {}) {
 		"# Resolved interpolation choices for the anonymized sample replay.",
 		"format\t2",
 	];
-	add_line(lines, "source", metadata.source || "fixtures/n20021018.2");
+	add_line(lines, "source", metadata.source || "fixtures/long_game");
 	add_line(lines, "source_sha256", metadata.source_sha256);
 	add_line(lines, "maximum_position_interpolation_ticks",
 		BoloGame.MAX_POSITION_INTERPOLATION_TICKS);

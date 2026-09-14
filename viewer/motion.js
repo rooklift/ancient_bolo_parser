@@ -2203,7 +2203,7 @@ function enforce_pillbox_lockstep_candidates(previous_shells, by_previous,
  * two shells on one line whose interval read long (a record stamped
  * late) let the leader's short hop onto the trailer's true position and
  * the trailer's long hop onto the leader's cost the same as the two true
- * continuations, and the identities swap (fixture n20021018.2 at
+ * continuations, and the identities swap (fixture long_game at
  * t9713165: three eastbound shells all flew 28 px, linked 51 and 5). One
  * common advance must explain a non-terminal candidate of every tank
  * shell that has any; candidates no common advance supports are pruned,
@@ -2506,7 +2506,7 @@ function enforce_roster_lockstep_candidates(previous_shells, target_groups,
 		 * election cannot elect zero and passes at the fire cadence, a rung
 		 * alias -- harmless as a pruning rule, since the re-sends were
 		 * linked before it ran, but a six-tick lie on a one-tick pair as a
-		 * clock (040601.6 at 2427063, where it re-pinned a stitched orbit a
+		 * clock (fast_ring at 2427063, where it re-pinned a stitched orbit a
 		 * step on and made the fixture's first contradiction). The pairwise
 		 * pass is not touched by this -- it already acts on the election
 		 * directly. */
@@ -2665,7 +2665,7 @@ function link_stale_restatements(previous, next) {
  * one cadence late, so a 14-tick gap reads 23 and every true 28 px
  * continuation falls outside the 46 px window; the cost then takes a
  * 51 px hop and the stitcher a 5 px one, and two identities cross
- * (n20021018.2 at 9713165, score_tank_order's inversions all have this
+ * (long_game at 9713165, score_tank_order's inversions all have this
  * shape). This estimator does not decide any link: it adds one more
  * reading of the interval for nearest_expected_distance to score
  * against and for the windows to admit, and the cost, the lockstep and

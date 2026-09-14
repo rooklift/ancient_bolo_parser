@@ -3,7 +3,7 @@
 let fs = require("node:fs");
 let BoloLog = require("../viewer/logparse.js");
 
-let bytes = new Uint8Array(fs.readFileSync("fixtures/n20021018.2"));
+let bytes = new Uint8Array(fs.readFileSync("fixtures/long_game"));
 let records = [...BoloLog.records(bytes)];
 let impact_codes = new Set([1, 2, 6, 7, 8, 11]);
 let deaths = [];
