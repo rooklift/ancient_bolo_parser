@@ -255,18 +255,31 @@ async function export_video(start_tick) {
 
 	/* Claim the export before the first await: the application menu stays
 	 * live while the setup and save dialogs are open, so a second export
-	 * command must bounce off the guard above rather than race this one. */
+	 * command must bounce off the guard above rather than race this one.
+	 * Everything from here to the release is under one finally: the setup
+	 * dialog, the encoder probe and the save dialog all await, and a bridge
+	 * call that rejects must not leave the interface inert for good. */
 	set_exporting(true);
-
-	let options = await ex_setup(start_tick);
-	if (!options) {
+	try {
+		await ex_run(start_tick);
+	} catch (err) {
+		show_error("Could not export video", String((err && err.message) || err));
+	} finally {
+		EX = null;
 		set_exporting(false);
-		return;
 	}
+}
+
+/* The export proper, from the setup dialog to the finished file. Runs with
+ * `exporting` held by export_video, which also releases it whatever
+ * happens here. Rejections propagate to export_video's handler; the
+ * viewer's own state is restored in the finally below. */
+async function ex_run(start_tick) {
+	let options = await ex_setup(start_tick);
+	if (!options) return;
 
 	let picked = await ex_pick_config(options);
 	if (!picked) {
-		set_exporting(false);
 		show_error("Cannot export video", "no supported VP9/VP8 encoder found");
 		return;
 	}
@@ -291,8 +304,6 @@ async function export_video(start_tick) {
 	let default_name = ((gi && gi.mapName) || "replay").replace(/[\/\\:]/g, "_") + ".webm";
 	let begin = await window.api.video_begin(default_name);
 	if (begin.canceled || begin.error) {
-		set_exporting(false);
-		EX = null;
 		if (begin.error) show_error("Could not export video", begin.error);
 		return;
 	}
@@ -410,10 +421,8 @@ async function export_video(start_tick) {
 		ex_write_bytes = 0;
 		export_chat_cache = null;
 		export_target = null;
-		EX = null;
 		ctx = saved.ctx;
 		view = saved.view;
-		set_exporting(false);
 		export_overlay.classList.add("hidden");
 		set_clock(saved.clock, true); /* hard seek restores state and caches */
 	}
