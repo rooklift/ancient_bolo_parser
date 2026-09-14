@@ -4142,8 +4142,8 @@ runs each.
 
 * the trims alone reproduce `0c90f1e` exactly: both content hashes
   matched before the parser change went in.
-* the parser change removes what Nemokrad's four affected records
-  contributed: `shells` 9,817,361 -> **9,817,358** (one phantom
+* the parser change removes what the first collection's four affected
+  records contributed: `shells` 9,817,361 -> **9,817,358** (one phantom
   three-shell list, `20011218.4`), all three off
   `shells_unmatched_forward` and `shells_unlinked` (5,946 -> **5,943**),
   and `terminals` 1,946,439 -> **1,946,438** (one phantom explosion,
@@ -4155,7 +4155,7 @@ runs each.
 
 Reading. Nothing the matcher decides moved; the six lines that did are
 the phantoms leaving, three unmatchable shells and one unexplainable
-explosion fewer. Palp's collection holds the other six affected
+explosion fewer. The second collection holds the other six affected
 records.
 
 ## Findings

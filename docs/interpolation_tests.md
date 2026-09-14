@@ -1065,7 +1065,7 @@ knew recovers a graze the track has left"), with the tank restated
 
 ## Tank births follow the record gap
 
-Prompted by replay `2de598ba-20011027C_XD_palptrex_pinsnix` at 4:21 (tick
+Prompted by replay `2de598ba-20011027C` at 4:21 (tick
 13072 from the log's start): player 2's tank, parked at 146,133 facing
 west, fires two shots per record at the wall at 142,133 while pill 13
 fires back through it. The records come 28 ticks apart, the tank fires

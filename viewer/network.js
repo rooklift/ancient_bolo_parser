@@ -163,8 +163,9 @@ const TICKS_PER_SECOND = 50;
  *   by 21 tripled. Rated on cycle alone the bands run 0.15 / 0.33 / 0.62
  *   / 2.15% of shells unchained and 3.5 / 4.9 / 7.0 / 10.9% of segments
  *   unbridged. The cuts were first set at 14 / 19 / 26, which put 70% of
- *   Nemokrad's logs in "good" -- a range from a LAN-speed ring to one
- *   turning twice as slowly, across which the failure rate doubles --
+ *   the first collection's logs in "good" -- a range from a LAN-speed
+ *   ring to one turning twice as slowly, across which the failure rate
+ *   doubles --
  *   and left the word saying little. Since there is no external standard
  *   for a good 2003 connection, the words can only rank games against
  *   each other, and the cuts should spread them.
@@ -207,8 +208,8 @@ const TICKS_PER_SECOND = 50;
  *   it now agrees 94.8% of the time.
  *
  * Both cuts are in ticks and percent, not corpus quantiles, so they stay
- * put as the corpus grows; Palp's logs shifted every percentile of
- * Nemokrad's when they were added.
+ * put as the corpus grows; the second collection's logs shifted every
+ * percentile of the first's when they were added.
  *
  * Scoring interleaved half-minute blocks as if they were separate games
  * gives r = 0.90 on the quiet share, 0.90 on stall and 0.99 on cycle
