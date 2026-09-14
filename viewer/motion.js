@@ -2838,6 +2838,16 @@ function match_shell_snapshots(previous, next) {
 		: tank_advance_reading(previous, next, duration, long_duration,
 			stamped_duration);
 	next.advance_duration = advance_duration;
+	/* Nothing to continue: most pairs on a quiet ring. Without previous
+	 * shells there are no candidates, and every pass below is a no-op
+	 * over empty lists, save the list-offset pruning of the target's
+	 * own shells, which runs to convergence on one call. Vote recording
+	 * (a measurement switch) would still touch the snapshot, so it keeps
+	 * the long way round. */
+	if (!previous.shells.length && !record_roster_votes) {
+		refine_pillbox_orbits_from_shell_lists(next);
+		return;
+	}
 
 	let target_groups = shell_target_groups(next);
 	let by_previous = Array.from({ length: previous.shells.length }, () => []);
