@@ -337,10 +337,24 @@ ipcMain.handle("video-begin", async (e, default_name) => {
 	}
 });
 
+/* writeSync may write fewer bytes than asked and say so only in its return
+ * value; keep going until every byte is down. At `position` null the
+ * write goes at (and advances) the file's own position, as streaming
+ * needs; a number writes there without moving it, as patching needs. */
+function write_all(fd, buffer, position) {
+	let done = 0;
+	while (done < buffer.length) {
+		let n = fs.writeSync(fd, buffer, done, buffer.length - done, position);
+		if (n <= 0) throw new Error(`write stalled at ${done} of ${buffer.length} bytes`);
+		done += n;
+		if (position !== null) position += n;
+	}
+}
+
 ipcMain.handle("video-write", (e, data) => {
 	if (!export_file) return { error: "no export in progress" };
 	try {
-		fs.writeSync(export_file.fd, Buffer.from(data));
+		write_all(export_file.fd, Buffer.from(data), null);
 		return {};
 	} catch (err) {
 		return { error: String(err) };
@@ -350,7 +364,7 @@ ipcMain.handle("video-write", (e, data) => {
 ipcMain.handle("video-patch", (e, offset, data) => {
 	if (!export_file) return { error: "no export in progress" };
 	try {
-		fs.writeSync(export_file.fd, Buffer.from(data), 0, data.length, offset);
+		write_all(export_file.fd, Buffer.from(data), offset);
 		return {};
 	} catch (err) {
 		return { error: String(err) };
