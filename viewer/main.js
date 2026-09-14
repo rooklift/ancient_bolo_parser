@@ -184,10 +184,7 @@ function create_window() {
 	win.on("closed", () => {
 		win = null;
 		/* an export can't outlive its renderer: drop the partial file */
-		let p = close_export_file();
-		if (p) {
-			try { fs.unlinkSync(p); } catch { /* best effort */ }
-		}
+		abort_export();
 	});
 }
 
@@ -231,8 +228,14 @@ ipcMain.handle("save-map", async (e, defaultName, data) => {
 });
 
 /* Video export: the renderer streams the file as it encodes, then patches
- * the two header fields only known at the end. One export at a time. */
-let export_file = null; /* { fd, path } */
+ * the two header fields only known at the end. One export at a time.
+ *
+ * The bytes go to a sibling of the chosen destination (dest + ".part"),
+ * which replaces the destination only once the export has ended cleanly.
+ * Anything short of that (cancel, failure, the window going away) removes
+ * the sibling and leaves whatever the destination held untouched: the
+ * user who picks an existing video and then cancels still has it. */
+let export_file = null; /* { fd, path, temp } */
 let export_power_blocker = null;
 
 /* Backgrounding the app must not stall the export: hidden windows get
@@ -253,13 +256,42 @@ function end_export_holds() {
 	}
 }
 
+function export_temp_path(dest) {
+	return dest + ".part";
+}
+
+/* Closes the file being written and returns { path, temp } (or null if no
+ * export was open). What becomes of the temp file is the caller's call. */
 function close_export_file() {
 	if (!export_file) return null;
-	let p = export_file.path;
+	let { path: p, temp } = export_file;
 	try { fs.closeSync(export_file.fd); } catch { /* already gone */ }
 	export_file = null;
 	end_export_holds();
-	return p;
+	return { path: p, temp };
+}
+
+/* Cancelled, failed, or the window went away: the temp file goes, the
+ * destination is not touched. */
+function abort_export() {
+	let closed = close_export_file();
+	if (closed) {
+		try { fs.unlinkSync(closed.temp); } catch { /* best effort */ }
+	}
+}
+
+/* Ended cleanly: the temp file becomes the destination. */
+function finish_export() {
+	if (!export_file) return { error: "no export in progress" };
+	try { fs.fsyncSync(export_file.fd); } catch { /* the rename below still goes ahead */ }
+	let closed = close_export_file();
+	try {
+		fs.renameSync(closed.temp, closed.path);
+		return { path: closed.path };
+	} catch (err) {
+		try { fs.unlinkSync(closed.temp); } catch { /* best effort */ }
+		return { error: String(err) };
+	}
 }
 
 ipcMain.handle("video-begin", async (e, default_name) => {
@@ -274,7 +306,8 @@ ipcMain.handle("video-begin", async (e, default_name) => {
 	 * while the dialog was open must not open a second file */
 	if (export_file) return { canceled: true, error: "an export is already in progress" };
 	try {
-		export_file = { fd: fs.openSync(res.filePath, "w"), path: res.filePath };
+		let temp = export_temp_path(res.filePath);
+		export_file = { fd: fs.openSync(temp, "w"), path: res.filePath, temp };
 		remember_save_directory(res.filePath);
 		begin_export_holds();
 		return { canceled: false, path: res.filePath };
@@ -303,17 +336,11 @@ ipcMain.handle("video-patch", (e, offset, data) => {
 	}
 });
 
-ipcMain.handle("video-end", () => {
-	if (!export_file) return { error: "no export in progress" };
-	return { path: close_export_file() };
-});
+ipcMain.handle("video-end", () => finish_export());
 
 /* Cancelled or failed: no half-written file left behind. */
 ipcMain.handle("video-abort", () => {
-	let p = close_export_file();
-	if (p) {
-		try { fs.unlinkSync(p); } catch { /* best effort */ }
-	}
+	abort_export();
 	return {};
 });
 
