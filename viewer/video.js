@@ -256,17 +256,17 @@ async function export_video(start_tick) {
 	/* Claim the export before the first await: the application menu stays
 	 * live while the setup and save dialogs are open, so a second export
 	 * command must bounce off the guard above rather than race this one. */
-	exporting = true;
+	set_exporting(true);
 
 	let options = await ex_setup(start_tick);
 	if (!options) {
-		exporting = false;
+		set_exporting(false);
 		return;
 	}
 
 	let picked = await ex_pick_config(options);
 	if (!picked) {
-		exporting = false;
+		set_exporting(false);
 		show_error("Cannot export video", "no supported VP9/VP8 encoder found");
 		return;
 	}
@@ -291,7 +291,7 @@ async function export_video(start_tick) {
 	let default_name = ((gi && gi.mapName) || "replay").replace(/[\/\\:]/g, "_") + ".webm";
 	let begin = await window.api.video_begin(default_name);
 	if (begin.canceled || begin.error) {
-		exporting = false;
+		set_exporting(false);
 		EX = null;
 		if (begin.error) show_error("Could not export video", begin.error);
 		return;
@@ -413,7 +413,7 @@ async function export_video(start_tick) {
 		EX = null;
 		ctx = saved.ctx;
 		view = saved.view;
-		exporting = false;
+		set_exporting(false);
 		export_overlay.classList.add("hidden");
 		set_clock(saved.clock, true); /* hard seek restores state and caches */
 	}

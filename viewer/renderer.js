@@ -155,7 +155,8 @@ let last_viewpoint_html = null;
 /* Video export (video.js) runs the same draw path offline: it swaps ctx,
  * view, clock and cur for its own, points css_size at the fixed output
  * frame via export_target, and sets exporting so live inputs and queued
- * draws leave the swapped state alone until it is restored. */
+ * draws leave the swapped state alone until it is restored. Set through
+ * set_exporting(), never assigned directly. */
 let exporting = false;
 let export_target = null; /* { w, h } of the export's world viewport */
 
@@ -188,6 +189,21 @@ let drop_hint_keys = document.getElementById("dropHintKeys");
 let help_btn = document.getElementById("helpBtn");
 let shortcut_sheet_el = document.getElementById("shortcutSheet");
 let shortcut_groups_el = document.getElementById("shortcutGroups");
+let layout_el = document.getElementById("layout");
+
+/* Claim or release the viewer for a video export. The export's dialogs and
+ * overlay sit beside #layout, not inside it, so while an export holds the
+ * whole live interface is made inert: the overlay already blocks the
+ * pointer, and inert also takes the transport and the sidebar out of the
+ * tab order, so Tab and Enter can't reach Play or the seek slider from the
+ * export's own buttons. Whatever was focused underneath is blurred too,
+ * since a control focused before the export began would otherwise keep
+ * its keys (a slider's arrows, a menu's up and down). */
+function set_exporting(on) {
+	exporting = on;
+	layout_el.inert = on;
+	if (on && layout_el.contains(document.activeElement)) document.activeElement.blur();
+}
 
 /* One code base for the Electron app, the Tauri app and the web page: the
  * preload script gives Electron a window.api, tauri_api.js gives the Tauri
@@ -1389,23 +1405,30 @@ function update_lock_indicator() {
 }
 
 /* Controls give focus back to the window once used, so they don't sit
- * highlighted and don't capture the global playback keys (space, arrows). */
+ * highlighted and don't capture the global playback keys (space, arrows).
+ * Each also refuses while exporting: #layout is inert then, so none of
+ * these should fire, but the export owns the clock, the view and the
+ * viewpoint until it is done, and a stray activation must not touch
+ * the state being encoded. */
 play_btn.addEventListener("click", () => {
+	if (exporting) return;
 	set_playing(!playing);
 	play_btn.blur();
 });
 speed_el.addEventListener("change", () => {
+	if (exporting) return;
 	speed = parseFloat(speed_el.value);
 	speed_el.blur();
 });
 viewpoint_el.addEventListener("change", () => {
+	if (exporting) return;
 	viewpoint = parseInt(viewpoint_el.value, 10);
 	viewpoint_el.blur();
 	centre_locked_player();
 	request_draw();
 });
 seek_el.addEventListener("input", () => {
-	if (!game) return;
+	if (!game || exporting) return;
 	let tick = game.t0 + (parseInt(seek_el.value, 10) / 1000) * (game.t1 - game.t0);
 	set_clock(tick, tick < clock);
 });
@@ -1554,8 +1577,9 @@ if (WEB) {
 
 window.addEventListener("keydown", e => {
 	if (exporting) {
-		/* the overlay blocks the pointer; keys are ignored here, with Escape
-		 * as the keyboard route to the overlay's cancel button. Ignored is
+		/* the overlay blocks the pointer and #layout is inert (see
+		 * set_exporting); keys are ignored here, with Escape as the
+		 * keyboard route to the overlay's cancel button. Ignored is
 		 * not swallowed, though: the Tauri webview reloads on an unhandled
 		 * Ctrl+R or F5 (which would abandon the export), so those are
 		 * swallowed too. Other keys keep their defaults, since the setup
