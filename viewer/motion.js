@@ -286,6 +286,36 @@ function append_shell_list(shells, sub, position_time) {
 	}
 }
 
+/* append_shell_list's arithmetic, producing the matcher's snapshot shells
+ * directly: whole-pixel coordinates (wrapped to the map as the square and
+ * sub-square fields wrap), and no position_time, which the snapshot
+ * carries itself. */
+function append_snapshot_shells(shells, sub) {
+	let direction = sub.direction ?? sub.shells[0].direction;
+	let shell_list_start = shells.length;
+	let pixel_x = 0, pixel_y = 0;
+	for (let i = 0; i < sub.shells.length; i++) {
+		let shell = sub.shells[i];
+		if (i === 0) {
+			pixel_x = shell.x * 16 + (shell.pixel & 0x0f);
+			pixel_y = shell.y * 16 + (shell.pixel >> 4);
+		} else {
+			pixel_x += shell.offsetX;
+			pixel_y += shell.offsetY;
+		}
+		shells.push({
+			pixel_x: ((pixel_x >> 4) & 0xff) * 16 + (pixel_x & 0x0f),
+			pixel_y: ((pixel_y >> 4) & 0xff) * 16 + (pixel_y & 0x0f),
+			direction,
+			position_uncertainty: i,
+			shell_list_start,
+			shell_list_index: i,
+			shell_offset_x: i > 0 ? shell.offsetX : undefined,
+			shell_offset_y: i > 0 ? shell.offsetY : undefined,
+		});
+	}
+}
+
 function add_shell_point_terminal(terminals, rec, x, y, px, py,
 	direction = null, details = null) {
 	if (!terminals) return;
@@ -672,10 +702,10 @@ function shell_match_cost(previous, next, duration,
 		return match;
 	}
 
-	let tank_states = tank_shell_successor_states(previous, next, duration,
-		long_duration, advance_duration);
-	if (tank_states && !tank_states.length) return null;
-
+	/* The cheap distance and heading gates first: the bradian propagation
+	 * below enumerates hypotheses and update counts, work wasted on a
+	 * target too far away or behind the shell. Both tests are pure and
+	 * both must pass, so the order changes nothing but the cost. */
 	let previous_pixel_x = previous.tank_exact_pixel_x ?? previous.pixel_x;
 	let previous_pixel_y = previous.tank_exact_pixel_y ?? previous.pixel_y;
 	let delta_x = next.pixel_x - previous_pixel_x;
@@ -697,6 +727,10 @@ function shell_match_cost(previous, next, duration,
 	if (forward <= 0) return null;
 	let angle_error = Math.atan2(lateral, forward);
 	if (angle_error > SHELL_DIRECTION_TOLERANCE) return null;
+
+	let tank_states = tank_shell_successor_states(previous, next, duration,
+		long_duration, advance_duration);
+	if (tank_states && !tank_states.length) return null;
 
 	return {
 		cost: distance_error + angle_error * expected_distance,
@@ -1354,10 +1388,17 @@ function shell_from_pillbox(shell) {
 		Boolean(shell.pillbox_orbit_states);
 }
 
+/* `variant_cache`, a `{ variants }` holder, lets a caller testing one
+ * shell against many terminals share its
+ * ordinary_shell_position_variants(previous), filled here on the first
+ * terminal that gets as far as needing them: the variants depend on the
+ * shell alone, and they are read, never written. The sharing must not
+ * outlive the candidate generation it serves, since the assignments that
+ * follow change the shell's fields. */
 function shell_terminal_match(previous, terminal, duration, start_time,
 	lead_pixels = 0, pillbox_lead_pixels = lead_pixels,
 	long_duration = duration, stamped_duration = long_duration,
-	advance_duration = undefined) {
+	advance_duration = undefined, variant_cache = null) {
 	if (terminal.direction !== null &&
 		terminal.direction !== shell_sector(previous)) return null;
 	if (!terminal_takes_pillbox_shell(terminal) && shell_from_pillbox(previous)) {
@@ -1384,16 +1425,27 @@ function shell_terminal_match(previous, terminal, duration, start_time,
 	 * earn the wider graze; bounded ones already enumerate their slack. */
 	let graze_tolerance = previous.tank_exact_pixel_x !== undefined
 		? SHELL_TANK_HIT_TOLERANCE_PIXELS : SHELL_BOX_GRAZE_TOLERANCE_PIXELS;
-	let matches = [];
+	/* The cheapest match so far; a tie keeps the earlier variant, as the
+	 * stable sort this replaces did. */
+	let best = null;
 	/* A box terminal is tried as the packet box first and then, only when
 	 * no variant reaches that, as each of the victim's earlier statements
 	 * (see STALE_TANK_BOX_PENALTY_PIXELS); a point terminal has one
 	 * geometry. */
 	let boxes = terminal.type === "box"
 		? [terminal, ...(terminal.earlier_boxes || [])] : [terminal];
+	let variants;
+	if (variant_cache) {
+		if (!variant_cache.variants) {
+			variant_cache.variants = ordinary_shell_position_variants(previous);
+		}
+		variants = variant_cache.variants;
+	} else {
+		variants = ordinary_shell_position_variants(previous);
+	}
 	for (let box of boxes) {
 		let stale_box = box !== terminal;
-		for (let variant of ordinary_shell_position_variants(previous)) {
+		for (let variant of variants) {
 			let endpoint, angle_error = 0;
 			if (terminal.type === "box") {
 				/* A tile/object event supplies timing and bounds, not an aim point.
@@ -1441,12 +1493,14 @@ function shell_terminal_match(previous, terminal, duration, start_time,
 				SHELL_MATCH_ERROR_PIXELS ? DILATED_JOIN_PENALTY_PIXELS : 0;
 			let expected_distance = nearest_expected_distance(endpoint.distance,
 				duration, long_duration, stamped_duration, advance_duration);
-			matches.push({
-				cost: lead_penalty +
-					(stale_box ? STALE_TANK_BOX_PENALTY_PIXELS : 0) +
-					Math.abs(endpoint.distance - expected_distance) +
-					angle_error * expected_distance +
-					(endpoint.graze_distance || 0),
+			let cost = lead_penalty +
+				(stale_box ? STALE_TANK_BOX_PENALTY_PIXELS : 0) +
+				Math.abs(endpoint.distance - expected_distance) +
+				angle_error * expected_distance +
+				(endpoint.graze_distance || 0);
+			if (best && !(cost < best.cost)) continue;
+			best = {
+				cost,
 				pixel_x: endpoint.pixel_x,
 				pixel_y: endpoint.pixel_y,
 				distance: endpoint.distance,
@@ -1455,13 +1509,11 @@ function shell_terminal_match(previous, terminal, duration, start_time,
 				/* the effect follows the box the shell entered */
 				hitbox_pixel_x: stale_box ? box.min_x : undefined,
 				hitbox_pixel_y: stale_box ? box.min_y : undefined,
-			});
+			};
 		}
-		if (matches.length) break;
+		if (best) break;
 	}
-	if (!matches.length) return null;
-	matches.sort((first, second) => first.cost - second.cost);
-	return matches[0];
+	return best;
 }
 
 function same_shell_terminal(first, second) {
@@ -2782,6 +2834,25 @@ function tank_advance_reading(previous, next, duration, long_duration,
 	return best.distance / SHELL_SPEED_PIXELS_PER_TICK;
 }
 
+function empty_lists(count) {
+	let lists = [];
+	for (let i = 0; i < count; i++) lists.push([]);
+	return lists;
+}
+
+function by_cost(a, b) {
+	return a.cost - b.cost;
+}
+
+/* Sort each candidate list by cost, cheapest first; the sort is stable,
+ * so ties keep their generation order. A list of fewer than two needs
+ * no call. */
+function sort_by_cost(lists) {
+	for (let choices of lists) {
+		if (choices.length > 1) choices.sort(by_cost);
+	}
+}
+
 /* Match only mutually best candidates, and only when each wins by a useful
  * margin over its alternatives. Shell lists carry no IDs and may gain or
  * lose entries at any restatement, so an unmatched pop is safer than a
@@ -2816,14 +2887,28 @@ function match_shell_snapshots(previous, next) {
 		: tank_advance_reading(previous, next, duration, long_duration,
 			stamped_duration);
 	next.advance_duration = advance_duration;
+	/* Nothing to continue: most pairs on a quiet ring. Without previous
+	 * shells there are no candidates, and every pass below is a no-op
+	 * over empty lists, save the list-offset pruning of the target's
+	 * own shells, which runs to convergence on one call. Vote recording
+	 * (a measurement switch) would still touch the snapshot, so it keeps
+	 * the long way round. */
+	if (!previous.shells.length && !record_roster_votes) {
+		refine_pillbox_orbits_from_shell_lists(next);
+		return;
+	}
 
 	let target_groups = shell_target_groups(next);
-	let by_previous = Array.from({ length: previous.shells.length }, () => []);
-	let by_next = Array.from({ length: target_groups.length }, () => []);
+	let by_previous = empty_lists(previous.shells.length);
+	let by_next = empty_lists(target_groups.length);
 	for (let previous_index = 0; previous_index < previous.shells.length; previous_index++) {
 		/* Already continued by its verbatim re-send; its story goes on from
 		 * the re-send's statement, not from here. */
 		if (previous.shells[previous_index].next_time !== undefined) continue;
+		/* the shell's position variants, generated on the first terminal
+		 * that needs them and shared by the rest; nothing below assigns
+		 * to a shell until every candidate is in */
+		let variant_cache = { variants: null };
 		for (let next_index = 0; next_index < target_groups.length; next_index++) {
 			let target = target_groups[next_index].target;
 			if (target.starts_at_pillbox || target.matched_from_previous) continue;
@@ -2832,7 +2917,7 @@ function match_shell_snapshots(previous, next) {
 				if (duration > MAX_POSITION_INTERPOLATION_TICKS) continue;
 				match = shell_terminal_match(previous.shells[previous_index], target,
 					duration, previous.time, 0, 0, long_duration, stamped_duration,
-					advance_duration);
+					advance_duration, variant_cache);
 			} else {
 				match = shell_match_cost(previous.shells[previous_index], target,
 					duration, long_duration, stamped_duration, advance_duration);
@@ -2859,28 +2944,40 @@ function match_shell_snapshots(previous, next) {
 				target.event_type === "shell_falls"
 				? previous.time + match.distance / SHELL_SPEED_PIXELS_PER_TICK
 				: match.end_time;
-			let candidate = { previous_index, next_index, target, ...match };
-			by_previous[previous_index].push(candidate);
-			by_next[next_index].push(candidate);
+			/* the match object is the candidate: every matcher builds it
+			 * fresh for this pair, so it can carry its indices itself */
+			match.previous_index = previous_index;
+			match.next_index = next_index;
+			match.target = target;
+			by_previous[previous_index].push(match);
+			by_next[next_index].push(match);
 		}
 	}
 	/* Grazes are a fallback for quantisation-sized gaps, never competitors
 	 * with geometry the existing matcher already considers exact. This keeps
 	 * a newly plausible corner from stealing a real successor or impact in a
 	 * dense anonymous stream. */
-	let rejected_grazes = new Set();
+	let rejected_grazes = null;
+	/* Whether each list holds an exact candidate is settled once, on the
+	 * first graze that asks, rather than rescanned for every graze. */
+	let previous_has_exact = null, target_has_exact = null;
 	for (let choices of by_previous) {
 		for (let candidate of choices) {
 			if (!(candidate.graze_distance > 0) ||
 				candidate.bounded_position) continue;
-			let previous_has_exact = choices.some(alternative =>
-				!(alternative.graze_distance > 0));
-			let target_has_exact = by_next[candidate.next_index].some(alternative =>
-				!(alternative.graze_distance > 0));
-			if (previous_has_exact || target_has_exact) rejected_grazes.add(candidate);
+			if (!previous_has_exact) {
+				let has_exact = list => list.some(alternative =>
+					!(alternative.graze_distance > 0));
+				previous_has_exact = by_previous.map(has_exact);
+				target_has_exact = by_next.map(has_exact);
+			}
+			if (previous_has_exact[candidate.previous_index] ||
+				target_has_exact[candidate.next_index]) {
+				(rejected_grazes ??= new Set()).add(candidate);
+			}
 		}
 	}
-	if (rejected_grazes.size) {
+	if (rejected_grazes) {
 		for (let i = 0; i < by_previous.length; i++) {
 			by_previous[i] = by_previous[i].filter(candidate =>
 				!rejected_grazes.has(candidate));
@@ -2890,8 +2987,8 @@ function match_shell_snapshots(previous, next) {
 				!rejected_grazes.has(candidate));
 		}
 	}
-	for (let choices of by_previous) choices.sort((a, b) => a.cost - b.cost);
-	for (let choices of by_next) choices.sort((a, b) => a.cost - b.cost);
+	sort_by_cost(by_previous);
+	sort_by_cost(by_next);
 	for (let pass = 0; pass < 4; pass++) {
 		let changed = propagate_ambiguous_pillbox_orbits(target_groups, by_next,
 			previous.shells);
@@ -2920,17 +3017,19 @@ function match_shell_snapshots(previous, next) {
 	 * and constraint passes above have finished pruning. Anything still
 	 * contested is left for the stitching and residual passes, whose
 	 * discrete evidence can arbitrate. */
-	let contested_dilated = new Set();
+	let contested_dilated = null;
 	for (let choices of by_previous) {
 		for (let candidate of choices) {
 			if (!candidate.dilated) continue;
 			let lone_previous = choices.every(other =>
 				other === candidate || other.target.terminal);
 			let lone_target = by_next[candidate.next_index].length === 1;
-			if (!lone_previous || !lone_target) contested_dilated.add(candidate);
+			if (!lone_previous || !lone_target) {
+				(contested_dilated ??= new Set()).add(candidate);
+			}
 		}
 	}
-	if (contested_dilated.size) {
+	if (contested_dilated) {
 		for (let i = 0; i < by_previous.length; i++) {
 			by_previous[i] = by_previous[i].filter(candidate =>
 				!contested_dilated.has(candidate));
@@ -2940,8 +3039,8 @@ function match_shell_snapshots(previous, next) {
 				!contested_dilated.has(candidate));
 		}
 	}
-	for (let choices of by_previous) choices.sort((a, b) => a.cost - b.cost);
-	for (let choices of by_next) choices.sort((a, b) => a.cost - b.cost);
+	sort_by_cost(by_previous);
+	sort_by_cost(by_next);
 
 	let selected = [];
 	for (let previous_index = 0; previous_index < previous.shells.length; previous_index++) {
@@ -2988,9 +3087,9 @@ function match_shell_snapshots(previous, next) {
 	/* Capacity belongs to selected destinations, not every candidate. A shell
 	 * which chose its real successor must not consume an equivalent impact and
 	 * block another shell from terminating there. */
-	let selected_by_next = Array.from({ length: target_groups.length }, () => []);
+	let selected_by_next = empty_lists(target_groups.length);
 	for (let candidate of selected) selected_by_next[candidate.next_index].push(candidate);
-	for (let choices of selected_by_next) choices.sort((a, b) => a.cost - b.cost);
+	sort_by_cost(selected_by_next);
 	let assigned_previous = new Set();
 
 	/* Shell restatements precede terminals in target_groups, so a real
@@ -3165,6 +3264,9 @@ function pill_states_reachable(end_shell, shell, duration) {
 const LOCKSTEP_REFERENCE_MIN_SCORE = 3;
 const LOCKSTEP_REFERENCE_MIN_MARGIN = 2;
 
+/* shared by every empty roster and advance table below; read only */
+const EMPTY_MAP = new Map();
+
 let record_roster_votes = false;
 function set_roster_vote_recording(on) {
 	record_roster_votes = !!on;
@@ -3187,12 +3289,16 @@ function build_pill_lockstep_reference(snapshots,
 		}
 		return by_pill;
 	};
-	let sources = snapshots.map(snapshot =>
-		roster(snapshot, shell => !shell.next_terminal));
-	let targets = snapshots.map(snapshot =>
-		roster(snapshot, shell => !shell.starts_at_pillbox &&
-			!shell.starts_at_tank));
-	let adjacent = snapshots.map(() => new Map());
+	/* A snapshot without shells has an empty roster either way, and most
+	 * snapshots have none; the rosters, and the per-snapshot advance
+	 * tables until their first entry, share one empty map, which nothing
+	 * here writes to. */
+	let sources = snapshots.map(snapshot => snapshot.shells.length
+		? roster(snapshot, shell => !shell.next_terminal) : EMPTY_MAP);
+	let targets = snapshots.map(snapshot => snapshot.shells.length
+		? roster(snapshot, shell => !shell.starts_at_pillbox &&
+			!shell.starts_at_tank) : EMPTY_MAP);
+	let adjacent = snapshots.map(() => EMPTY_MAP);
 	for (let i = 0; i + 1 < snapshots.length; i++) {
 		let duration = snapshots[i + 1].time - snapshots[i].time;
 		let max_advance = Math.ceil(duration / TICKS_PER_SHELL_UPDATE) +
@@ -3216,6 +3322,7 @@ function build_pill_lockstep_reference(snapshots,
 			}
 			if (best_score >= LOCKSTEP_REFERENCE_MIN_SCORE &&
 				best_score >= runner_up + LOCKSTEP_REFERENCE_MIN_MARGIN) {
+				if (adjacent[i] === EMPTY_MAP) adjacent[i] = new Map();
 				adjacent[i].set(pill, best);
 			}
 		}
@@ -4530,6 +4637,12 @@ function apply_forced_unseen(creation, fate, units, match) {
 	}
 }
 
+/* the snapshot fields holding unclaimed fire capacity, by weapon kind */
+const UNCLAIMED_SOURCE_KINDS = [
+	["unclaimed_pillbox_sources", "pill"],
+	["unclaimed_tank_sources", "tank"],
+];
+
 function resolve_residual_shell_fates(snapshots) {
 	let reference = build_pill_lockstep_reference(snapshots);
 	let clock = sender_clock(snapshots);
@@ -5045,10 +5158,7 @@ function resolve_residual_shell_fates(snapshots) {
 	 * explain anything else, and counting it again would dress exhausted
 	 * sources up as open stories. */
 	for (let snapshot of snapshots) {
-		for (let [key, kind] of [
-			["unclaimed_pillbox_sources", "pill"],
-			["unclaimed_tank_sources", "tank"],
-		]) {
+		for (let [key, kind] of UNCLAIMED_SOURCE_KINDS) {
 			if (!snapshot[key]) continue;
 			/* Records can share a timestamp. Return each creation's
 			 * remaining capacity only to its originating snapshot;
@@ -5952,13 +6062,20 @@ function* build_shell_positions_steps(records, terminals, pillbox_sources_by_rec
 			yield RECORD_LOOP_SHARE * i / records.length;
 		}
 		let rec = records[i];
-		let map_node_only = rec.subpackets.length > 0 &&
-			rec.subpackets.every(sub => MAP_NODE_TYPES.has(sub.type));
-		let shell_lists = rec.subpackets.filter(sub => sub.type === "shells");
-		if (!shell_lists.length && (rec.tankStatus === 0x0f || map_node_only)) continue;
+		/* one pass over the subpackets: the snapshot's shells, and whether
+		 * the record is nothing but map-node traffic */
+		let map_node_only = rec.subpackets.length > 0;
+		let shells = null;
+		for (let sub of rec.subpackets) {
+			if (sub.type === "shells") {
+				append_snapshot_shells(shells ??= [], sub);
+				map_node_only = false;
+			} else if (!MAP_NODE_TYPES.has(sub.type)) {
+				map_node_only = false;
+			}
+		}
+		if (!shells && (rec.tankStatus === 0x0f || map_node_only)) continue;
 
-		let shells = [];
-		for (let sub of shell_lists) append_shell_list(shells, sub, rec.time);
 		let snapshot = {
 			time: rec.time,
 			/* position of the record in the build's list, so a tool can
@@ -5971,16 +6088,7 @@ function* build_shell_positions_steps(records, terminals, pillbox_sources_by_rec
 			 * sender's cadence ran, or how late this record's stamp may be
 			 * against its contents (see match_shell_snapshots) */
 			stall_before: 0,
-			shells: shells.map(shell => ({
-				pixel_x: shell.x * 16 + shell.px,
-				pixel_y: shell.y * 16 + shell.py,
-				direction: shell.direction,
-				position_uncertainty: shell.position_uncertainty,
-				shell_list_start: shell.shell_list_start,
-				shell_list_index: shell.shell_list_index,
-				shell_offset_x: shell.shell_offset_x,
-				shell_offset_y: shell.shell_offset_y,
-			})),
+			shells: shells || [],
 			terminals: terminals_by_record.get(rec) || [],
 			pillbox_sources: pillbox_sources_by_record.get(rec) || [],
 			tank_sources: tank_sources_by_record.get(rec) || [],

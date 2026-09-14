@@ -3183,6 +3183,27 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "long_game"))) {
 	check("truncated run flagged", seed.badRuns, 1);
 }
 
+// The death-clearance taint masks the square under a pill, which takes a
+// replay to know; extract_initial_map skips that replay when every map
+// run precedes the first tank death, so a run that FOLLOWS a death must
+// still get the mask. A pill at (100,100); a tank dies centred on the
+// corner of squares 100 and 101, clearing both; a run then supplies row
+// 100. Only the pill's square may take the run's value; its neighbour in
+// the box stays unknown; a square outside the box is written either way.
+{
+	const pills = { type: "pillbox_list", items: [{ x: 100, y: 100, owner: 0, armour: 15, speed: 50 }] };
+	const death = { type: "tank_position", x: 100, y: 100, pixelX: 8, pixelY: 8, speed: 0, motion: 0,
+		inBoat: false, hidden: false, dying: true, direction: 0 };
+	const run = { type: "map_run", mapKnown: 0, run: [7, 100, 90, 110, 0xf5, 0xf5, 0xf5] };
+	const record = (time, tankStatus, ...subpackets) =>
+		({ time, seq: 0, player: 0, status: 0, tankStatus, tankDir: 0, subpackets });
+	const row = seed => [99, 100, 101].map(x => seed.grid[100 * 256 + x]);
+	const after = BoloGame.extract_initial_map([record(0, 0, pills), record(10, 4, death), record(20, 0, run)]);
+	check("run after a death: pill square masked, box tainted, outside written", row(after), [5, 5, 255]);
+	const before = BoloGame.extract_initial_map([record(0, 0, pills), record(10, 0, run), record(20, 4, death)]);
+	check("run before the death: nothing tainted yet", row(before), [5, 5, 5]);
+}
+
 // Network conditions: gaps over half a second count as freezes, the ring's
 // turn time is read per player, and the verdict is the worse of those two.
 // A sequence step of n leaves n-1 slots quiet (a node with nothing to log);
