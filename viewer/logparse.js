@@ -253,7 +253,7 @@ function parseIdSubpackets(rec, data, pos) {
 				pos += 1;
 			} else if (byte === 0xf8) {    // node id / player name ("name@node")
 				const { str, next } = pascalString(data, pos + 1);
-				subs.push({ type: "node_id", name: str });
+				subs.push({ type: "node_id", name: str, at: pos + 1 });
 				pos = next;
 			} else if (byte === 0xf9) {    // tank death (1 = explosion, 2 = crater, 3 = sunk)
 				ensure(data, pos, 2);
@@ -367,12 +367,16 @@ function parseF1(subs, data, pos) {
 	// Two little-endian bitmasks (SET bits = members), then a 36-byte
 	// history value shared by the marked pills/bases: a zero-padded Pascal
 	// player@node string, or the empty default (00 01 + zeros) as null.
+	// `at` is the offset of that string's length byte within the record,
+	// as it is for node_id and attached_log, so a tool that rewrites names
+	// can find the field without searching for its bytes.
 	const nameLen = data[pos + 6];
 	subs.push({
 		type: "history", sub,
 		pillMask: data[pos + 2] | (data[pos + 3] << 8),
 		baseMask: data[pos + 4] | (data[pos + 5] << 8),
 		name: nameLen >= 1 && nameLen <= 35 ? macRoman(data.subarray(pos + 7, pos + 7 + nameLen)) : null,
+		at: pos + 6,
 		raw: hex(data, pos + 2, 40),
 	});
 	return pos + 42;
@@ -481,7 +485,7 @@ function parseRecord(raw) {
 		}
 		try {
 			const { str, next } = pascalString(data, pos + 1);
-			rec.subpackets.push({ type: "attached_log", name: str });
+			rec.subpackets.push({ type: "attached_log", name: str, at: pos + 1 });
 			if (next !== data.length) {
 				rec.warning = "attached-log record with trailing bytes";
 				rec.unparsed = hex(data, next, data.length - next);
