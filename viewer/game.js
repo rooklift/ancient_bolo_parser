@@ -1256,7 +1256,7 @@ function* build_steps(records) {
 	 * roster changed. Sparse -- pickups, plants, kills and revives are
 	 * rare next to records. */
 	let pill_states = [];
-	let last_pill_key = null;
+	let last_roster = null;
 	let s = initial_state(seed);
 
 	for (let i = 0; i < records.length; i++) {
@@ -1309,13 +1309,26 @@ function* build_steps(records) {
 		}
 		if (tank_sources.length) tank_sources_by_record.set(rec, tank_sources);
 		apply_record(s, rec, effects, chat, shell_terminals, node_joins);
-		let roster = s.pills.map(p => p.inTank === null && p.armour > 0
-			? { pixel_x: p.x * 16, pixel_y: p.y * 16 } : null);
-		let pill_key = roster.map(p =>
-			p ? `${p.pixel_x},${p.pixel_y}` : "-").join(";");
-		if (pill_key !== last_pill_key) {
+		/* Compare the placed-and-armed roster against the last one entry
+		 * by entry, and build a new one only when it differs: cheaper
+		 * than a key string per record, and the same entries result. */
+		let roster_changed = last_roster === null ||
+			last_roster.length !== s.pills.length;
+		for (let i = 0; !roster_changed && i < s.pills.length; i++) {
+			let p = s.pills[i];
+			let last = last_roster[i];
+			if (p.inTank === null && p.armour > 0) {
+				roster_changed = last === null ||
+					last.pixel_x !== p.x * 16 || last.pixel_y !== p.y * 16;
+			} else {
+				roster_changed = last !== null;
+			}
+		}
+		if (roster_changed) {
+			let roster = s.pills.map(p => p.inTank === null && p.armour > 0
+				? { pixel_x: p.x * 16, pixel_y: p.y * 16 } : null);
 			pill_states.push({ time: rec.time, roster });
-			last_pill_key = pill_key;
+			last_roster = roster;
 		}
 	}
 	let shell_steps = BoloMotion.build_shell_positions_steps(records, shell_terminals,
