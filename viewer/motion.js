@@ -1358,10 +1358,17 @@ function shell_from_pillbox(shell) {
 		Boolean(shell.pillbox_orbit_states);
 }
 
+/* `variant_cache`, a `{ variants }` holder, lets a caller testing one
+ * shell against many terminals share its
+ * ordinary_shell_position_variants(previous), filled here on the first
+ * terminal that gets as far as needing them: the variants depend on the
+ * shell alone, and they are read, never written. The sharing must not
+ * outlive the candidate generation it serves, since the assignments that
+ * follow change the shell's fields. */
 function shell_terminal_match(previous, terminal, duration, start_time,
 	lead_pixels = 0, pillbox_lead_pixels = lead_pixels,
 	long_duration = duration, stamped_duration = long_duration,
-	advance_duration = undefined) {
+	advance_duration = undefined, variant_cache = null) {
 	if (terminal.direction !== null &&
 		terminal.direction !== shell_sector(previous)) return null;
 	if (!terminal_takes_pillbox_shell(terminal) && shell_from_pillbox(previous)) {
@@ -1397,9 +1404,18 @@ function shell_terminal_match(previous, terminal, duration, start_time,
 	 * geometry. */
 	let boxes = terminal.type === "box"
 		? [terminal, ...(terminal.earlier_boxes || [])] : [terminal];
+	let variants;
+	if (variant_cache) {
+		if (!variant_cache.variants) {
+			variant_cache.variants = ordinary_shell_position_variants(previous);
+		}
+		variants = variant_cache.variants;
+	} else {
+		variants = ordinary_shell_position_variants(previous);
+	}
 	for (let box of boxes) {
 		let stale_box = box !== terminal;
-		for (let variant of ordinary_shell_position_variants(previous)) {
+		for (let variant of variants) {
 			let endpoint, angle_error = 0;
 			if (terminal.type === "box") {
 				/* A tile/object event supplies timing and bounds, not an aim point.
@@ -2830,6 +2846,10 @@ function match_shell_snapshots(previous, next) {
 		/* Already continued by its verbatim re-send; its story goes on from
 		 * the re-send's statement, not from here. */
 		if (previous.shells[previous_index].next_time !== undefined) continue;
+		/* the shell's position variants, generated on the first terminal
+		 * that needs them and shared by the rest; nothing below assigns
+		 * to a shell until every candidate is in */
+		let variant_cache = { variants: null };
 		for (let next_index = 0; next_index < target_groups.length; next_index++) {
 			let target = target_groups[next_index].target;
 			if (target.starts_at_pillbox || target.matched_from_previous) continue;
@@ -2838,7 +2858,7 @@ function match_shell_snapshots(previous, next) {
 				if (duration > MAX_POSITION_INTERPOLATION_TICKS) continue;
 				match = shell_terminal_match(previous.shells[previous_index], target,
 					duration, previous.time, 0, 0, long_duration, stamped_duration,
-					advance_duration);
+					advance_duration, variant_cache);
 			} else {
 				match = shell_match_cost(previous.shells[previous_index], target,
 					duration, long_duration, stamped_duration, advance_duration);
