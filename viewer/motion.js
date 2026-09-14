@@ -672,10 +672,10 @@ function shell_match_cost(previous, next, duration,
 		return match;
 	}
 
-	let tank_states = tank_shell_successor_states(previous, next, duration,
-		long_duration, advance_duration);
-	if (tank_states && !tank_states.length) return null;
-
+	/* The cheap distance and heading gates first: the bradian propagation
+	 * below enumerates hypotheses and update counts, work wasted on a
+	 * target too far away or behind the shell. Both tests are pure and
+	 * both must pass, so the order changes nothing but the cost. */
 	let previous_pixel_x = previous.tank_exact_pixel_x ?? previous.pixel_x;
 	let previous_pixel_y = previous.tank_exact_pixel_y ?? previous.pixel_y;
 	let delta_x = next.pixel_x - previous_pixel_x;
@@ -697,6 +697,10 @@ function shell_match_cost(previous, next, duration,
 	if (forward <= 0) return null;
 	let angle_error = Math.atan2(lateral, forward);
 	if (angle_error > SHELL_DIRECTION_TOLERANCE) return null;
+
+	let tank_states = tank_shell_successor_states(previous, next, duration,
+		long_duration, advance_duration);
+	if (tank_states && !tank_states.length) return null;
 
 	return {
 		cost: distance_error + angle_error * expected_distance,
