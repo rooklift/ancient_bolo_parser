@@ -62,9 +62,10 @@ function read_mapping(file) {
 }
 
 /* Every address in a log, with the file offset of its four bytes. The
- * subpackets are located by their own bytes: the game info by `F1 01`
- * followed by the game id the parser read, a quit by `FF F0`, the
- * field length and the fields the parser read. */
+ * parser reports where each subpacket starts (`at`, the offset of its
+ * first byte within the record), so the bytes are never searched for:
+ * map data that happens to spell a game info or a quit is not mistaken
+ * for one. */
 function addresses(bytes) {
 	let out = [];
 	for (let raw of BoloLog.rawRecords(bytes)) {
@@ -73,23 +74,12 @@ function addresses(bytes) {
 		let base = raw.offset + 5;
 		for (let sub of rec.subpackets) {
 			if (sub.type === "game_info") {
-				let id = Buffer.from(sub.gameId, "hex");
-				let at = -1;
-				for (let i = 3; i + GAMEINFO_LEN <= data.length; i++) {
-					if (data[i] !== 0xf1 || data[i + 1] !== 0x01) continue;
-					if (Buffer.from(data.subarray(i + GAMEINFO_IP, i + GAMEINFO_IP + 8)).equals(id)) { at = i; break; }
-				}
-				if (at < 0) throw new Error(`cannot locate the game info at record offset ${raw.offset}`);
+				let at = sub.at;
+				if (at + GAMEINFO_LEN > data.length) throw new Error(`game info overruns the record at offset ${raw.offset}`);
 				out.push({ kind: "host", at: base + at + GAMEINFO_IP, ip: format_ip(data.subarray(at + GAMEINFO_IP, at + GAMEINFO_IP + 4)) });
 			} else if (sub.type === "quit") {
 				let len = sub.fields[0].length / 2;
-				let fields = Buffer.from(sub.fields.join(""), "hex");
-				let at = -1;
-				for (let i = 3; i + 3 + fields.length <= data.length; i++) {
-					if (data[i] !== 0xff || data[i + 1] !== 0xf0 || data[i + 2] !== len) continue;
-					if (Buffer.from(data.subarray(i + 3, i + 3 + fields.length)).equals(fields)) { at = i; break; }
-				}
-				if (at < 0) throw new Error(`cannot locate the quit record at record offset ${raw.offset}`);
+				let at = sub.at;
 				if (len < 4) throw new Error(`quit record with ${len}-byte fields at record offset ${raw.offset}`);
 				for (let k = 0; k < 3; k++) {
 					let field_at = at + 3 + k * len;

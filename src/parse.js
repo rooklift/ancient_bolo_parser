@@ -229,6 +229,10 @@ function parseIdSubpackets(rec, data, pos) {
 				subs.push({ type: "lay_mine" });
 				pos += 1;
 			} else if (byte === 0xf8) {    // node id / player name ("name@node")
+				// `at` on a subpacket with a Pascal string (node_id, message,
+				// history, attached_log) is the offset of that string's length
+				// byte within the record; on game_info and quit it is the
+				// subpacket's first byte. The redaction tools patch by it.
 				const { str, next } = pascalString(data, pos + 1);
 				subs.push({ type: "node_id", name: str, at: pos + 1 });
 				pos = next;
@@ -240,7 +244,7 @@ function parseIdSubpackets(rec, data, pos) {
 				ensure(data, pos, 4);
 				const address = data[pos + 1] | (data[pos + 2] << 8);
 				const { str, next } = pascalString(data, pos + 3);
-				subs.push({ type: "message", address, text: str });
+				subs.push({ type: "message", address, text: str, at: pos + 3 });
 				pos = next;
 				/* A zero-length message is a sender-side fault, and the bytes
 				 * Bolo packs after it are buffer leavings sized off their own
@@ -297,6 +301,7 @@ function parseF1(subs, data, pos) {
 		}
 		subs.push({
 			type: "game_info",
+			at: pos,   // offset of the F1 byte within the record
 			mapName: macRoman(g.subarray(1, 1 + nameLen)),
 			gameId: hex(g, 36, 8),
 			hostIp: `${g[36]}.${g[37]}.${g[38]}.${g[39]}`,
@@ -344,9 +349,7 @@ function parseF1(subs, data, pos) {
 	// Two little-endian bitmasks (SET bits = members), then a 36-byte
 	// history value shared by the marked pills/bases: a zero-padded Pascal
 	// player@node string, or the empty default (00 01 + zeros) as null.
-	// `at` is the offset of that string's length byte within the record,
-	// as it is for node_id and attached_log, so a tool that rewrites names
-	// can find the field without searching for its bytes.
+	// `at` is the offset of that string's length byte within the record.
 	const nameLen = data[pos + 6];
 	subs.push({
 		type: "history", sub,
@@ -396,7 +399,7 @@ function parseFF(subs, data, pos) {
 		ensure(data, pos, 3);
 		const fieldLen = data[pos + 2];
 		ensure(data, pos, 3 + fieldLen * 3);
-		subs.push({ type: "quit", fields: [0, 1, 2].map(i => hex(data, pos + 3 + i * fieldLen, fieldLen)) });
+		subs.push({ type: "quit", at: pos, fields: [0, 1, 2].map(i => hex(data, pos + 3 + i * fieldLen, fieldLen)) });
 		return pos + 3 + fieldLen * 3;
 	}
 	if (code === 0xf1) {

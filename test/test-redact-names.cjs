@@ -3,8 +3,6 @@
 // 0x41,0x40 with pixel byte 0x42 after a byte of 0x03, which reads as
 // the Pascal string "A@B") must keep those bytes as recorded.
 
-const fs = require("node:fs");
-const path = require("node:path");
 const BoloLog = require("../viewer/logparse.js");
 const redactor = require("../tools/redact-names.cjs");
 
@@ -15,31 +13,7 @@ function check(what, got, want) {
 	console.log(`${ok ? "ok  " : "FAIL"} ${what}${ok ? "" : `: ${JSON.stringify(got)} (wanted ${JSON.stringify(want)})`}`);
 }
 
-// A log is a 72-byte header opening "Bolo", then records of a 4-byte time
-// tag in the clear and a masked length byte and payload.
-const mask_source = fs.readFileSync(path.join(__dirname, "..", "src", "mask.js"), "utf8");
-const MASK = Uint8Array.from(JSON.parse(mask_source.match(/Uint8Array\.from\((\[[\s\S]*?\])\)/)[1].replace(/0x([0-9a-f]+)/gi, (_, h) => parseInt(h, 16)).replace(/,\s*\]/, "]")));
-
-function build_log(records) {
-	let header = new Uint8Array(72);
-	header.set([0x42, 0x6f, 0x6c, 0x6f]);
-	let parts = [header];
-	let time = 100;
-	for (let payload of records) {
-		let rec = new Uint8Array(5 + payload.length);
-		rec[0] = time & 0xff; rec[1] = (time >> 8) & 0xff; rec[2] = 0; rec[3] = 0;
-		rec[4] = (payload.length + 1) ^ MASK[0];
-		for (let i = 0; i < payload.length; i++) rec[5 + i] = payload[i] ^ MASK[(i + 1) % MASK.length];
-		parts.push(rec);
-		time += 10;
-	}
-	let out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
-	let pos = 0;
-	for (let p of parts) { out.set(p, pos); pos += p.length; }
-	return out;
-}
-
-const str = s => [s.length, ...Array.from(s, c => c.charCodeAt(0))];
+const { build_log, str, changed_bytes } = require("./synthetic-log.cjs");
 
 // Each payload is seq, status/player, tankStatus/dir, then subpackets.
 // Player 0 joins as "A@B": F8 and the name.
@@ -80,8 +54,7 @@ check("the history bitmasks are untouched", [after[3].subpackets[0].pillMask, af
 
 // Byte for byte: only the name bytes may differ, and the "@" of each
 // name is the same in both, so six bytes change.
-let changed = [];
-for (let i = 0; i < log.length; i++) if (log[i] !== out[i]) changed.push(i);
+let changed = changed_bytes(log, out);
 check("exactly six bytes changed", changed.length, 6);
 const field_bytes = fields.flatMap(f => [0, 2].map(i => f.offset + 5 + f.at + 1 + i));
 check("the changed bytes are the name fields", changed, field_bytes);

@@ -72,44 +72,32 @@ function to_mac_roman(str) {
 
 /* Every FA message in a log, with where its text sits in the file: the
  * Pascal string's length byte is at `text_at` - 1, its characters from
- * `text_at`, both file offsets. A record carries its subpackets in
- * order, so the message is found by walking the decoded payload the way
- * the parser does. */
-function messages(file) {
-	let bytes = new Uint8Array(fs.readFileSync(file));
+ * `text_at`, both file offsets. The parser reports where each message
+ * field starts (`at`, the length byte's offset within the record), so
+ * the bytes of a message are never searched for: map data that happens
+ * to spell one is not mistaken for it. */
+function messages_in(bytes) {
 	let out = [];
 	for (let raw of BoloLog.rawRecords(bytes)) {
 		let rec = BoloLog.parseRecord(raw);
-		let texts = rec.subpackets.filter(sub => sub.type === "message");
-		if (!texts.length) continue;
-		/* locate each FA's string in the payload: FA, 2 address bytes,
-		 * length, text -- searched for in order so repeated texts in one
-		 * record are told apart */
-		let pos = 3;
-		for (let sub of texts) {
-			let needle = to_mac_roman(sub.text);
-			let at = -1;
-			for (let i = pos; i + 4 + needle.length <= raw.data.length; i++) {
-				if (raw.data[i] !== 0xfa) continue;
-				if ((raw.data[i + 1] | (raw.data[i + 2] << 8)) !== sub.address) continue;
-				if (raw.data[i + 3] !== needle.length) continue;
-				let j = 0;
-				while (j < needle.length && raw.data[i + 4 + j] === needle[j]) j++;
-				if (j === needle.length) { at = i; break; }
-			}
-			if (at < 0) throw new Error(`${file}: cannot locate a message's bytes at record offset ${raw.offset}`);
-			pos = at + 4 + needle.length;
+		for (let sub of rec.subpackets) {
+			if (sub.type !== "message") continue;
 			out.push({
 				player: rec.player,
 				seq: raw.data[0],
 				address: sub.address,
 				text: sub.text,
-				chars: needle.length,
-				text_at: raw.offset + 5 + at + 4,
+				chars: to_mac_roman(sub.text).length,
+				text_at: raw.offset + 5 + sub.at + 1,
 			});
 		}
 	}
-	return { bytes, out };
+	return out;
+}
+
+function messages(file) {
+	let bytes = new Uint8Array(fs.readFileSync(file));
+	return { bytes, out: messages_in(bytes) };
 }
 
 const key = m => `${m.player}|${m.seq}|${m.address}|${m.text}`;
@@ -168,7 +156,9 @@ function apply(index, lines, out_dir) {
 		if (bytes.length !== entry.chars) throw new Error(`line ${i}: ${bytes.length} characters, the template wants ${entry.chars}: ${JSON.stringify(line)}`);
 		return bytes;
 	});
-	fs.mkdirSync(out_dir, { recursive: true });
+	/* Patch and check every log in memory first; nothing is written until
+	 * all of them have passed, so a failure leaves no file behind. */
+	let results = [];
 	for (let file of index.logs) {
 		let { bytes, out: found } = messages(file);
 		let patched = Uint8Array.from(bytes);
@@ -176,20 +166,32 @@ function apply(index, lines, out_dir) {
 		index.entries.forEach((entry, i) => {
 			let at = entry.at[file];
 			if (at === undefined) return;
-			let old_bytes = to_mac_roman(found.find(m => m.text_at === at).text);
+			let message = found.find(m => m.text_at === at);
+			if (!message) throw new Error(`${file}: no message at ${at}; the index is not this log's`);
+			let old_bytes = to_mac_roman(message.text);
 			if (old_bytes.length !== entry.chars) throw new Error(`${file}: the message at ${at} is not the template's`);
 			for (let k = 0; k < old_bytes.length; k++) patched[at + k] = bytes[at + k] ^ old_bytes[k] ^ texts[i][k];
 			n++;
 		});
+		/* read back: every message is now one of the invented lines, at
+		 * the place it was, and no other byte has changed */
+		let check = messages_in(patched);
+		if (check.length !== found.length) throw new Error(`${file}: after patching, the message count changed`);
+		check.forEach((m, j) => {
+			let entry = index.entries.find(e => e.at[file] === m.text_at);
+			if (m.text_at !== found[j].text_at) throw new Error(`${file}: after patching, a message moved to ${m.text_at}`);
+			if (!entry || m.text !== BoloLog.macRoman(texts[index.entries.indexOf(entry)])) throw new Error(`${file}: after patching, an unexpected message at ${m.text_at}`);
+		});
+		let text_bytes = new Set(found.flatMap(m => Array.from({ length: m.chars }, (_, k) => m.text_at + k)));
+		for (let k = 0; k < bytes.length; k++) {
+			if (bytes[k] !== patched[k] && !text_bytes.has(k)) throw new Error(`${file}: after patching, byte ${k} changed outside any message`);
+		}
+		results.push({ file, patched, n });
+	}
+	fs.mkdirSync(out_dir, { recursive: true });
+	for (let { file, patched, n } of results) {
 		let out_file = path.join(out_dir, path.basename(file));
 		fs.writeFileSync(out_file, patched);
-		/* read back: every message is now one of the invented lines */
-		let check = messages(out_file).out;
-		if (check.length !== found.length) throw new Error(`${out_file}: message count changed`);
-		for (let m of check) {
-			let entry = index.entries.find(e => e.at[file] === m.text_at);
-			if (!entry || m.text !== BoloLog.macRoman(texts[index.entries.indexOf(entry)])) throw new Error(`${out_file}: unexpected message at ${m.text_at}`);
-		}
 		console.log(`${path.basename(file)}: ${n} messages replaced -> ${out_file}`);
 	}
 }
@@ -219,6 +221,6 @@ function main() {
 	process.exit(2);
 }
 
-module.exports = { messages, build_template, apply };
+module.exports = { messages, messages_in, build_template, apply };
 
 if (require.main === module) main();
