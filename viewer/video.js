@@ -504,12 +504,20 @@ async function ex_flush_writes(all) {
 /* A task break that lets the overlay repaint without using a timer:
  * backgrounded windows throttle setTimeout to a second or worse, which
  * would slow the export to a crawl the moment the app loses focus, but
- * MessageChannel tasks are never throttled. */
+ * MessageChannel tasks are never throttled. One channel serves every
+ * call: a started, entangled port is never collected, so a channel per
+ * call would leak two ports per yield for the life of the page. */
+let ex_yield_channel = null;
+let ex_yield_waiters = [];
+
 function ex_yield() {
+	if (ex_yield_channel === null) {
+		ex_yield_channel = new MessageChannel();
+		ex_yield_channel.port1.onmessage = () => ex_yield_waiters.shift()();
+	}
 	return new Promise(resolve => {
-		let channel = new MessageChannel();
-		channel.port1.onmessage = () => resolve();
-		channel.port2.postMessage(null);
+		ex_yield_waiters.push(resolve);
+		ex_yield_channel.port2.postMessage(null);
 	});
 }
 
