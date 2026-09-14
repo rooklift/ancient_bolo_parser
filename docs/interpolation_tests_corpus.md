@@ -179,6 +179,7 @@ Constant at all ten commits, and worth having once:
 | `7c99ab5` | a record the reading marks late slides its heads, against the next record (drawing only) | 0.998408 | 0.000612 | 0.839410 | 242,335 | 13,565 | **633** | 16 |
 | `a3cbd20` | a read-late head slides by its lateness against the chain's tail (drawing only) | 0.998408 | 0.000612 | 0.839410 | 242,335 | 13,565 | **633** | 16 |
 | `0c90f1e` | a pill's passed election is the sender's clock for the joins | **0.998419** | **0.000606** | **0.839422** | 242,335 | 13,563 | **629** | 16 |
+| `f7c7c39` | build trims, byte-identical; a zero-length chat message ends the record | 0.998419 | **0.000605** | **0.839423** | 242,335 | 13,563 | 629 | 16 |
 
 The three right-hand columns are lower-is-better counts from the drawn
 audit and the vouched-link score, added so that a drawing-only commit
@@ -4122,6 +4123,40 @@ statements are themselves a rung aliased, which the gates cannot tell
 from a clean one -- and finding it means reading that scene's pairs
 with `--describe-links` on the votes, not gating the clock blind.
 Reverted; the engine and the pinned counts are back at `0c90f1e`.
+
+## Build trims and the zero-length chat message -- `f7c7c39`
+
+Nine commits of work-skipping in the matcher, the game loop, the
+lockstep reference and the initial-map extraction, each checked for a
+byte-identical reconstruction on all 23 fixtures, and then one parser
+change: a zero-length chat message ends its record, since the bytes
+Bolo packs after one are buffer leavings that read as subpackets
+(FORMAT.notes.md [E:empty-chat]).
+
+Corpus, `f7c7c39-report.txt` and `f7c7c39-audit.txt` against
+`0c90f1e-*`, the same 443 files. Run on a different machine, so the
+input hash (which covers the corpus path) and the build times are not
+comparable with the earlier archives; an interleaved A/B on that
+machine put the build at 22% and 18% less summed worker time over two
+runs each.
+
+* the trims alone reproduce `0c90f1e` exactly: both content hashes
+  matched before the parser change went in.
+* the parser change removes what Nemokrad's four affected records
+  contributed: `shells` 9,817,361 -> **9,817,358** (one phantom
+  three-shell list, `20011218.4`), all three off
+  `shells_unmatched_forward` and `shells_unlinked` (5,946 -> **5,943**),
+  and `terminals` 1,946,439 -> **1,946,438** (one phantom explosion,
+  `20010424.1`), off `terminals_unmatched`; the two phantom terrain
+  changes of `20021024.3` touched no shell figure. `rate_shells_unlinked`
+  0.000606 -> **0.000605**, `rate_terminals_matched` 0.839422 ->
+  **0.839423**; the drawn audit's `pop_outs` 15,338 -> 15,335 and
+  `pop_ins` 18,796 -> 18,793, every other line unchanged.
+
+Reading. Nothing the matcher decides moved; the six lines that did are
+the phantoms leaving, three unmatchable shells and one unexplainable
+explosion fewer. Palp's collection holds the other six affected
+records.
 
 ## Findings
 
