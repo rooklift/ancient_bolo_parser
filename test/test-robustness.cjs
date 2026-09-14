@@ -56,7 +56,7 @@ check("header-only file yields no records", [...BoloLog.records(header())].lengt
 
 // --- truncated subpackets must warn, not silently half-decode ---
 {
-	const MASK = [0x83, 0xb6, 0x59, 0xe3, 0xee, 0x59, 0x10, 0x27, 0xa8];
+	const MASK = [0x83, 0xb6, 0x59, 0xe3, 0xee, 0x59, 0x10, 0x27, 0xa8, 0x64, 0xff, 0x17, 0x8f, 0xcc, 0xec, 0x85];
 	function makeRecord(payload) {
 		// payload = decrypted record bytes after the length byte
 		const buf = new Uint8Array(72 + 4 + 1 + payload.length);
@@ -75,6 +75,17 @@ check("header-only file yields no records", [...BoloLog.records(header())].lengt
 	recs = [...BoloLog.records(makeRecord([0x00, 0x00, 0x00, 0xf1, 0x02, 0xff]))];
 	check("absurd list count warns", !!recs[0].warning, true);
 	check("absurd list count allocates nothing", recs[0].subpackets.filter(s => s.type === "pillbox_list").length, 0);
+	// a zero-length chat message ends the parse: the bytes Bolo packs after
+	// one are buffer leavings, here spelling a terrain change in deep sea
+	// (corpus 20021024.3, record 8617) [E:empty-chat]
+	recs = [...BoloLog.records(makeRecord([0x00, 0x00, 0x00, 0xfa, 0xff, 0xff, 0x00, 0x68, 0x68, 0x20]))];
+	check("zero-length message keeps its junk out of the parse", recs[0].subpackets.map(s => s.type), ["message"]);
+	check("zero-length message flags the record", recs[0].warning, "junk after a zero-length chat message");
+	check("zero-length message keeps the junk for inspection", recs[0].unparsed, "686820");
+	// a real message followed by a shell list parses both
+	recs = [...BoloLog.records(makeRecord([0x00, 0x00, 0x00, 0xfa, 0xff, 0xff, 0x02, 0x68, 0x69, 0x00, 0x64, 0x64, 0x00]))];
+	check("shell list after a real message is parsed", recs[0].subpackets.map(s => s.type), ["message", "shells"]);
+	check("shell list after a real message leaves no warning", recs[0].warning, undefined);
 	// record length above the format cap throws
 	const bad = makeRecord([0x00, 0x00, 0x00]);
 	bad[76] = 200 ^ MASK[0];

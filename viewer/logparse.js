@@ -265,6 +265,15 @@ function parseIdSubpackets(rec, data, pos) {
 				const { str, next } = pascalString(data, pos + 3);
 				subs.push({ type: "message", address, text: str });
 				pos = next;
+				/* A zero-length message is a sender-side fault, and the bytes
+				 * Bolo packs after it are buffer leavings sized off their own
+				 * first byte, never subpackets [E:empty-chat]. Keep them out
+				 * of the parse; shell lists after a REAL message are genuine. */
+				if (str.length === 0 && pos < data.length) {
+					rec.unparsed = hex(data, pos, data.length - pos);
+					rec.warning = "junk after a zero-length chat message";
+					return;
+				}
 			} else if (byte === 0xfb) {    // shell falls to ground
 				ensure(data, pos, 4);
 				subs.push({ type: "shell_falls", x: data[pos + 1], y: data[pos + 2], pixel: data[pos + 3] });
