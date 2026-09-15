@@ -51,6 +51,7 @@ Corpus figures are from the 443-log set unless an entry says 446, in which case 
 **Tanks, death and dumps**
 
 - [`[E:gameplay]`](#egameplay-the-measured-numbers-behind-gameplaymd) — the measured numbers behind GAMEPLAY.md
+- [`[E:emulator-log]`](#eemulator-log-the-owners-single-player-emulator-recording) — the owner's single-player emulator recording
 - [`[E:mine-damage]`](#emine-damage-a-mine-takes-3-armour-floored-and-a-tank-at-2-or-1-is-lost) — a mine takes 3 armour, floored, and a tank at 2 or 1 is lost
 - [`[E:ammo-clamp]`](#eammo-clamp-shells-and-mines-cap-at-40) — shells and mines cap at 40
 - [`[E:respawn-gap]`](#erespawn-gap-respawn-5068-s-after-death) — respawn 5.0–6.8 s after death
@@ -572,6 +573,24 @@ The numbers in GAMEPLAY.md tagged *measured* come from `tools/measure-gameplay.c
 
 **Regrowth** — 60,905 events: grass 60,009, road 840, crater 41, swamp 10, rubble 4; 60,764 with at least one forest neighbour, the mode four; senders in proportion to presence; 0.76 per forest-touching grass square per player-hour, 0.14 per grass square.
 
+### [E:emulator-log] — the owner's single-player emulator recording
+
+`fixtures/emulator_solo` is a 17.7-minute strict game the owner played alone in a Macintosh emulator in September 2026, recorded for the experiments this file had left open: one machine, one tank, 7,656 records, no ring and so no lost or late record, every shell the tank's own or a pillbox's aimed at it, and the ground truth typed into the chat ("so I have 30+30", "So I have 40+21", "now restored to full"). `node tools/measure-emulator-log.cjs` prints every reading below, and the ammo integration of [E:death-tiers] agrees with every chat line, the first direct check that method has had.
+
+**Death tiers.** Nine deaths carrying 1, 21, 44, 55, 56, 59, 60, 61 and 76 shells + mines: the first seven crater, 61 and 76 superboom. The rule is shells + mines > 60, as the corpus table read it, and the 9% of corpus superbooms it showed at 60 are integration error. One shell aboard craters, so the corpus's 17% "none" at 1 is tier-matching noise. The crater or superboom came 48–50 ticks after the `F9` in all nine; the ninth wreck slid into the tank's own minefield, whose chained craters arrive inside that window and have to be told apart by their square.
+
+**Reload.** 204 shots, no record carrying two. Within a burst the gaps are 12 and 14 (35 and 58 of 136 gaps up to 20 ticks), 13 (17) and 11/15 pairs (10 and 11), the machine writing a record every 2 ticks: the longest unbroken run is 80 gaps in 1,059 ticks, 13.24 per shot, in a repeating 12-14-12-14-14 pattern, so the reload is 13.2 ticks and not an integer number of them; whether the fraction belongs to Bolo's frame clock or to the emulator is open. The second shot of a burst follows the first by 8–12 ticks in most bursts, and the record interval that ended at the first shot's record was 6 ticks or more in those cases and 1–3 in the 13–14 ones: the first shot is written into a record the sender was already late with, stamped at the record's time, so its gap to the second reads short. That is the corpus's 7–11 tick quarter, on rings whose records are 6 or more ticks apart.
+
+**Pill anger.** Fourteen pills fired 192 times, every one from rest at 97–107 ticks (the `F1 02` speed byte 100). By hits taken, the clean gaps (no hit inside them): one hit 48–60, median 58; three hits 14–19; four hits 6–10, median 8; five 0–10, median 6; six 4–8, median 6. A pill hit once, left for two minutes and then hit twice went to 24–31, which is two hits from rest; hit a fourth time four seconds later it went to 16–18. So each hit halves the delay, 100 → 50 → 25 → 12 → 6, with 6 the floor, and the delay climbs back between hits at about the corpus's 1.5 ticks per quiet second (48, 55, 55, 59 after one hit; 14, 14, 14, 16, 16, 17, 15, 19 after three). The owner's question in the chat, whether four hits reach the floor, is answered: not quite, five do.
+
+**Mine chain.** 34 mines laid, 31 in records carrying a tank position, whose centred square ([E:centring]) is the square the crater later lands on. The tank drove onto one of two adjacent mines and both cratered, 7 ticks apart, for three armour, not six (the owner watching the display). The ninth death's wreck slid into a field of 19 mines laid in a block: 18 craters followed in 56 ticks, every one 4-adjacent to a crater 7–9 ticks earlier (median 8), a wave from the square the wreck reached, no diagonal step and no square twice. Three mines laid under the parked tank, with pillbox shells hitting it there five times, never went off, and the tank sat on each freshly laid mine unharmed.
+
+**Fording.** Two stints on river without a boat, read by the refill the next base gave before its stream stopped ([E:base-fill]): a full tank across six squares in 393 ticks at speed byte 12 refilled 22 shells and 22 mines; one square in 68 ticks refilled 3 shells and 2 mines onto a tank one shell short, so 2 and 2. Shells and mines go in equal numbers, one of each per loss; the rate is not settled by two crossings. `tools/measure-death-ammo.cjs` already flags wet lives for this leak.
+
+**Walls.** Fourteen buildings followed from `7 8` to `7 6` with one tank the only shooter: thirteen took exactly three `7B` between, one shell each, 12–14 ticks apart. The fourteenth took five: two `7B` at 3:29 and 3:31, then three more and the rubble at 15:37–15:39, so a shot building's hidden damage did not keep across twelve minutes, which would produce the corpus's long tails. Two `7 8` on one square 2 ticks apart (a tank shell and a pillbox shell arriving together) and two `7 6` 1 tick apart both occur on this one machine, so the repeat announcements of [E:terrain-hits] are not only a cross-machine staleness.
+
+**Refuel and timers.** Drain cadence on one machine: shells mode 8 (5–9), mines 8 (6–9), armour 50 (50–53), so the corpus medians of 9, 8 and 54 carry a tick or so of ring cadence. The base stock tick came every 1,001–1,007 ticks (median 1,004), not 1,000. Respawn 302–308 ticks after the death, at the fast end of [E:respawn-gap].
+
 ### [E:mine-damage] — a mine takes 3 armour, floored, and a tank at 2 or 1 is lost
 
 A mine takes 3 armour off a tank, floored at 0, and a tank on its last 2 points (1 or 0 display bars) is lost outright; owner's emulator tests at 8, 3, 2, 1 and 0 bars, giving 5, 0, 0, lost and lost. `tools/measure-mine-damage.cjs` over the 443-log corpus (`docs/corpus_runs/76a95f6-mine-damage.txt`) had already drawn the same shape: of 7,348 explosions on squares the model held mined, 1,024 had a tank centred on the square, 504 of those tanks were lost within a second and 517 drove on. Integrating each life's armour (9, −1 per hit, +1 per drain) and sweeping a fixed damage, 3 put the most mine-involved deaths at exactly 0 (267, against 238 for 2 and 70 for 4) but left 23 survivors it should have killed — and those 23 sit at integrated armour 3 (22) and 2 (1), which is precisely the floor the emulator shows.
@@ -582,7 +601,7 @@ A second run (`docs/corpus_runs/3656caf-mine-damage.txt`) read the loss directly
 
 The secondary peaks are runs of mines the attribution credited as one, and they carry the floor too: 6 at armour 7–9 (two mines), 5 at armour 6 (6 → 3 → 1) and 8 at armour 9 (9 → 6 → 3 → 1); a plain 3 per mine without the floor would give 6 and 9 there. The clean losses — one mine, no shell hit within 2 s, no other mined-square explosion nearby — sat 45 at armour 1–2 and 28 above, the latter mostly runs the first filter's before-the-hit window missed (a tank at 5 lost 0.06 s after the hit is two mines at once); the tool now looks for other mines up to the loss.
 
-Three survivors' readings of a loss of 0 are the size of the one open question: what a mine set off by a shell does to a tank standing on it. The tool's attribution (tank centre on the square within a second) does not separate that case from a tank rolling onto the mine.
+Three survivors' readings of a loss of 0 are the size of the one open question: what a mine set off by a shell does to a tank standing on it. The tool's attribution (tank centre on the square within a second) does not separate that case from a tank rolling onto the mine. The emulator log answers what it can ([E:emulator-log]): a shell that hits a tank stops at the tank and leaves the mine beneath untouched, and a mine chained from a neighbour does not hurt a tank on the next square; a mine chained under a standing tank is the case still unseen.
 
 ### [E:ammo-clamp] — shells and mines cap at 40
 
@@ -609,7 +628,7 @@ The ammo thresholds are measured rather than assumed. The logs carry no ammo-abo
 | 61 | 78 | 10% | 14% | 76% |
 | 62 | 62 | 6% | 2% | 92% |
 
-No superboom occurs anywhere below 60, so the superboom rule is shells + mines > 60. A tank carrying anything at all craters; only an empty tank dies silently. The flat ~8% "none" residual present at every ammo level is tier-misclassification noise (the crater event falling outside the match window) — it does not ramp with ammo, so it is not a physical effect. Superboom deaths carry a median of 40 mines, so in practice the threshold means a full mine load plus about 21 shells. `node tools/measure-death-ammo.cjs`.
+No superboom occurs anywhere below 60, so the superboom rule is shells + mines > 60. A tank carrying anything at all craters; only an empty tank dies silently. The flat ~8% "none" residual present at every ammo level is tier-misclassification noise (the crater event falling outside the match window) — it does not ramp with ammo, so it is not a physical effect. Superboom deaths carry a median of 40 mines, so in practice the threshold means a full mine load plus about 21 shells. `node tools/measure-death-ammo.cjs`. The boundary was then confirmed by controlled deaths on the emulator log, the ammo aboard typed into the chat: 60 craters, 61 superbooms, 1 craters ([E:emulator-log]).
 
 ### [E:superboom-cargo] — the second explosion is the cargo
 
