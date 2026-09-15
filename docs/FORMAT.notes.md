@@ -596,18 +596,18 @@ Measured gaps are 5.0–6.8 s (median 6.0).
 
 Across 14,365 deaths the tiers split ~7% superboom, ~64% single crater, ~29% no explosion. That the crater-less deaths really have no crater, rather than an unlogged one, is verified via flooding: crater flooding is evented and fast, and of 206 crater-less deaths ending beside water, none flooded.
 
-The ammo thresholds are measured rather than assumed. The logs carry no ammo-aboard field, but a strict game (`gametype` 3) respawns a tank empty, so a life beginning at an observed respawn can be integrated forwards: `+1` shell per `Bn`, `+1` mine per `Cn`, `−1` shell per `5d`, `−1` mine per `F7`, clamped at 40 each (see [E:ammo-clamp]; the man's `7C` plants also draw on the tank's mines, [E:base-fill], and are not charged here). Over 12,583 such lives the tier mix per unit of combined ammo steps sharply, twice:
+The ammo thresholds are measured rather than assumed. The logs carry no ammo-aboard field, but a strict game (`gametype` 3) respawns a tank empty, so a life beginning at an observed respawn can be integrated forwards: `+1` shell per `Bn`, `+1` mine per `Cn`, `−1` shell per `5d`, `−1` mine per `F7` and per `7C` (the man plants from the tank's mines, [E:base-fill]), clamped at 40 each (see [E:ammo-clamp]). Over 12,539 such lives the tier mix per unit of combined ammo steps sharply, twice:
 
 | shells + mines | n | none | crater | superboom |
 |---|---|---|---|---|
-| 0 | 3737 | 97% | 3% | 0% |
+| 0 | 3720 | 97% | 3% | 0% |
 | 1 | 166 | 17% | 83% | 0% |
-| 2 | 162 | 10% | 90% | 0% |
+| 2 | 159 | 11% | 89% | 0% |
 | … | | | | |
-| 59 | 77 | 13% | 87% | 0% |
+| 59 | 76 | 13% | 87% | 0% |
 | 60 | 56 | 4% | 88% | 9% |
-| 61 | 76 | 9% | 13% | 78% |
-| 62 | 64 | 8% | 3% | 89% |
+| 61 | 78 | 10% | 14% | 76% |
+| 62 | 62 | 6% | 2% | 92% |
 
 No superboom occurs anywhere below 60, so the superboom rule is shells + mines > 60. A tank carrying anything at all craters; only an empty tank dies silently. The flat ~8% "none" residual present at every ammo level is tier-misclassification noise (the crater event falling outside the match window) — it does not ramp with ammo, so it is not a physical effect. Superboom deaths carry a median of 40 mines, so in practice the threshold means a full mine load plus about 21 shells. `node tools/measure-death-ammo.cjs`.
 
@@ -781,7 +781,7 @@ Over the 443-log corpus the same model puts 11,927 of 11,945 hostile captures at
 
 ### [E:base-fill] — a full tank stops the drain stream; the base keeps its stock
 
-The owner, on the game itself: a full tank parked on a friendly base takes nothing, and the base's shell and mine counts, which the game shows for the nearest friendly base, hold still. The logs agree on their side. `tools/measure-base-fill.cjs` finds every stint of a tank on a base square from tank positions alone (a stint ends when the tank moves off, dies or falls silent for 15 s) and counts that base's drains against the tank's spends. Were drains logged at a full tank, a long stint would run its shell drains past its shots by far more than 40 (a base holds 90 and every player's tick adds more) and its last drain would sit near the stint's end. Instead, over 40,618 stints the excess never passes 40 for shells or for mines, and in the 52 stints of 60 s or more the last shell drain sits 30 s to 7 minutes before the end in 44, the other 8 being tanks that left while still filling. The stream simply stops when the tank is full and resumes when it spends, and a `Bn`/`Cn`/`Dn` is always a real transfer. An earlier reading of [E:ammo-clamp] had the drains continuing at a full tank with the round wasted; it was inferred from the ammo reconstruction's overflows, which are that method's noise, and the viewer, which charges the base for every drain it sees, was right by accident. Three stints run the mine excess to 41–43 until the man's mine plants (`7C`) are charged to the tank's stock, and to exactly 40 once they are: the man plants from the tank's mines, which the owner confirms from the game (the `with_lgm` reading of `tools/measure-death-ammo.cjs`; its tier tables were run on the `clamped` model, which charges only `F7`, and have not been re-run with `7C` charged).
+The owner, on the game itself: a full tank parked on a friendly base takes nothing, and the base's shell and mine counts, which the game shows for the nearest friendly base, hold still. The logs agree on their side. `tools/measure-base-fill.cjs` finds every stint of a tank on a base square from tank positions alone (a stint ends when the tank moves off, dies or falls silent for 15 s) and counts that base's drains against the tank's spends. Were drains logged at a full tank, a long stint would run its shell drains past its shots by far more than 40 (a base holds 90 and every player's tick adds more) and its last drain would sit near the stint's end. Instead, over 40,618 stints the excess never passes 40 for shells or for mines, and in the 52 stints of 60 s or more the last shell drain sits 30 s to 7 minutes before the end in 44, the other 8 being tanks that left while still filling. The stream simply stops when the tank is full and resumes when it spends, and a `Bn`/`Cn`/`Dn` is always a real transfer. An earlier reading of [E:ammo-clamp] had the drains continuing at a full tank with the round wasted; it was inferred from the ammo reconstruction's overflows, which are that method's noise, and the viewer, which charges the base for every drain it sees, was right by accident. Three stints run the mine excess to 41–43 until the man's mine plants (`7C`) are charged to the tank's stock, and to exactly 40 once they are: the man plants from the tank's mines, which the owner confirms from the game. `tools/measure-death-ammo.cjs` charges them in its `clamped_lgm` model, the one [E:death-tiers] is now read from; against the `clamped` model that charged only the tank's own drops, a few dozen deaths move one unit and no row of the table moves more than two points, so the thresholds stand.
 
 ### [E:owner-signals] — ownership belongs to the person, not the slot
 

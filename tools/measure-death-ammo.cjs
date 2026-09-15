@@ -36,20 +36,23 @@
  * void, and the printed rates say so; only a reconstruction that mostly
  * stays inside [0, 40] across thousands of lives earns the tier answer.
  *
- * TWO MODELS, because one spend is uncertain.  A `7C` explosion is an LGM
- * planting a mine, which plausibly draws from the tank's stock, but that
- * is not documented anywhere we can check.  Both readings run side by
- * side and the bracket adjudicates: whichever keeps more lives inside
- * [0, 40] is the true rule.
+ * FOUR MODELS.  A `7C` explosion is the man planting a mine, and the
+ * mine comes out of the tank's stock (owner's knowledge; and the
+ * base-fill stints, [E:base-fill], over-drain mines by 1-3 until the
+ * plants are charged).  The readings without that charge are kept so the
+ * bracket can be seen adjudicating, and because the tables in
+ * FORMAT.notes.md were first published on `clamped`.
  *
- *   tank_only   only `F7` spends mines
- *   with_lgm    `F7` and `7C` both spend mines
- *   clamped     as tank_only, but the count is held at 40 -- a noise
- *               filter, not a rule of the game: a full tank takes no
- *               drain at all ([E:base-fill], measure-base-fill.cjs), so
- *               every overflow is a spend the reconstruction missed, and
- *               holding the count at 40 stops one missed shot from
- *               poisoning the rest of the life
+ *   tank_only    only `F7` spends mines
+ *   with_lgm     `F7` and `7C` both spend mines
+ *   clamped      as tank_only, but the count is held at 40 -- a noise
+ *                filter, not a rule of the game: a full tank takes no
+ *                drain at all ([E:base-fill], measure-base-fill.cjs), so
+ *                every overflow is a spend the reconstruction missed, and
+ *                holding the count at 40 stops one missed shot from
+ *                poisoning the rest of the life
+ *   clamped_lgm  as with_lgm, held at 40: the reading that matches the
+ *                game, and the one the tier tables are read from
  *
  * A negative count would mean a missing source of ammo and would sink the
  * whole method; none occurs, so the only question is where the ceiling is
@@ -80,7 +83,7 @@ const MAX_SHELLS = 40;          /* Brain.h: BYTE shells; // Range 0-40 */
 const MAX_MINES = 40;           /* Brain.h: BYTE mines;  // Range 0-40 */
 const TIER_DISTANCE = 6;        /* same window as round 2, so tiers match */
 const TIER_LOOKBACK_TICKS = 60;
-const MODELS = ["tank_only", "with_lgm", "clamped"];
+const MODELS = ["tank_only", "with_lgm", "clamped", "clamped_lgm"];
 
 /* terrain codes that are water for the un-boated-leak check */
 const WATER = new Set([0, 1, 9, 255]);
@@ -190,18 +193,20 @@ function new_life() {
 		lgm_mines: 0,          /* 7C plants, charged only in the with_lgm model */
 		c_shells: 0,           /* clamped model: the count is held at 40 */
 		c_mines: 0,
+		cl_mines: 0,           /* clamped_lgm model: held at 40, 7C charged */
 		wet: false,            /* ever on water without a boat */
-		broke: {tank_only: null, with_lgm: null, clamped: null},
+		broke: {tank_only: null, with_lgm: null, clamped: null, clamped_lgm: null},
 	};
 }
 
 function shell_count(life, model) {
-	return model === "clamped" ? life.c_shells : life.shells;
+	return model === "clamped" || model === "clamped_lgm" ? life.c_shells : life.shells;
 }
 
 function mine_count(life, model) {
 	if (model === "with_lgm") return life.mines - life.lgm_mines;
 	if (model === "clamped") return life.c_mines;
+	if (model === "clamped_lgm") return life.cl_mines;
 	return life.mines;
 }
 
@@ -294,6 +299,7 @@ function scan(file) {
 				} else if (sub.resource === "mines") {
 					life.mines++;
 					life.c_mines = Math.min(MAX_MINES, life.c_mines + 1);
+					life.cl_mines = Math.min(MAX_MINES, life.cl_mines + 1);
 				}
 				check_bounds(life);
 				break;
@@ -305,11 +311,13 @@ function scan(file) {
 			case "lay_mine":
 				life.mines--;
 				life.c_mines--;
+				life.cl_mines--;
 				check_bounds(life);
 				break;
 			case "explosion":
 				if (sub.code === 0x0c) {
 					life.lgm_mines++;
+					life.cl_mines--;
 					check_bounds(life);
 				}
 				break;
@@ -468,11 +476,11 @@ for (let model of MODELS) {
 	console.log();
 }
 console.log("--- boundaries, per single unit of combined ammo ---");
-console.log("model \"clamped\"; the crater boundary at the bottom, the superboom");
-console.log("boundary at the top. A gate shows a step, not a ramp.");
+console.log("the crater boundary at the bottom, the superboom boundary at the top.");
+console.log("A gate shows a step, not a ramp.");
 console.log();
-{
-	let model = "clamped";
+for (let model of ["clamped", "clamped_lgm"]) {
+	console.log(`  model "${model}"`);
 	const row = (lo, hi) => {
 		let counts = {none: 0, crater: 0, superboom: 0};
 		for (let tier of TIERS)
