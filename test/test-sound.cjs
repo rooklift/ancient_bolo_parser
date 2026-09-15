@@ -68,6 +68,55 @@ assert.ok(audios.length <= 5, "simultaneous copies of each sound are bounded");
 player.stop();
 assert.ok(audios.every(a => a.paused));
 
+// Pan follows horizontal camera-relative distance, including self sounds.
+assert.equal(Sound.stereo_pan(shot, listener), 0);
+assert.equal(Sound.stereo_pan({ ...shot, y: 80 }, listener), 0);
+assert.equal(Sound.stereo_pan({ ...shot, x: 43 }, listener), -0.5);
+assert.equal(Sound.stereo_pan({ ...shot, x: 58 }, listener), 0.5);
+assert.equal(Sound.stereo_pan({ ...shot, x: 10 }, listener), -1);
+assert.equal(Sound.stereo_pan({ ...shot, x: 90 }, listener), 1);
+{
+	let voices = [], panners = [], routes = [], context_count = 0;
+	let ctx = {
+		state: "suspended", destination: {},
+		resume() { this.state = "running"; return Promise.resolve(); },
+		createMediaElementSource(audio) {
+			return { connect(node) { routes.push([audio, node]); } };
+		},
+		createStereoPanner() {
+			let panner = { pan: { value: 0 }, connect(node) { assert.equal(node, ctx.destination); } };
+			panners.push(panner);
+			return panner;
+		},
+	};
+	let stereo = Sound.create_player(() => {
+		let audio = { paused: true, currentTime: 0,
+			play() { this.paused = false; return Promise.resolve(); },
+			pause() { this.paused = true; },
+		};
+		voices.push(audio);
+		return audio;
+	}, () => { context_count++; return ctx; });
+	let pair = [{ ...shot, x: 40.5 }, { ...shot, x: 60.5 }];
+	stereo.advance(pair, 0, 10, 1, -1, () => listener);
+	assert.equal(voices.length, 0, "suspended audio drops events instead of queueing them");
+	stereo.unlock();
+	stereo.advance(pair, 10, 11, 1, -1, () => listener);
+	assert.equal(voices.length, 0, "unlock does not replay missed sounds");
+	stereo.advance(pair, 0, 10, 1, -1, () => listener);
+	assert.deepEqual(panners.map(p => p.pan.value), [-2 / 3, 2 / 3], "overlapping sounds have independent pan");
+	assert.ok(voices.every(a => a.volume === 0.5), "stereo keeps half volume");
+	assert.equal(routes.length, 2);
+	stereo.stop();
+	assert.ok(voices.every(a => a.paused));
+	stereo.advance([{ ...shot, x: 65.5 }], 0, 10, 1, -1, () => listener);
+	assert.equal(panners.length, 2, "pooled audio reuses its existing route");
+	assert.equal(panners[0].pan.value, 1, "a reused voice gets the new sound's pan");
+	assert.equal(context_count, 1, "one shared context");
+	stereo.set_enabled(false);
+	assert.ok(voices.every(a => a.paused));
+}
+
 // Exercise collection inside the replay engine, including the pre-change
 // terrain, victim identity, and repeated death notifications.
 let state = Game.initial_state();

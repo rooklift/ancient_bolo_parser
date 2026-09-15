@@ -52,6 +52,8 @@ enough, no self sounds are used. Nearby events use near sounds (within a 15-tile
 radius), and events less than 40 tiles away use far sounds. These circular distances
 use map tiles, independent of zoom. Locking the camera to a player makes audio
 follow that player; the player selector alone only changes friendly colours. The
+sound pans left/right with its horizontal offset from the camera centre, reaching
+full separation at 15 tiles. Sounds play at 50% volume. The
 **Speaker** button toggles audio. Playback above 100%, seeking, and
 frame stepping are silent. Video exports remain silent. Browsers may require
 a click or keypress before allowing sound. Builder and terrain-impact sounds
