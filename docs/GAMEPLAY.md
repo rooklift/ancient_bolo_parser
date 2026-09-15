@@ -58,16 +58,16 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   no hit is reported twice, [E:hit-reporter]), and the 7% with armour to spare are
   the size mine damage would leave. The game displays 8 bars and the tank dies when
   hit at 0, which is the same count **(owner)**. Driving over a mine removes
-  3, floored at 0, and a tank on its last 2 points is lost outright: in
+  3, unless 3 would kill the tank, in which case it removes 2: in
   display bars 8 → 5, 3 → 0, 2 → 0, and 1 or 0 → lost; in the 9-scale
   9 → 6, 4 → 1, 3 → 1, and 2 or 1 → lost **(owner, in an emulator; measured
   twice over: the corpus sweep puts the most mine-involved deaths at
   exactly 0 with a loss of 3 and its only 23 "impossible" survivors are the
-  tanks at 3 and 2 that the floor spares, and read directly off survivors'
+  tanks at 3 and 2 that the reduced loss spares, and read directly off survivors'
   later deaths the loss is 3 in every row from 5 to 9, 3 at 4 and 2 at 3,
-  with runs of two and three mines showing the floor again; WinBolo uses 2
-  with no floor)**. A shell hit at 0 bars is fatal while a mine at 2 bars is not,
-  so the two evidently take different paths in the game's code. One armour
+  with runs of two and three mines showing the reduction again; WinBolo uses 2
+  with no reduction)**. So a mine never delivers the killing blow to a tank
+  at 3 or above; only a tank already at 2 or 1 is lost to it. One armour
   drain restores 1 to the tank and costs the base 5 **(measured, WinBolo
   `BASE_ARMOUR_GIVE`)**. The log carries no armour field, so a tank's health
   is integrated from hits, drains and deaths, as ammo already is
@@ -359,7 +359,8 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   from a tank in a boat, [E:terrain-hits])**.
 - **Mines** can lie on swamp, crater, road, forest, rubble and grass
   **(corpus, the mined codes of FORMAT.md's terrain table)**. A tank
-  driving onto one takes 3 armour with the floor described under Tanks;
+  driving onto one takes 3 armour, or 2 when 3 would kill it, as described
+  under Tanks;
   the square craters (7,187 of 7,348
   corpus detonations) or, rarely, is left as grass **(measured)**. A mine
   going off sets off the mines on its four neighbouring squares about 8
