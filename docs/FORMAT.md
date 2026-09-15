@@ -94,7 +94,7 @@ After the position subpackets, zero or more subpackets identified by their first
 | `8d` | 1 | unused |
 | `9n` | 1 | 1 damage to pillbox `n` |
 | `An` | 1 | 5 damage (one shell) to base `n` |
-| `Bn`/`Cn`/`Dn` | 1 | base `n` refuels the sender's tank by 1 shell / 1 mine / 1 armour. The shell and mine drains cost the base 1 each; the armour drain costs it **5** for the tank's 1 point [E:base-capture]. A drain into a full tank (40 shells or 40 mines) is still logged, but the round is wasted [E:ammo-clamp] |
+| `Bn`/`Cn`/`Dn` | 1 | base `n` refuels the sender's tank by 1 shell / 1 mine / 1 armour. The shell and mine drains cost the base 1 each; the armour drain costs it **5** for the tank's 1 point [E:base-capture]. A full tank (40 shells or 40 mines) takes nothing and logs nothing: the stream stops when the tank fills and resumes when it spends, and the base keeps its stock [E:base-fill] |
 | `En` | 1 | unused (missile drained) |
 | `F0` | 2 | rejoin / map-header request |
 | `F1 01` | 90 | game info: the 56-byte `GAMEINFO` struct (36-byte Pascal map name; 8-byte game id = host IPv4 + Mac-epoch start time; 1-byte game type (1 open, 2 tournament, 3 strict); 1-byte hidden mines flag (`0x80` hidden OK, `0xc0` all visible); 1-byte allow-AI; 1-byte assist-AI; 4-byte little-endian start delay; 4-byte little-endian time limit; both in ticks) plus 16 little-endian words of per-player alliance bitmaps (0 bit = allied) [E:gameinfo] |

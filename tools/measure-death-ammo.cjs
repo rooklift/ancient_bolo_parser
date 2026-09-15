@@ -28,8 +28,8 @@
  *
  *   a count going NEGATIVE  => we are missing a source of ammo (or
  *                              mis-attributing a spend);
- *   a count exceeding 40    => we are missing a spend (or drains fire at
- *                              a full tank and are silently discarded).
+ *   a count exceeding 40    => we are missing a spend (a full tank is
+ *                              never refuelled, see [E:base-fill]).
  *
  * Lives that violate either bound are excluded from the tier tables and
  * reported separately.  If violations are rife the whole measurement is
@@ -44,11 +44,12 @@
  *
  *   tank_only   only `F7` spends mines
  *   with_lgm    `F7` and `7C` both spend mines
- *   clamped     as tank_only, but a drain into a full tank is wasted
- *               rather than counted -- the corpus argues for this: every
- *               violation the unclamped models produce is an OVERFLOW and
- *               not one is a negative, exactly the signature of drains
- *               continuing to be logged at a tank that cannot accept them
+ *   clamped     as tank_only, but the count is held at 40 -- a noise
+ *               filter, not a rule of the game: a full tank takes no
+ *               drain at all ([E:base-fill], measure-base-fill.cjs), so
+ *               every overflow is a spend the reconstruction missed, and
+ *               holding the count at 40 stops one missed shot from
+ *               poisoning the rest of the life
  *
  * A negative count would mean a missing source of ammo and would sink the
  * whole method; none occurs, so the only question is where the ceiling is
@@ -187,7 +188,7 @@ function new_life() {
 		shells: 0,
 		mines: 0,
 		lgm_mines: 0,          /* 7C plants, charged only in the with_lgm model */
-		c_shells: 0,           /* clamped model: a drain into a full tank is lost */
+		c_shells: 0,           /* clamped model: the count is held at 40 */
 		c_mines: 0,
 		wet: false,            /* ever on water without a boat */
 		broke: {tank_only: null, with_lgm: null, clamped: null},

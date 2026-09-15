@@ -76,6 +76,7 @@ Corpus figures are from the 443-log set unless an entry says 446, in which case 
 
 - [`[E:base-tick]`](#ebase-tick-every-players-tick-increments-every-base) — every player's tick increments every base
 - [`[E:base-capture]`](#ebase-capture-capture-at-armour-9-drain-cost-5-capture-zeroes-stocks) — capture at armour ≤ 9, drain cost 5, capture zeroes stocks
+- [`[E:base-fill]`](#ebase-fill-a-full-tank-stops-the-drain-stream-the-base-keeps-its-stock) — a full tank stops the drain stream; the base keeps its stock
 - [`[E:owner-signals]`](#eowner-signals-ownership-belongs-to-the-person-not-the-slot) — ownership belongs to the person, not the slot
 - [`[E:leave-pills]`](#eleave-pills-a-leavers-planted-pills-stay-with-the-alliance) — a leaver's planted pills stay with the alliance
 - [`[E:alliance-transitive]`](#ealliance-transitive-an-accept-admits-to-the-whole-alliance) — an accept admits to the whole alliance
@@ -585,7 +586,7 @@ Three survivors' readings of a loss of 0 are the size of the one open question: 
 
 ### [E:ammo-clamp] — shells and mines cap at 40
 
-Reconstructing tank ammo across 12,583 lives that begin at an observed respawn (see [E:death-tiers]), every out-of-range excursion is an overflow past Brain.h's cap of 40 and not one is a negative. Charging drains into a full tank drops the violation rate from 5.7% to 1.2%; the residual is slightly-too-many shots seen, the method's noise floor. `node tools/measure-death-ammo.cjs`.
+Two measurements. Directly: over every stint of a tank sitting on a base square in the 1,030-log corpus (40,618 stints with a shell or mine drain), the shell drains never exceed the shots by more than 40, and the mine drains never exceed the mines laid, by the tank or by the man, by more than 40; both maxima are exactly 40, a tank arriving empty and filling ([E:base-fill], `node tools/measure-base-fill.cjs`). Indirectly: reconstructing tank ammo across 12,583 lives that begin at an observed respawn (see [E:death-tiers]), every out-of-range excursion is an overflow past Brain.h's cap of 40 and not one is a negative. Holding the reconstruction at 40 drops its violation rate from 5.7% to 1.2%. That clamp is a filter for the method's noise, not a rule of the game: a full tank is never refuelled at all ([E:base-fill]), so an overflow is a spend the reconstruction missed, which left its count too high for the next refuel to push over. `node tools/measure-death-ammo.cjs`.
 
 ### [E:respawn-gap] — respawn 5.0–6.8 s after death
 
@@ -777,6 +778,10 @@ Scored on the fixtures: with the reset alone (drain cost 1) 41 hostile captures 
 The shell-blocking threshold is independent of this: hits on bases are logged at every model armour from 5 to 90 and never at 1–4, though bases sit at 1–4 after ticks — a base under 5 armour lets shells over (WinBolo `BASE_MIN_CAN_HIT 4`). Residuals: 33 of 1,565 hits land on a base the corrected model holds at 0–4, 14 of them in the capture's own record.
 
 Over the 443-log corpus the same model puts 11,927 of 11,945 hostile captures at 0–9 (the 18 others include 10 at 90, netsplit ownership noise), 6,973 of 6,975 neutral captures at 90, and 74 of some 150,000 base hits at 0–4; the 90 captures of bases the viewer holds DEPARTED spread over every armour, so for capture the game treats an heirless base as neutral. Whether shells and mines reset too the logs cannot prove, only permit: 204 of 225 owner-to-owner captures are followed by no drain at all within 60 s, and none by more drains than the ticks since the capture could have supplied. `node tools/measure-gameplay.cjs` prints the capture histogram by owner; the diagnosis runs are described in GAMEPLAY.md.
+
+### [E:base-fill] — a full tank stops the drain stream; the base keeps its stock
+
+The owner, on the game itself: a full tank parked on a friendly base takes nothing, and the base's shell and mine counts, which the game shows for the nearest friendly base, hold still. The logs agree on their side. `tools/measure-base-fill.cjs` finds every stint of a tank on a base square from tank positions alone (a stint ends when the tank moves off, dies or falls silent for 15 s) and counts that base's drains against the tank's spends. Were drains logged at a full tank, a long stint would run its shell drains past its shots by far more than 40 (a base holds 90 and every player's tick adds more) and its last drain would sit near the stint's end. Instead, over 40,618 stints the excess never passes 40 for shells or for mines, and in the 52 stints of 60 s or more the last shell drain sits 30 s to 7 minutes before the end in 44, the other 8 being tanks that left while still filling. The stream simply stops when the tank is full and resumes when it spends, and a `Bn`/`Cn`/`Dn` is always a real transfer. An earlier reading of [E:ammo-clamp] had the drains continuing at a full tank with the round wasted; it was inferred from the ammo reconstruction's overflows, which are that method's noise, and the viewer, which charges the base for every drain it sees, was right by accident. Three stints run the mine excess to 41–43 until the man's mine plants (`7C`) are charged to the tank's stock, and to exactly 40 once they are, which argues that the man plants from the tank's mines (the `with_lgm` reading of `tools/measure-death-ammo.cjs`).
 
 ### [E:owner-signals] — ownership belongs to the person, not the slot
 

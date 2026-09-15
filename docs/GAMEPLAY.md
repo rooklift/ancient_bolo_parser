@@ -236,7 +236,10 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   slow ring the shell and mine transfer is capped at one unit per packet the
   tank sends **(measured)**. WinBolo refuels only while the base has more
   than 10 armour; untested here. Each unit transferred is logged as a `Bn`,
-  `Cn` or `Dn` drain, even into a full tank **(corpus, [E:ammo-clamp])**.
+  `Cn` or `Dn` drain. A full tank takes nothing: the base's stock holds
+  still **(owner, on the game)** and no drain is logged, so over 40,618
+  stints on a base the drains never outrun the tank's spends by more than
+  40 **(corpus, [E:base-fill])**.
 - A base does nothing hostile to an enemy tank beyond blocking its path while
   it has armour **(owner)**.
 - A base's square behaves as road whatever the map says beneath it
