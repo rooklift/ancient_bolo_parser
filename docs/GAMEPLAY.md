@@ -24,6 +24,12 @@ should be weighed as such. Each statement carries one of three tags:
   FORMAT.notes.md under [E:gameplay] and [E:base-capture].
 - **(fixtures)** — measured on the two fixture logs only, not yet over the
   corpus; FORMAT.notes.md carries the evidence, cited as `[E:foo]`.
+- **(emulator log)** — measured on `fixtures/emulator_solo`, a
+  single-player game the owner recorded in a Macintosh emulator in 2026 as
+  a set of controlled trials, with the ground truth typed into the chat;
+  `tools/measure-emulator-log.cjs` prints every reading, and the account is
+  in FORMAT.notes.md under [E:emulator-log]. One machine and one tank, so
+  nothing needs attributing and no record is lost or late.
 
 Where a WinBolo constant agrees with a measurement it is named, since the
 two reimplementations agreeing on a number is worth more than either alone.
@@ -88,11 +94,17 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   8. A first pass that read rough terrain as fast was tanks sitting on bases
   whose map terrain is crater.
 - **Firing.** A tank can fire while moving and while turning **(owner)**. The
-  interval between shots is typically 12–13 ticks, a quarter of a second
-  **(owner; WinBolo 260 ms)**, but the corpus distribution is broad: a
-  quarter of the gaps are 7–11 ticks, the floor is 5–6, and 2.4% of firing
-  records carry two shots **(measured)**. Whether the reload varies with
-  something, or the stamps merely jitter, is open. Tank shells run the same integer physics as pill shells
+  reload is a quarter of a second, 13.2 ticks: a stationary tank holding
+  fire shot 81 times in 1,059 ticks, the gaps reading 12 and 14 in a
+  repeating 12-14-12-14-14 pattern because the machine wrote a record every
+  2 ticks **(owner; emulator log; WinBolo 260 ms)**. Whether the fraction
+  is Bolo's own frame clock or the emulator's is not known. The corpus
+  distribution is broader: a quarter of the gaps are 7–11 ticks, the floor
+  is 5–6, and 2.4% of firing records carry two shots **(measured)**. Those
+  short gaps are the stamps, not the reload: the first shot of a burst
+  goes into a record the sender was already late with, so the second
+  follows it by as little as 8 ticks, and a ring that spaces records 6 or
+  more ticks apart makes that shape everywhere **(emulator log)**. Tank shells run the same integer physics as pill shells
   at all 256 bradians, at 2 px per tick, with a flight of about 8.5 tiles
   **(corpus, `docs/tank_shell_bradians.md`)**.
 - **Hiding.** A tank is hidden in trees when no non-forest square comes
@@ -102,9 +114,13 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   restatements, shown at 1–8 in 288,719 of 288,775)**. A hidden tank is invisible on
   enemy screens and is not targeted by pillboxes **(owner; the pill half
   also corpus, [E:pill-target])**.
-- **Water.** A tank can cross river slowly, and doing so slowly drains its
-  shells and mines **(owner)**. This means `5d` and `F7` are not the only
-  ammo sinks, which any ammo-integration model should allow for. Deep sea is
+- **Water.** A tank can cross river slowly, and doing so drains its shells
+  and mines, one of each at a time **(owner; emulator log: a full tank
+  fording six river squares in 393 ticks came out with 18 of each and
+  refilled 22 shells and 22 mines, and one square in 68 ticks cost 2 of
+  each)**. This means `5d` and `F7` are not the only ammo sinks, which any
+  ammo-integration model should allow for; whether the loss runs per tick or
+  per pixel, two crossings cannot say. Deep sea is
   instant death for a tank not in a boat and harmless in a boat **(owner)**;
   the log reports it as `F9` code 3.
 - **Obstacles.** Building and shot building block a tank; every other
@@ -125,7 +141,10 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   it **(owner; measured, see Bases)**. Terrain is not the only obstacle:
   a live hostile base blocks too.
 - **Death and respawn.** The wreck's explosion tiers, forest clearance and
-  pill dump are corpus-established (FORMAT.md). The respawn follows 5.0–6.8 s
+  pill dump are corpus-established (FORMAT.md), and the tier boundary is
+  confirmed by controlled deaths: 60 shells + mines aboard craters, 61
+  superbooms, a single shell craters, and the crater or superboom comes
+  48–50 ticks after the `F9` **(emulator log)**. The respawn follows 5.0–6.8 s
   later **(corpus, [E:respawn-gap])**, at a square of the start list that is
   not always the player's original one; the choice rule is not known
   **(owner)**, and neither the nearest start nor the farthest from enemies
@@ -178,8 +197,14 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   fully angry **(owner from WinBolo; measured)**: fires within 5 s of a hit
   come every 6–7 ticks, and by time since the last hit the gap is about 20
   ticks at 5–15 s, 38 at 15–30 s, 66 at 30–60 s and 100 beyond a minute, so
-  the delay grows roughly 1.5 ticks per quiet second. Whether it doubles per
-  hit is untested. The "speed" byte in the `F1 02` pill list is this delay:
+  the delay grows roughly 1.5 ticks per quiet second. Each hit halves the
+  delay, floored at 6, and it relaxes back toward 100 between hits: from
+  rest, one hit gives fire gaps of 48–60 ticks, two 24–31, three 14–19,
+  four 6–10 and five or more 4–8, the gaps creeping up between hits (48,
+  55, 55, 59 after one); a pill left alone for two minutes after its first
+  hit answered its next two as if from rest **(emulator log)**. Four quick
+  hits leave a pill a shade off the floor; the fifth reaches it. The
+  "speed" byte in the `F1 02` pill list is this delay:
   it reads 100 for a pill at rest and, in logs started mid-fight, the live
   value (18–98 seen) **(owner; measured)**. A value of 255 also occurs and
   is unexplained. The shell
@@ -231,7 +256,8 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   motion is fine **(owner)**. Transfer runs one shell per 7–9 ticks, one
   mine per 6–8 and one armour per 50–54, one resource at a time and almost
   never interleaved (1.2% of drains) **(measured; WinBolo 7.5, 7.5 and
-  46)**, so empty to full takes about 1,050 ticks, 21 s **(measured;
+  46; on one machine with no ring the modes are 8, 8 and 50, emulator
+  log)**, so empty to full takes about 1,050 ticks, 21 s **(measured;
   owner's WinBolo figure about 20 s)**. On a
   slow ring the shell and mine transfer is capped at one unit per packet the
   tank sends **(measured)**. WinBolo refuels only while the base has more
@@ -251,13 +277,15 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   build a road, build a building (wall), build a boat (river only), build or
   repair a pillbox, plant a mine **(owner)**. The mine he plants comes out
   of the tank's stock **(owner; corpus, [E:base-fill])**. Costs in wood: pillbox 1, road
-  about 0.5, boat about 5, building not known **(owner, unsure)**. The
+  about 0.5, building 0.5, boat about 5 **(owner, unsure; the building
+  from the emulator)**. The
   action itself is fast **(owner)**: from the man reaching the square to the
   event, plant pill 9 ticks, repairs 9, boat 8, building 10, mine 11,
   harvest 14, road 25 **(measured medians)**.
 - **Movement.** He is blocked by everything that blocks a tank, is slowed by
   swamp and crater, and cannot cross river; he cannot swim **(owner)**. He
-  may be able to enter a boat but cannot use it **(owner, unsure)**. He
+  walks across a boat square as passable terrain **(owner, in the
+  emulator)**. He
   walks 1.0 px/tick on road and grass, the same as a tank on road, 0.46 in
   forest and 0.25 on crater, rubble and swamp **(measured)**.
 - **Pathing.** He walks a straight line toward the target. On meeting an
@@ -308,8 +336,16 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   a record behind the first can be announced as shooting the building
   again, and that restarts the count: the wall takes three more unchanged
   hits from there **(corpus, 28 decisive lives, [E:terrain-hits])**.
-  Whether the burst hits are real, or one hit logged more than once, is
-  open. A shell also sets
+  With one tank as the only shooter, 13 of 14 walls followed from first
+  shot to rubble took exactly 3 unchanged hits between, one shell each, so
+  the count is 5 real hits from building to rubble **(emulator log)**. The
+  fourteenth took 5: two of its hits landed twelve minutes before the rest,
+  so a shot building's hidden damage evidently does not keep indefinitely,
+  which would also account for the corpus's long tails. The repeat
+  announcements happen on one machine too: a tank shell and a pillbox
+  shell reaching a wall 2 ticks apart both logged `7 8`, and two reaching
+  a shot building 1 tick apart both logged the rubble **(emulator log)**.
+  A shell also sets
   off a mine it lands on, cratering the square, but a crater event alone
   does not say whether a shell, a tank or a dying tank made it. A shell
   fired from a boat at the shore turns the grass it lands on into swamp
@@ -319,11 +355,20 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   **(corpus, the mined codes of FORMAT.md's terrain table)**. A tank
   driving onto one takes 3 armour with the floor described under Tanks;
   the square craters (7,187 of 7,348
-  corpus detonations) or, rarely, is left as grass **(measured)**. Whether
-  a mine set off by a shell hurts a tank standing on the square, and
-  whether the blast reaches neighbouring squares, is not known: the corpus
-  has 517 tanks that stood on a detonating square and drove on, and their
-  armour afterwards was not isolated. Almost all games disallowed hidden mines;
+  corpus detonations) or, rarely, is left as grass **(measured)**. A mine
+  going off sets off the mines on its four neighbouring squares about 8
+  ticks later, and each of those its own neighbours in turn, so a field
+  goes up as a wave, one square per 7–9 ticks, every square evented as its
+  own `7 3`: a wreck sliding into a field of 19 laid mines set off 18 of
+  them in 56 ticks **(emulator log)**. A chained neighbour does not hurt
+  the tank: two adjacent mines, one driven onto, cost three armour, not six
+  **(owner, in the emulator)**. A tank sits on the mine it has just laid
+  unharmed, and shells hitting the tank there do not set the mine off, since
+  a shell that reaches a tank stops at the tank **(emulator log: five hits
+  on a tank parked on three of its own mines, none detonated)**. What a
+  mine chained under a standing tank does to it is the one case not yet
+  seen; the corpus has 517 tanks that stood on a detonating square and
+  drove on, and their armour afterwards was not isolated. Almost all games disallowed hidden mines;
   who sees a mine when they are allowed, allies included, is not known
   **(owner)**.
 - **Forest regrowth** prefers grass but is not limited to it: trees grow
@@ -368,26 +413,28 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
 
 ## Open measurements
 
-What the corpus run left unsettled.
+What the corpus run left unsettled. The emulator log settled the mine
+chain, the reload, the anger ladder and the wall count (the tags above);
+what it left, and what it raised, is here.
 
-1. Whether a mine set off by a shell hurts a tank on the square, and
-   whether a mine's blast reaches the neighbouring squares. The corpus run
-   of `tools/measure-mine-damage.cjs` has the material; the attribution
-   needs to separate tank-triggered from shell-triggered detonations.
-2. The tank reload: typically 12–13 ticks, but a quarter of gaps are 7–11
-   and 2.4% of firing records carry two shots. Jitter in the stamps, or a
-   variable reload?
-3. Whether pillbox anger doubles per hit, from the first fire gap after a hit
-   on a rested pill; and what a `speed` byte of 255 means.
+1. What a mine chained under a standing tank does to it. A shell cannot
+   set off the mine under a tank, and a chained neighbour does no harm,
+   but a tank parked on one mine while the next square's goes off has not
+   been tried. The corpus run of `tools/measure-mine-damage.cjs` has 517
+   tanks that stood on a detonating square and drove on, unattributed.
+2. The fording drain: one shell and one mine together, 22 pairs over 393
+   ticks and six squares, 2 over 68 ticks and one square. Per tick, per
+   pixel, or by chance, and whether speed matters, wants more crossings of
+   known length.
+3. What a pillbox `speed` byte of 255 means.
 4. Whether shells and mines reset on capture (the logs permit it), and
    whether refuelling needs the base above 10 armour.
 5. The respawn and parachute start choice: neither nearest nor farthest from
    enemies; WinBolo draws at random.
 6. The pill and base history string in `F1 Cn` [E:history].
-7. The unchanged hits a shot building logs before falling to rubble: three
-   in 13,866 of 17,894 corpus lives and never fewer, as the owner's
-   four-more-hits rule says, but up to seventeen in the rest, mostly where
-   an angry pillbox logged two or three hits a record into one wall.
-   Whether those are real hits or one hit logged more than once needs a
-   shell-level attribution (`tools/measure-terrain-hits.cjs`). The other
-   source of excess, a repeated `7 8` restarting the count, is settled.
+7. How long a shot building keeps its hidden damage. One wall hit twice,
+   left twelve minutes and then shot again needed the full count from the
+   second visit; the corpus tails of up to seventeen unchanged hits would
+   follow from a decay, and the interval is unmeasured.
+8. Whether the 13.2-tick reload is Bolo's or the emulator's clock: a
+   second recording with a different emulator speed setting would tell.
