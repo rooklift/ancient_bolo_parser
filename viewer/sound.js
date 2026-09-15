@@ -50,9 +50,26 @@ function event_for(state, rec, sub) {
 		y: source.y + (source.py || 0) / 16 + 0.5 };
 }
 
+const SELF_RADIUS = 8; /* map tiles from the camera centre, independent of zoom */
+
+function nearest_player(camera, positions) {
+	let player = -1, closest = SELF_RADIUS;
+	for (let p = 0; p < positions.length; p++) {
+		let position = positions[p];
+		if (!position) continue;
+		let distance = Math.hypot(position.x - camera.x, position.y - camera.y);
+		// Equal distances keep the lower player slot, for a stable tie break.
+		if (distance <= SELF_RADIUS && (player < 0 || distance < closest)) {
+			player = p;
+			closest = distance;
+		}
+	}
+	return player;
+}
+
 function variant(event, listener, player) {
-	if (!listener || player < 0) return null;
-	if (event.player === player && ["shooting", "hit_tank"].includes(event.kind)) return event.kind + "_self";
+	if (!listener) return null;
+	if (player >= 0 && event.player === player && ["shooting", "hit_tank"].includes(event.kind)) return event.kind + "_self";
 	// WinBolo's square distance bands: near <= 15 tiles, audible < 40.
 	let gap = Math.max(Math.abs(event.x - listener.x), Math.abs(event.y - listener.y));
 	if (gap >= 40) return null;
@@ -110,7 +127,7 @@ function create_player(make_audio = url => new Audio(url)) {
 	};
 }
 
-let BoloSound = { event_for, variant, between, create_player };
+let BoloSound = { SELF_RADIUS, nearest_player, event_for, variant, between, create_player };
 if (typeof module !== "undefined" && module.exports) module.exports = BoloSound;
 else window.BoloSound = BoloSound;
 })();

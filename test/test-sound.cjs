@@ -7,6 +7,17 @@ const Game = require("../viewer/game.js");
 
 let listener = { x: 50.5, y: 50.5 };
 let shot = { time: 10, kind: "shooting", player: 2, ...listener };
+assert.equal(Sound.nearest_player(listener, []), -1);
+assert.equal(Sound.nearest_player(listener, [null, { x: 58.5, y: 50.5 }]), 1, "8 tiles is close enough for self");
+assert.equal(Sound.nearest_player(listener, [{ x: 58.6, y: 50.5 }]), -1, "beyond 8 tiles has no self");
+assert.equal(Sound.nearest_player(listener, [{ x: 57.5, y: 57.5 }]), -1, "self uses a circular radius");
+let positions = [{ x: 56.5, y: 50.5 }, null, { x: 53.5, y: 50.5 }];
+assert.equal(Sound.nearest_player(listener, positions), 2, "closest tank wins");
+assert.equal(Sound.nearest_player({ x: 56.5, y: 50.5 }, positions), 0, "panning switches the self tank");
+assert.equal(Sound.nearest_player(listener, [listener, listener]), 0, "ties are stable");
+assert.equal(Sound.variant(shot, listener, -1), "shooting_near", "no nearby tank still allows near sounds");
+assert.equal(Sound.variant(shot, { x: 70.5, y: 50.5 }, -1), "shooting_far", "far is measured from the camera without a self tank");
+assert.equal(Sound.variant(shot, { x: 90.5, y: 50.5 }, -1), null);
 assert.equal(Sound.variant(shot, listener, 2), "shooting_self");
 assert.equal(Sound.variant(shot, listener, 1), "shooting_near");
 assert.equal(Sound.variant({ ...shot, player: null }, listener, 2), "shooting_near");

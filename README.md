@@ -46,9 +46,12 @@ The same files also run as a plain web page: open `viewer/index.html` in a brows
 
 ### Game sounds
 
-Game sounds use the selected player's tank as the listener: its own gunfire
-and hits use the self sounds, nearby events use near sounds (within 15 tiles
-on both axes), and events less than 40 tiles away use far sounds. The
+Game sounds use the camera centre as the listener. The closest live tank
+within an 8-tile radius gets self gunfire and hit sounds; if no tank is close
+enough, no self sounds are used. Nearby events use near sounds (within 15 tiles
+on both axes), and events less than 40 tiles away use far sounds. These distances
+use map tiles, independent of zoom. Locking the camera to a player makes audio
+follow that player; the player selector alone only changes friendly colours. The
 **Speaker** button toggles audio. Playback above 100%, seeking, and
 frame stepping are silent. Video exports remain silent. Browsers may require
 a click or keypress before allowing sound. Builder and terrain-impact sounds
