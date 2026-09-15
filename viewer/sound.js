@@ -9,6 +9,8 @@ function event_for(state, rec, sub) {
 	let under = state.grid[sub.y * 256 + sub.x];
 	switch (sub.type) {
 		case "shot_fired": kind = "shooting"; source = tank; player = rec.player; break;
+		// The mine-laying sample is shared by tanks and builders.
+		case "lay_mine": kind = "man_lay_mine"; source = tank; break;
 		case "pillbox_fires": kind = "shooting"; source = state.pills[sub.pillbox]; break;
 		case "tank_hit": kind = "hit_tank"; source = state.tanks[sub.tank]; player = sub.tank; break;
 		case "pillbox_damage": kind = "shot_building"; source = state.pills[sub.pillbox]; break;

@@ -125,6 +125,13 @@ assert.equal(Sound.stereo_pan({ ...shot, x: 90 }, listener), 1);
 // terrain, victim identity, and repeated death notifications.
 let state = Game.initial_state();
 state.tanks[2] = { x: 50, y: 50, px: 0, py: 0 };
+let mine_sound = Sound.event_for(state, { player: 2, time: 9 }, { type: "lay_mine" });
+assert.deepEqual(mine_sound, { time: 9, kind: "man_lay_mine", player: null, x: 50.5, y: 50.5 });
+assert.equal(Sound.variant(mine_sound, listener, 2), "man_lay_mine_near");
+assert.equal(Sound.variant(mine_sound, { x: 70.5, y: 50.5 }, 2), null, "tank mine-laying has no far variant");
+assert.equal(Sound.event_for(state, { player: 1, time: 9 }, { type: "lay_mine" }), null, "unknown tank position stays silent");
+assert.equal(Sound.event_for(state, { player: 2, time: 9 }, { type: "explosion", code: 12, x: 50, y: 50 }).kind,
+	mine_sound.kind, "tank and builder mine-laying share the sample");
 state.tanks[3] = { x: 51, y: 50, px: 0, py: 0 };
 state.grid[50 * 256 + 52] = 5;
 let sounds = [];
