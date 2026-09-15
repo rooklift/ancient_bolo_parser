@@ -1,0 +1,188 @@
+log: emulator_solo  records 7656  17.7 min  game type 3  players 1
+
+=== lives: ammo aboard at death vs terminal tier ===
+integration: +1 shell per Bn, +1 mine per Cn, +1 armour per Dn (held at 40 / 40 / 9);
+-1 shell per 5d, -1 mine per F7 and per 7C, -1 armour per FC; from an empty respawn (strict game)
+
+life 1: log start
+    0:18.8 chat "Hi Claude!"  [integration: 0 shells, 0 mines, armour 9]
+    drains B 11 C 0 D 0; shots 10, mines laid 0, man-planted 0; hits 9
+    death 0:57.2 code 1 at (122,114) with 1 shells + 0 mines = 1, armour 0: crater at +48
+life 2: respawn at 1:03.2 (302 ticks after the death) at (97,128)
+    2:23.1 chat "so I have 30+30"  [integration: 30 shells, 30 mines, armour 9]
+    drains B 40 C 40 D 0; shots 10, mines laid 10, man-planted 0; hits 9
+    death 2:39.1 code 1 at (116,135) with 30 shells + 30 mines = 60, armour 0: crater at +50
+life 3: respawn at 2:45.3 (307 ticks after the death) at (96,128)
+    3:52.2 chat "So I have 40+21"  [integration: 40 shells, 21 mines, armour 8]
+    drains B 40 C 40 D 0; shots 0, mines laid 19, man-planted 0; hits 9
+    death 4:07.7 code 1 at (115,138) with 40 shells + 21 mines = 61, armour 0: superboom at +50
+life 4: respawn at 4:13.8 (308 ticks after the death) at (127,96)
+    6:08.9 chat "now restored to full"  [integration: 40 shells, 40 mines, armour 9]
+    6:48.6 chat "2 mines, both exploded but I only touched one, three damage"  [integration: 40 shells, 38 mines, armour 9]
+    7:40.7 chat "seems pill shots hitting the tank won't detonate a mine under the tank..."  [integration: 40 shells, 40 mines, armour 9]
+    9:34.8 chat "shooting to rubble - though surely we know already it takes 5..."  [integration: 36 shells, 40 mines, armour 9]
+    drains B 170 C 69 D 22; shots 109, mines laid 5, man-planted 0; hits 28
+    death 12:14.1 code 1 at (130,113) with 36 shells + 40 mines = 76, armour 0: superboom at +48
+life 5: respawn at 12:20.3 (307 ticks after the death) at (97,128)
+    drains B 63 C 19 D 2; shots 26, mines laid 0, man-planted 0; hits 11
+    death 13:11.6 code 1 at (125,140) with 37 shells + 19 mines = 56, armour 0: crater at +50
+life 6: respawn at 13:17.8 (308 ticks after the death) at (127,96)
+    drains B 43 C 20 D 0; shots 8, mines laid 0, man-planted 0; hits 9
+    death 13:41.7 code 1 at (128,114) with 35 shells + 20 mines = 55, armour 0: crater at +48
+life 7: respawn at 13:47.7 (302 ticks after the death) at (128,158)
+    14:08.6 chat "does 4 shots put a pill to max speed? let's see"  [integration: 40 shells, 22 mines, armour 9]
+    drains B 42 C 36 D 0; shots 19, mines laid 0, man-planted 0; hits 9
+    death 14:24.5 code 1 at (130,141) with 23 shells + 36 mines = 59, armour 0: crater at +50
+life 8: respawn at 14:30.6 (305 ticks after the death) at (128,97)
+    14:59.1 chat "I think 4 wasn't quite enough?"  [integration: 30 shells, 1 mines, armour 9]
+    drains B 40 C 12 D 2; shots 8, mines laid 0, man-planted 0; hits 11
+    death 15:12.5 code 1 at (142,127) with 32 shells + 12 mines = 44, armour 0: crater at +48
+life 9: respawn at 15:18.6 (307 ticks after the death) at (97,128)
+    drains B 34 C 0 D 0; shots 13, mines laid 0, man-planted 0; hits 9
+    death 15:41.1 code 1 at (115,127) with 21 shells + 0 mines = 21, armour 0: crater at +50
+life 10: respawn at 15:47.3 (307 ticks after the death) at (128,97)
+    16:10.7 chat "building costs half a wood"  [integration: 0 shells, 0 mines, armour 9]
+    17:02.1 chat "(Did you know a man can build boats?)"  [integration: 4 shells, 7 mines, armour 9]
+    17:24.3 chat "It seems man can cross a boat (treats it as passable terrain)"  [integration: 4 shells, 7 mines, armour 9]
+    alive at log end
+
+sum of shells + mines -> tier:
+  1 (1+0) crater
+  21 (21+0) crater
+  44 (32+12) crater
+  55 (35+20) crater
+  56 (37+19) crater
+  59 (23+36) crater
+  60 (30+30) crater
+  61 (40+21) superboom
+  76 (36+40) superboom
+
+=== reload: gaps between a tank's shots ===
+shots 204; records carrying two shots: 0
+gaps within a burst, after the second shot: n 157
+  histogram: 9:2 10:1 11:10 12:35 13:17 14:58 15:11 18:1 20:1 22:4 24:2 31:1 36:1 37:1 39:1 40:2 48:1 50:1 56:1 58:1 71:1 76:2 78:1 80:1
+  gaps up to 20 ticks (the reload itself): n 136, mean 13.19, median 14
+  of those, with the tank stationary (last speed byte 0): n 129, mean 13.13
+  longest unbroken run: 80 gaps, 1059 ticks, 13.24 per shot: 15 12 14 14 12 14 12 14 14 12 14 12 14 14 13 13 12 15 14 11 15 11 14 15 11 14 13 13 14 13 14 12 14 14 12 14 12 14 14 12 14 12 14 14 12 14 12 14 14 12 14 12 14 14 13 13 13 14 14 12 14 11 15 14 11 15 12 13 15 12 14 12 14 14 12 14 12 14 14 12
+second shot of a burst, gap / record interval that ended at the first shot's record:
+  20/6 18/30 97/18 10/77 60/43 8/36 10/6 11/3 12/6 10/6 30/8 15/5 13/1 12/6 10/7 12/5 16/6 10/18 13/1 62/6 14/8
+record intervals up to 8 ticks: 0:117 1:688 2:2194 3:700 5:420 6:2290 7:553 8:264
+
+=== pillbox anger: fire gaps after each hit ===
+pill 0 (listed speed 100): 0 hits, 11 fires
+    fire@0:49.1 +98 +103 +101 +99 +18662 +102 +1726 +102 +100 +247
+pill 1 (listed speed 100): 1 hits, 14 fires
+    fire@0:48.7 +102 HIT1@0:51.0 +72* +48 +55 +55 +59 +18680 +102 +1724 +100 +105 +228 +102
+pill 2 (listed speed 100): 5 hits, 29 fires
+    fire@0:48.2 +100 +100 +101 +102 +18694 +102 +1710 +100 +103 +228 +106 +7241 +101 +5429 HIT1@13:39.3 HIT2@13:39.5 HIT3@13:39.7 HIT4@13:40.0 +4376* +8 HIT5@13:40.2 +6* +6 +4 +6 +5 +7 +6 +6 +6 +5 +7 +8
+pill 3 (listed speed 100): 4 hits, 21 fires
+    fire@10:16.8 +97 HIT1@10:20.3 +103* +54 +53 +53 +58 +60 HIT2@12:08.4 HIT3@12:08.6 +5133* +24 +29 +27 +30 +31 +30 HIT4@12:12.6 +26* +16 +18 +18 +4291 +3208
+pill 4 (listed speed 100): 1 hits, 5 fires
+    fire@14:44.9 HIT1@14:45.3 +74* +54 +59 +51
+pill 5 (listed speed 100): 0 hits, 3 fires
+    fire@14:45.3 +100 +99
+pill 6 (listed speed 100): 0 hits, 5 fires
+    fire@3:26.3 +36439 +99 +100 +102
+pill 7 (listed speed 100): 6 hits, 29 fires
+    fire@2:30.7 +107 +98 +102 +98 +2404 +102 +100 +36304 HIT1@15:38.1 HIT2@15:38.3 HIT3@15:38.6 +92* HIT4@15:38.9 +8* HIT5@15:39.1 +8* +4 +6 HIT6@15:39.4 +6* +4 +6 +4 +6 +4 +6 +6 +6 +6 +6 +7 +7 +6 +8
+pill 8 (listed speed 100): 5 hits, 20 fires
+    fire@15:06.2 +101 HIT1@15:09.3 HIT2@15:09.6 HIT3@15:09.8 HIT4@15:10.1 +98* +6 HIT5@15:10.3 +12* +0 +10 +2 +6 +6 +6 +6 +8 +6 +8 +6 +8 +8 +8 +8
+pill 9 (listed speed 100): 0 hits, 3 fires
+    fire@15:06.6 +101 +97
+pill 10 (listed speed 100): 0 hits, 13 fires
+    fire@2:30.8 +102 +100 +100 +103 +2597 +103 +1420 +101 +102 +100 +25403 +104
+pill 11 (listed speed 100): 1 hits, 13 fires
+    fire@2:31.1 +103 +102 +105 +2744 +1456 +101 +102 +100 +25392 +102 HIT1@12:37.5 +70* +1619
+pill 12 (listed speed 100): 3 hits, 10 fires
+    HIT1@13:08.2 HIT2@13:08.4 fire@13:08.5 HIT3@13:08.7 +24* +14 +14 +14 +16 +16 +17 +15 +19
+pill 13 (listed speed 100): 4 hits, 16 fires
+    fire@13:09.5 +100 +3352 +98 HIT1@14:21.8 HIT2@14:22.1 HIT3@14:22.4 +100* HIT4@14:22.6 +12* +8 +6 +9 +8 +7 +9 +7 +9 +10 +8
+(* marks a gap with a hit inside it; those are left out of the ladder)
+ladder: hits taken -> clean fire gaps (median, n, range), gaps over 400 ticks dropped as idle:
+  0 hits: median 101, n 52, 97-247
+  1 hits: median 58, n 17, 48-228
+  3 hits: median 19, n 14, 14-31
+  4 hits: median 8, n 15, 6-18
+  5 hits: median 6, n 28, 0-10
+  6 hits: median 6, n 14, 4-8
+
+=== mines: laid, detonated, chained ===
+mines laid by the tank (F7): 34, of which 31 in a record with a tank position
+  1:44.8, 1:48.2 (107,128), 1:48.9 (106,128), 1:50.1 (105,128), 1:50.8 (104,128), 1:54.0 (104,127), 1:54.9 (105,127), 1:56.5 (106,127), 1:56.7 (107,127), 1:57.3 (108,127), 3:12.5, 3:13.8 (110,128), 3:14.6 (110,129), 3:16.1 (110,130), 3:17.2 (110,131), 3:18.2, 3:20.2 (111,130), 3:21.3 (111,129), 3:22.3 (111,128), 3:23.4 (111,127), 3:25.0 (112,127), 3:26.3 (112,128), 3:27.2 (112,129), 3:28.1 (112,130), 3:29.1 (112,131), 3:30.5 (112,132), 3:31.3 (112,133), 3:32.5 (112,134), 3:34.7 (110,136), 6:27.5 (127,109), 6:28.6 (127,108), 7:09.5 (121,113), 7:45.7 (122,113), 7:54.2 (123,113)
+  0:58.1 crater at (126,110): terminal crater, +48 after the death
+  2:40.1 crater at (111,133): terminal crater, +50 after the death
+  6:31.3 crater at (127,108) [laid square]: set off by the tank, last at (127,108)
+  6:31.4 crater at (127,109) [laid square]: chained from (127,108) 7 ticks earlier
+  13:12.6 crater at (125,143): terminal crater, +50 after the death
+  13:42.7 crater at (129,111): terminal crater, +48 after the death
+  14:25.5 crater at (130,144): terminal crater, +50 after the death
+  15:13.4 crater at (144,128): terminal crater, +48 after the death
+  15:41.7 crater at (112,127) [laid square]: set off by the wreck, last at (113,126)
+  15:41.9 crater at (112,128) [laid square]: chained from (112,127) 9 ticks earlier
+  15:41.9 crater at (111,127) [laid square]: chained from (112,127) 9 ticks earlier
+  15:42.1 crater at (110,127): chained from (111,127) 7 ticks earlier
+  15:42.1 crater at (112,129) [laid square]: chained from (112,128) 7 ticks earlier
+  15:42.1 crater at (111,128) [laid square]: chained from (112,128) 7 ticks earlier
+  15:42.1 crater at (112,126): terminal crater, +50 after the death
+  15:42.2 crater at (112,130) [laid square]: chained from (112,129) 8 ticks earlier
+  15:42.2 crater at (111,129) [laid square]: chained from (112,129) 8 ticks earlier
+  15:42.2 crater at (110,128) [laid square]: chained from (110,127) 8 ticks earlier
+  15:42.4 crater at (110,129) [laid square]: chained from (111,129) 9 ticks earlier
+  15:42.4 crater at (112,131) [laid square]: chained from (112,130) 9 ticks earlier
+  15:42.4 crater at (111,130) [laid square]: chained from (112,130) 9 ticks earlier
+  15:42.5 crater at (112,132) [laid square]: chained from (112,131) 7 ticks earlier
+  15:42.5 crater at (111,131): chained from (112,131) 7 ticks earlier
+  15:42.5 crater at (110,130) [laid square]: chained from (110,129) 7 ticks earlier
+  15:42.7 crater at (110,131) [laid square]: chained from (111,131) 9 ticks earlier
+  15:42.7 crater at (112,133) [laid square]: chained from (112,132) 9 ticks earlier
+  15:42.9 crater at (112,134) [laid square]: chained from (112,133) 7 ticks earlier
+  16:52.8 crater at (126,101): set off by the tank, last at (126,104)
+craters 28: 7 terminal, 3 first of a field, 18 chained (4-neighbour, 4-12 ticks)
+chain hop: median 8 ticks, 7-9
+shell hits on the tank while its centre sat on laid square (112,133): 1; square ever cratered: true
+shell hits on the tank while its centre sat on laid square (121,113): 1; square ever cratered: false
+shell hits on the tank while its centre sat on laid square (122,113): 2; square ever cratered: false
+shell hits on the tank while its centre sat on laid square (123,113): 2; square ever cratered: false
+
+=== fording: stints on water without a boat, and the refill after ===
+4:59.6-5:00.9: 68 ticks on water, 1 squares, speed byte median 12; aboard before (integrated): 39 shells, 40 mines
+    next refill from 5:22.2: 3 shells, 2 mines, then the stream stopped
+5:36.5-5:44.3: 393 ticks on water, 6 squares, speed byte median 12; aboard before (integrated): 40 shells, 40 mines
+    next refill from 5:55.2: 22 shells, 22 mines, then the stream stopped
+
+=== walls: hit sequences per building square ===
+  (124,118): SHOT unchanged unchanged unchanged
+  (120,118): SHOT SHOT
+  (125,118): SHOT unchanged unchanged unchanged RUBBLE   => 3 unchanged hits between shot and rubble
+  (118,135): SHOT
+  (118,131): SHOT unchanged unchanged unchanged
+  (118,125): SHOT unchanged unchanged unchanged RUBBLE   => 3 unchanged hits between shot and rubble
+  (118,130): SHOT unchanged unchanged unchanged unchanged unchanged RUBBLE   => 5 unchanged hits between shot and rubble
+  (125,117): SHOT unchanged
+  (128,105): built SHOT unchanged unchanged unchanged RUBBLE   => 3 unchanged hits between shot and rubble
+  (130,116): SHOT unchanged unchanged unchanged RUBBLE   => 3 unchanged hits between shot and rubble
+  (130,117): SHOT unchanged unchanged unchanged RUBBLE   => 3 unchanged hits between shot and rubble
+  (130,118): SHOT unchanged unchanged unchanged RUBBLE   => 3 unchanged hits between shot and rubble
+  (118,138): SHOT unchanged
+  (125,139): SHOT unchanged unchanged unchanged RUBBLE   => 3 unchanged hits between shot and rubble
+  (125,138): SHOT unchanged unchanged unchanged RUBBLE   => 3 unchanged hits between shot and rubble
+  (125,137): SHOT unchanged unchanged unchanged RUBBLE   => 3 unchanged hits between shot and rubble
+  (124,137): SHOT
+  (130,139): SHOT unchanged unchanged unchanged RUBBLE   => 3 unchanged hits between shot and rubble
+  (130,138): SHOT unchanged unchanged unchanged RUBBLE   => 3 unchanged hits between shot and rubble
+  (130,137): SHOT unchanged unchanged unchanged RUBBLE   => 3 unchanged hits between shot and rubble
+  (131,118): SHOT
+  (137,117): SHOT
+  (137,125): SHOT unchanged unchanged unchanged RUBBLE RUBBLE   => 3 unchanged hits between shot and rubble
+  (137,130): SHOT unchanged unchanged
+  (117,130): SHOT
+  (128,102): built
+  (128,103): built
+walls followed from shot to rubble: 14; unchanged hits between: 3 3 5 3 3 3 3 3 3 3 3 3 3 3
+
+=== refuel cadence and base stock timer ===
+  shells: 5:16 6:96 7:82 8:193 9:70 10:2 30:1 42:1 84:1
+  mines: 5:1 6:7 7:42 8:131 9:46 10:2 24:2 26:1
+  armor: 50:18 51:2 53:1
+  base stock ticks: 53, gaps 1001-1007, median 1004
+  respawn gaps: 302 307 308 307 308 302 305 307 307
