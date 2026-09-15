@@ -44,6 +44,16 @@ npx electron .
 
 The same files also run as a plain web page: open `viewer/index.html` in a browser, or serve the `viewer/` directory with any static file server. The web version has no application menu, so it cannot export video, and its toggle shortcuts are bare keys (D, I, F, L, G, M, B, R, T) rather than Ctrl+key. Since there is no menu to read the keys off, the web version alone gets a shortcut sheet: press `?`, or use the `?` button at the end of the transport bar.
 
+### Game sounds
+
+Game sounds use the selected player's tank as the listener: its own gunfire
+and hits use the self sounds, nearby events use near sounds (within 15 tiles
+on both axes), and events less than 40 tiles away use far sounds. The
+**Speaker** button toggles audio. Playback above 100%, seeking, and
+frame stepping are silent. Video exports remain silent. Browsers may require
+a click or keypress before allowing sound. Builder and terrain-impact sounds
+are inferred from recorded events; the logs do not contain an audio track.
+
 ### Tauri edition (Windows)
 
 `viewer/tauri/` hosts the same viewer in a [Tauri](https://tauri.app) shell: a small Rust program around the WebView2 engine Windows already ships, so the app is a few MB instead of the ~200 MB Electron folder. We build this on GitHub and add it to the releases.
@@ -72,4 +82,6 @@ The shell interpolator is a forensic reconstruction engine for anonymous project
   1998–2008, GPL v2) — an independent GPL reimplementation of Bolo, used to
   explain behaviour the logs already demonstrate; `viewer/format.js`'s map
   reader/writer is a port of its `bolo_map.c`, and `viewer/sprites.js`'s
-  terrain tile rules are a port of its `screencalc.c`.
+  terrain tile rules are a port of its `screencalc.c`. Game sound WAVs in
+  `viewer/sounds/` are copied from WinBolo's `data/sounds/` (excluding lobby
+  and ping sounds).

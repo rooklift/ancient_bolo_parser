@@ -94,6 +94,9 @@ body {
 	cursor: pointer;
 }
 #transport button:hover { background: #2c3650; }
+#soundBtn { display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+#soundBtn[aria-pressed="true"] .sound-muted,
+#soundBtn[aria-pressed="false"] .sound-waves { display: none; }
 #transport select {
 	background-color: #232b3d;
 	border: 1px solid #33405c;

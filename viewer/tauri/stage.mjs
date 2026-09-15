@@ -25,5 +25,6 @@ for (let file of referenced) {
 	fs.copyFileSync(path.join(viewer, file), path.join(out, file));
 }
 fs.cpSync(path.join(viewer, "sprites"), path.join(out, "sprites"), { recursive: true });
+fs.cpSync(path.join(viewer, "sounds"), path.join(out, "sounds"), { recursive: true });
 
-console.log(`staged index.html, ${referenced.length} referenced files and sprites/ into ${out}`);
+console.log(`staged index.html, ${referenced.length} referenced files, sprites/ and sounds/ into ${out}`);

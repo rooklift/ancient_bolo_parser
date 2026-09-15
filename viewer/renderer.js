@@ -145,6 +145,8 @@ let cursor = 0;          /* first unapplied record index */
 let clock = 0;           /* current tick */
 let playing = false;
 let speed = 1;
+let sound_player = BoloSound.create_player();
+let sound_enabled = true;
 let viewpoint = -1; /* player whose side draws as friendly; -1 = first player */
 let player_locked = false;
 let effect_lo = 0;       /* rolling window start into game.effects */
@@ -448,8 +450,9 @@ function centre_map() {
 }
 
 /* ---------- playback ---------- */
-function set_clock(tick, hard) {
+function set_clock(tick, hard, playback = false) {
 	if (!game) return;
+	if (!playback) sound_player.stop();
 	tick = Math.max(game.t0, Math.min(game.t1, tick));
 	if (hard || tick < clock) {
 		/* backwards (or explicit reset): restore from nearest keyframe */
@@ -487,7 +490,10 @@ function frame(ts) {
 	if (playing && game) {
 		if (last_frame !== null) {
 			let dt = Math.min(0.25, (ts - last_frame) / 1000);
-			set_clock(clock + dt * TPS * speed);
+			let previous_clock = clock;
+			set_clock(clock + dt * TPS * speed, false, true);
+			sound_player.advance(game.sounds, previous_clock, clock, speed, viewpoint,
+				tick => BoloGame.tank_position_at(game, cur, viewpoint, tick));
 			if (clock >= game.t1) set_playing(false);
 		}
 		last_frame = ts;
@@ -502,6 +508,7 @@ function set_playing(p) {
 	if (!game) p = false;
 	if (p === playing) return;
 	playing = p;
+	if (!playing) sound_player.stop();
 	play_btn.textContent = playing ? "❚❚" : "▶";
 	if (playing) {
 		if (clock >= game.t1) set_clock(game.t0, true);
@@ -1415,14 +1422,27 @@ play_btn.addEventListener("click", () => {
 	set_playing(!playing);
 	play_btn.blur();
 });
+document.getElementById("soundBtn").addEventListener("click", event => {
+	if (exporting || loading) return;
+	sound_enabled = !sound_enabled;
+	sound_player.set_enabled(sound_enabled);
+	event.currentTarget.title = sound_enabled
+		? "Mute game sounds (automatically muted above 100% speed)"
+		: "Enable game sounds (automatically muted above 100% speed)";
+	event.currentTarget.setAttribute("aria-pressed", String(sound_enabled));
+	event.currentTarget.blur();
+});
+
 speed_el.addEventListener("change", () => {
 	if (exporting) return;
 	speed = parseFloat(speed_el.value);
+	if (speed > 1) sound_player.stop();
 	speed_el.blur();
 });
 viewpoint_el.addEventListener("change", () => {
 	if (exporting) return;
 	viewpoint = parseInt(viewpoint_el.value, 10);
+	sound_player.stop();
 	viewpoint_el.blur();
 	centre_locked_player();
 	request_draw();
@@ -1667,6 +1687,7 @@ window.addEventListener("keydown", e => {
 		e.preventDefault();
 		/* the classic doubling ladder, whatever finer steps the menu grows */
 		speed = FKEY_SPEEDS[parseInt(e.code.slice(1), 10) - 1];
+		if (speed > 1) sound_player.stop();
 		speed_el.value = String(speed);
 		speed_el.blur();
 	} else if (e.code === "Space") {
