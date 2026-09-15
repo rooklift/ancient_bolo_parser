@@ -50,7 +50,7 @@ function event_for(state, rec, sub) {
 		y: source.y + (source.py || 0) / 16 + 0.5 };
 }
 
-const SELF_RADIUS = 8; /* map tiles from the camera centre, independent of zoom */
+const SELF_RADIUS = 5; /* map tiles from the camera centre, independent of zoom */
 
 function nearest_player(camera, positions) {
 	let player = -1, closest = SELF_RADIUS;
