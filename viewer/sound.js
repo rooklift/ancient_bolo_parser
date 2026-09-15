@@ -99,7 +99,7 @@ function stereo_pan(event, listener) {
 function create_player(make_audio = url => new Audio(url), make_context = () => {
 	let Context = globalThis.AudioContext || globalThis.webkitAudioContext;
 	return Context ? new Context() : null;
-}) {
+}, random = Math.random) {
 	let pools = new Map();
 	let enabled = true;
 	let context;
@@ -141,6 +141,10 @@ function create_player(make_audio = url => new Audio(url), make_context = () => 
 		if (!voice) return;
 		let { audio, panner } = voice;
 		if (panner) panner.pan.value = pan;
+		// Vary each trigger, including pooled voices. Disable pitch correction
+		// so the small rate change changes pitch as well as duration.
+		audio.preservesPitch = false;
+		audio.playbackRate = 0.97 + random() * 0.06;
 		audio.currentTime = 0;
 		// Browsers may refuse autoplay until the first user interaction.
 		let pending = audio.play();
