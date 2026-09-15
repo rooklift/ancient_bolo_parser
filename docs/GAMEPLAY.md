@@ -249,7 +249,8 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
 
 - **What he does.** Harvest a tree (forest becomes grass, yielding wood),
   build a road, build a building (wall), build a boat (river only), build or
-  repair a pillbox, plant a mine **(owner)**. Costs in wood: pillbox 1, road
+  repair a pillbox, plant a mine **(owner)**. The mine he plants comes out
+  of the tank's stock **(owner; corpus, [E:base-fill])**. Costs in wood: pillbox 1, road
   about 0.5, boat about 5, building not known **(owner, unsure)**. The
   action itself is fast **(owner)**: from the man reaching the square to the
   event, plant pill 9 ticks, repairs 9, boat 8, building 10, mine 11,
