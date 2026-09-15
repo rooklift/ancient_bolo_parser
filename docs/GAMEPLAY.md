@@ -339,9 +339,10 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   With one tank as the only shooter, 13 of 14 walls followed from first
   shot to rubble took exactly 3 unchanged hits between, one shell each, so
   the count is 5 real hits from building to rubble **(emulator log)**. The
-  fourteenth took 5: two of its hits landed twelve minutes before the rest,
-  so a shot building's hidden damage evidently does not keep indefinitely,
-  which would also account for the corpus's long tails. The repeat
+  fourteenth took 5: two of its hits landed twelve minutes before the rest
+  and were not counted. What dropped them is not known: in between, twenty
+  other squares were shot and the tank died six times, and no other wall
+  in the log carried hidden hits across a gap **(emulator log)**. The repeat
   announcements happen on one machine too: a tank shell and a pillbox
   shell reaching a wall 2 ticks apart both logged `7 8`, and two reaching
   a shot building 1 tick apart both logged the rubble **(emulator log)**.
@@ -432,9 +433,14 @@ what it left, and what it raised, is here.
 5. The respawn and parachute start choice: neither nearest nor farthest from
    enemies; WinBolo draws at random.
 6. The pill and base history string in `F1 Cn` [E:history].
-7. How long a shot building keeps its hidden damage. One wall hit twice,
-   left twelve minutes and then shot again needed the full count from the
-   second visit; the corpus tails of up to seventeen unchanged hits would
-   follow from a decay, and the interval is unmeasured.
+7. What resets a shot building's hidden damage. One wall hit twice, left
+   twelve minutes and then shot again needed the full count from the
+   second visit; a time-out, a bounded table of damaged squares (twenty
+   others were shot in between) and the tank's deaths in between (six) are
+   all open, and the corpus tails of up to seventeen unchanged hits, which
+   come from angry pillboxes within seconds, are not explained by any of
+   them. Two walls left for six and twelve minutes after only their first
+   hit took the normal count afterwards, which none of the three would
+   distinguish.
 8. Whether the 13.2-tick reload is Bolo's or the emulator's clock: a
    second recording with a different emulator speed setting would tell.
