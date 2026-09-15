@@ -70,8 +70,8 @@ function nearest_player(camera, positions) {
 function variant(event, listener, player) {
 	if (!listener) return null;
 	if (player >= 0 && event.player === player && ["shooting", "hit_tank"].includes(event.kind)) return event.kind + "_self";
-	// WinBolo's square distance bands: near <= 15 tiles, audible < 40.
-	let gap = Math.max(Math.abs(event.x - listener.x), Math.abs(event.y - listener.y));
+	// Circular distance bands around the camera: near <= 15 tiles, audible < 40.
+	let gap = Math.hypot(event.x - listener.x, event.y - listener.y);
 	if (gap >= 40) return null;
 	let near = gap <= 15;
 	if (event.kind === "bubbles") return near ? "bubbles" : null;
@@ -106,6 +106,7 @@ function create_player(make_audio = url => new Audio(url)) {
 		let audio = pool.find(a => a.paused || a.ended);
 		if (!audio && pool.length < 4) {
 			audio = make_audio("sounds/" + name + ".wav");
+			audio.volume = 0.5;
 			pool.push(audio);
 		}
 		if (!audio) return;
