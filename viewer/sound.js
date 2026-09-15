@@ -53,6 +53,7 @@ function event_for(state, rec, sub) {
 }
 
 const SELF_RADIUS = 5; /* map tiles from the camera centre, independent of zoom */
+const STEREO_STRENGTH = 0; /* 0 = centred, 1 = full stereo; fractions soften panning */
 
 function nearest_player(camera, positions) {
 	let player = -1, closest = SELF_RADIUS;
@@ -93,9 +94,10 @@ function between(events, from, to) {
 	return events.slice(lo, end);
 }
 
-function stereo_pan(event, listener) {
+function stereo_pan(event, listener, strength = STEREO_STRENGTH) {
 	// Full separation at 15 tiles left/right; directly above/below is centred.
-	return Math.max(-1, Math.min(1, (event.x - listener.x) / 15));
+	if (strength === 0) return 0;
+	return strength * Math.max(-1, Math.min(1, (event.x - listener.x) / 15));
 }
 
 function create_player(make_audio = url => new Audio(url), make_context = () => {
