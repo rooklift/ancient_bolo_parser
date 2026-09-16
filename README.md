@@ -47,7 +47,7 @@ The same files also run as a plain web page: open `viewer/index.html` in a brows
 ### Game sounds
 
 Game sounds use the camera centre as the listener. Nearby events use near
-sounds (within a 15-tile radius), and events less than 40 tiles away use far
+sounds (within a 12-tile radius), and events less than 40 tiles away use far
 sounds. These circular distances use map tiles, independent of zoom. Locking
 the camera to a player makes audio follow that player, and only then are that
 player's own gunfire and hits played as self sounds; a free camera hears every
