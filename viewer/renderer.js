@@ -493,16 +493,13 @@ function frame(ts) {
 			let previous_clock = clock;
 			set_clock(clock + dt * TPS * speed, false, true);
 			// Update the follow camera before measuring sound distances, just
-			// as drawing does. Free-camera audio never follows the selector.
-			centre_locked_player();
+			// as drawing does. Free-camera audio never follows the selector,
+			// and only a camera locked to a player hears that player's own
+			// gunfire and hits as self sounds.
+			let self_player = centre_locked_player() ? viewpoint : -1;
 			snap_view();
 			let { w, h } = css_size();
 			let listener = { x: view.ox + w / (2 * view.zoom), y: view.oy + h / (2 * view.zoom) };
-			let positions = cur.tanks.map((tank, p) => {
-				if (!tank || tank.dead || tank.dying || cur.quit[p] || clock - tank.lastSeen > TPS * 15) return null;
-				return BoloGame.tank_position_at(game, cur, p, clock);
-			});
-			let self_player = BoloSound.nearest_player(listener, positions);
 			sound_player.advance(game.sounds, previous_clock, clock, speed, self_player, () => listener);
 			if (clock >= game.t1) set_playing(false);
 		}

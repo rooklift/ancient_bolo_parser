@@ -74,23 +74,8 @@ function birth_sounds(shell_births) {
 	return sounds;
 }
 
-const SELF_RADIUS = 5; /* map tiles from the camera centre, independent of zoom */
-
-function nearest_player(camera, positions) {
-	let player = -1, closest = SELF_RADIUS;
-	for (let p = 0; p < positions.length; p++) {
-		let position = positions[p];
-		if (!position) continue;
-		let distance = Math.hypot(position.x - camera.x, position.y - camera.y);
-		// Equal distances keep the lower player slot, for a stable tie break.
-		if (distance <= SELF_RADIUS && (player < 0 || distance < closest)) {
-			player = p;
-			closest = distance;
-		}
-	}
-	return player;
-}
-
+/* player is the one the camera is locked to, or -1 with a free camera: only
+ * a locked camera hears its player's own gunfire and hits as self sounds. */
 function variant(event, listener, player) {
 	if (!listener) return null;
 	if (player >= 0 && event.player === player && ["shooting", "hit_tank"].includes(event.kind)) return event.kind + "_self";
@@ -164,7 +149,7 @@ function create_player(make_audio = url => new Audio(url), random = Math.random)
 	};
 }
 
-let BoloSound = { SELF_RADIUS, nearest_player, event_for, birth_sounds, variant, between, create_player };
+let BoloSound = { event_for, birth_sounds, variant, between, create_player };
 if (typeof module !== "undefined" && module.exports) module.exports = BoloSound;
 else window.BoloSound = BoloSound;
 })();
