@@ -1382,6 +1382,9 @@ function* build_steps(records) {
 	effects.sort((a, b) => a.time - b.time);
 	// Shell matching retimes impacts to their visible arrival. Keep audio
 	// on that same timeline without adding anything to the visual effects.
+	// Gunfire comes from the traced shells, at the moment each leaves its
+	// muzzle, rather than from the fire events (see BoloSound.birth_sounds).
+	for (let sound of BoloSound.birth_sounds(shell_births)) sounds.push(sound);
 	for (let sound of sounds) {
 		if (!sound.effect) continue;
 		let effect = sound.effect;

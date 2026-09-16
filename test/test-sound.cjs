@@ -119,8 +119,9 @@ Game.apply_record(state, { time: 10, player: 2, tankStatus: 0, status: 0, tankDi
 		{ type: "tank_death", code: 2 },
 	],
 }, null, null, null, null, sounds);
-assert.deepEqual(sounds.map(s => s.kind), ["shooting", "hit_tank", "shot_tree"]);
-assert.equal(sounds[1].player, 3, "self hit means the victim, not the sender");
+assert.deepEqual(sounds.map(s => s.kind), ["hit_tank", "shot_tree"], "gunfire is not read from the fire event");
+assert.equal(sounds[0].player, 3, "self hit means the victim, not the sender");
+assert.equal(Sound.event_for(state, { player: 2, time: 10 }, { type: "pillbox_fires", pillbox: 0, direction: 0 }), null);
 assert.equal(state.grid[50 * 256 + 52], 7);
 // A death without ammunition is silent. Small explosions and superbooms
 // sound only when their separate events arrive, even after the tank died.
@@ -149,6 +150,37 @@ for (let terrain of [1, 7, 255]) {
 		"shell falls never trigger tank-in-water audio, regardless of terrain");
 }
 assert.equal(Sound.event_for(state, { player: 2, time: 11 }, { type: "terrain_change", x: 52, y: 50, terrain: 5 }), null, "tree growth is silent");
+
+// Gunfire comes from the matcher's shell births: one sound per traced shell,
+// at its muzzle time, named for the firing player unless a pill fired it.
+{
+	let births = [
+		[],
+		[{ start_time: 100.25, end_time: 110, pixel_x: 808, pixel_y: 400, heading_x: 1, heading_y: 0, direction: 4, pillbox: false },
+		 { start_time: 120, end_time: 130, pixel_x: 1608, pixel_y: 1608, heading_x: 0, heading_y: 1, direction: 8, pillbox: true }],
+	];
+	assert.deepEqual(Sound.birth_sounds(births), [
+		{ time: 100.25, kind: "shooting", player: 1, x: 51, y: 25.5 },
+		{ time: 120, kind: "shooting", player: null, x: 101, y: 101 },
+	]);
+	assert.equal(Sound.variant(Sound.birth_sounds(births)[0], { x: 51, y: 25.5 }, 1), "shooting_self");
+	assert.equal(Sound.variant(Sound.birth_sounds(births)[1], { x: 101, y: 101 }, 1), "shooting_near", "a pill's shell is never self");
+}
+// In a built game every gunfire sound is a drawn birth and vice versa, on the
+// births' own clock, and the sound list stays sorted.
+{
+	let BoloLog = require("../viewer/logparse.js");
+	let file = path.join(__dirname, "../fixtures/emulator_solo");
+	let game = Game.build([...BoloLog.records(new Uint8Array(fs.readFileSync(file)))]);
+	let fires = game.sounds.filter(s => s.kind === "shooting");
+	let births = game.shell_births.flatMap((bs, p) => bs.map(b => [b.start_time, b.pillbox ? null : p, b.pixel_x / 16 + 0.5, b.pixel_y / 16 + 0.5]));
+	assert.ok(births.length > 0);
+	assert.deepEqual(fires.map(s => [s.time, s.player, s.x, s.y]).sort(), births.sort(), "gunfire sounds are the shell births");
+	for (let i = 1; i < game.sounds.length; i++) assert.ok(game.sounds[i - 1].time <= game.sounds[i].time, "sorted");
+	let fire_events = 0;
+	for (let rec of game.records) for (let sub of rec.subpackets) if (sub.type === "shot_fired" || sub.type === "pillbox_fires") fire_events++;
+	assert.notEqual(fires.length, fire_events, "gunfire is not one sound per fire event");
+}
 
 let kinds = ["shooting", "hit_tank", "shot_tree", "shot_building", "mine_explosion",
 	"big_explosion", "tank_sinking", "farming_tree", "man_building", "man_dying", "bubbles", "man_lay_mine"];

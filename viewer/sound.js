@@ -8,10 +8,13 @@ function event_for(state, rec, sub) {
 	let tank = state.tanks[rec.player];
 	let under = state.grid[sub.y * 256 + sub.x];
 	switch (sub.type) {
-		case "shot_fired": kind = "shooting"; source = tank; player = rec.player; break;
+		// Gunfire is not read from the fire events: a record is stamped when
+		// its packet reached the recorder, so a busy pill's fires bunch into
+		// whatever records the ring produced. The shell matcher dates each
+		// traced shell back to its muzzle instead; see birth_sounds.
+		case "shot_fired": case "pillbox_fires": break;
 		// The mine-laying sample is shared by tanks and builders.
 		case "lay_mine": kind = "man_lay_mine"; source = tank; break;
-		case "pillbox_fires": kind = "shooting"; source = state.pills[sub.pillbox]; break;
 		case "tank_hit": kind = "hit_tank"; source = state.tanks[sub.tank]; player = sub.tank; break;
 		case "pillbox_damage": kind = "shot_building"; source = state.pills[sub.pillbox]; break;
 		case "base_damage": kind = "shot_building"; source = state.bases[sub.base]; break;
@@ -50,6 +53,25 @@ function event_for(state, rec, sub) {
 	return { time: rec.time, kind, player,
 		x: source.x + (source.px || 0) / 16 + 0.5,
 		y: source.y + (source.py || 0) / 16 + 0.5 };
+}
+
+/* One gunfire sound per shell the matcher traced back to a muzzle, at the
+ * moment the drawn shell leaves it: the same clock as the impact sounds, and
+ * independent of when the ring delivered the fire event. A shell the matcher
+ * could not place is not drawn from a muzzle and makes no sound either.
+ * Births are per player; a pill's shell rides in its target's list, so only
+ * a tank birth names a player, for the self variant. */
+function birth_sounds(shell_births) {
+	let sounds = [];
+	shell_births.forEach((births, player) => {
+		for (let birth of births) {
+			sounds.push({ time: birth.start_time, kind: "shooting",
+				player: birth.pillbox ? null : player,
+				x: birth.pixel_x / 16 + 0.5,
+				y: birth.pixel_y / 16 + 0.5 });
+		}
+	});
+	return sounds;
 }
 
 const SELF_RADIUS = 5; /* map tiles from the camera centre, independent of zoom */
@@ -135,7 +157,7 @@ function create_player(make_audio = url => new Audio(url), random = Math.random)
 	};
 }
 
-let BoloSound = { SELF_RADIUS, nearest_player, event_for, variant, between, create_player };
+let BoloSound = { SELF_RADIUS, nearest_player, event_for, birth_sounds, variant, between, create_player };
 if (typeof module !== "undefined" && module.exports) module.exports = BoloSound;
 else window.BoloSound = BoloSound;
 })();

@@ -56,8 +56,14 @@ Sounds are mono, as in the game. They play at 50% volume, with a random ±3%
 pitch/rate variation on each playback to soften repetition. The
 **Speaker** button toggles audio. Playback above 100%, seeking, and
 frame stepping are silent. Video exports remain silent. Browsers may require
-a click or keypress before allowing sound. Builder and terrain-impact sounds
-are inferred from recorded events; the logs do not contain an audio track.
+a click or keypress before allowing sound. The logs do not contain an audio
+track, so sounds are inferred. A record is stamped when its packet reached
+the recorder, which bunches a busy pillbox's fire events into whatever records
+the ring delivered, so gunfire is not taken from the fire events: each shell
+the matcher traced back to a muzzle sounds at the moment it is drawn leaving
+it, the same clock as the impact sounds, and a shell the matcher could not
+place is silent. Builder and terrain-impact sounds come from the recorded
+events, impacts retimed to the matched shell's arrival where there is one.
 
 ### Tauri edition (Windows)
 
