@@ -210,6 +210,18 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   is unexplained. The shell
   matcher's working bound of "an angry pill fires at most every 5 or 6
   ticks" in `viewer/motion.js` agrees.
+- **A shell on a base angers its pills.** A shell hitting a base counts as
+  one hit on every live grounded pill allied to the base (the base's owner
+  or an ally of theirs) whose square lies **strictly within 7 squares** of
+  the base's, centre to centre: one base shell halves the pill's delay from
+  100 to about 50 exactly as a direct hit does, a second to about 25, and a
+  grind of eighteen puts the pill on the floor. The range is a circle, not a
+  box: a pill at offset (6,3), distance 6.71, is angered every time, while
+  pills at (7,0), (5,5), (7,1) and (6,4), distances 7.00 to 7.21, go on
+  firing at the rested pace through the whole grind. Neutral pills are not
+  angered, and hostile pills near the hit base only at the background rate
+  of a fight; neutral bases are never hit, since shells pass through them
+  **(corpus, [E:base-anger])**.
 - **Targeting.** A pill fires at the nearest hostile tank within about 8.5
   tiles that is not hidden in forest, leading a moving target by a sector or
   two, and simulated by the target's own machine **(corpus,

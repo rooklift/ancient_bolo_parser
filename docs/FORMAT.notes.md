@@ -44,6 +44,7 @@ Corpus figures are from the 443-log set unless an entry says 446, in which case 
 - [`[E:pill-target]`](#epill-target-the-f4-sender-is-the-pills-target-hand-over-of-a-departed-players-property) — the `F4` sender is the pill's target; hand-over of a departed player's property
 - [`[E:pill-fire-index]`](#epill-fire-index-the-direction-0-index-fault) — the direction-0 index fault
 - [`[E:massaging]`](#emassaging-a-touching-tank-makes-a-pill-fire-along-the-tanks-facing) — a touching tank makes a pill fire along the tank's facing
+- [`[E:base-anger]`](#ebase-anger-a-shell-on-a-base-is-a-hit-on-every-allied-pill-within-7-squares) — a shell on a base is a hit on every allied pill within 7 squares
 - [`[E:pill-capture]`](#epill-capture-pickup-captures-repair-never-does) — pickup captures; repair never does
 - [`[E:superboom-pill]`](#esuperboom-pill-superboom-pill-damage-is-4-a-single-crater-does-none-a-plant-is-at-full-armour) — superboom pill damage is 4; a single crater does none; a plant is at full armour
 - [`[E:crater-pill]`](#ecrater-pill-a-grounded-pillbox-spares-the-ground-beneath-it-from-every-crater-path) — a grounded pillbox spares the ground beneath it from every crater path
@@ -488,6 +489,37 @@ It survived twenty years unnoticed because nothing depends on it: which pillbox 
 ### [E:massaging] — a touching tank makes a pill fire along the tank's facing
 
 The well-known Bolo bug: a tank against a hostile pillbox, creeping along its edge, makes the pill fire in the tank's own facing direction instead of at the tank. Measured by `tools/measure-pill-target.cjs`: over the corpus, of 1,156,489 fires at the sender's tank, the tank is within 24 px of the pill in 14,790, and in 5,767 of those (39.0%) the fire direction equals the tank's facing, against 76,031 of 1,141,699 (6.7%, the 1-in-16 chance rate) when the tank is further off; the sample log alone reads 189 of 323 (58.5%) against 6.2%. Among the contested fires whose nibble points at neither tank, 1,022 of 8,672 are touching fires along the facing. A consumer matching pill shells to fire events should not assume the direction nibble points at the target when the target is touching the pill.
+
+### [E:base-anger] — a shell on a base is a hit on every allied pill within 7 squares
+
+The log has no anger field, but a pill's fire rate is its anger (a rested pill fires every ~100 ticks and each hit halves the delay, [E:gameplay]), so whether shooting a base provokes the pills around it, and from how far, can be read off the pills' fire gaps. `tools/measure-base-anger.cjs` opens an episode at every `An` for every grounded live pill in the log, requires the pill to have been at rest (no `9n` on it and no hit on any base allied to it for 120 s), and reads its `F4` fires per sending machine over the next 10 s, stopping at the first `9n` on the pill or the first hit on a different allied base. The smallest gap in the window, counting the gap that spans the hit, classifies the pill: 70 ticks or less is angry (a rested gap is 97–107, one halving gives 48–60). Hostile pills near the same hits are the control.
+
+Over 1,030 logs and 190,995 base hits, 5,169 episodes have an observable pill. By the pill's relation to the base: same owner 320 of 493 angry (65%), allied owner 123 of 235 (52%), hostile 30 of 1,443 (2%), neutral pill 35 of 2,998 (1%). Hits on a neutral base never occur, since shells pass through them ([E:terrain-hits]). The allied fraction is a distance effect. By the squared distance between the pill's square and the base's:
+
+| d² | d | observed | angry |
+|---|---|---|---|
+| 1–36 | ≤ 6.00 | 494 | 96% |
+| 37 | 6.08 | 36 | 100% |
+| 40, 41 | 6.32, 6.40 | 47 | 94% |
+| 45 | 6.71 | 26 | 100% |
+| 49 | 7.00 | 3 | 0% |
+| 50–64 | 7.07–8.00 | 44 | 0% |
+| > 64 | | 233 | 2% |
+
+So the rule is a circle of radius 7, strictly inside: 438 of 448 allied pills at d² < 49 are angered and 5 of 280 at d² ≥ 49, the latter at the control's rate. A box would not do: (5,5) and (6,4) lie inside a 6-box and never anger, (6,3) lies outside a circle of 6 and always does. The |dx|,|dy| grid in the tool's output shows the quarter-circle directly.
+
+**The anger is one hit's worth.** With exactly one base hit in the episode, 70 in-circle pills gave a smallest gap of 44–62 in all but a handful, median 53, the single halving from 100; with two hits, 82 cases cluster at 21–30, median 26; with three, median 13. A base under a full grind (18 shells, the base's 90 armour at 5 a shell) puts every allied pill in the circle on the floor.
+
+**The edge, case by case.** The rest requirement leaves few cases at the outside offsets, so the tool's `--relaxed` mode drops it: pills already angry from the fight then read angry at every distance (55–62% at d² of 49–52, against 98% at 45), but a pill that fires at the rested pace *while* its base is being shot cannot be inside the circle, and those are the proof. The clearest, by replay label and log tick, with the pill firing at the shooting tank throughout unless said otherwise:
+
+- (7,0), d 7.00: `20020730.1` t216748, 18 shells on the base in 4.5 s, the pill 7 squares south of it, same owner, unhit for 36 minutes, fires six times at gaps of 99–106; `20010410~e0f9a1` t817298, 18 shells, pill 7 squares west, gaps 96–106; `20040601.1~77f665` t14723718, 8 shells, gaps 99–105; `20040812.1~a51417` t1202775, 3 shells and eight rested gaps over 16 s, after which the tank turns on the pill itself and it is on the floor within a few `9n` — anger, when it comes, is unmistakable.
+- (5,5), d 7.07: `20011027~628a3e` t211935, 18 shells, pill unhit for 8 minutes, gaps 97 and 98; `20021022.2~e1eecd` t418779, 16 shells, gaps 97 and 104; `20020202~910e86` t651172, 6 shells, five gaps of 94–113 at a second enemy; `20020209~1a1380` t1043770, six gaps of 89–106.
+- (6,4), d 7.21: `20020923~4fac3d` t80705, 14 shells in 3 s, five gaps of 97–107; `20040927~45f82d` t1090931, 14 shells, gaps 99–103; `20030327~a1ce9d` t263893, 10 shells, gaps 98–103; `20050311.4~ec4128` t128427, 4 shells and five rested gaps, then the tank shoots the pill and it fires every 6–8 ticks.
+- (6,3), d 6.71, the nearest offset inside: 26 of 26 angered under the rest requirement, 317 of 323 relaxed.
+
+The ownership in every listed case is the model's ([E:owner-signals]), the pill and base under the same owner in all but one, where the owners are allies.
+
+**Noise.** The 10 in-circle pills reading calm are mostly a single fire 15–70 ticks after the hit at a gap of about 100: a shot that was already due, stamped by the recorder after a hit that came from another machine. The 5 far pills reading angry include three pills of one replay bursting at gap 0 on the same tick, a superboom, which damages pills with no event ([E:superboom-pill]). Two machines simulating one pill would interleave into false short gaps, which is why gaps are taken per sender. The corpus runs are archived as `docs/corpus_runs/60aad34-base-anger.txt` and `-base-anger-relaxed.txt`.
 
 ### [E:pill-capture] — pickup captures; repair never does
 

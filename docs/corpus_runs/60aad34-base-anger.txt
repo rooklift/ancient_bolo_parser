@@ -1,0 +1,105 @@
+rest required (quiet 6000 ticks, window 500)
+logs 1030, base hits 190995, episodes 84745, observed 5169 (the pill fired at least twice in the window, or once within 110 ticks of an earlier fire)
+
+=== by the pill's relation to the hit base ===
+same owner               observed    493  angry    320   64.9%
+allied owners            observed    235  angry    123   52.3%
+hostile                  observed   1443  angry     30    2.1%
+pill neutral/departed    observed   2998  angry     35    1.2%
+base neutral/departed    observed      0  angry      0      -
+
+=== allied pills by squared distance to the base (squares²), hostile pills alongside as the control ===
+  d²      d   observed  angry   frac   | hostile observed angry   frac
+   1   1.00        62     60   96.8%  |        6     0    0.0%
+   2   1.41         5      5  100.0%  |        5     1   20.0%
+   4   2.00         8      8  100.0%  |        3     1   33.3%
+   5   2.24        15     14   93.3%  |        6     0    0.0%
+   8   2.83         5      5  100.0%  |        5     0    0.0%
+   9   3.00        12     12  100.0%  |        2     0    0.0%
+  10   3.16        14     14  100.0%  |        6     1   16.7%
+  13   3.61        20     20  100.0%  |       11     1    9.1%
+  16   4.00        14     14  100.0%  |        2     0    0.0%
+  17   4.12        14     12   85.7%  |        3     1   33.3%
+  18   4.24         8      7   87.5%  |        4     0    0.0%
+  20   4.47        18     18  100.0%  |       14     2   14.3%
+  25   5.00        48     48  100.0%  |       13     0    0.0%
+  26   5.10        23     22   95.7%  |       12     0    0.0%
+  29   5.39        23     23  100.0%  |        5     0    0.0%
+  32   5.66        10     10  100.0%  |        6     1   16.7%
+  34   5.83        24     24  100.0%  |       15     0    0.0%
+  36   6.00        16     16  100.0%  |        4     1   25.0%
+  37   6.08        36     36  100.0%  |        7     0    0.0%
+  40   6.32        21     19   90.5%  |       10     0    0.0%
+  41   6.40        26     25   96.2%  |        7     0    0.0%
+  45   6.71        26     26  100.0%  |        4     0    0.0%
+  49   7.00         3      0    0.0%  |        4     0    0.0%
+  50   7.07        16      0    0.0%  |        9     0    0.0%
+  52   7.21         7      0    0.0%  |        4     0    0.0%
+  53   7.28         6      0    0.0%  |        8     0    0.0%
+  58   7.62         4      0    0.0%  |        5     0    0.0%
+  61   7.81         7      0    0.0%  |       10     0    0.0%
+  64   8.00         4      0    0.0%  |        5     0    0.0%
+  65   8.06        11      0    0.0%  |       10     0    0.0%
+  68   8.25         4      0    0.0%  |        6     0    0.0%
+  72   8.49         1      0    0.0%  |        4     0    0.0%
+  73   8.54         2      0    0.0%  |        6     0    0.0%
+  74   8.60         3      0    0.0%  |        8     0    0.0%
+  80   8.94         2      0    0.0%  |        6     0    0.0%
+  81   9.00         2      0    0.0%  |        6     0    0.0%
+  82   9.06         1      0    0.0%  |        5     0    0.0%
+  85   9.22         7      0    0.0%  |       10     0    0.0%
+  89   9.43         2      0    0.0%  |        7     1   14.3%
+  90   9.49         0      0      -  |        3     0    0.0%
+  97   9.85         1      0    0.0%  |        5     0    0.0%
+  98   9.90         1      0    0.0%  |        6     0    0.0%
+ 100  10.00         8      0    0.0%  |       17     1    5.9%
+>100              188      5    2.7%  |     1149    19    1.7%
+
+=== allied pills, |dx| across and |dy| down: angry/observed ===
+            0       1       2       3       4       5       6       7       8       9      10
+   0        .   34/36     2/2     6/6     7/7     7/7     9/9     0/2     0/1     0/1     0/1
+   1    26/26     5/5     8/9     4/4     7/8   18/18   24/24     0/4     0/4     0/1       .
+   2      6/6     6/6     5/5   12/12   13/13   12/12   14/15     0/3       .     0/1       .
+   3      6/6   10/10     8/8     7/8   15/15   14/14   12/12     0/2     0/2       .     0/2
+   4      7/7     5/6     5/5   18/18   10/10   14/14     0/3     0/3       .       .       .
+   5      8/8     4/5   11/11   10/10   11/12     0/5     0/3     0/3     0/1       .     0/1
+   6      7/7   12/12     5/6   14/14     0/4     0/4     0/1     0/1     0/2     0/1       .
+   7      0/1     0/7     0/3     0/2       .       .     0/5     0/1     0/1     0/3     1/1
+   8      0/3     0/4     0/4       .     0/2     0/1     0/5       .       .     0/2       .
+   9      0/1       .       .       .     0/1     0/5     0/2     0/3     0/1     0/1       .
+  10        .     0/1     0/1     0/3     1/3     0/3     0/1       .     0/2       .     0/1
+
+=== the circle d² < 49: inside 438/448 angry, outside 5/280 ===
+
+=== inside the circle: smallest fire gap after the hit, by base hits in the episode ===
+1 hit: 70 cases, median 53; 23 33 44 44 46 46 46 46 47 47 47 47 48 48 48 48 49 49 49 49 49 49 50 50 50 50 51 51 51 51 51 52 52 53 53 53 53 53 53 53 53 53 54 54 54 54 54 55 55 56 56 56 56 57 58 59 59 59 60 60 61 62 62 66 66 69 75 102 106 339
+2 hits: 82 cases, median 26; 0 8 14 14 15 15 15 17 17 17 20 20 21 21 21 21 22 23 23 23 23 23 23 24 24 24 24 24 24 24 24 25 25 25 25 25 25 25 26 26 26 26 26 27 27 27 27 27 27 28 28 28 28 28 28 28 28 29 29 29 29 30 30 30 31 33 33 33 34 35 39 39 48 48 49 52 53 54 101 101 110 135
+3 hits: 76 cases, median 13; 0 0 0 0 0 0 7 7 7 7 8 8 8 9 9 9 10 10 10 10 11 11 11 11 11 12 12 12 12 12 12 12 12 13 13 13 13 13 13 14 14 14 14 14 14 14 14 15 15 15 15 15 15 15 16 17 17 18 18 18 19 21 21 23 25 25 25 27 33 33 42 46 57 63 74 104
+
+=== how episodes ended (allied, observed) ===
+window           550 observed, 332 angry
+pill hit         98 observed, 66 angry
+other base hit   80 observed, 45 angry
+
+=== the edge: clearest slow readers at the offsets nearest a radius of 7 ===
+
+(6,3) d 6.71, inside: observed 26, angry 26, calm with two or more rested gaps 0
+
+(7,0) d 7.00: observed 3, angry 0, calm with two or more rested gaps 2
+  20030215.1~03271a t472598 pill 9 base 3 offset (0,7) base hits 2 shooter p1 fires +227/p1 +323/p1 +429/p1 gaps 96,106 ended by window
+  20011027~588e29 t635376 pill 13 base 9 offset (-7,0) base hits 1 shooter p2 fires +81/p2 +184/p2 gaps 102,103 ended by window
+
+(5,5) d 7.07: observed 5, angry 0, calm with two or more rested gaps 1
+  20040729.2~4fc426 t30275380 pill 9 base 3 offset (5,5) base hits 2 shooter p0 fires +12/p0 +205/p1 +306/p1 +407/p1 gaps 102,101,101 ended by window
+
+(7,1) d 7.07: observed 11, angry 0, calm with two or more rested gaps 5
+  20010311~b3e30c t1158194 pill 12 base 11 offset (1,-7) base hits 3 shooter p1 fires +52/p1 +160/p1 +257/p1 +357/p1 +458/p1 gaps 108,97,100,101 ended by window
+  20010604.8~29e909 t13614450 pill 0 base 3 offset (-1,7) base hits 2 shooter p0 fires +125/p0 +221/p0 +323/p0 +423/p0 gaps 96,102,100 ended by window
+  20010129~f71b60 t443786 pill 7 base 13 offset (-7,1) base hits 2 shooter p1 fires +6/p1 +106/p1 +211/p1 gaps 98,100,105 ended by window
+  20030617~c42eac t510015 pill 13 base 15 offset (-1,7) base hits 18 shooter p2 fires +137/p2 +237/p2 +340/p2 gaps 100,103 ended by window
+
+(6,4) d 7.21: observed 7, angry 0, calm with two or more rested gaps 5
+  20010903~df4ddd t1526809 pill 4 base 12 offset (6,4) base hits 1 shooter p0 fires +25/p0 +122/p0 +223/p0 gaps 102,97,101 ended by pill hit
+  20030626~32c302 t544701 pill 9 base 15 offset (6,-4) base hits 15 shooter p3 fires +100/p3 +194/p3 +299/p3 gaps 94,105 ended by window
+  20010117~95b8f0 t8932620 pill 9 base 6 offset (-4,-6) base hits 12 shooter p2 fires +44/p2 +145/p2 gaps 99,101 ended by window
+  20010418.1~8f32e4 t5367012 pill 6 base 14 offset (4,-6) base hits 7 shooter p3 fires +61/p3 +161/p3 gaps 95,100 ended by window
