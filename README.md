@@ -42,7 +42,7 @@ cd viewer
 npx electron .
 ```
 
-The same files also run as a plain web page: open `viewer/index.html` in a browser, or serve the `viewer/` directory with any static file server. The web version has no application menu, so it cannot export video, and its toggle shortcuts are bare keys (D, I, F, L, G, M, B, R, T) rather than Ctrl+key. Since there is no menu to read the keys off, the web version alone gets a shortcut sheet: press `?`, or use the `?` button at the end of the transport bar.
+The same files also run as a plain web page, hosted at [rooklift.github.io/ancient_bolo_parser](https://rooklift.github.io/ancient_bolo_parser/) (logs are parsed in the browser and never uploaded). Or open `viewer/index.html` locally, or serve the `viewer/` directory with any static file server. The web version has no application menu, so it cannot export video, and its toggle shortcuts are bare keys (D, I, F, L, G, M, B, R, T) rather than Ctrl+key. Since there is no menu to read the keys off, the web version alone gets a shortcut sheet: press `?`, or use the `?` button at the end of the transport bar.
 
 ### Tauri edition (Windows)
 
