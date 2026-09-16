@@ -46,13 +46,14 @@ The same files also run as a plain web page: open `viewer/index.html` in a brows
 
 ### Game sounds
 
-Game sounds use the camera centre as the listener. Nearby events use near
-sounds (within a 15-tile radius), and events less than 40 tiles away use far
-sounds. These circular distances use map tiles, independent of zoom. Locking
+Game sounds use the camera centre as the listener. Each event has one sample,
+played at full volume within 8 tiles of the centre and fading linearly to
+silence at 40 tiles. These circular distances use map tiles, independent of
+zoom. Locking
 the camera to a player makes audio follow that player, and only then are that
 player's own gunfire and hits played as self sounds; a free camera hears every
 tank as near or far. The player selector alone only changes friendly colours.
-Sounds are mono, as in the game. They play at 50% volume, with a random ±3%
+Sounds are mono, as in the game. They play at 50% volume at most, with a random ±3%
 pitch/rate variation on each playback to soften repetition. Up to four copies
 of one sound overlap; a fifth restarts the copy that has played longest. The
 **Speaker** button toggles audio. Playback above 100%, seeking, and
@@ -95,5 +96,5 @@ The shell interpolator is a forensic reconstruction engine for anonymous project
   explain behaviour the logs already demonstrate; `viewer/format.js`'s map
   reader/writer is a port of its `bolo_map.c`, and `viewer/sprites.js`'s
   terrain tile rules are a port of its `screencalc.c`. Game sound WAVs in
-  `viewer/sounds/` are copied from WinBolo's `data/sounds/` (excluding lobby
-  and ping sounds).
+  `viewer/sounds/` are WinBolo's `data/sounds/` near samples, renamed
+  (its far variants, lobby and ping sounds are not used).

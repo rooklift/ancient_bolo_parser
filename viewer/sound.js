@@ -74,18 +74,24 @@ function birth_sounds(shell_births) {
 	return sounds;
 }
 
-/* player is the one the camera is locked to, or -1 with a free camera: only
- * a locked camera hears its player's own gunfire and hits as self sounds. */
+const FULL_RADIUS = 8; /* map tiles from the camera centre, independent of zoom */
+const AUDIBLE_RADIUS = 40;
+
+/* Which sample an event plays, and how loud, for a listener at the camera
+ * centre: one sample per kind, at full volume within FULL_RADIUS tiles and
+ * fading linearly to silence at AUDIBLE_RADIUS, in circular map-tile
+ * distances. player is the one the camera is locked to, or -1 with a free
+ * camera: only a locked camera hears its player's own gunfire and hits as
+ * self sounds, which play at full volume. Returns null when inaudible. */
 function variant(event, listener, player) {
 	if (!listener) return null;
-	if (player >= 0 && event.player === player && ["shooting", "hit_tank"].includes(event.kind)) return event.kind + "_self";
-	// Circular distance bands around the camera: near <= 15 tiles, audible < 40.
+	if (player >= 0 && event.player === player && ["shooting", "hit_tank"].includes(event.kind)) {
+		return { name: event.kind + "_self", gain: 1 };
+	}
 	let gap = Math.hypot(event.x - listener.x, event.y - listener.y);
-	if (gap >= 40) return null;
-	let near = gap <= 15;
-	if (event.kind === "bubbles") return near ? "bubbles" : null;
-	if (event.kind === "man_lay_mine") return near ? "man_lay_mine_near" : null;
-	return event.kind + (near ? "_near" : "_far");
+	if (gap >= AUDIBLE_RADIUS) return null;
+	let gain = Math.min(1, (AUDIBLE_RADIUS - gap) / (AUDIBLE_RADIUS - FULL_RADIUS));
+	return { name: event.kind, gain };
 }
 
 function between(events, from, to) {
@@ -100,6 +106,8 @@ function between(events, from, to) {
 	return events.slice(lo, end);
 }
 
+const BASE_VOLUME = 0.5;
+
 function create_player(make_audio = url => new Audio(url), random = Math.random) {
 	let pools = new Map();
 	let enabled = true;
@@ -110,14 +118,12 @@ function create_player(make_audio = url => new Audio(url), random = Math.random)
 			audio.currentTime = 0;
 		}
 	}
-	function play(name) {
+	function play(name, gain) {
 		let pool = pools.get(name);
 		if (!pool) { pool = []; pools.set(name, pool); }
 		let voice = pool.find(v => v.audio.paused || v.audio.ended);
 		if (!voice && pool.length < 4) {
-			let audio = make_audio("sounds/" + name + ".wav");
-			audio.volume = 0.5;
-			voice = { audio, started: 0 };
+			voice = { audio: make_audio("sounds/" + name + ".wav"), started: 0 };
 			pool.push(voice);
 		}
 		// Four copies of a sound at once is plenty: past that, the newest
@@ -126,6 +132,7 @@ function create_player(make_audio = url => new Audio(url), random = Math.random)
 		if (!voice) voice = pool.reduce((oldest, v) => v.started < oldest.started ? v : oldest);
 		let { audio } = voice;
 		voice.started = ++triggers;
+		audio.volume = BASE_VOLUME * gain;
 		// Vary each trigger, including pooled voices. Disable pitch correction
 		// so the small rate change changes pitch as well as duration.
 		audio.preservesPitch = false;
@@ -142,14 +149,14 @@ function create_player(make_audio = url => new Audio(url), random = Math.random)
 		advance(events, from, to, speed, player, listener_at) {
 			if (!enabled || speed > 1 || speed <= 0 || to <= from) { stop(); return; }
 			for (let event of between(events, from, to)) {
-				let name = variant(event, listener_at(event.time), player);
-				if (name) play(name);
+				let sound = variant(event, listener_at(event.time), player);
+				if (sound) play(sound.name, sound.gain);
 			}
 		},
 	};
 }
 
-let BoloSound = { event_for, birth_sounds, variant, between, create_player };
+let BoloSound = { FULL_RADIUS, AUDIBLE_RADIUS, event_for, birth_sounds, variant, between, create_player };
 if (typeof module !== "undefined" && module.exports) module.exports = BoloSound;
 else window.BoloSound = BoloSound;
 })();
