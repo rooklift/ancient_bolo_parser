@@ -118,8 +118,9 @@ function between(events, from, to) {
 function create_player(make_audio = url => new Audio(url), random = Math.random) {
 	let pools = new Map();
 	let enabled = true;
+	let triggers = 0;
 	function stop() {
-		for (let pool of pools.values()) for (let audio of pool) {
+		for (let pool of pools.values()) for (let { audio } of pool) {
 			audio.pause();
 			audio.currentTime = 0;
 		}
@@ -127,13 +128,19 @@ function create_player(make_audio = url => new Audio(url), random = Math.random)
 	function play(name) {
 		let pool = pools.get(name);
 		if (!pool) { pool = []; pools.set(name, pool); }
-		let audio = pool.find(a => a.paused || a.ended);
-		if (!audio && pool.length < 4) {
-			audio = make_audio("sounds/" + name + ".wav");
+		let voice = pool.find(v => v.audio.paused || v.audio.ended);
+		if (!voice && pool.length < 4) {
+			let audio = make_audio("sounds/" + name + ".wav");
 			audio.volume = 0.5;
-			pool.push(audio);
+			voice = { audio, started: 0 };
+			pool.push(voice);
 		}
-		if (!audio) return;
+		// Four copies of a sound at once is plenty: past that, the newest
+		// trigger restarts the copy that has played longest, so a burst of
+		// gunfire keeps its latest shots rather than losing them.
+		if (!voice) voice = pool.reduce((oldest, v) => v.started < oldest.started ? v : oldest);
+		let { audio } = voice;
+		voice.started = ++triggers;
 		// Vary each trigger, including pooled voices. Disable pitch correction
 		// so the small rate change changes pitch as well as duration.
 		audio.preservesPitch = false;

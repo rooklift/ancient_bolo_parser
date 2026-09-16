@@ -63,8 +63,10 @@ advance(10, 20);
 assert.equal(played.length, 2);
 assert.ok(audios.every(a => a.paused));
 player.set_enabled(true);
+let before = played.length;
 player.advance(Array.from({ length: 50 }, () => shot), 0, 10, 1, 2, () => listener);
 assert.ok(audios.length <= 5, "simultaneous copies of each sound are bounded");
+assert.equal(played.length - before, 50, "a full pool restarts a voice rather than dropping the trigger");
 player.stop();
 assert.ok(audios.every(a => a.paused));
 
@@ -93,6 +95,24 @@ assert.ok(audios.every(a => a.paused));
 	assert.equal(voices[0].playbackRate, 1, "a reused voice gets a fresh pitch");
 	pitched.set_enabled(false);
 	assert.ok(voices.every(a => a.paused));
+	// With every voice busy, each new trigger restarts the one that has
+	// played longest, in rotation.
+	pitched.set_enabled(true);
+	pitches.push(...Array(8).fill(0.5));
+	let restarts = () => voices.map(a => a.restarts);
+	for (let audio of voices) audio.restarts = 0;
+	let counting = (audio) => { let play = audio.play; audio.play = function () { this.restarts++; return play.call(this); }; };
+	for (let audio of voices) counting(audio);
+	let burst = Array.from({ length: 4 }, (_, i) => ({ ...shot, x: 50.5 + i }));
+	pitched.advance(burst, 0, 10, 1, -1, () => listener);
+	assert.equal(voices.length, 4, "the pool grows to four");
+	for (let audio of voices.slice(2)) { audio.restarts = 0; counting(audio); }
+	assert.deepEqual(restarts(), [1, 1, 0, 0]);
+	pitched.advance(burst.slice(0, 1), 0, 10, 1, -1, () => listener);
+	assert.deepEqual(restarts(), [2, 1, 0, 0], "the fifth trigger restarts the oldest voice");
+	pitched.advance(burst.slice(0, 2), 0, 10, 1, -1, () => listener);
+	assert.deepEqual(restarts(), [2, 2, 1, 0], "then the next oldest, in turn");
+	assert.ok(voices.every(a => a.currentTime === 0 && !a.paused));
 }
 
 // Exercise collection inside the replay engine, including the pre-change

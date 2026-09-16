@@ -53,7 +53,8 @@ radius), and events less than 40 tiles away use far sounds. These circular dista
 use map tiles, independent of zoom. Locking the camera to a player makes audio
 follow that player; the player selector alone only changes friendly colours.
 Sounds are mono, as in the game. They play at 50% volume, with a random ±3%
-pitch/rate variation on each playback to soften repetition. The
+pitch/rate variation on each playback to soften repetition. Up to four copies
+of one sound overlap; a fifth restarts the copy that has played longest. The
 **Speaker** button toggles audio. Playback above 100%, seeking, and
 frame stepping are silent. Video exports remain silent. Browsers may require
 a click or keypress before allowing sound. The logs do not contain an audio
