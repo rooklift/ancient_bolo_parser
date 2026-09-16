@@ -7,25 +7,24 @@ const Game = require("../viewer/game.js");
 
 let listener = { x: 50.5, y: 50.5 };
 let shot = { time: 10, kind: "shooting", player: 2, ...listener };
-let near = (x, y = 50.5) => ({ x, y });
-assert.deepEqual(Sound.variant(shot, listener, -1), { name: "shooting", gain: 1 }, "a free camera hears its own tank's shot at full volume, never self");
-assert.deepEqual(Sound.variant(shot, listener, 2), { name: "shooting_self", gain: 1 }, "the locked player's shot is self");
-assert.deepEqual(Sound.variant(shot, listener, 1), { name: "shooting", gain: 1 });
-assert.deepEqual(Sound.variant({ ...shot, player: null }, listener, 2), { name: "shooting", gain: 1 });
-assert.deepEqual(Sound.variant({ ...shot, kind: "hit_tank" }, listener, 2), { name: "hit_tank_self", gain: 1 });
-assert.deepEqual(Sound.variant(shot, near(90.5), 2), { name: "shooting_self", gain: 1 }, "self sounds do not fade");
+assert.equal(Sound.variant(shot, listener, -1), "shooting_near", "a free camera hears its own tank's shot as near, never self");
+assert.equal(Sound.variant(shot, { x: 70.5, y: 50.5 }, -1), "shooting_far", "far is measured from the camera without a self tank");
+assert.equal(Sound.variant(shot, { x: 90.5, y: 50.5 }, -1), null);
+assert.equal(Sound.variant(shot, listener, 2), "shooting_self", "the locked player's shot is self");
+assert.equal(Sound.variant(shot, listener, 1), "shooting_near");
+assert.equal(Sound.variant({ ...shot, player: null }, listener, 2), "shooting_near");
+assert.equal(Sound.variant(shot, { x: 65.5, y: 50.5 }, 1), "shooting_near", "15 tiles is near");
+assert.equal(Sound.variant(shot, { x: 59.5, y: 62.5 }, 1), "shooting_near", "diagonal at radius 15 is near");
+assert.equal(Sound.variant(shot, { x: 65.5, y: 65.5 }, 1), "shooting_far", "square corner lies outside near radius");
+assert.equal(Sound.variant(shot, { x: 74.5, y: 82.5 }, 1), null, "diagonal at radius 40 is silent");
+assert.equal(Sound.variant(shot, { x: 74.5, y: 81.5 }, 1), "shooting_far", "just inside audible radius is far");
+assert.equal(Sound.variant(shot, { x: 80.5, y: 80.5 }, 1), null, "square corner lies outside audible radius");
+assert.equal(Sound.variant(shot, { x: 66.5, y: 50.5 }, 1), "shooting_far");
+assert.equal(Sound.variant(shot, { x: 90.5, y: 50.5 }, 1), null);
 assert.equal(Sound.variant(shot, null, 2), null);
-// One sample per kind, full within 8 tiles, linear to silence at 40.
-assert.equal(Sound.variant(shot, near(58.5), 1).gain, 1, "8 tiles is full volume");
-assert.equal(Sound.variant(shot, near(55.5, 55.5), 1).gain, 1, "diagonal inside the full radius");
-assert.ok(Sound.variant(shot, near(58.5, 58.5), 1).gain < 1, "square corner lies outside the full radius");
-assert.equal(Sound.variant(shot, near(74.5), 1).gain, 0.5, "half way out is half volume");
-assert.ok(Math.abs(Sound.variant(shot, near(74.5, 81.5), 1).gain - 0.5 / 32 * 1.004) < 0.02, "diagonal just inside the audible radius is nearly silent");
-assert.equal(Sound.variant(shot, near(74.5, 82.5), 1), null, "diagonal at radius 40 is silent");
-assert.equal(Sound.variant(shot, near(80.5, 80.5), 1), null, "square corner lies outside the audible radius");
-assert.equal(Sound.variant(shot, near(90.5), -1), null);
-for (let kind of ["bubbles", "man_lay_mine", "big_explosion"]) {
-	assert.deepEqual(Sound.variant({ ...shot, kind }, near(66.5), 1), { name: kind, gain: 0.75 }, "every kind fades the same way");
+assert.equal(Sound.variant({ ...shot, kind: "hit_tank" }, listener, 2), "hit_tank_self");
+for (let kind of ["bubbles", "man_lay_mine"]) {
+	assert.equal(Sound.variant({ ...shot, kind }, { x: 66.5, y: 50.5 }, 1), null);
 }
 
 let played = [], audios = [];
@@ -50,7 +49,7 @@ assert.equal(played.length, 1, "returning to normal speed does not replay skippe
 advance(20, 0);
 assert.equal(played.length, 1, "backward movement is silent");
 advance(0, 10, 0.5, 1);
-assert.equal(played.at(-1), "sounds/shooting.wav", "slow playback uses the new viewpoint");
+assert.equal(played.at(-1), "sounds/shooting_near.wav", "slow playback uses the new viewpoint");
 player.set_enabled(false);
 advance(10, 20);
 assert.equal(played.length, 2);
@@ -78,7 +77,7 @@ assert.ok(audios.every(a => a.paused));
 	let pair = [{ ...shot, x: 40.5 }, { ...shot, x: 60.5 }];
 	pitched.advance(pair, 0, 10, 1, -1, () => listener);
 	assert.equal(voices.length, 2);
-	assert.deepEqual(voices.map(a => a.volume), [0.5 * 0.9375, 0.5 * 0.9375], "base volume 0.5, faded by distance");
+	assert.ok(voices.every(a => a.volume === 0.5), "half volume");
 	assert.deepEqual(voices.map(a => a.playbackRate), [0.97, 1.03], "each sound gets its own bounded pitch variation");
 	assert.ok(voices.every(a => a.preservesPitch === false), "rate variation changes pitch");
 	pitched.stop();
@@ -114,7 +113,8 @@ let state = Game.initial_state();
 state.tanks[2] = { x: 50, y: 50, px: 0, py: 0 };
 let mine_sound = Sound.event_for(state, { player: 2, time: 9 }, { type: "lay_mine" });
 assert.deepEqual(mine_sound, { time: 9, kind: "man_lay_mine", player: null, x: 50.5, y: 50.5 });
-assert.deepEqual(Sound.variant(mine_sound, listener, 2), { name: "man_lay_mine", gain: 1 });
+assert.equal(Sound.variant(mine_sound, listener, 2), "man_lay_mine_near");
+assert.equal(Sound.variant(mine_sound, { x: 70.5, y: 50.5 }, 2), null, "tank mine-laying has no far variant");
 assert.equal(Sound.event_for(state, { player: 1, time: 9 }, { type: "lay_mine" }), null, "unknown tank position stays silent");
 assert.equal(Sound.event_for(state, { player: 2, time: 9 }, { type: "explosion", code: 12, x: 50, y: 50 }).kind,
 	mine_sound.kind, "tank and builder mine-laying share the sample");
@@ -175,8 +175,8 @@ assert.equal(Sound.event_for(state, { player: 2, time: 11 }, { type: "terrain_ch
 		{ time: 100.25, kind: "shooting", player: 1, x: 51, y: 25.5 },
 		{ time: 120, kind: "shooting", player: null, x: 101, y: 101 },
 	]);
-	assert.deepEqual(Sound.variant(Sound.birth_sounds(births)[0], { x: 51, y: 25.5 }, 1), { name: "shooting_self", gain: 1 });
-	assert.deepEqual(Sound.variant(Sound.birth_sounds(births)[1], { x: 101, y: 101 }, 1), { name: "shooting", gain: 1 }, "a pill's shell is never self");
+	assert.equal(Sound.variant(Sound.birth_sounds(births)[0], { x: 51, y: 25.5 }, 1), "shooting_self");
+	assert.equal(Sound.variant(Sound.birth_sounds(births)[1], { x: 101, y: 101 }, 1), "shooting_near", "a pill's shell is never self");
 }
 // In a built game every gunfire sound is a drawn birth and vice versa, on the
 // births' own clock, and the sound list stays sorted.
@@ -196,10 +196,9 @@ assert.equal(Sound.event_for(state, { player: 2, time: 11 }, { type: "terrain_ch
 
 let kinds = ["shooting", "hit_tank", "shot_tree", "shot_building", "mine_explosion",
 	"big_explosion", "tank_sinking", "farming_tree", "man_building", "man_dying", "bubbles", "man_lay_mine"];
-for (let kind of kinds) for (let viewpoint of [1, 2]) {
-	let sound = Sound.variant({ ...shot, kind }, listener, viewpoint);
-	assert.ok(fs.existsSync(path.join(__dirname, "../viewer/sounds", sound.name + ".wav")), sound.name);
+for (let kind of kinds) for (let viewpoint of [1, 2]) for (let x of [50.5, 70.5]) {
+	let name = Sound.variant({ ...shot, kind }, { x, y: 50.5 }, viewpoint);
+	if (name) assert.ok(fs.existsSync(path.join(__dirname, "../viewer/sounds", name + ".wav")), name);
 }
-assert.deepEqual(fs.readdirSync(path.join(__dirname, "../viewer/sounds")).filter(n => /_(near|far)\.wav$/.test(n)), [], "no near or far files remain");
 assert.ok(fs.readdirSync(path.join(__dirname, "../viewer/sounds")).every(name => !name.startsWith("lobby_")));
 console.log("all sound checks passed");
