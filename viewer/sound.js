@@ -80,9 +80,11 @@ function variant(event, listener, player) {
 	if (!listener) return null;
 	if (player >= 0 && event.player === player && ["shooting", "hit_tank"].includes(event.kind)) return event.kind + "_self";
 	// Circular distance bands around the camera: near <= 12 tiles, audible < 40.
-	let gap = Math.hypot(event.x - listener.x, event.y - listener.y);
-	if (gap >= 40) return null;
-	let near = gap <= 12;
+	// let gap = Math.hypot(event.x - listener.x, event.y - listener.y);
+	// if (gap >= 40) return null;
+	// let near = gap <= 12;
+	// However, maybe it sounds better to just use the near version all the time....
+	let near = true;
 	if (event.kind === "bubbles") return near ? "bubbles" : null;
 	if (event.kind === "man_lay_mine") return near ? "man_lay_mine_near" : null;
 	return event.kind + (near ? "_near" : "_far");
