@@ -68,59 +68,30 @@ assert.ok(audios.length <= 5, "simultaneous copies of each sound are bounded");
 player.stop();
 assert.ok(audios.every(a => a.paused));
 
-// Pan follows horizontal camera-relative distance, including self sounds.
-assert.equal(Sound.stereo_pan(shot, listener), 0);
-assert.equal(Sound.stereo_pan({ ...shot, y: 80 }, listener), 0);
-assert.equal(Sound.stereo_pan({ ...shot, x: 43 }, listener, 1), -0.5);
-assert.equal(Sound.stereo_pan({ ...shot, x: 58 }, listener, 1), 0.5);
-assert.equal(Sound.stereo_pan({ ...shot, x: 10 }, listener, 1), -1);
-assert.equal(Sound.stereo_pan({ ...shot, x: 90 }, listener, 1), 1);
-assert.equal(Sound.stereo_pan({ ...shot, x: 43 }, listener, 0.5), -0.25);
-assert.equal(Sound.stereo_pan({ ...shot, x: 10 }, listener), 0, "default centres left sounds");
-assert.equal(Sound.stereo_pan({ ...shot, x: 90 }, listener), 0, "default centres right sounds");
+// Each trigger gets its own bounded pitch variation, pooled voices included.
 {
-	let voices = [], panners = [], routes = [], context_count = 0;
-	let ctx = {
-		state: "suspended", destination: {},
-		resume() { this.state = "running"; return Promise.resolve(); },
-		createMediaElementSource(audio) {
-			return { connect(node) { routes.push([audio, node]); } };
-		},
-		createStereoPanner() {
-			let panner = { pan: { value: 0 }, connect(node) { assert.equal(node, ctx.destination); } };
-			panners.push(panner);
-			return panner;
-		},
-	};
+	let voices = [];
 	let pitches = [0, 1, 0.5];
-	let stereo = Sound.create_player(() => {
+	let pitched = Sound.create_player(() => {
 		let audio = { paused: true, currentTime: 0,
 			play() { this.paused = false; return Promise.resolve(); },
 			pause() { this.paused = true; },
 		};
 		voices.push(audio);
 		return audio;
-	}, () => { context_count++; return ctx; }, () => pitches.shift());
+	}, () => pitches.shift());
 	let pair = [{ ...shot, x: 40.5 }, { ...shot, x: 60.5 }];
-	stereo.advance(pair, 0, 10, 1, -1, () => listener);
-	assert.equal(voices.length, 0, "suspended audio drops events instead of queueing them");
-	stereo.unlock();
-	stereo.advance(pair, 10, 11, 1, -1, () => listener);
-	assert.equal(voices.length, 0, "unlock does not replay missed sounds");
-	stereo.advance(pair, 0, 10, 1, -1, () => listener);
-	assert.deepEqual(panners.map(p => p.pan.value), [0, 0], "zero stereo strength centres overlapping sounds");
-	assert.ok(voices.every(a => a.volume === 0.5), "stereo keeps half volume");
+	pitched.advance(pair, 0, 10, 1, -1, () => listener);
+	assert.equal(voices.length, 2);
+	assert.ok(voices.every(a => a.volume === 0.5), "half volume");
 	assert.deepEqual(voices.map(a => a.playbackRate), [0.97, 1.03], "each sound gets its own bounded pitch variation");
 	assert.ok(voices.every(a => a.preservesPitch === false), "rate variation changes pitch");
-	assert.equal(routes.length, 2);
-	stereo.stop();
+	pitched.stop();
 	assert.ok(voices.every(a => a.paused));
-	stereo.advance([{ ...shot, x: 65.5 }], 0, 10, 1, -1, () => listener);
-	assert.equal(panners.length, 2, "pooled audio reuses its existing route");
-	assert.equal(panners[0].pan.value, 0, "a reused voice stays centred at zero strength");
+	pitched.advance([{ ...shot, x: 65.5 }], 0, 10, 1, -1, () => listener);
+	assert.equal(voices.length, 2, "a stopped voice is reused");
 	assert.equal(voices[0].playbackRate, 1, "a reused voice gets a fresh pitch");
-	assert.equal(context_count, 1, "one shared context");
-	stereo.set_enabled(false);
+	pitched.set_enabled(false);
 	assert.ok(voices.every(a => a.paused));
 }
 

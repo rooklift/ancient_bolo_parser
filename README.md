@@ -51,10 +51,8 @@ within a 5-tile radius gets self gunfire and hit sounds; if no tank is close
 enough, no self sounds are used. Nearby events use near sounds (within a 15-tile
 radius), and events less than 40 tiles away use far sounds. These circular distances
 use map tiles, independent of zoom. Locking the camera to a player makes audio
-follow that player; the player selector alone only changes friendly colours. The
-stereo strength is controlled by `STEREO_STRENGTH` in `viewer/sound.js`: currently
-0 (centred), with 1 giving full left/right separation at 15 tiles and fractions
-giving gentler panning. Sounds play at 50% volume, with a random ±3%
+follow that player; the player selector alone only changes friendly colours.
+Sounds are mono, as in the game. They play at 50% volume, with a random ±3%
 pitch/rate variation on each playback to soften repetition. The
 **Speaker** button toggles audio. Playback above 100%, seeking, and
 frame stepping are silent. Video exports remain silent. Browsers may require

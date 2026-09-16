@@ -53,7 +53,6 @@ function event_for(state, rec, sub) {
 }
 
 const SELF_RADIUS = 5; /* map tiles from the camera centre, independent of zoom */
-const STEREO_STRENGTH = 0; /* 0 = centred, 1 = full stereo; fractions soften panning */
 
 function nearest_player(camera, positions) {
 	let player = -1, closest = SELF_RADIUS;
@@ -94,82 +93,49 @@ function between(events, from, to) {
 	return events.slice(lo, end);
 }
 
-function stereo_pan(event, listener, strength = STEREO_STRENGTH) {
-	// Full separation at 15 tiles left/right; directly above/below is centred.
-	if (strength === 0) return 0;
-	return strength * Math.max(-1, Math.min(1, (event.x - listener.x) / 15));
-}
-
-function create_player(make_audio = url => new Audio(url), make_context = () => {
-	let Context = globalThis.AudioContext || globalThis.webkitAudioContext;
-	return Context ? new Context() : null;
-}, random = Math.random) {
+function create_player(make_audio = url => new Audio(url), random = Math.random) {
 	let pools = new Map();
 	let enabled = true;
-	let context;
-	function get_context() {
-		if (context === undefined) context = make_context();
-		return context;
-	}
-	function unlock() {
-		let ctx = get_context();
-		if (ctx && ctx.state === "suspended") ctx.resume().catch(() => {});
-	}
 	function stop() {
-		for (let pool of pools.values()) for (let { audio } of pool) {
+		for (let pool of pools.values()) for (let audio of pool) {
 			audio.pause();
 			audio.currentTime = 0;
 		}
 	}
-	function play(name, pan) {
-		let ctx = get_context();
-		// Drop sounds while autoplay is blocked, rather than queueing them
-		// to burst out when a later click unlocks the audio context.
-		if (ctx && ctx.state !== "running") return;
+	function play(name) {
 		let pool = pools.get(name);
 		if (!pool) { pool = []; pools.set(name, pool); }
-		let voice = pool.find(v => v.audio.paused || v.audio.ended);
-		if (!voice && pool.length < 4) {
-			let audio = make_audio("sounds/" + name + ".wav");
+		let audio = pool.find(a => a.paused || a.ended);
+		if (!audio && pool.length < 4) {
+			audio = make_audio("sounds/" + name + ".wav");
 			audio.volume = 0.5;
-			let source = null, panner = null;
-			if (ctx) {
-				source = ctx.createMediaElementSource(audio);
-				panner = ctx.createStereoPanner();
-				source.connect(panner);
-				panner.connect(ctx.destination);
-			}
-			voice = { audio, source, panner };
-			pool.push(voice);
+			pool.push(audio);
 		}
-		if (!voice) return;
-		let { audio, panner } = voice;
-		if (panner) panner.pan.value = pan;
+		if (!audio) return;
 		// Vary each trigger, including pooled voices. Disable pitch correction
 		// so the small rate change changes pitch as well as duration.
 		audio.preservesPitch = false;
 		audio.playbackRate = 0.97 + random() * 0.06;
 		audio.currentTime = 0;
-		// Browsers may refuse autoplay until the first user interaction.
+		// Browsers may refuse autoplay until the first user interaction; a
+		// refused sound is simply dropped rather than queued.
 		let pending = audio.play();
 		if (pending) pending.catch(() => {});
 	}
 	return {
 		stop,
-		unlock,
 		set_enabled(value) { enabled = value; if (!value) stop(); },
 		advance(events, from, to, speed, player, listener_at) {
 			if (!enabled || speed > 1 || speed <= 0 || to <= from) { stop(); return; }
 			for (let event of between(events, from, to)) {
-				let listener = listener_at(event.time);
-				let name = variant(event, listener, player);
-				if (name) play(name, stereo_pan(event, listener));
+				let name = variant(event, listener_at(event.time), player);
+				if (name) play(name);
 			}
 		},
 	};
 }
 
-let BoloSound = { SELF_RADIUS, nearest_player, event_for, variant, stereo_pan, between, create_player };
+let BoloSound = { SELF_RADIUS, nearest_player, event_for, variant, between, create_player };
 if (typeof module !== "undefined" && module.exports) module.exports = BoloSound;
 else window.BoloSound = BoloSound;
 })();

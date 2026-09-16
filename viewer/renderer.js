@@ -146,10 +146,6 @@ let clock = 0;           /* current tick */
 let playing = false;
 let speed = 1;
 let sound_player = BoloSound.create_player();
-// Web Audio must be resumed directly from a user gesture, including when
-// a replay was opened automatically and was already playing silently.
-window.addEventListener("pointerdown", () => sound_player.unlock(), { capture: true });
-window.addEventListener("keydown", () => sound_player.unlock(), { capture: true });
 let sound_enabled = true;
 let viewpoint = -1; /* player whose side draws as friendly; -1 = first player */
 let player_locked = false;
