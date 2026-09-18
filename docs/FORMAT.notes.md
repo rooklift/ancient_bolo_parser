@@ -15,6 +15,7 @@ Corpus figures are from the 443-log set unless an entry says 446, in which case 
 - [`[E:ext-bit]`](#eext-bit-the-lgm-parachute-position-extension) — the LGM / parachute position extension
 - [`[E:empty-chat]`](#eempty-chat-a-zero-length-chat-message-is-followed-by-junk) — a zero-length chat message is followed by junk
 - [`[E:chat-cap]`](#echat-cap-a-chat-message-is-capped-by-the-room-left-in-its-record) — a chat message is capped by the room left in its record
+- [`[E:chat-address]`](#echat-address-what-the-recipient-mask-says-about-who-sent-it-and-how) — what the recipient mask says about who sent it, and how
 
 **The ring and the network**
 
@@ -165,6 +166,20 @@ The logs agree. Of 44,374 chat messages in both collections (1,030 logs) none is
 Bolo splits rather than drops. Each of the eight is followed 3 to 29 ticks later by another message from the same sender that picks up where it was cut, usually in the middle of a word; one 272-character line spans three records as 119 + 119 + 34. None of the eight messages short of a cap has a follow-up within a second. The continuation is an ordinary `FA` with nothing to mark it as one, so a reader that wants the message whole has to join them itself: same sender, the earlier part ending on its record's last byte.
 
 Not seen: a message at a cap behind the 3-byte position extension [E:ext-bit], which by the same arithmetic would stop at 116, or 111 with a tank position as well.
+
+### [E:chat-address] — what the recipient mask says about who sent it, and how
+
+The chat dialog offers four targets, seen by the owner in the emulator: everyone, allies, nearby tanks, and any single player. Everyone is `FFFF`. The other three all go out as a bitmask with nothing to say which built it, so `tools/measure-chat-recipients.cjs` reads the mask's shape against the viewer's game model and the tanks' positions. Over both collections (1,030 logs, 44,374 messages, 14,859 of them non-broadcast; the holder's run of the tool at `c7f63a5` is archived as `docs/corpus_runs/c7f63a5-chat-recipients-corpus.txt`, and the reading below was made from its rows) the masks fall into four shapes.
+
+**The sender's own bit is the first split.** 8,515 non-broadcast masks carry it and 6,344 do not, and the two populations have nothing in common. Every one of the 6,344 is in fewer than ten logs, and all but one carry protocol text rather than speech: `/mytype aIndy 31`, `Received: doGetBaseTargetInfo`, `/pt 13 337`, `/gbt 11 122`, `/BASE 10 139 114 F 5 5 5` — brains (AI players) talking to each other. 3,437 of them are the sender's alliance set with the sender left out, and 2,907 name one peer alone. The dialog never omits the sender: of the 8,515 masks with the bit, none is a brain's. So a mask without the sender's bit is a brain's message, which is the first thing in a log to mark a brain at all (GAMEPLAY.md had "nothing in the log marks a brain"), and a viewer can tell the two apart from the address alone.
+
+**Allies.** 8,387 masks with the bit equal the sender's alliance set as the model holds it, before or after the record. 80 more equal it once players unheard from for 30 s are dropped from the set, 24 of those being the sender's bit alone with every ally gone quiet: the option builds from the ring as it stands, and the model's `present` outlives a player the ring has dropped ([E:owner-signals]). The tool now builds the set that way.
+
+**One player.** 42 masks are the sender plus one other, not the alliance set, in some fifteen logs: private words to an enemy ("[private] check yer email", "pvt: hhmm...", "damon: this was absurd", "ally me"), the privacy marked by hand, since Bolo marks nothing. The target sits anywhere from 1.5 to 60 squares off and is the nearest tank in 10 of the 42.
+
+**Nearby.** Five masks are the sender's bit alone while an ally or an enemy is still heard from, which no other option produces, and one of them reads "fuck all nearby tanks!" with every tank 40 squares off. The nearest excluded tanks in the five are 8.0, 15.8, 19.1, 22.2 and 40 squares away, so the radius is under 8 squares. Five of the one-player masks reach a tank 1.5 to 3.7 squares away with the next tank beyond 5.1 ("I run. u fuel", "i go s", "oops", "ally me" twice), which is what a nearby message with one tank in range looks like and also what a single-player message to a neighbour looks like; the log cannot separate them. If they are nearby messages the radius is between 3.7 and 5.1 squares, measured centre to centre here, and whether Bolo measures a circle or a box the rows to hand cannot say (the tool now prints per-axis distances for the next run). One mask of two others that is not the alliance set is a mixed cut and reads as the model's alliance picture being off. So the nearby option was used, at most, about ten times in 1,030 logs, and the owner's guess that it saw little use stands.
+
+The fixtures (24 logs, 236 non-broadcast messages) hold 235 alliance messages and one single-player message, and no brain.
 
 ## The ring and the network
 

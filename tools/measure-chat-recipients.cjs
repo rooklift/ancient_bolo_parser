@@ -4,39 +4,36 @@
  * Bolo's chat dialog offers four targets the owner has seen in the
  * emulator: everyone, allies, nearby tanks, and any single player. The
  * log carries only the `FA` recipient bitmask, `FFFF` for everyone, so
- * the other three look alike on the wire and have to be told apart by
- * the shape of the set. An alliance set is persistent: the same sender
- * uses the same address for message after message, and it includes
- * players wherever they are. A nearby set is a distance cut computed at
- * send time: every recipient is closer to the sender than every
- * non-recipient, and the address changes from one message to the next as
- * tanks move.
+ * the other three have to be told apart by the shape of the set. The
+ * corpus (`docs/corpus_runs/`, chat-recipients) settled the shapes:
  *
- * For every non-broadcast message this tool runs the viewer's game model
- * alongside and compares the address with the sender's alliance set as
- * the model holds it (the sender's own alliance word, the players it
- * marks allied plus the sender, restricted to those present) -- the set
- * the "allies" option would build. An address equal to that set, in the
- * state before or after the record, is an alliance message. Anything
- * else is OTHER: a message to one player, a nearby message, or the
- * model's alliance picture being wrong (a netsplit, an accept not yet
- * round the ring). OTHER is split by how many players besides the sender
- * the address names: one (a single-player message, or a nearby message
- * with one tank in range -- the log cannot say which) or several. For
- * every message it also takes the sender's last tank position and every
- * other live player's, ranks them by distance, and asks whether the
- * recipients are exactly the nearest k, a distance cut. A nearby message
- * is an OTHER address that is a cut; and if the option uses one fixed
- * radius, the farthest recipient of every such message lies below the
- * nearest excluded player of every other, so the tool brackets the
- * radius from both sides, on the multi-recipient ones only, and says
- * whether a single one fits. It also counts how many times each sender
- * reused each address, and whether the sender's own bit is in the set.
+ *   - every message the dialog sends carries the SENDER'S OWN BIT. An
+ *     address without it is not from the dialog: those are brains (AI
+ *     players), which address their allies and single peers by explicit
+ *     mask, thousands of protocol messages ("/mytype aIndy 31",
+ *     "Received: doGetBaseTargetInfo") in a handful of logs;
+ *   - "allies" is the sender plus every ally still heard from: a player
+ *     the ring has dropped is left out, so the set is compared with the
+ *     model's alliance word restricted to players heard inside STALE;
+ *   - a single-player message is the sender plus the one target, ally or
+ *     not, wherever the target is;
+ *   - "nearby" is the sender plus every tank inside some radius, and with
+ *     nobody in range it is the sender's bit ALONE, which no other option
+ *     produces. The self-only messages bound the radius from above (their
+ *     nearest excluded tank), and a message to one close tank with the
+ *     next tank just outside bounds it from both sides -- but a message
+ *     to one tank is also what a single-player message looks like, so
+ *     only the self-only rows are unambiguous.
+ *
+ * For every non-broadcast message the tool takes the sender's last tank
+ * position and every other live player's, ranks them by distance (both
+ * Euclidean and per-axis, in case the radius is a box), classes the
+ * address, and prints per class what bounds the nearby radius.
  *
  * Usage:
  *   node tools/measure-chat-recipients.cjs [corpus-dir|log ...]   (default: fixtures/)
- *   --samples   list every non-broadcast message with its distance ranking
- *   --other     list only the OTHER messages
+ *   --samples   list every non-broadcast message with its class and ranking
+ *   --other     list every message that is not an alliance or brain message
  */
 "use strict";
 
@@ -46,7 +43,7 @@ const BoloLog = require(path.join(__dirname, "..", "viewer", "logparse.js"));
 const BoloGame = require(path.join(__dirname, "..", "viewer", "game.js"));
 const {replay_label} = require("./corpus.cjs");
 
-const STALE = 50 * 30;             // a player unheard of for 30 s is not ranked
+const STALE = 50 * 30;             // a player unheard of for 30 s is neither ranked nor an ally the dialog would count
 const FIXTURES = path.join(__dirname, "..", "fixtures") + path.sep;
 
 let args = process.argv.slice(2);
@@ -81,30 +78,32 @@ function* walk(target) {
 	}
 }
 
-let logs = 0, total = 0, non_broadcast = 0, with_self = 0, ranked = 0;
-let cut = 0, cut_one_off = 0, one_off = 0;
-let farthest_recipient = 0, nearest_excluded = Infinity;
-let alliance_msgs = 0, other_msgs = 0, other_self = 0, other_ranked = 0, other_cut = 0, other_one_off = 0;
-let other_cut_far = [], other_cut_near = [];   // per multi-recipient OTHER cut message: farthest recipient, nearest excluded
-let other_mixed = 0, other_single = 0, other_single_cut = 0, other_multi_cut = 0;
-
 function popcount(v) {
 	let n = 0;
 	for (; v; v &= v - 1) n++;
 	return n;
 }
-let address_uses = [];               // {log, sender, address, uses}
-let rows = [];
 
-/* The sender's alliance set as the model holds it: the sender plus every
- * present player its own alliance word marks allied (a zero bit). */
-function alliance_set(state, pl) {
-	let set = 0;
+/* The set the "allies" option would build: the sender plus every player
+ * its own alliance word marks allied (a zero bit) and heard from inside
+ * STALE. */
+function alliance_set(state, pl, last_seen, now) {
+	let set = 1 << pl;
 	for (let q = 0; q < 16; q++) {
-		if (q === pl || (state.present[q] && !(state.alliances[pl] & (1 << q)))) set |= 1 << q;
+		if (q !== pl && state.present[q] && now - last_seen[q] <= STALE && !(state.alliances[pl] & (1 << q))) set |= 1 << q;
 	}
 	return set;
 }
+
+let logs = 0, total = 0, non_broadcast = 0;
+let classes = {brain: 0, allies: 0, nearby_empty: 0, single: 0, multi: 0};
+let brain_logs = new Map();          // label -> count of brain-addressed messages
+let brain_shaped = 0;                // brain-addressed messages whose text is protocol-shaped
+let single_ally = 0, single_cut = 0, single_close = [];   // single: to an ally; the target nearest; {target distance, next excluded}
+let multi_cut = 0, multi_mixed = 0;
+let empty_bounds = [];               // nearby_empty: nearest excluded tank, {euclid, chebyshev}
+let multi_far = [], multi_near = [];
+let rows = [];
 
 function scan(file) {
 	let recs;
@@ -119,91 +118,85 @@ function scan(file) {
 	let pos = Array(16).fill(null);
 	let present = Array(16).fill(false);
 	let last_seen = Array(16).fill(-Infinity);
-	let uses = new Map();
-	let messages = [];
 	let node_joins = BoloGame.classify_node_joins(recs);
 	let state = BoloGame.initial_state(BoloGame.extract_initial_map(recs, node_joins));
 	for (let rec of recs) {
 		let pl = rec.player;
 		present[pl] = true;
 		last_seen[pl] = rec.time;
-		let allies_before = alliance_set(state, pl);
+		let allies_before = alliance_set(state, pl, last_seen, rec.time);
 		BoloGame.apply_record(state, rec, null, null, null, node_joins);
-		let allies_after = alliance_set(state, pl);
+		let allies_after = alliance_set(state, pl, last_seen, rec.time);
 		for (let sub of rec.subpackets) {
 			if (sub.type === "tank_position") {
 				pos[pl] = {x: sub.x * 16 + sub.pixelX + 8, y: sub.y * 16 + sub.pixelY + 8};
-			} else if (sub.type === "quit") {
+				continue;
+			}
+			if (sub.type === "quit") {
 				present[pl] = false;
 				pos[pl] = null;
-			} else if (sub.type === "message") {
-				total++;
-				if (sub.address === 0xffff) continue;
-				non_broadcast++;
-				let key = `${pl}:${sub.address}`;
-				uses.set(key, (uses.get(key) || 0) + 1);
-				if (sub.address & (1 << pl)) with_self++;
-				let others = [];
-				if (pos[pl]) {
-					for (let q = 0; q < 16; q++) {
-						if (q === pl || !present[q] || !pos[q] || rec.time - last_seen[q] > STALE) continue;
-						let d = Math.hypot(pos[q].x - pos[pl].x, pos[q].y - pos[pl].y) / 16;
-						others.push({q, d, r: (sub.address & (1 << q)) !== 0});
-					}
-				}
-				others.sort((a, b) => a.d - b.d);
-				let is_alliance = sub.address === allies_before || sub.address === allies_after;
-				let named = popcount(sub.address & ~(1 << pl));
-				messages.push({time: rec.time, pl, address: sub.address, key, others, text: sub.text, is_alliance, allies: allies_after, named});
+				continue;
 			}
-		}
-	}
-	for (let m of messages) {
-		let n = uses.get(m.key);
-		if (n === 1) one_off++;
-		let recips = m.others.filter(o => o.r), excluded = m.others.filter(o => !o.r);
-		let verdict = "-";
-		if (m.is_alliance) alliance_msgs++;
-		else {
-			other_msgs++;
-			if (m.address & (1 << m.pl)) other_self++;
-			if (n === 1) other_one_off++;
-			if (m.named === 1) other_single++;
-		}
-		if (recips.length && excluded.length) {
-			ranked++;
-			if (!m.is_alliance) other_ranked++;
-			let far = recips[recips.length - 1].d, near = excluded[0].d;
-			farthest_recipient = Math.max(farthest_recipient, far);
-			nearest_excluded = Math.min(nearest_excluded, near);
-			if (far < near) {
-				cut++;
-				if (n === 1) cut_one_off++;
-				if (!m.is_alliance) {
-					other_cut++;
-					if (m.named === 1) {
-						other_single_cut++;
-					} else {
-						other_multi_cut++;
-						other_cut_far.push(far);
-						other_cut_near.push(near);
+			if (sub.type !== "message") continue;
+			total++;
+			if (sub.address === 0xffff) continue;
+			non_broadcast++;
+			let address = sub.address;
+			let others = [];
+			if (pos[pl]) {
+				for (let q = 0; q < 16; q++) {
+					if (q === pl || !present[q] || !pos[q] || rec.time - last_seen[q] > STALE) continue;
+					let dx = Math.abs(pos[q].x - pos[pl].x) / 16, dy = Math.abs(pos[q].y - pos[pl].y) / 16;
+					others.push({q, d: Math.hypot(dx, dy), c: Math.max(dx, dy), r: (address & (1 << q)) !== 0});
+				}
+			}
+			others.sort((a, b) => a.d - b.d);
+			let recips = others.filter(o => o.r), excluded = others.filter(o => !o.r);
+			let named = popcount(address & ~(1 << pl));
+			let cls, note = "";
+			if (!(address & (1 << pl))) {
+				cls = "brain";
+				brain_logs.set(label, (brain_logs.get(label) || 0) + 1);
+				if (/^\s*(\/|Received:)/.test(sub.text)) brain_shaped++;
+			} else if (address === allies_before || address === allies_after) {
+				cls = "allies";
+			} else if (named === 0) {
+				cls = "nearby_empty";
+				if (excluded.length) {
+					empty_bounds.push({d: excluded[0].d, c: Math.min(...excluded.map(o => o.c))});
+					note = `nearest excluded ${excluded[0].d.toFixed(1)} (box ${Math.min(...excluded.map(o => o.c)).toFixed(1)})`;
+				}
+			} else if (named === 1) {
+				cls = "single";
+				if (allies_after & address & ~(1 << pl)) single_ally++;
+				if (recips.length && excluded.length) {
+					if (recips[0].d < excluded[0].d) {
+						single_cut++;
+						single_close.push({d: recips[0].d, next: excluded[0].d, c: recips[0].c, next_c: Math.min(...excluded.map(o => o.c))});
+						note = `target ${recips[0].d.toFixed(1)}, next ${excluded[0].d.toFixed(1)}`;
 					}
 				}
-				verdict = "cut";
 			} else {
-				if (!m.is_alliance) other_mixed++;
-				verdict = "mixed";
+				cls = "multi";
+				if (recips.length && excluded.length) {
+					let far = recips[recips.length - 1].d, near = excluded[0].d;
+					if (far < near) {
+						multi_cut++;
+						multi_far.push(far);
+						multi_near.push(near);
+						note = `cut: farthest ${far.toFixed(1)}, nearest excluded ${near.toFixed(1)}`;
+					} else {
+						multi_mixed++;
+						note = "mixed";
+					}
+				}
+			}
+			classes[cls]++;
+			if (samples || (other_only && cls !== "allies" && cls !== "brain")) {
+				rows.push(`${label} t${rec.time} p${pl} ${address.toString(16).padStart(4, "0")} ${cls.padEnd(12)} (allies ${allies_after.toString(16).padStart(4, "0")}) ${note.padEnd(34)} | ` +
+					others.map(o => `${o.q}${o.r ? "*" : ""}@${o.d.toFixed(1)}`).join(" ") + ` | ${JSON.stringify(sub.text.slice(0, 40))}`);
 			}
 		}
-		if (samples || (other_only && !m.is_alliance)) {
-			let kind = m.is_alliance ? "allies " : m.named === 1 ? "OTHER/1" : `OTHER/${m.named}`;
-			rows.push(`${label} t${m.time} p${m.pl} ${m.address.toString(16).padStart(4, "0")} ${kind} (allies ${m.allies.toString(16).padStart(4, "0")}) uses ${n} ${verdict.padEnd(5)} | ` +
-				m.others.map(o => `${o.q}${o.r ? "*" : ""}@${o.d.toFixed(1)}`).join(" ") + ` | ${JSON.stringify(m.text.slice(0, 40))}`);
-		}
-	}
-	for (let [key, n] of uses) {
-		let [sender, address] = key.split(":").map(Number);
-		address_uses.push({label, sender, address, uses: n});
 	}
 }
 
@@ -211,39 +204,35 @@ for (let target of targets) {
 	for (let file of walk(target)) scan(file);
 }
 
-console.log(`logs ${logs}, messages ${total}, non-broadcast ${non_broadcast}, of which include the sender's own bit ${with_self}`);
-console.log(`distinct sender:address pairs ${address_uses.length}; messages on an address the sender used only once ${one_off}`);
-console.log(`messages with a recipient and a non-recipient both ranked ${ranked}: recipients are exactly the nearest k in ${cut} (${ranked ? (100 * cut / ranked).toFixed(1) : "-"}%), ${cut_one_off} of those on a one-off address`);
-if (ranked) {
-	console.log(`farthest recipient ${farthest_recipient.toFixed(1)} squares; nearest excluded player ${nearest_excluded.toFixed(1)} squares`);
+console.log(`logs ${logs}, messages ${total}, non-broadcast ${non_broadcast}`);
+console.log(`\n=== by class ===`);
+console.log(`brain-addressed (no sender bit)      ${classes.brain}  in ${brain_logs.size} logs; text protocol-shaped in ${brain_shaped}`);
+console.log(`allies (sender + allies heard from)  ${classes.allies}`);
+console.log(`nearby, nobody in range (self only)  ${classes.nearby_empty}`);
+console.log(`sender + one player                  ${classes.single}  to an ally ${single_ally}; target the nearest tank ${single_cut}`);
+console.log(`sender + several, not the allies     ${classes.multi}  a distance cut ${multi_cut}, mixed ${multi_mixed}`);
+if (brain_logs.size) {
+	console.log(`\n=== brain-addressed messages by log ===`);
+	for (let [label, n] of [...brain_logs].sort((a, b) => b[1] - a[1])) console.log(`${label.padEnd(16)} ${n}`);
 }
-console.log(`\n=== against the model's alliance set for the sender ===`);
-console.log(`alliance messages (address is the sender's alliance set, before or after the record) ${alliance_msgs}`);
-console.log(`OTHER messages ${other_msgs}: include the sender's own bit ${other_self}, on a one-off address ${other_one_off}, ranked ${other_ranked}, of which a distance cut ${other_cut} and mixed ${other_mixed}`);
-console.log(`OTHER naming one player besides the sender (a single-player message, or nearby with one tank in range) ${other_single}, of which a cut ${other_single_cut}; naming several ${other_msgs - other_single}, of which a cut ${other_multi_cut}`);
-if (other_cut_far.length) {
-	let far = other_cut_far.slice().sort((a, b) => a - b), near = other_cut_near.slice().sort((a, b) => a - b);
-	let max_far = far[far.length - 1], min_near = near[0];
-	console.log(`multi-recipient OTHER cut messages: farthest recipient runs ${far[0].toFixed(1)} to ${max_far.toFixed(1)} squares, nearest excluded ${min_near.toFixed(1)} to ${near[near.length - 1].toFixed(1)}`);
-	if (max_far < min_near) {
-		console.log(`a single radius fits every one of them: between ${max_far.toFixed(1)} and ${min_near.toFixed(1)} squares`);
-	} else {
-		let fits = 0;
-		for (let r = 1; r <= 64; r++) {
-			let ok = 0;
-			for (let i = 0; i < far.length; i++) if (other_cut_far[i] < r && r <= other_cut_near[i]) ok++;
-			if (ok > fits) fits = ok;
-		}
-		console.log(`no single radius fits them all; the best integer radius fits ${fits} of ${other_multi_cut}`);
-	}
+console.log(`\n=== the nearby radius ===`);
+if (empty_bounds.length) {
+	let d = empty_bounds.map(b => b.d).sort((a, b) => a - b), c = empty_bounds.map(b => b.c).sort((a, b) => a - b);
+	console.log(`self-only messages bound it from above: nearest excluded tank ${d.map(v => v.toFixed(1)).join(" ")} squares (per-axis box ${c.map(v => v.toFixed(1)).join(" ")}); so the radius is under ${d[0].toFixed(1)} (box under ${c[0].toFixed(1)})`);
+} else {
+	console.log(`no self-only message with a ranked tank, so no upper bound`);
 }
-if (!other_only) console.log(`\n=== addresses per sender (set bits), by log ===`);
-for (let a of other_only ? [] : address_uses) {
-	let members = [];
-	for (let q = 0; q < 16; q++) if (a.address & (1 << q)) members.push(q);
-	console.log(`${a.label.padEnd(14)} p${a.sender} -> {${members.join(",")}}${members.includes(a.sender) ? "" : " (sender not in set)"} x${a.uses}`);
+if (single_close.length) {
+	single_close.sort((a, b) => a.d - b.d);
+	console.log(`sender + the nearest tank, which a nearby message with one in range or a single-player message both produce; target distance then next excluded, ascending:`);
+	console.log(`  ${single_close.map(s => `${s.d.toFixed(1)}/${s.next.toFixed(1)}`).join("  ")}`);
+	console.log(`  per-axis box: ${single_close.map(s => `${s.c.toFixed(1)}/${s.next_c.toFixed(1)}`).join("  ")}`);
+}
+if (multi_far.length) {
+	let far = multi_far.slice().sort((a, b) => a - b), near = multi_near.slice().sort((a, b) => a - b);
+	console.log(`sender + several as a distance cut: farthest recipient ${far[0].toFixed(1)} to ${far[far.length - 1].toFixed(1)}, nearest excluded ${near[0].toFixed(1)} to ${near[near.length - 1].toFixed(1)}`);
 }
 if (samples || other_only) {
-	console.log(`\n=== ${other_only ? "OTHER" : "every non-broadcast"} message: recipients starred, distances in squares, the model's alliance set alongside ===`);
+	console.log(`\n=== ${other_only ? "messages that are neither alliance nor brain" : "every non-broadcast message"}: recipients starred, distances in squares ===`);
 	for (let row of rows) console.log(row);
 }
