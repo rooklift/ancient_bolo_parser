@@ -413,10 +413,21 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
 - **What allies share.** Their pills do not fire at each other and their
   bases refuel each other **(corpus)**. A player can switch their view to the
   area around any friendly pillbox instead of their own tank **(owner)**.
-  Messages can be addressed to allies only **(owner)**; the `FA` recipient
-  bitmask carries the set. The owner knows of no "nearby" recipient option,
-  so any bitmask that is neither everyone nor an alliance is a hand-picked
-  set. Allied shells still do damage **(owner)**.
+  Messages can be addressed to everyone, to allies, or to nearby tanks
+  **(owner, in the emulator)**; the `FA` recipient bitmask carries the
+  set, and the log does not say which option built it. A nearby message
+  would be a distance cut computed at send time, its address changing as
+  tanks move; an alliance message reuses one address all game. None of
+  the fixtures' 236 non-broadcast messages is a nearby one: every address
+  includes the sender's own bit, each sender reuses one or two addresses
+  through the game, recipients sit up to 59 squares away and excluded
+  players as close as one, and the eleven one-off addresses are alliance
+  sets at the moment an alliance changed **(fixtures,
+  `tools/measure-chat-recipients.cjs`,
+  `docs/corpus_runs/` chat-recipients run)**. The nearby option probably
+  saw little use **(owner)**; its radius, and whether its set includes
+  the sender's own bit, are unmeasured. Allied shells still do damage
+  **(owner)**.
 - **Leaving, quitting, disconnecting.** A leaver's planted pills and bases
   stay with the alliance; a quitter's do too; a disconnection is treated the
   same as a quit **(owner, unsure on the last)**. Which member holds them is
@@ -464,3 +475,7 @@ what it left, and what it raised, is here.
    one finished by an angry pill with no gap.
 8. Whether the 13.2-tick reload is Bolo's or the emulator's clock: a
    second recording with a different emulator speed setting would tell.
+9. The "nearby" chat option: its radius, whether the sender's own bit is
+   in the set, and whether any corpus message used it. The fixtures hold
+   none; `tools/measure-chat-recipients.cjs --samples` over the corpus
+   would list any address that is a distance cut used once.
