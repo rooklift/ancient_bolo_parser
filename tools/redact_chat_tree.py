@@ -13,15 +13,10 @@ end is refused and listed, since bytes it cannot read could hide chat.
 
 Messages are located by walking each record's subpackets, never by
 searching for bytes, so map data that spells a message is left alone.
-The replacement for a message is derived from a per-run secret and the
-message's identity (sender, sequence byte, address, text), so two logs
-of one game get the same replacement in their shared records and still
-agree byte for byte; a different run gives different text.
 
 Self-contained: no dependency on the rest of this repository.
 """
 
-import hashlib
 import os
 import secrets
 import sys
@@ -236,29 +231,17 @@ def find_messages(buf):
 # ---------------------------------------------------------------------------
 # Redaction
 
-def replacement(key, identity, length):
-	"""`length` bytes of printable ASCII, 0x20-0x7e, not starting or
-	ending with a space, as a function of the run's key and the
-	message's identity."""
-	player, seq, address, text = identity
-	seed = key + bytes([player, seq, address & 0xff, address >> 8]) + text
-	out = bytearray()
-	counter = 0
-	while len(out) < length:
-		digest = hashlib.sha256(seed + counter.to_bytes(4, "little")).digest()
-		counter += 1
-		for b in digest:
-			# Rejection sampling keeps the 95 characters equally likely.
-			if b < 190:
-				out.append(0x20 + b % 95)
-	out = out[:length]
+def replacement(length):
+	"""`length` random bytes of printable ASCII, 0x20-0x7e, not starting
+	or ending with a space."""
+	out = bytearray(0x20 + secrets.randbelow(95) for _ in range(length))
 	for i in (0, length - 1):
 		if length and out[i] == 0x20:
-			out[i] = 0x21 + (seed[i % len(seed)] + i) % 94
+			out[i] = 0x21 + secrets.randbelow(94)
 	return bytes(out)
 
 
-def redact(buf, key):
+def redact(buf):
 	"""The log with every chat message replaced; the number of messages
 	replaced. The patch is `stored ^ old ^ new`, so the mask cancels
 	and only the text bytes change; the result is re-parsed to prove
@@ -266,21 +249,23 @@ def redact(buf, key):
 	found = find_messages(buf)
 	out = bytearray(buf)
 	patched = set()
+	texts = []
 	for identity, at, length in found:
-		new = replacement(key, identity, length)
+		new = replacement(length)
 		old = identity[3]
 		for k in range(length):
 			out[at + k] ^= old[k] ^ new[k]
 			patched.add(at + k)
+		texts.append(new)
 	# Read back: the same messages at the same places, each now its
 	# replacement, and no byte changed anywhere else.
 	after = find_messages(bytes(out))
 	if len(after) != len(found):
 		raise Unreadable("after patching, the message count changed")
-	for (identity, at, length), (identity2, at2, length2) in zip(found, after):
+	for (identity, at, length), (identity2, at2, length2), new in zip(found, after, texts):
 		if at != at2 or length != length2 or identity2[:3] != identity[:3]:
 			raise Unreadable(f"after patching, the message at {at} moved")
-		if identity2[3] != replacement(key, identity, length):
+		if identity2[3] != new:
 			raise Unreadable(f"after patching, unexpected text at {at}")
 	for k in range(len(buf)):
 		if buf[k] != out[k] and k not in patched:
@@ -304,7 +289,6 @@ def main(argv):
 		print(f"error: already exists: {dst}", file=sys.stderr)
 		return 2
 
-	key = secrets.token_bytes(32)
 	copied = messages = other = 0
 	skipped_links = []
 	refused = []
@@ -334,7 +318,7 @@ def main(argv):
 				other += 1
 				continue
 			try:
-				out, n = redact(buf, key)
+				out, n = redact(buf)
 			except Unreadable as err:
 				refused.append((path, str(err)))
 				continue
