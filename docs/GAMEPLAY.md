@@ -413,17 +413,20 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
 - **What allies share.** Their pills do not fire at each other and their
   bases refuel each other **(corpus)**. A player can switch their view to the
   area around any friendly pillbox instead of their own tank **(owner)**.
-  Messages can be addressed to everyone, to allies, or to nearby tanks
-  **(owner, in the emulator)**; the `FA` recipient bitmask carries the
-  set, and the log does not say which option built it. A nearby message
-  would be a distance cut computed at send time, its address changing as
-  tanks move; an alliance message is the sender's alliance set, reused
-  all game. None of the fixtures' 236 non-broadcast messages is a nearby
-  one: 235 are exactly the sender's alliance set as the viewer's model
-  holds it, and the one other is sent 30 s into a log to a pair the
-  model has not yet seen allied; every address includes the sender's own
-  bit, recipients sit up to 59 squares away and excluded players as close
-  as one **(fixtures, `tools/measure-chat-recipients.cjs`,
+  Messages can be addressed to everyone, to allies, to nearby tanks, or
+  to any single player **(owner, in the emulator)**; the `FA` recipient
+  bitmask carries the set, and the log does not say which option built
+  it. An alliance message is the sender's alliance set, reused all game;
+  a nearby message would be a distance cut computed at send time, its
+  address changing as tanks move; a single-player message names one
+  player, which a nearby message with one tank in range also does. None
+  of the fixtures' 236 non-broadcast messages is a nearby one: 235 are
+  exactly the sender's alliance set as the viewer's model holds it, and
+  the one other names a single player 32 squares off, 30 s into a log,
+  a single-player message or a pair the model has not yet seen allied;
+  every address includes the sender's own bit, recipients sit up to 59
+  squares away and excluded players as close as one **(fixtures,
+  `tools/measure-chat-recipients.cjs`,
   `docs/corpus_runs/5181536-chat-recipients.txt`)**. The nearby option probably
   saw little use **(owner)**; its radius, and whether its set includes
   the sender's own bit, are unmeasured. Allied shells still do damage
@@ -479,4 +482,6 @@ what it left, and what it raised, is here.
    in the set, and whether any corpus message used it. The fixtures hold
    none; `tools/measure-chat-recipients.cjs --other` over the corpus
    lists every message whose address is not the sender's alliance set,
-   and brackets a radius from the ones that are distance cuts.
+   split by whether it names one player (a single-player message, or
+   nearby with one tank in range) or several, and brackets a radius
+   from the multi-recipient ones that are distance cuts.

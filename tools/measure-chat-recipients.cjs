@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /* Who do non-broadcast chat messages go to?
  *
- * Bolo's chat dialog offers three targets the owner has seen in the
- * emulator: everyone, allies, and nearby tanks. The log carries only the
- * `FA` recipient bitmask, `FFFF` for everyone, so an alliance message and
- * a nearby message look alike on the wire and have to be told apart by
+ * Bolo's chat dialog offers four targets the owner has seen in the
+ * emulator: everyone, allies, nearby tanks, and any single player. The
+ * log carries only the `FA` recipient bitmask, `FFFF` for everyone, so
+ * the other three look alike on the wire and have to be told apart by
  * the shape of the set. An alliance set is persistent: the same sender
  * uses the same address for message after message, and it includes
  * players wherever they are. A nearby set is a distance cut computed at
@@ -18,17 +18,20 @@
  * marks allied plus the sender, restricted to those present) -- the set
  * the "allies" option would build. An address equal to that set, in the
  * state before or after the record, is an alliance message. Anything
- * else is OTHER: a nearby message, a hand-picked set, or the model's
- * alliance picture being wrong (a netsplit, an accept not yet round the
- * ring). For every message it also takes the sender's last tank position
- * and every other live player's, ranks them by distance, and asks
- * whether the recipients are exactly the nearest k, a distance cut. A
- * nearby message is an OTHER address that is a cut; and if the option
- * uses one fixed radius, the farthest recipient of every such message
- * lies below the nearest excluded player of every other, so the tool
- * brackets the radius from both sides and says whether a single one
- * fits. It also counts how many times each sender reused each address,
- * and whether the sender's own bit is in the set.
+ * else is OTHER: a message to one player, a nearby message, or the
+ * model's alliance picture being wrong (a netsplit, an accept not yet
+ * round the ring). OTHER is split by how many players besides the sender
+ * the address names: one (a single-player message, or a nearby message
+ * with one tank in range -- the log cannot say which) or several. For
+ * every message it also takes the sender's last tank position and every
+ * other live player's, ranks them by distance, and asks whether the
+ * recipients are exactly the nearest k, a distance cut. A nearby message
+ * is an OTHER address that is a cut; and if the option uses one fixed
+ * radius, the farthest recipient of every such message lies below the
+ * nearest excluded player of every other, so the tool brackets the
+ * radius from both sides, on the multi-recipient ones only, and says
+ * whether a single one fits. It also counts how many times each sender
+ * reused each address, and whether the sender's own bit is in the set.
  *
  * Usage:
  *   node tools/measure-chat-recipients.cjs [corpus-dir|log ...]   (default: fixtures/)
@@ -82,8 +85,14 @@ let logs = 0, total = 0, non_broadcast = 0, with_self = 0, ranked = 0;
 let cut = 0, cut_one_off = 0, one_off = 0;
 let farthest_recipient = 0, nearest_excluded = Infinity;
 let alliance_msgs = 0, other_msgs = 0, other_self = 0, other_ranked = 0, other_cut = 0, other_one_off = 0;
-let other_cut_far = [], other_cut_near = [];   // per OTHER cut message: farthest recipient, nearest excluded
-let other_mixed = 0;
+let other_cut_far = [], other_cut_near = [];   // per multi-recipient OTHER cut message: farthest recipient, nearest excluded
+let other_mixed = 0, other_single = 0, other_single_cut = 0, other_multi_cut = 0;
+
+function popcount(v) {
+	let n = 0;
+	for (; v; v &= v - 1) n++;
+	return n;
+}
 let address_uses = [];               // {log, sender, address, uses}
 let rows = [];
 
@@ -144,7 +153,8 @@ function scan(file) {
 				}
 				others.sort((a, b) => a.d - b.d);
 				let is_alliance = sub.address === allies_before || sub.address === allies_after;
-				messages.push({time: rec.time, pl, address: sub.address, key, others, text: sub.text, is_alliance, allies: allies_after});
+				let named = popcount(sub.address & ~(1 << pl));
+				messages.push({time: rec.time, pl, address: sub.address, key, others, text: sub.text, is_alliance, allies: allies_after, named});
 			}
 		}
 	}
@@ -158,6 +168,7 @@ function scan(file) {
 			other_msgs++;
 			if (m.address & (1 << m.pl)) other_self++;
 			if (n === 1) other_one_off++;
+			if (m.named === 1) other_single++;
 		}
 		if (recips.length && excluded.length) {
 			ranked++;
@@ -170,8 +181,13 @@ function scan(file) {
 				if (n === 1) cut_one_off++;
 				if (!m.is_alliance) {
 					other_cut++;
-					other_cut_far.push(far);
-					other_cut_near.push(near);
+					if (m.named === 1) {
+						other_single_cut++;
+					} else {
+						other_multi_cut++;
+						other_cut_far.push(far);
+						other_cut_near.push(near);
+					}
 				}
 				verdict = "cut";
 			} else {
@@ -180,7 +196,8 @@ function scan(file) {
 			}
 		}
 		if (samples || (other_only && !m.is_alliance)) {
-			rows.push(`${label} t${m.time} p${m.pl} ${m.address.toString(16).padStart(4, "0")} ${m.is_alliance ? "allies" : "OTHER "} (allies ${m.allies.toString(16).padStart(4, "0")}) uses ${n} ${verdict.padEnd(5)} | ` +
+			let kind = m.is_alliance ? "allies " : m.named === 1 ? "OTHER/1" : `OTHER/${m.named}`;
+			rows.push(`${label} t${m.time} p${m.pl} ${m.address.toString(16).padStart(4, "0")} ${kind} (allies ${m.allies.toString(16).padStart(4, "0")}) uses ${n} ${verdict.padEnd(5)} | ` +
 				m.others.map(o => `${o.q}${o.r ? "*" : ""}@${o.d.toFixed(1)}`).join(" ") + ` | ${JSON.stringify(m.text.slice(0, 40))}`);
 		}
 	}
@@ -203,10 +220,11 @@ if (ranked) {
 console.log(`\n=== against the model's alliance set for the sender ===`);
 console.log(`alliance messages (address is the sender's alliance set, before or after the record) ${alliance_msgs}`);
 console.log(`OTHER messages ${other_msgs}: include the sender's own bit ${other_self}, on a one-off address ${other_one_off}, ranked ${other_ranked}, of which a distance cut ${other_cut} and mixed ${other_mixed}`);
-if (other_cut) {
+console.log(`OTHER naming one player besides the sender (a single-player message, or nearby with one tank in range) ${other_single}, of which a cut ${other_single_cut}; naming several ${other_msgs - other_single}, of which a cut ${other_multi_cut}`);
+if (other_cut_far.length) {
 	let far = other_cut_far.slice().sort((a, b) => a - b), near = other_cut_near.slice().sort((a, b) => a - b);
 	let max_far = far[far.length - 1], min_near = near[0];
-	console.log(`OTHER cut messages: farthest recipient runs ${far[0].toFixed(1)} to ${max_far.toFixed(1)} squares, nearest excluded ${min_near.toFixed(1)} to ${near[near.length - 1].toFixed(1)}`);
+	console.log(`multi-recipient OTHER cut messages: farthest recipient runs ${far[0].toFixed(1)} to ${max_far.toFixed(1)} squares, nearest excluded ${min_near.toFixed(1)} to ${near[near.length - 1].toFixed(1)}`);
 	if (max_far < min_near) {
 		console.log(`a single radius fits every one of them: between ${max_far.toFixed(1)} and ${min_near.toFixed(1)} squares`);
 	} else {
@@ -216,7 +234,7 @@ if (other_cut) {
 			for (let i = 0; i < far.length; i++) if (other_cut_far[i] < r && r <= other_cut_near[i]) ok++;
 			if (ok > fits) fits = ok;
 		}
-		console.log(`no single radius fits them all; the best integer radius fits ${fits} of ${other_cut}`);
+		console.log(`no single radius fits them all; the best integer radius fits ${fits} of ${other_multi_cut}`);
 	}
 }
 if (!other_only) console.log(`\n=== addresses per sender (set bits), by log ===`);
