@@ -14,6 +14,7 @@ Corpus figures are from the 443-log set unless an entry says 446, in which case 
 - [`[E:tankpos-5]`](#etankpos-5-the-tank-position-subpacket-is-5-bytes) — the tank position subpacket is 5 bytes
 - [`[E:ext-bit]`](#eext-bit-the-lgm-parachute-position-extension) — the LGM / parachute position extension
 - [`[E:empty-chat]`](#eempty-chat-a-zero-length-chat-message-is-followed-by-junk) — a zero-length chat message is followed by junk
+- [`[E:chat-cap]`](#echat-cap-a-chat-message-is-capped-by-the-room-left-in-its-record) — a chat message is capped by the room left in its record
 
 **The ring and the network**
 
@@ -142,6 +143,16 @@ Every record of both sample logs parses exactly to its length under this rule an
 Of 44,374 chat messages in both collections (1,030 logs), ten have a Pascal length byte of zero, and every one of the ten is followed in its record by bytes that are not subpackets, while no legitimately empty message exists at all. Read as subpackets the leavings are five terrain changes and explosions on deep sea, 79 to 195 squares from the sender's tank (one painted a shot building into open water at (104,32) of `20021024.3`, record 8617), and five three-shell lists at absurd positions. Their first byte is always printable — a letter or a space — and the rest reads as text under no encoding and under no shift of the XOR mask. Each trailer is exactly as long as the one subpacket its first byte would name (3 bytes after a letter, `6x`/`7x`; 8 bytes after a space, `20`), which says the sending machine sized the packet by walking its own buffer with the opcode table: it stepped into the leavings and copied what they claimed. It is the sender's fault, not the recorder's or the ring's: one of the ten is the recorder's own outgoing message (`20020912`, second collection, record 137), and the other nine reached two different recorders at like rates and were logged whole, the junk inside the packet's length. The parser therefore ends the record at a zero-length message, keeps the leavings in `unparsed`, and warns.
 
 The rule is as narrow as it needs to be. Messages are not always last in a record: 995 records carry subpackets after a message, and the 1,290 shell lists among them are real — their distance from the sender's tank has the ordinary shell list's distribution (median 3.0 squares against 3.2, 90th percentile 6.0 against 6.0). Only the ten zero-length messages are followed by junk, and every trailing explosion or terrain change is one of them.
+
+### [E:chat-cap] — a chat message is capped by the room left in its record
+
+The length byte of a record counts itself and stops at 127, so a payload is at most 126 bytes. The record header takes 3 and the `FA` byte, the recipient mask and the Pascal length byte take 4, which leaves 119 for the text of a message in a bare record, and 114 once a 5-byte tank position stands in front of it. A 120-character message, the limit this document used to give, cannot be written in the format at all.
+
+The logs agree. Of 44,374 chat messages in both collections (1,030 logs) none is longer than 119. Six are exactly 119 (one in the first collection, five in the second), all in records with no tank position; two are exactly 114 (one in each), both behind a tank position; and no message has a length from 115 to 118. All eight end on the last byte of a 126-byte payload with no other subpacket in the record, where the eight longest messages short of a cap (100 to 111 characters) end 8 to 19 bytes before it.
+
+Bolo splits rather than drops. Each of the eight is followed 3 to 29 ticks later by another message from the same sender that picks up where it was cut, usually in the middle of a word; one 272-character line spans three records as 119 + 119 + 34. None of the eight messages short of a cap has a follow-up within a second. The continuation is an ordinary `FA` with nothing to mark it as one, so a reader that wants the message whole has to join them itself: same sender, the earlier part ending on its record's last byte.
+
+Not seen: a message at a cap behind the 3-byte position extension [E:ext-bit], which by the same arithmetic would stop at 116, or 111 with a tank position as well.
 
 ## The ring and the network
 
