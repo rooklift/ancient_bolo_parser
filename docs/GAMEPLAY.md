@@ -427,7 +427,7 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   every address includes the sender's own bit, recipients sit up to 59
   squares away and excluded players as close as one **(fixtures,
   `tools/measure-chat-recipients.cjs`,
-  `docs/corpus_runs/5181536-chat-recipients.txt`)**. The nearby option probably
+  `docs/corpus_runs/c7f63a5-chat-recipients.txt`)**. The nearby option probably
   saw little use **(owner)**; its radius, and whether its set includes
   the sender's own bit, are unmeasured. Allied shells still do damage
   **(owner)**.
