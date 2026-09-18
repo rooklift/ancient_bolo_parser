@@ -415,23 +415,12 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   area around any friendly pillbox instead of their own tank **(owner)**.
   Messages can be addressed to everyone, to allies, to nearby tanks, or
   to any single player **(owner, in the emulator)**; the `FA` recipient
-  bitmask carries the set, and the log does not say which option built
-  it, but the shape does **(corpus, [E:chat-address])**. Every option
-  sets the sender's own bit. "Allies" is the sender plus the allies
-  still in the ring, reused all game: 8,467 of the corpus's 8,515
-  player-sent non-broadcast messages. A single-player message is the
-  sender plus the target, ally or enemy, anywhere on the map: 42, the
-  privacy marked by hand ("[private]", "pvt:"), since Bolo marks
-  nothing. "Nearby" is the sender plus every tank inside a radius under
-  8 squares, and with nobody in range the sender's bit alone, which the
-  allies option gives only once every ally has left the ring: five such
-  with an ally or enemy still heard, one reading "fuck all nearby
-  tanks!", and five more to a single tank 1.5–3.7 squares off that could
-  be either option. So the nearby option saw about ten uses in 1,030
-  logs, and its radius, under 8 and perhaps 4–5 squares, is not pinned
-  **(corpus, `tools/measure-chat-recipients.cjs`)**. The fixtures hold
-  235 alliance messages and one single-player message
-  **(`docs/corpus_runs/7253479-chat-recipients.txt`)**. Allied shells still do damage
+  bitmask carries the set and nothing says which option built it, so a
+  viewer should show a non-broadcast message as sent to some players and
+  not guess further. Every option sets the sender's own bit, and the
+  allies option counts only the allies still in the ring **(corpus,
+  [E:chat-address], which also has what the corpus shows of each
+  option)**. Allied shells still do damage
   **(owner)**.
 - **Leaving, quitting, disconnecting.** A leaver's planted pills and bases
   stay with the alliance; a quitter's do too; a disconnection is treated the
@@ -485,10 +474,3 @@ what it left, and what it raised, is here.
    one finished by an angry pill with no gap.
 8. Whether the 13.2-tick reload is Bolo's or the emulator's clock: a
    second recording with a different emulator speed setting would tell.
-9. The "nearby" chat option's radius: under 8 squares, and 4–5 if the
-   five single-tank messages at 1.5–3.7 squares were nearby messages
-   rather than single-player ones, which the log cannot tell. A circle
-   or a box is also open; `tools/measure-chat-recipients.cjs --other`
-   prints per-axis distances beside the Euclidean ones. The emulator
-   would settle both in a minute: two tanks, a nearby message at
-   several separations along an axis and along a diagonal.
