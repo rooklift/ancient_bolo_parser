@@ -52,12 +52,12 @@ Bit 0 is independent; bits 2–3 form a two-bit field:
 | value | meaning |
 |-------|---------|
 | 1     | 1000 ticks elapsed: increment base stocks. **Every** player's tick increments **every** base's shells, mines and armour by 1 (capped at 90), so regeneration scales with player count [E:base-tick] |
-| 2     | unused (towed bases) |
+| 2     | unknown; the 2003 notes call it towed bases, a feature that never shipped. No log has ever set it, and a record that does is refused (see below) |
 | 4     | LGM (man) dead — position subpacket is the replacement man's **parachute** |
 | 8     | LGM out of tank |
 | C     | LGM out of tank, carrying a pillbox |
 
-**If `b & 0xE` is nonzero, a 3-byte position subpacket is present** (after the tank position, if any): `XX YY yx` — the LGM for 8/C, the replacement man's parachute for 4. This resolves the values 5, 9 and D that the 2003 notes left as unknown — they are simply 4/8/C with the tick bit set. Bit 1 (the never-shipped towed-base feature) also carries the extension, but no real log has ever been seen with that bit set, so its payload semantics are unconfirmed [E:ext-bit].
+**If `b & 0xC` is nonzero, a 3-byte position subpacket is present** (after the tank position, if any): `XX YY yx` — the LGM for 8/C, the replacement man's parachute for 4. This resolves the values 5, 9 and D that the 2003 notes left as unknown — they are simply 4/8/C with the tick bit set. **A record with `b & 2` set is refused whole**: the parser reads the header fields, parses no subpackets, keeps the payload in `unparsed` and warns. Nothing is known of the layout that bit implies — whether it adds a block of its own, shares the LGM one, or adds none — and no real log has ever set it, so any layout would be a guess applied silently to every byte after it [E:ext-bit].
 
 ### Tank status bits `T`
 
