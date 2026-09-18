@@ -413,10 +413,15 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
 - **What allies share.** Their pills do not fire at each other and their
   bases refuel each other **(corpus)**. A player can switch their view to the
   area around any friendly pillbox instead of their own tank **(owner)**.
-  Messages can be addressed to allies only **(owner)**; the `FA` recipient
-  bitmask carries the set. The owner knows of no "nearby" recipient option,
-  so any bitmask that is neither everyone nor an alliance is a hand-picked
-  set. Allied shells still do damage **(owner)**.
+  Messages can be addressed to everyone, to allies, to nearby tanks, or
+  to any single player **(owner, in the emulator)**; the `FA` recipient
+  bitmask carries the set and nothing says which option built it, so a
+  viewer should show a non-broadcast message as sent to some players and
+  not guess further. Every option sets the sender's own bit, and the
+  allies option counts only the allies still in the ring **(corpus,
+  [E:chat-address], which also has what the corpus shows of each
+  option)**. Allied shells still do damage
+  **(owner)**.
 - **Leaving, quitting, disconnecting.** A leaver's planted pills and bases
   stay with the alliance; a quitter's do too; a disconnection is treated the
   same as a quit **(owner, unsure on the last)**. Which member holds them is
@@ -426,7 +431,12 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   player's things **(owner, unsure)**. The log does not say which was
   pressed, and playback assumes Rejoin **(corpus, [E:pill-target])**.
 - **Brains** (AI players) did send chat messages and moved according to
-  their own code **(owner, unsure)**; nothing in the log marks a brain.
+  their own code **(owner, unsure)**. The messages mark them: a brain
+  addresses its allies, or one peer, by a bitmask **without the sender's
+  own bit**, which the chat dialog always sets, and the text is protocol
+  ("/mytype aIndy 31", "Received: doGetBaseTargetInfo"): 6,344 such
+  messages in fewer than ten corpus logs, none in the fixtures
+  **(corpus, [E:chat-address])**. Nothing else in the log marks a brain.
 - The player@node **history string** in the `F1 Cn` groups remains
   unexplained **(owner: don't know; corpus: murky, [E:history])**.
 

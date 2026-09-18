@@ -1,0 +1,14 @@
+logs 24, messages 1108, non-broadcast 236
+
+=== by class ===
+brain-addressed (no sender bit)      0  in 0 logs; text protocol-shaped in 0
+allies (sender + allies heard from)  235
+nearby, nobody in range (self only)  0
+sender + one player                  1  to an ally 0; target the nearest tank 1
+sender + several, not the allies     0  a distance cut 0, mixed 0
+
+=== the nearby radius ===
+no self-only message with a ranked tank, so no upper bound
+sender + the nearest tank, which a nearby message with one in range or a single-player message both produce; target distance then next excluded, ascending:
+  32.0/32.4
+  per-axis box: 32.0/32.4

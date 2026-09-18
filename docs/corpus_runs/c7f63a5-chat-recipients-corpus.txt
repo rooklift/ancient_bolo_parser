@@ -1,0 +1,20 @@
+tools/measure-chat-recipients.cjs at c7f63a5 over both collections (1,030 logs), summary block only;
+the per-message rows carry chat text and are not archived. The reading in FORMAT.notes.md
+[E:chat-address] was made from those rows: of the 6,472 OTHER messages, 6,344 lack the sender's
+own bit (3,437 the alliance set less the sender, 2,907 one peer alone; all but one protocol text,
+in fewer than ten logs), 80 are the alliance set once players unheard for 30 s are dropped, and
+the 48 left are 42 sender-plus-one, 5 sender alone and 1 sender-plus-two. The tool since classes
+by that reading; a re-run prints the classes directly.
+
+logs 1030, messages 44374, non-broadcast 14859, of which include the sender's own bit 8515
+distinct sender:address pairs 1621; messages on an address the sender used only once 422
+messages with a recipient and a non-recipient both ranked 14736: recipients are exactly the nearest k in 7113 (48.3%), 201 of those on a one-off address
+farthest recipient 153.1 squares; nearest excluded player 0.0 squares
+
+=== against the model's alliance set for the sender ===
+alliance messages (address is the sender's alliance set, before or after the record) 8387
+OTHER messages 6472: include the sender's own bit 128, on a one-off address 29, ranked 6441, of which a distance cut 2812 and mixed 3629
+OTHER naming one player besides the sender (a single-player message, or nearby with one tank in range) 4544, of which a cut 2002; naming several 1928, of which a cut 810
+multi-recipient OTHER cut messages: farthest recipient runs 0.7 to 47.8 squares, nearest excluded 1.9 to 53.9
+no single radius fits them all; the best integer radius fits 389 of 810
+
