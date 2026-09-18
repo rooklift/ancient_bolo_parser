@@ -461,9 +461,11 @@ function hex(data, pos, len) {
 // ---------------------------------------------------------------------------
 // Record-level parsing.
 
-// status bits: bit 0 = 1000-tick base-stock increment; bit 1 unused (towed
-// bases); bits 2+3 coupled: 4 = LGM dead, 8 = LGM out of tank, C = LGM out
-// carrying a pillbox. (So e.g. 9 = LGM out + tick, D = C + tick.)
+// status bits: bit 0 = 1000-tick base-stock increment; bit 1 unknown (the
+// 2003 notes call it towed bases, a feature that never shipped, and no log
+// has ever set it, so a record that does is refused below); bits 2+3
+// coupled: 4 = LGM dead, 8 = LGM out of tank, C = LGM out carrying a
+// pillbox. (So e.g. 9 = LGM out + tick, D = C + tick.)
 // tank status bits: 1 = in boat, 2 = hidden, 4 = dead, 8 = has tank
 // position; special values 7 = joining/dead, F = BoloViewer attached log.
 function parseRecord(raw) {
@@ -499,6 +501,22 @@ function parseRecord(raw) {
 		return rec;
 	}
 
+	if (rec.status & 0x02) {
+		// The towed-base bit. Nothing is known about what it puts in the
+		// record: the 2003 notes only name it, no real log has ever set it
+		// (zero records over the corpus and every fixture), and the one
+		// outside reading - bolorama's wire parser skipping 3 bytes for
+		// senderFlags & 0xE0 - is a proxy stepping past a block it never
+		// had to understand, which says nothing about whether this bit has
+		// its own block, shares the LGM one, or adds none. Guessing a
+		// layout would misread every byte after it, silently, so the
+		// record is refused whole: header fields only, the payload kept
+		// for inspection, and a warning so a first sighting is loud.
+		rec.warning = "towed-base status bit set (b & 2): record layout unknown";
+		rec.unparsed = hex(data, pos, data.length - pos);
+		return rec;
+	}
+
 	if (rec.tankStatus & 0x08) {
 		// 5-byte tank position: XX YY yx SS ZA
 		if (pos + 5 > data.length) {
@@ -518,7 +536,7 @@ function parseRecord(raw) {
 		pos += 5;
 	}
 
-	if (rec.status & 0x0e) {
+	if (rec.status & 0x0c) {
 		if (pos + 3 > data.length) {
 			rec.warning = "truncated position extension";
 			return rec;
@@ -529,13 +547,9 @@ function parseRecord(raw) {
 		// against all 131k records of both sample logs: a 3-byte position
 		// is present iff these bits are set — this resolves the b=5/9/D
 		// cases the 2003 notes left open, which are just the 1000-tick bit
-		// riding along with 4/8/C.) Status 2 is the never-shipped towed-base
-		// feature; bolorama's wire parser (rewriteGameStateBlock) skips the
-		// extension for senderFlags & 0xE0, i.e. including that bit, so we
-		// consume it too — semantics unknown, never observed in real logs.
-		const type = (rec.status & 0x08) ? "lgm_position"
-			: (rec.status & 0x04) ? "parachute_position"
-			: "towed_base_position";
+		// riding along with 4/8/C.) Bit 2 was refused above, so only 4
+		// and 8 reach here.
+		const type = (rec.status & 0x08) ? "lgm_position" : "parachute_position";
 		rec.subpackets.push({
 			type,
 			...squarePos(data[pos], data[pos + 1], data[pos + 2]),

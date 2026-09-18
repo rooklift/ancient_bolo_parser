@@ -135,7 +135,19 @@ An early version of Osterwald's notes described a 6-byte layout with a leading `
 
 ### [E:ext-bit] — the LGM / parachute position extension
 
-Every record of both sample logs parses exactly to its length under this rule and fails without it. That bit 1 also carries the extension comes from bolorama's wire parser, which skips it for `senderFlags & 0xE0`.
+Every record of both sample logs parses exactly to its length under this rule and fails without it.
+
+Bit 1 (`b & 2`) is a different matter. The 2003 notes name it towed bases, a feature that never shipped, and say nothing of its payload; no record in the corpus or in any fixture has ever set it. The parser once consumed the same 3-byte extension for it, on the strength of bolorama's wire parser, whose whole treatment of the sender flags is
+
+```go
+senderFlags := buffer[pos] & 0xf0
+...
+if senderFlags&0xe0 > 0 {
+    pos = pos + 3
+}
+```
+
+(`src/bolo/bolo.go`, `rewriteGameStateBlock`). That is a NAT proxy stepping past a block it never had to understand: it skips 3 bytes for any of the top three bits, never separates them, and carries no comment on what they mean, so its `0xE0` may be nothing more than a mask wide enough for the two bits its author had seen. It cannot tell whether bit 1 shares the LGM block, adds a block of its own beside it, or adds none, and under two of those three readings consuming one block misreads every byte that follows, silently. Since a guessed layout costs more than a refused record, the parser now refuses a record with the bit set: header fields only, the payload kept in `unparsed`, and a warning, so a first sighting is loud rather than misparsed. `test/test-robustness.cjs` pins the behaviour, and a log that sets the bit would be the evidence this entry is missing.
 
 ### [E:empty-chat] — a zero-length chat message is followed by junk
 
