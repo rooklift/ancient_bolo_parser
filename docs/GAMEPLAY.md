@@ -431,7 +431,7 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   logs, and its radius, under 8 and perhaps 4–5 squares, is not pinned
   **(corpus, `tools/measure-chat-recipients.cjs`)**. The fixtures hold
   235 alliance messages and one single-player message
-  **(`docs/corpus_runs/` chat-recipients run)**. Allied shells still do damage
+  **(`docs/corpus_runs/7253479-chat-recipients.txt`)**. Allied shells still do damage
   **(owner)**.
 - **Leaving, quitting, disconnecting.** A leaver's planted pills and bases
   stay with the alliance; a quitter's do too; a disconnection is treated the
