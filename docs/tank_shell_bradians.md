@@ -85,7 +85,10 @@ explain at slack 1, gated to the viewer's `direction*16 + [-12..11]`:
 
 Of those, 1,113 and 1,083 chains fit no gated bradian at all under the 128
 table. At slack 0 the picture is the same (1,334 and 1,410 against 1 and
-1). The single-player emulator log (`fixtures/emulator_solo`), where every
+1). On the 443-log set alone (543,352 chains, 378,812 gated onto an
+affected bradian) the rows read 1,284 against 0 and 1,341 against 0 at
+slack 1, with 603 and 610 of them fitting nothing under the 128 table;
+chain-wide, 1,213 chains fit only the 127 table and none only the 128. The single-player emulator log (`fixtures/emulator_solo`), where every
 shell is the tank's own and records come every two ticks, agrees: of its
 110 chains gated onto a cardinal, all 110 fit the 127 table and 105 the 128
 table, none the other way.
@@ -95,7 +98,9 @@ copies of that entry) against 76 for the mirrored `SIN[154]` and
 `SIN[230]`; `128·sin` there is 76.25, so truncation says 76. The corpus
 says 76 too: at each of bradians 26, 90, 102 and 166 the 76 velocity
 explains 2,400–2,800 chains that 77 cannot, and 77 explains 1–2 chains
-exclusively. The 77 is a transcription error in that copy.
+exclusively (on the 443-log set, 1,270–1,415 per bradian against 0–2;
+chain-wide 2,309 against 3). The 77 is a transcription error in that
+copy.
 
 So the table is `trunc(128·sin)` saturated to int8, which is what
 `viewer/pillbox_shell_orbits.js` now generates. The pillbox orbits are
