@@ -209,4 +209,112 @@ for (let kind of kinds) for (let viewpoint of [1, 2]) for (let x of [50.5, 70.5]
 	if (name) assert.ok(fs.existsSync(path.join(__dirname, "../viewer/sounds", name + ".wav")), name);
 }
 assert.ok(fs.readdirSync(path.join(__dirname, "../viewer/sounds")).every(name => !name.startsWith("lobby_")));
-console.log("all sound checks passed");
+// ---- the export's offline mix ----
+
+// WAV decoding: WinBolo's files, and a synthetic 8-bit stereo file with a
+// padded odd-length chunk before the data.
+{
+	let real = Sound.decode_wav(new Uint8Array(fs.readFileSync(path.join(__dirname, "../viewer/sounds/shooting_near.wav"))));
+	assert.equal(real.sample_rate, 22254);
+	assert.equal(real.samples.length, 14444);
+	assert.ok(real.samples.some(v => v !== 0) && real.samples.every(v => v >= -1 && v <= 1));
+	let bytes = [];
+	let ascii = t => [...t].map(c => c.charCodeAt(0));
+	let u32 = v => [v & 255, (v >> 8) & 255, (v >> 16) & 255, (v >>> 24) & 255];
+	let u16 = v => [v & 255, (v >> 8) & 255];
+	let fmt = [...u16(1), ...u16(2), ...u32(8000), ...u32(16000), ...u16(2), ...u16(8)];
+	let data = [128, 0, 255, 0, 0, 0, 64, 0]; /* frames: L=0, L=+0.99, L=-1, L=-0.5 */
+	bytes.push(...ascii("RIFF"), ...u32(0), ...ascii("WAVE"));
+	bytes.push(...ascii("fmt "), ...u32(fmt.length), ...fmt);
+	bytes.push(...ascii("LIST"), ...u32(3), 1, 2, 3, 0); /* odd size, padded */
+	bytes.push(...ascii("data"), ...u32(data.length), ...data);
+	let synth = Sound.decode_wav(Uint8Array.from(bytes));
+	assert.equal(synth.sample_rate, 8000);
+	assert.deepEqual(Array.from(synth.samples), [0, 127 / 128, -1, -0.5]);
+	assert.throws(() => Sound.decode_wav(Uint8Array.from(ascii("RIFFxxxxWAVX"))), /not a WAV/);
+}
+
+assert.equal(Sound.seeded_random(7)(), Sound.seeded_random(7)(), "the seeded generator repeats");
+{
+	let r = Sound.seeded_random();
+	let values = Array.from({ length: 1000 }, () => r());
+	assert.ok(values.every(v => v >= 0 && v < 1) && new Set(values).size > 990);
+}
+
+// The mixer places each event at its output time (replay time from the
+// start tick, compressed by the speed), resampled to the output rate at
+// the base volume, and renders incrementally.
+{
+	let tone = new Float32Array(100).fill(1); /* 100 samples at 20 kHz = 5 ms */
+	let samples = new Map([["shooting_near", { sample_rate: 20000, samples: tone }],
+		["shooting_self", { sample_rate: 20000, samples: new Float32Array(100).fill(-1) }]]);
+	let no_variation = () => 0.5; /* rate exactly 1.0 */
+	let mixer = Sound.create_mixer({ samples, sample_rate: 40000, start_tick: 1000, speed: 1, random: no_variation });
+	let events = [
+		{ time: 1010, kind: "shooting", player: 1, x: 5, y: 5 },   /* 0.2 s in: sample 8000 */
+		{ time: 1012, kind: "shooting", player: 2, x: 5, y: 5 },   /* 0.24 s: sample 9600, self */
+		{ time: 1500, kind: "shooting", player: 1, x: 50, y: 50 }, /* off screen: far, no sample loaded */
+	];
+	let screen = { left: 0, top: 0, right: 20, bottom: 20 };
+	mixer.advance(events, 1000, 1020, 2, () => screen);
+	let out = mixer.render(8000);
+	assert.equal(out.length, 8000);
+	assert.ok(out.every(v => v === 0), "silence before the first event");
+	out = mixer.render(8100);
+	assert.deepEqual(Array.from(out.slice(0, 3)), [0.5, 0.5, 0.5], "the sound starts on its sample at half volume");
+	assert.equal(mixer.rendered, 8100);
+	out = mixer.render(12000);
+	/* the 100-sample tone at 20 kHz ends at output sample 198 at 40 kHz */
+	assert.equal(out[8198 - 8100], 0.5, "resampled to twice the length");
+	assert.equal(out[8199 - 8100], 0, "and then ends");
+	assert.equal(out[9600 - 8100], -0.5, "the locked player's shot is the self sample");
+	mixer.advance(events, 1020, 2000, 2, () => screen);
+	out = mixer.render(60000);
+	assert.ok(out.every(v => v === 0), "a variant without a loaded sample is skipped");
+	assert.equal(mixer.render(60000).length, 0, "rendering up to the same point yields nothing");
+	/* an event queued after its samples were rendered can only start
+	 * late, which is why the export queues every event of an interval
+	 * before rendering it */
+	/* tick 1074.9 is output sample 59920, inside the 60000 already rendered */
+	mixer.advance([{ time: 1074.9, kind: "shooting", player: 1, x: 5, y: 5 }], 1000, 1100, -1, () => screen);
+	out = mixer.render(60100);
+	assert.deepEqual(Array.from(out.slice(0, 2)), [0.5, 0.5], "a late-queued event starts at the render point");
+	out = mixer.render(60200);
+	assert.equal(out.lastIndexOf(0.5), 60118 - 60100, "and keeps its scheduled end, so its start is lost");
+}
+{
+	/* speed compresses time; overlapping voices sum and clamp; the seeded
+	 * pitch variation makes a run repeatable */
+	let loud = new Float32Array(100).fill(1);
+	let samples = new Map([["shooting_near", { sample_rate: 48000, samples: loud }]]);
+	let events = Array.from({ length: 3 }, () => ({ time: 1050, kind: "shooting", player: 1, x: 5, y: 5 }));
+	let screen = { left: 0, top: 0, right: 20, bottom: 20 };
+	let run = () => {
+		let mixer = Sound.create_mixer({ samples, sample_rate: 48000, start_tick: 1000, speed: 2, random: () => 0.5 });
+		mixer.advance(events, 1000, 1100, -1, () => screen);
+		return mixer.render(48000);
+	};
+	let out = run();
+	assert.equal(out.findIndex(v => v !== 0), 24000, "at 2x, one second of replay is half a second of output");
+	assert.equal(out[24000], 1, "three overlapping voices at half volume clamp to one");
+	assert.equal(out.lastIndexOf(1), 24099, "at rate 1.0 the 100 samples end at the 100th");
+	assert.deepEqual(Array.from(run()), Array.from(out), "deterministic");
+	let varied = Sound.create_mixer({ samples, sample_rate: 48000, start_tick: 1000, speed: 2, random: () => 0 });
+	varied.advance(events.slice(0, 1), 1000, 1100, -1, () => screen);
+	let slow = varied.render(48000);
+	assert.equal(slow.lastIndexOf(0.5), 24102, "at the slowest rate, 0.97, the same sound plays 3% longer");
+}
+
+// The sample loader fetches every name the variant rule can produce.
+(async () => {
+	let urls = [];
+	let wav = new Uint8Array(fs.readFileSync(path.join(__dirname, "../viewer/sounds/bubbles.wav")));
+	let loaded = await Sound.load_samples(async url => { urls.push(url); return wav; });
+	assert.equal(loaded.size, Sound.SAMPLE_NAMES.length);
+	for (let kind of kinds) for (let on_screen of [true, false]) for (let viewpoint of [1, 2]) {
+		let name = Sound.variant({ ...shot, kind }, on_screen ? listener : { left: 100, top: 100, right: 110, bottom: 110 }, viewpoint);
+		if (name) assert.ok(loaded.has(name), name);
+	}
+	assert.ok(urls.every(u => u.startsWith("sounds/") && u.endsWith(".wav")));
+	console.log("all sound checks passed");
+})().catch(err => { console.error(err); process.exit(1); });

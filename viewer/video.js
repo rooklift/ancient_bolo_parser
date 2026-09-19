@@ -33,6 +33,9 @@ const EXPORT_BASE_BITRATE = 8_000_000;            /* bitrate-mode reference at 1
 const EXPORT_KEYFRAME_SECONDS = 10;               /* also the cluster/seek granularity */
 const EXPORT_QUEUE_LIMIT = 8;                     /* encoder frames in flight */
 const EXPORT_WRITE_CHUNK = 1 << 20;               /* buffered bytes per IPC write */
+const EXPORT_AUDIO_RATE = 48000;                  /* Opus's native rate */
+const EXPORT_AUDIO_FRAME = 960;                   /* 20 ms Opus frames */
+const EXPORT_AUDIO_BITRATE = 64000;               /* plenty for mono 22 kHz samples */
 const EX_FONT = 'system-ui, -apple-system, "Segoe UI", sans-serif';
 
 /* The sidebar is laid out in a fixed design space (322px wide, matching
@@ -66,6 +69,8 @@ let export_mode_size_el = document.getElementById("exportModeSize");
 let export_quality_el = document.getElementById("exportQuality");
 let export_mb_el = document.getElementById("exportMbMin");
 let export_sidebar_el = document.getElementById("exportSidebar");
+let export_sound_el = document.getElementById("exportSound");
+let export_sound_note = document.getElementById("exportSoundNote");
 let export_estimate_el = document.getElementById("exportSetupEstimate");
 let export_warning_el = document.getElementById("exportSetupWarning");
 let export_setup_cancel_btn = document.getElementById("exportSetupCancel");
@@ -78,6 +83,7 @@ let export_setup_resolve = null; /* pending setup dialog, resolves to options */
 let export_setup_start = 0;      /* the pending export's start tick */
 let export_setup_seconds = 0;    /* output duration, for the size estimate */
 let EX = null; /* the running export's parameters, set from the dialog */
+let ex_samples = null; /* decoded game sounds, fetched once per session */
 let ex_write_queue = [];
 let ex_write_bytes = 0;
 let ex_bytes_muxed = 0;  /* all bytes queued this export, for the size estimate */
@@ -88,7 +94,7 @@ export_setup_cancel_btn.addEventListener("click", () => ex_setup_close(null));
 export_setup_ok_btn.addEventListener("click", () => ex_setup_confirm());
 for (let el of [export_res_el, export_speed_el, export_fps_el,
 	export_mode_quality_el, export_mode_size_el, export_quality_el,
-	export_mb_el, export_sidebar_el]) {
+	export_mb_el, export_sidebar_el, export_sound_el]) {
 	el.addEventListener("change", () => ex_setup_refresh());
 	el.addEventListener("input", () => ex_setup_refresh());
 }
@@ -124,6 +130,9 @@ function cancel_video_export() {
 
 function ex_setup(start_tick) {
 	ex_setup_apply(ex_setup_stored());
+	/* Sound follows the live speaker button rather than a stored choice:
+	 * an export has sound when the viewer is playing it. */
+	export_sound_el.checked = sound_enabled;
 	export_setup_start = start_tick;
 	export_setup_camera.textContent = player_locked
 		? "Using player lock and current zoom"
@@ -194,6 +203,8 @@ function ex_setup_read() {
 			: EXPORT_DEFAULTS.quality,
 		mb_per_min: ex_clamp_mb(parseFloat(export_mb_el.value)),
 		sidebar: export_sidebar_el.checked,
+		/* the live player is silent above 100% too */
+		sound: export_sound_el.checked && ex_speed_value() <= 1,
 	};
 }
 
@@ -224,6 +235,9 @@ function ex_setup_refresh() {
 	 * case for constant quality, where motion costs bytes. (In size mode
 	 * the cost is paid in quality instead, so no warning there.) */
 	export_warning_el.classList.toggle("hidden", size_mode || !player_locked);
+	let fast = ex_speed_value() > 1;
+	export_sound_el.disabled = fast;
+	export_sound_note.textContent = fast ? " (silent above 100% speed)" : "";
 }
 
 function ex_fmt_duration(seconds) {
@@ -284,6 +298,23 @@ async function ex_run(start_tick) {
 		return;
 	}
 
+	let audio = null;
+	if (options.sound) {
+		audio = await ex_pick_audio_config();
+		if (!audio) {
+			show_error("Cannot export video",
+				"this build has no Opus audio encoder: untick \"Include game sounds\"");
+			return;
+		}
+		if (!ex_samples) ex_samples = BoloSound.load_samples();
+		try {
+			audio.samples = await ex_samples;
+		} catch (err) {
+			ex_samples = null;
+			throw new Error("could not load the game sounds: " + String((err && err.message) || err));
+		}
+	}
+
 	let sidebar_scale = options.h / EX_DESIGN_H;
 	let sidebar_w = options.sidebar ? Math.round(EX_SIDEBAR_W * sidebar_scale) : 0;
 	EX = {
@@ -292,6 +323,7 @@ async function ex_run(start_tick) {
 		world_w: options.w - sidebar_w,
 		keyframe_every: options.fps * EXPORT_KEYFRAME_SECONDS,
 		quantizer: picked.quantizer,
+		audio,
 	};
 
 	/* Each output frame advances the clock by a fixed tick step, so the
@@ -320,6 +352,7 @@ async function ex_run(start_tick) {
 
 	let saved = { clock, view, ctx };
 	let encoder = null;
+	let audio_encoder = null;
 	let ok = false;
 	try {
 		/* keep the live framing: same zoom, same world centre, recentred for
@@ -347,8 +380,36 @@ async function ex_run(start_tick) {
 
 		let muxer = BoloWebM.create_muxer({
 			width: EX.w, height: EX.h, codec_id: picked.codec_id,
+			audio: audio && {
+				codec_private: audio.codec_private,
+				codec_delay_ns: Math.round(audio.pre_skip * 1e9 / EXPORT_AUDIO_RATE),
+				sample_rate: EXPORT_AUDIO_RATE, channels: 1,
+			},
 		});
 		ex_queue(muxer.header(duration_ms));
+
+		/* The soundtrack: the same events the live player hears, mixed on
+		 * the video's clock and fed to the Opus encoder in 20 ms frames as
+		 * each video frame is drawn. The muxer interleaves the two. */
+		let mixer = null;
+		let audio_feed = null;
+		if (audio) {
+			mixer = BoloSound.create_mixer({
+				samples: audio.samples, sample_rate: EXPORT_AUDIO_RATE,
+				start_tick, speed: options.speed, ticks_per_second: TPS,
+			});
+			audio_encoder = new AudioEncoder({
+				output: chunk => {
+					let data = new Uint8Array(chunk.byteLength);
+					chunk.copyTo(data);
+					ex_queue(muxer.add_block(data,
+						Math.round(chunk.timestamp / 1000), true, BoloWebM.AUDIO_TRACK));
+				},
+				error: err => { if (!export_error) export_error = err; },
+			});
+			audio_encoder.configure(audio.config);
+			audio_feed = ex_audio_feed(audio_encoder);
+		}
 
 		encoder = new VideoEncoder({
 			output: chunk => {
@@ -373,6 +434,18 @@ async function ex_run(start_tick) {
 			}
 			draw();
 			draw_export_sidebar();
+			if (mixer) {
+				/* The frame covers the clock advance that led to it (the
+				 * first one takes the events on the start tick as well), and
+				 * the audio rendered here ends at this frame's time: every
+				 * event up to that time is queued before its samples are
+				 * rendered, so no sound loses its start to a later frame. */
+				let previous = i === 0 ? start_tick - step : Math.min(game.t1, start_tick + (i - 1) * step);
+				let self_player = centre_locked_player() ? viewpoint : -1;
+				let listener = sound_listener();
+				mixer.advance(game.sounds, previous, clock, self_player, () => listener);
+				audio_feed(mixer.render(i * EXPORT_AUDIO_RATE / EX.fps), false);
+			}
 			let frame = new VideoFrame(export_canvas, {
 				timestamp: Math.round(i * 1e6 / EX.fps),
 				duration: Math.round(1e6 / EX.fps),
@@ -390,6 +463,15 @@ async function ex_run(start_tick) {
 		}
 		if (!export_cancel_requested) {
 			ex_progress(total, total);
+			if (audio_feed) {
+				/* the last frame's own duration: the events it would have
+				 * led to, then the samples up to the end of the video */
+				let self_player = centre_locked_player() ? viewpoint : -1;
+				let listener = sound_listener();
+				mixer.advance(game.sounds, clock, clock + step, self_player, () => listener);
+				audio_feed(mixer.render(total * EXPORT_AUDIO_RATE / EX.fps), true);
+				await audio_encoder.flush();
+			}
 			await encoder.flush();
 			if (export_error) throw export_error;
 		}
@@ -415,6 +497,9 @@ async function ex_run(start_tick) {
 	} finally {
 		if (encoder) {
 			try { encoder.close(); } catch { /* already closed */ }
+		}
+		if (audio_encoder) {
+			try { audio_encoder.close(); } catch { /* already closed */ }
 		}
 		if (!ok) await window.api.video_abort(); /* cancelled or failed: no partial file */
 		ex_write_queue = [];
@@ -464,6 +549,87 @@ async function ex_pick_config(options) {
 		} catch { /* config not recognised: try the next */ }
 	}
 	return null;
+}
+
+/* Opus through WebCodecs, mono at 48 kHz. The muxer's track header needs
+ * the OpusHead the encoder emits with its first chunk, so a throwaway
+ * encoder is run over one silent frame to learn it (and the pre-skip it
+ * declares) before the file is started. null when the build has no Opus
+ * encoder. */
+async function ex_pick_audio_config() {
+	if (typeof AudioEncoder === "undefined" || typeof AudioData === "undefined") return null;
+	let config = { codec: "opus", sampleRate: EXPORT_AUDIO_RATE, numberOfChannels: 1,
+		bitrate: EXPORT_AUDIO_BITRATE };
+	try {
+		let support = await AudioEncoder.isConfigSupported(config);
+		if (!support.supported) return null;
+	} catch { return null; }
+	let description = null;
+	let probe = new AudioEncoder({
+		output: (chunk, meta) => {
+			let d = meta && meta.decoderConfig && meta.decoderConfig.description;
+			if (d && !description) {
+				description = ArrayBuffer.isView(d)
+					? new Uint8Array(d.buffer, d.byteOffset, d.byteLength).slice()
+					: new Uint8Array(d.slice(0));
+			}
+		},
+		error: () => {},
+	});
+	try {
+		probe.configure(config);
+		let frame = new AudioData({ format: "f32", sampleRate: EXPORT_AUDIO_RATE,
+			numberOfFrames: EXPORT_AUDIO_FRAME, numberOfChannels: 1, timestamp: 0,
+			data: new Float32Array(EXPORT_AUDIO_FRAME) });
+		probe.encode(frame);
+		frame.close();
+		await probe.flush();
+	} catch {
+		return null;
+	} finally {
+		try { probe.close(); } catch { /* already closed */ }
+	}
+	/* OpusHead: magic, version, channels, then the pre-skip as a
+	 * little-endian 16-bit count of 48 kHz samples */
+	if (!description || description.length < 19 ||
+		String.fromCharCode(...description.slice(0, 8)) !== "OpusHead") return null;
+	let pre_skip = description[10] | (description[11] << 8);
+	return { config, codec_private: description, pre_skip };
+}
+
+/* Feeds mixed samples to the audio encoder in whole Opus frames, carrying
+ * the remainder to the next call; `last` pads the final partial frame
+ * with silence so the track runs to the end of the video. */
+function ex_audio_feed(audio_encoder) {
+	let carry = new Float32Array(EXPORT_AUDIO_FRAME);
+	let carried = 0;
+	let frames = 0;
+	function encode(data) {
+		let audio = new AudioData({ format: "f32", sampleRate: EXPORT_AUDIO_RATE,
+			numberOfFrames: EXPORT_AUDIO_FRAME, numberOfChannels: 1,
+			timestamp: Math.round(frames * EXPORT_AUDIO_FRAME * 1e6 / EXPORT_AUDIO_RATE), data });
+		audio_encoder.encode(audio);
+		audio.close();
+		frames++;
+	}
+	return (samples, last) => {
+		let at = 0;
+		while (at < samples.length) {
+			let take = Math.min(EXPORT_AUDIO_FRAME - carried, samples.length - at);
+			carry.set(samples.subarray(at, at + take), carried);
+			carried += take;
+			at += take;
+			if (carried === EXPORT_AUDIO_FRAME) {
+				encode(carry.slice());
+				carried = 0;
+			}
+		}
+		if (last && carried > 0) {
+			carry.fill(0, carried);
+			encode(carry.slice());
+			carried = 0;
+		}
+	};
 }
 
 function ex_progress(done, total) {

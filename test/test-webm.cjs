@@ -102,6 +102,7 @@ check("top level is EBML header then segment",
 
 const header = parse_level(file, top[0].start, top[0].start + top[0].size);
 check("doctype", string_at(file, find(header, 0x4282)[0]), "webm");
+check("doctype version 2 without audio", [uint_at(file, find(header, 0x4287)[0]), uint_at(file, find(header, 0x4285)[0])], [2, 2]);
 
 const segment = top[1];
 check("segment size patch covers the file exactly",
@@ -180,6 +181,82 @@ check("every block roundtrips (count, mismatches, ordering)",
 	const bases = cl.map(c =>
 		uint_at(bytes, find(parse_level(bytes, c.start, c.start + c.size), 0xe7)[0]));
 	check("keyframe-less stream splits within int16 ms", bases, [0, 31000]);
+}
+
+// With an audio track: a second track entry carrying the Opus header, and
+// blocks from the two encoders, delivered at their own pace (here the audio
+// runs 200 ms behind the video), interleaved in timestamp order with the
+// video first on a tie. Only video keyframes open clusters.
+{
+	const opus_head = Uint8Array.from([0x4f, 0x70, 0x75, 0x73, 0x48, 0x65, 0x61, 0x64,
+		1, 1, 0x38, 0x01, 0x80, 0xbb, 0, 0, 0, 0, 0]);
+	const m = BoloWebM.create_muxer({ width: 64, height: 64, codec_id: "V_VP9",
+		audio: { codec_private: opus_head, codec_delay_ns: 6500000, sample_rate: 48000, channels: 1 } });
+	const p = [m.header(2000)];
+	const video = i => Uint8Array.from([1, i]);
+	const audio = ms => Uint8Array.from([2, ms / 20]);
+	let audio_ms = 0;
+	let released_before_audio = 0;
+	for (let i = 0; i < 60; i++) {
+		let ms = Math.round(i * 1000 / 30);
+		let out = m.add_block(video(i), ms, i % 30 === 0, BoloWebM.VIDEO_TRACK);
+		if (i < 6) released_before_audio += out.length;
+		p.push(out);
+		while (audio_ms + 200 <= ms) { p.push(m.add_block(audio(audio_ms), audio_ms, true, BoloWebM.AUDIO_TRACK)); audio_ms += 20; }
+	}
+	while (audio_ms < 2000) { p.push(m.add_block(audio(audio_ms), audio_ms, true, BoloWebM.AUDIO_TRACK)); audio_ms += 20; }
+	const f = m.finalize(2000);
+	p.push(f.tail);
+	let bytes = new Uint8Array(p.reduce((n, x) => n + x.length, 0));
+	let n = 0;
+	for (let x of p) { bytes.set(x, n); n += x.length; }
+	for (const patch of f.patches) bytes.set(patch.bytes, patch.offset);
+	check("nothing is written until the audio track has delivered", released_before_audio, 0);
+
+	const t = parse_level(bytes, 0, bytes.length);
+	const h = parse_level(bytes, t[0].start, t[0].start + t[0].size);
+	check("doctype version 4 with audio, readable from 2",
+		[uint_at(bytes, find(h, 0x4287)[0]), uint_at(bytes, find(h, 0x4285)[0])], [4, 2]);
+	const s = parse_level(bytes, t[1].start, t[1].start + t[1].size);
+	check("segment size patch covers the two-track file", t[1].start + t[1].size, bytes.length);
+	const tr = find(s, 0x1654ae6b)[0];
+	const entries = parse_level(bytes, tr.start, tr.start + tr.size);
+	check("two track entries", entries.length, 2);
+	const a = parse_level(bytes, entries[1].start, entries[1].start + entries[1].size);
+	check("audio track entry", [
+		uint_at(bytes, find(a, 0xd7)[0]), uint_at(bytes, find(a, 0x83)[0]),
+		string_at(bytes, find(a, 0x86)[0]),
+		uint_at(bytes, find(a, 0x56aa)[0]), uint_at(bytes, find(a, 0x56bb)[0]),
+	], [2, 2, "A_OPUS", 6500000, 80000000]);
+	const private_el = find(a, 0x63a2)[0];
+	check("OpusHead roundtrips", Array.from(bytes.slice(private_el.start, private_el.start + private_el.size)), Array.from(opus_head));
+	const au = parse_level(bytes, find(a, 0xe1)[0].start, find(a, 0xe1)[0].start + find(a, 0xe1)[0].size);
+	check("audio format", [double_at(bytes, find(au, 0xb5)[0]), uint_at(bytes, find(au, 0x9f)[0])], [48000, 1]);
+
+	const cl = find(s, 0x1f43b675);
+	check("clusters open on video keyframes only", cl.length, 2);
+	let order = [], video_seen = [], audio_seen = [], flags_wrong = 0;
+	for (const c of cl) {
+		const level = parse_level(bytes, c.start, c.start + c.size);
+		const base = uint_at(bytes, find(level, 0xe7)[0]);
+		for (const b of find(level, 0xa3)) {
+			const track = bytes[b.start] & 0x7f;
+			const ms = base + bytes[b.start + 1] * 256 + bytes[b.start + 2];
+			if (track === 2 && bytes[b.start + 3] !== 0x80) flags_wrong++;
+			order.push([track, ms]);
+			(track === 1 ? video_seen : audio_seen).push(bytes[b.start + 5]);
+		}
+	}
+	let disorder = 0, ties_audio_first = 0;
+	for (let i = 1; i < order.length; i++) {
+		if (order[i][1] < order[i - 1][1]) disorder++;
+		if (order[i][1] === order[i - 1][1] && order[i][0] < order[i - 1][0]) ties_audio_first++;
+	}
+	check("every block of both tracks, in timestamp order, video first on ties",
+		[video_seen.length, audio_seen.length, disorder, ties_audio_first, flags_wrong], [60, 100, 0, 0, 0]);
+	check("each track's payloads keep their own order",
+		[video_seen.every((v, i) => v === i), audio_seen.every((v, i) => v === i)], [true, true]);
+	check("the first blocks interleave", order.slice(0, 5), [[1, 0], [2, 0], [2, 20], [1, 33], [2, 40]]);
 }
 
 process.exit(failures ? 1 : 0);

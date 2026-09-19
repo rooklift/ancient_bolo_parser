@@ -149,7 +149,127 @@ function create_player(make_audio = url => new Audio(url), random = Math.random)
 	};
 }
 
-let BoloSound = { event_for, birth_sounds, variant, between, create_player };
+/* ---------- offline mixing, for the video export ----------
+ * The export steps its clock deterministically and cannot use the audio
+ * elements above, so it mixes the same events into a sample stream: the
+ * same variant rule, the same base volume, the same pitch variation drawn
+ * from a seeded generator so an export is repeatable. */
+
+const BASE_VOLUME = 0.5;
+const SAMPLE_NAMES = ["big_explosion_far", "big_explosion_near", "bubbles",
+	"farming_tree_far", "farming_tree_near", "hit_tank_far", "hit_tank_near",
+	"hit_tank_self", "man_building_far", "man_building_near", "man_dying_far",
+	"man_dying_near", "man_lay_mine_near", "mine_explosion_far",
+	"mine_explosion_near", "shooting_far", "shooting_near", "shooting_self",
+	"shot_building_far", "shot_building_near", "shot_tree_far", "shot_tree_near",
+	"tank_sinking_far", "tank_sinking_near"];
+
+/* A RIFF WAVE with 8- or 16-bit integer PCM (WinBolo's are 16-bit mono at
+ * the old Mac rate of 22254 Hz) to { sample_rate, samples } with samples a
+ * Float32Array in [-1, 1] of the first channel. */
+function decode_wav(bytes) {
+	let view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+	let tag = at => String.fromCharCode(bytes[at], bytes[at + 1], bytes[at + 2], bytes[at + 3]);
+	if (tag(0) !== "RIFF" || tag(8) !== "WAVE") throw new Error("not a WAV file");
+	let format = null, data = null;
+	for (let at = 12; at + 8 <= bytes.length;) {
+		let id = tag(at), size = view.getUint32(at + 4, true);
+		let body = at + 8;
+		if (id === "fmt ") {
+			format = { code: view.getUint16(body, true), channels: view.getUint16(body + 2, true),
+				sample_rate: view.getUint32(body + 4, true), bits: view.getUint16(body + 14, true) };
+		} else if (id === "data") {
+			data = { start: body, end: Math.min(bytes.length, body + size) };
+		}
+		at = body + size + (size & 1); /* chunks are word-aligned */
+	}
+	if (!format || !data) throw new Error("WAV without fmt or data chunk");
+	if (format.code !== 1 || (format.bits !== 8 && format.bits !== 16)) {
+		throw new Error("WAV is not 8- or 16-bit PCM");
+	}
+	let frame_bytes = format.channels * format.bits / 8;
+	let count = Math.floor((data.end - data.start) / frame_bytes);
+	let samples = new Float32Array(count);
+	for (let i = 0; i < count; i++) {
+		let at = data.start + i * frame_bytes;
+		samples[i] = format.bits === 8 ? (bytes[at] - 128) / 128 : view.getInt16(at, true) / 32768;
+	}
+	return { sample_rate: format.sample_rate, samples };
+}
+
+/* Every sample the mixer may need, fetched relative to the page (the same
+ * URLs the audio elements use) and decoded: a Map of name -> decoded. */
+async function load_samples(fetch_bytes = async url => new Uint8Array(await (await fetch(url)).arrayBuffer())) {
+	let samples = new Map();
+	for (let name of SAMPLE_NAMES) {
+		let bytes = await fetch_bytes("sounds/" + name + ".wav");
+		samples.set(name, decode_wav(bytes));
+	}
+	return samples;
+}
+
+/* A small deterministic generator (Park-Miller), so the pitch variation of
+ * an export is the same every time it is run. */
+function seeded_random(seed = 1) {
+	let state = seed % 2147483647 || 1;
+	return () => {
+		state = state * 48271 % 2147483647;
+		return (state - 1) / 2147483646;
+	};
+}
+
+/* Mixes events into an output stream of `sample_rate` mono samples, where
+ * output time is replay time from `start_tick` compressed by `speed`, as
+ * the video's is. Feed events with advance(), as the live player is fed
+ * per frame, then take the output with render(): each call returns the
+ * mix from the previous call's end up to `until` output samples in total,
+ * so a caller can pull the audio frame by frame alongside the video.
+ * Voices past their end are dropped; the sum is clamped to [-1, 1]. */
+function create_mixer({ samples, sample_rate = 48000, start_tick, speed = 1, ticks_per_second = 50, random = seeded_random() }) {
+	let voices = [];
+	let rendered = 0; /* output samples handed out so far */
+	let output_samples_per_tick = sample_rate / (ticks_per_second * speed);
+	function advance(events, from, to, player, listener_at) {
+		if (to <= from) return;
+		for (let event of between(events, from, to)) {
+			let name = variant(event, listener_at(event.time), player);
+			if (!name) continue;
+			let sample = samples.get(name);
+			if (!sample) continue;
+			/* source samples per output sample, with the live player's
+			 * +/-3% rate variation baked in */
+			let rate = (0.97 + random() * 0.06) * sample.sample_rate / sample_rate;
+			voices.push({ sample, rate, start: (event.time - start_tick) * output_samples_per_tick });
+		}
+	}
+	function render(until) {
+		let count = Math.max(0, Math.floor(until) - rendered);
+		let out = new Float32Array(count);
+		let live = [];
+		for (let voice of voices) {
+			let { samples: data, rate, start } = { samples: voice.sample.samples, rate: voice.rate, start: voice.start };
+			let first = Math.max(rendered, Math.ceil(start));
+			let last_source = (data.length - 1) / rate; /* output offset of the final sample */
+			let end = Math.min(rendered + count, Math.floor(start + last_source) + 1);
+			for (let i = first; i < end; i++) {
+				let position = (i - start) * rate;
+				let index = Math.floor(position);
+				let fraction = position - index;
+				let value = data[index] + (index + 1 < data.length ? (data[index + 1] - data[index]) * fraction : 0);
+				out[i - rendered] += value * BASE_VOLUME;
+			}
+			if (start + last_source > rendered + count) live.push(voice);
+		}
+		voices = live;
+		for (let i = 0; i < count; i++) out[i] = Math.max(-1, Math.min(1, out[i]));
+		rendered += count;
+		return out;
+	}
+	return { advance, render, get rendered() { return rendered; } };
+}
+
+let BoloSound = { event_for, birth_sounds, variant, between, create_player,
+	SAMPLE_NAMES, decode_wav, load_samples, seeded_random, create_mixer };
 if (typeof module !== "undefined" && module.exports) module.exports = BoloSound;
 else window.BoloSound = BoloSound;
 })();
