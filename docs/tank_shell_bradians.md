@@ -74,8 +74,8 @@ fired due north (bradian 0) or due west (bradian 192) moves at 63 units per
 update under the int8 table and 64 under the naive one, and its muzzle
 offset is 127 units rather than 128.
 
-Tank shells decide it. Over the full corpus (1,030 logs, 1,005,722 chains
-of three or more restatements), counting chains that exactly one table can
+Tank shells decide it. Over both collections (1,030 logs, 1,005,722 chains
+of three or more restatements; the 443-log set's own figures are below), counting chains that exactly one table can
 explain at slack 1, gated to the viewer's `direction*16 + [-12..11]`:
 
 | bradian | fits only the 127 table | fits only the 128 table |
