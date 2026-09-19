@@ -9,6 +9,9 @@ const BoloNetwork = typeof module !== "undefined" && module.exports
 const BoloMotion = typeof module !== "undefined" && module.exports
 	? require("./motion.js") : window.BoloMotion;
 
+const BoloSound = typeof module !== "undefined" && module.exports
+	? require("./sound.js") : window.BoloSound;
+
 const MAP_SIZE = 256;
 const DEEP_SEA = 255;
 const TICKS_PER_SECOND = BoloMotion.TICKS_PER_SECOND;
@@ -441,7 +444,7 @@ function friendly_to(s, item, player) {
 	return !(s.alliances[item.owner] & (1 << player)) && !(s.alliances[player] & (1 << item.owner));
 }
 
-function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
+function apply_record(s, rec, effects, chat, shell_terminals, node_joins, sounds) {
 	const pl = rec.player;
 	let sawShells = false;
 	let newShells = null;
@@ -513,6 +516,9 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 	}
 
 	for (const sub of rec.subpackets) {
+		let sound = sounds ? BoloSound.event_for(s, rec, sub) : null;
+		let effect_start = effects ? effects.length : 0;
+		if (sound) sounds.push(sound);
 		switch (sub.type) {
 			case "tank_position":
 				s.tanks[pl] = {
@@ -1060,6 +1066,7 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins) {
 				break;
 			}
 		}
+		if (sound && effects && effects.length > effect_start) sound.effect = effects[effect_start];
 	}
 
 	if (sawShells) {
@@ -1260,6 +1267,7 @@ function build(records) {
 function* build_steps(records) {
 	const RECORD_LOOP_SHARE = 0.2, SHELL_SHARE = 0.7, PROGRESS_EVERY = 1000;
 	const effects = [];
+	const sounds = [];
 	const chat = [];
 	const keyframes = []; /* {index, state} — state BEFORE records[index] */
 	let node_joins = classify_node_joins(records);
@@ -1327,7 +1335,7 @@ function* build_steps(records) {
 			pillbox_sources_by_record.set(rec, pillbox_sources);
 		}
 		if (tank_sources.length) tank_sources_by_record.set(rec, tank_sources);
-		apply_record(s, rec, effects, chat, shell_terminals, node_joins);
+		apply_record(s, rec, effects, chat, shell_terminals, node_joins, sounds);
 		/* Compare the placed-and-armed roster against the last one entry
 		 * by entry, and build a new one only when it differs: cheaper
 		 * than a key string per record, and the same entries result. */
@@ -1372,10 +1380,25 @@ function* build_steps(records) {
 	BoloMotion.smooth_track_positions(lgm_positions);
 	yield after_shells + (1 - after_shells) * 3 / 4;
 	effects.sort((a, b) => a.time - b.time);
+	// Shell matching retimes impacts to their visible arrival. Keep audio
+	// on that same timeline without adding anything to the visual effects.
+	// Gunfire comes from the traced shells, at the moment each leaves its
+	// muzzle, rather than from the fire events (see BoloSound.birth_sounds).
+	for (let sound of BoloSound.birth_sounds(shell_births)) sounds.push(sound);
+	for (let sound of sounds) {
+		if (!sound.effect) continue;
+		let effect = sound.effect;
+		sound.time = effect.time;
+		sound.x = effect.x + (effect.px || 0) / 16 + 0.5;
+		sound.y = effect.y + (effect.py || 0) / 16 + 0.5;
+		delete sound.effect;
+	}
+	sounds.sort((a, b) => a.time - b.time);
 
 	return {
 		records,
 		effects,
+		sounds,
 		chat,
 		keyframes,
 		node_joins,

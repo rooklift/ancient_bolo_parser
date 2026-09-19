@@ -145,6 +145,9 @@ let cursor = 0;          /* first unapplied record index */
 let clock = 0;           /* current tick */
 let playing = false;
 let speed = 1;
+let sound_player = BoloSound.create_player();
+let sound_enabled = false; /* muted until asked: the sound button, Ctrl+A or A */
+sound_player.set_enabled(sound_enabled);
 let viewpoint = -1; /* player whose side draws as friendly; -1 = first player */
 let player_locked = false;
 let effect_lo = 0;       /* rolling window start into game.effects */
@@ -167,6 +170,7 @@ let view = { zoom: 3, ox: 0, oy: 0 };
 let canvas = document.getElementById("view");
 let ctx = canvas.getContext("2d");
 let play_btn = document.getElementById("playBtn");
+let sound_btn = document.getElementById("soundBtn");
 let time_label = document.getElementById("timeLabel");
 let seek_el = document.getElementById("seek");
 let speed_el = document.getElementById("speed");
@@ -448,8 +452,9 @@ function centre_map() {
 }
 
 /* ---------- playback ---------- */
-function set_clock(tick, hard) {
+function set_clock(tick, hard, playback = false) {
 	if (!game) return;
+	if (!playback) sound_player.stop();
 	tick = Math.max(game.t0, Math.min(game.t1, tick));
 	if (hard || tick < clock) {
 		/* backwards (or explicit reset): restore from nearest keyframe */
@@ -487,7 +492,18 @@ function frame(ts) {
 	if (playing && game) {
 		if (last_frame !== null) {
 			let dt = Math.min(0.25, (ts - last_frame) / 1000);
-			set_clock(clock + dt * TPS * speed);
+			let previous_clock = clock;
+			set_clock(clock + dt * TPS * speed, false, true);
+			// Update the follow camera before measuring sound distances, just
+			// as drawing does. Free-camera audio never follows the selector,
+			// and only a camera locked to a player hears that player's own
+			// gunfire and hits as self sounds.
+			let self_player = centre_locked_player() ? viewpoint : -1;
+			snap_view();
+			let { w, h } = css_size();
+			let listener = { left: view.ox, top: view.oy,
+				right: view.ox + w / view.zoom, bottom: view.oy + h / view.zoom };
+			sound_player.advance(game.sounds, previous_clock, clock, speed, self_player, () => listener);
 			if (clock >= game.t1) set_playing(false);
 		}
 		last_frame = ts;
@@ -502,6 +518,7 @@ function set_playing(p) {
 	if (!game) p = false;
 	if (p === playing) return;
 	playing = p;
+	if (!playing) sound_player.stop();
 	play_btn.textContent = playing ? "❚❚" : "▶";
 	if (playing) {
 		if (clock >= game.t1) set_clock(game.t0, true);
@@ -1389,6 +1406,16 @@ function toggle_pill_fire_flashes() {
 	request_draw();
 }
 
+function toggle_sound() {
+	if (exporting || loading) return;
+	sound_enabled = !sound_enabled;
+	sound_player.set_enabled(sound_enabled);
+	sound_btn.title = sound_enabled
+		? "Mute game sounds (automatically muted above 100% speed)"
+		: "Enable game sounds (automatically muted above 100% speed)";
+	sound_btn.setAttribute("aria-pressed", String(sound_enabled));
+}
+
 function toggle_player_lock() {
 	if (!game || viewpoint < 0) return;
 	player_locked = !player_locked;
@@ -1415,14 +1442,21 @@ play_btn.addEventListener("click", () => {
 	set_playing(!playing);
 	play_btn.blur();
 });
+sound_btn.addEventListener("click", () => {
+	toggle_sound();
+	sound_btn.blur();
+});
+
 speed_el.addEventListener("change", () => {
 	if (exporting) return;
 	speed = parseFloat(speed_el.value);
+	if (speed > 1) sound_player.stop();
 	speed_el.blur();
 });
 viewpoint_el.addEventListener("change", () => {
 	if (exporting) return;
 	viewpoint = parseInt(viewpoint_el.value, 10);
+	if (player_locked) sound_player.stop();
 	viewpoint_el.blur();
 	centre_locked_player();
 	request_draw();
@@ -1499,6 +1533,7 @@ const SHORTCUT_GROUPS = [
 		{ what: "Back / forward 10s", keys: ["\u2190", "/", "\u2192"] },
 		{ what: "Back / forward 60s", keys: ["Shift \u2190", "/", "Shift \u2192"] },
 		{ what: "Beginning / end", keys: ["Home", "/", "End"] },
+		{ what: "Audio", keys: ["A"] },
 	] },
 	{ name: "Mouse", rows: [
 		{ what: "Pan the map", via: "drag" },
@@ -1667,6 +1702,7 @@ window.addEventListener("keydown", e => {
 		e.preventDefault();
 		/* the classic doubling ladder, whatever finer steps the menu grows */
 		speed = FKEY_SPEEDS[parseInt(e.code.slice(1), 10) - 1];
+		if (speed > 1) sound_player.stop();
 		speed_el.value = String(speed);
 		speed_el.blur();
 	} else if (e.code === "Space") {
@@ -1688,6 +1724,9 @@ window.addEventListener("keydown", e => {
 		set_clock(clock - TPS * (e.shiftKey ? 60 : 10), true);
 	} else if (e.code === "ArrowRight") {
 		set_clock(clock + TPS * (e.shiftKey ? 60 : 10));
+	} else if (toggle_key(e, "KeyA")) {
+		e.preventDefault();
+		toggle_sound();
 	} else if (toggle_key(e, "KeyL")) {
 		e.preventDefault();
 		toggle_player_lock();
@@ -1822,6 +1861,7 @@ if (window.api) {
 			case "next-change": step_change(1); break;
 			case "go-to-beginning": go_to_boundary(false); break;
 			case "go-to-end": go_to_boundary(true); break;
+			case "toggle-sound": toggle_sound(); break;
 			case "zoom-in": zoom_step(1); break;
 			case "zoom-out": zoom_step(-1); break;
 			case "centre-map": centre_map(); break;

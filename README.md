@@ -72,4 +72,6 @@ The shell interpolator is a forensic reconstruction engine for anonymous project
   1998–2008, GPL v2) — an independent GPL reimplementation of Bolo, used to
   explain behaviour the logs already demonstrate; `viewer/format.js`'s map
   reader/writer is a port of its `bolo_map.c`, and `viewer/sprites.js`'s
-  terrain tile rules are a port of its `screencalc.c`.
+  terrain tile rules are a port of its `screencalc.c`. Game sound WAVs in
+  `viewer/sounds/` are copied from WinBolo's `data/sounds/` (excluding lobby
+  and ping sounds).
