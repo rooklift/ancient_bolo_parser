@@ -1,11 +1,15 @@
-/* Minimal WebM muxer for the video export: wraps WebCodecs VP8/VP9 chunks
- * in just enough Matroska to make a file every player accepts. One video
- * track, no audio, no cues (players seek unindexed WebM fine at these
- * durations). No DOM use — also loadable in node for tests.
+/* Minimal WebM muxer for the video export: wraps WebCodecs VP8/VP9 chunks,
+ * and optionally Opus chunks, in just enough Matroska to make a file every
+ * player accepts. One video track, at most one audio track, no cues
+ * (players seek unindexed WebM fine at these durations). No DOM use — also
+ * loadable in node for tests.
  *
- * Streaming shape: header() first, then add_block() per encoded chunk in
- * presentation order; each call returns bytes to append to the file (often
- * empty — clusters are buffered until closed). finalize() returns the last
+ * Streaming shape: header() first, then add_block() per encoded chunk, in
+ * presentation order within each track; each call returns bytes to append
+ * to the file (often empty — clusters are buffered until closed). The two
+ * encoders deliver their chunks at their own pace, so with an audio track
+ * the blocks are interleaved here: a block is written only once every
+ * track has delivered up to its timestamp. finalize() returns the last
  * cluster plus positional patches that back-fill the two values a streamed
  * file cannot know upfront (segment size, exact duration), so the finished
  * file has no unknown-size elements at all. */
@@ -91,6 +95,12 @@ const ID_CODECID = Uint8Array.of(0x86);
 const ID_VIDEO = Uint8Array.of(0xe0);
 const ID_PIXELWIDTH = Uint8Array.of(0xb0);
 const ID_PIXELHEIGHT = Uint8Array.of(0xba);
+const ID_CODECPRIVATE = Uint8Array.of(0x63, 0xa2);
+const ID_CODECDELAY = Uint8Array.of(0x56, 0xaa);
+const ID_SEEKPREROLL = Uint8Array.of(0x56, 0xbb);
+const ID_AUDIO = Uint8Array.of(0xe1);
+const ID_SAMPLINGFREQUENCY = Uint8Array.of(0xb5);
+const ID_CHANNELS = Uint8Array.of(0x9f);
 const ID_CLUSTER = Uint8Array.of(0x1f, 0x43, 0xb6, 0x75);
 const ID_CLUSTERTIMESTAMP = Uint8Array.of(0xe7);
 const ID_SIMPLEBLOCK = Uint8Array.of(0xa3);
@@ -103,14 +113,26 @@ const APP_NAME = "Ancient Bolo Log Viewer";
  * what makes the file seekable without cues. */
 const MAX_CLUSTER_MS = 30000;
 
+const VIDEO_TRACK = 1;
+const AUDIO_TRACK = 2;
+
 /* codec_id: "V_VP9" or "V_VP8" (matching the WebCodecs codec in use).
- * Timestamps are in milliseconds throughout. */
-function create_muxer({ width, height, codec_id }) {
+ * audio, when given, adds an Opus track: { codec_private } is the OpusHead
+ * the encoder reported, { sample_rate, channels } its format, and
+ * { codec_delay_ns } the pre-skip the decoder must drop (Opus files also
+ * declare an 80 ms seek pre-roll). Timestamps are in milliseconds
+ * throughout. */
+function create_muxer({ width, height, codec_id, audio = null }) {
 	let offset = 0;             /* bytes handed out so far */
 	let segment_start = 0;      /* file offset of the segment payload */
 	let segment_size_offset = 0;
 	let duration_offset = 0;    /* file offset of the Duration double */
 	let cluster = null;         /* { base, blocks } — buffered until closed */
+	/* per track: blocks delivered but not yet written, and the latest
+	 * timestamp delivered, which bounds what the other track can release */
+	let tracks = audio ? [VIDEO_TRACK, AUDIO_TRACK] : [VIDEO_TRACK];
+	let pending = new Map(tracks.map(t => [t, []]));
+	let latest = new Map(tracks.map(t => [t, -1]));
 
 	/* duration_ms_estimate makes the header self-consistent even if the
 	 * finalize patch never lands (it is re-patched with the exact value). */
@@ -145,9 +167,9 @@ function create_muxer({ width, height, codec_id }) {
 			scale.length + ID_DURATION.length + 1; /* 1: vint(8) is one byte */
 		push(concat([ID_INFO, info_size, info_payload]));
 
-		push(element(ID_TRACKS, element(ID_TRACKENTRY, concat([
-			element(ID_TRACKNUMBER, be_uint(1, 1)),
-			element(ID_TRACKUID, be_uint(1, 1)),
+		let entries = [element(ID_TRACKENTRY, concat([
+			element(ID_TRACKNUMBER, be_uint(VIDEO_TRACK, 1)),
+			element(ID_TRACKUID, be_uint(VIDEO_TRACK, 1)),
 			element(ID_TRACKTYPE, be_uint(1, 1)), /* video */
 			element(ID_FLAGLACING, be_uint(0, 1)),
 			element(ID_CODECID, ascii(codec_id)),
@@ -155,7 +177,24 @@ function create_muxer({ width, height, codec_id }) {
 				element(ID_PIXELWIDTH, be_uint(width, 2)),
 				element(ID_PIXELHEIGHT, be_uint(height, 2)),
 			])),
-		]))));
+		]))];
+		if (audio) {
+			entries.push(element(ID_TRACKENTRY, concat([
+				element(ID_TRACKNUMBER, be_uint(AUDIO_TRACK, 1)),
+				element(ID_TRACKUID, be_uint(AUDIO_TRACK, 1)),
+				element(ID_TRACKTYPE, be_uint(2, 1)), /* audio */
+				element(ID_FLAGLACING, be_uint(0, 1)),
+				element(ID_CODECID, ascii("A_OPUS")),
+				element(ID_CODECPRIVATE, audio.codec_private),
+				element(ID_CODECDELAY, be_uint(audio.codec_delay_ns, 4)),
+				element(ID_SEEKPREROLL, be_uint(80000000, 4)),
+				element(ID_AUDIO, concat([
+					element(ID_SAMPLINGFREQUENCY, be_double(audio.sample_rate)),
+					element(ID_CHANNELS, be_uint(audio.channels, 1)),
+				])),
+			])));
+		}
+		push(element(ID_TRACKS, concat(entries)));
 
 		return concat(parts);
 	}
@@ -172,29 +211,54 @@ function create_muxer({ width, height, codec_id }) {
 		return bytes;
 	}
 
-	function be_uint_length(value) {
-		let length = 1;
-		while (value >= Math.pow(2, 8 * length)) length++;
-		return length;
-	}
-
-	function add_block(data, timestamp_ms, key) {
+	/* Write one block into the cluster stream. Only a video keyframe opens a
+	 * new cluster (audio blocks are all independently decodable, and would
+	 * otherwise fragment the file into 20 ms clusters). */
+	function write_block({ data, ms, key, track }) {
 		let emitted = EMPTY;
-		if (cluster === null || (key && cluster.blocks.length > 0) ||
-			timestamp_ms - cluster.base > MAX_CLUSTER_MS) {
+		if (cluster === null || (key && track === VIDEO_TRACK && cluster.blocks.length > 0) ||
+			ms - cluster.base > MAX_CLUSTER_MS) {
 			if (cluster !== null) emitted = close_cluster();
-			cluster = { base: timestamp_ms, blocks: [] };
+			cluster = { base: ms, blocks: [] };
 		}
-		let rel = timestamp_ms - cluster.base;
-		let head = Uint8Array.of(0x81, Math.floor(rel / 256), rel % 256, key ? 0x80 : 0);
+		let rel = ms - cluster.base;
+		let head = Uint8Array.of(0x80 + track, Math.floor(rel / 256), rel % 256, key ? 0x80 : 0);
 		cluster.blocks.push(element(ID_SIMPLEBLOCK, concat([head, data])));
 		return emitted;
 	}
 
+	/* Write every pending block that is safe to order: with `all`, every
+	 * block; otherwise those no later than the earliest timestamp all
+	 * tracks have reached, since each track delivers in order. Ties go to
+	 * the lower track number, the video. */
+	function release(all) {
+		let limit = all ? Infinity : Math.min(...latest.values());
+		let out = [];
+		for (;;) {
+			let best = null;
+			for (let track of tracks) {
+				let head = pending.get(track)[0];
+				if (head && (best === null || head.ms < best.ms)) best = head;
+			}
+			if (best === null || best.ms > limit) break;
+			pending.get(best.track).shift();
+			let bytes = write_block(best);
+			if (bytes.length) out.push(bytes);
+		}
+		return out.length === 1 ? out[0] : concat(out);
+	}
+
+	function add_block(data, timestamp_ms, key, track = VIDEO_TRACK) {
+		pending.get(track).push({ data, ms: timestamp_ms, key, track });
+		latest.set(track, timestamp_ms);
+		return release(false);
+	}
+
 	function finalize(duration_ms) {
+		let flushed = release(true);
 		let tail = cluster !== null ? close_cluster() : EMPTY;
 		return {
-			tail,
+			tail: flushed.length ? concat([flushed, tail]) : tail,
 			patches: [
 				{ offset: segment_size_offset, bytes: vint8(offset - segment_start) },
 				{ offset: duration_offset, bytes: be_double(duration_ms) },
@@ -202,10 +266,16 @@ function create_muxer({ width, height, codec_id }) {
 		};
 	}
 
+	function be_uint_length(value) {
+		let length = 1;
+		while (value >= Math.pow(2, 8 * length)) length++;
+		return length;
+	}
+
 	return { header, add_block, finalize };
 }
 
-const BoloWebM = { create_muxer };
+const BoloWebM = { create_muxer, VIDEO_TRACK, AUDIO_TRACK };
 
 if (typeof module !== "undefined" && module.exports) {
 	module.exports = BoloWebM;

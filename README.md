@@ -38,7 +38,7 @@ cd viewer
 npx electron .
 ```
 
-The same files also run as a plain web page, hosted at [rooklift.github.io/ancient_bolo_parser](https://rooklift.github.io/ancient_bolo_parser) (logs are parsed in the browser and never uploaded). Or open `viewer/index.html` locally, or serve the `viewer/` directory with any static file server. The web version cannot export video.
+The same files also run as a plain web page, hosted at [rooklift.github.io/ancient_bolo_parser](https://rooklift.github.io/ancient_bolo_parser) (logs are parsed in the browser and never uploaded). Or open `viewer/index.html` locally, or serve the `viewer/` directory with any static file server. The web version cannot export video. The desktop apps export WebM video from the File menu; when the speaker is on and the speed is 100% or less, the game sounds are mixed into an audio track, placed on the video's clock from the same events the viewer plays.
 
 ### Tauri edition (Windows)
 

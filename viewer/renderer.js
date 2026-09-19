@@ -328,6 +328,14 @@ function centre_locked_player() {
 	return true;
 }
 
+/* The sound listener: the visible world area in tiles, for the live view
+ * or, during an export, the export's world viewport. */
+function sound_listener() {
+	let { w, h } = css_size();
+	return { left: view.ox, top: view.oy,
+		right: view.ox + w / view.zoom, bottom: view.oy + h / view.zoom };
+}
+
 /* Snap the view origin to whole device pixels. The lock's recentring, a
  * resize's half-size shift, a zoom about a fractional anchor and pointer
  * panning can all leave the origin a fraction of a device pixel off the
@@ -500,9 +508,7 @@ function frame(ts) {
 			// gunfire and hits as self sounds.
 			let self_player = centre_locked_player() ? viewpoint : -1;
 			snap_view();
-			let { w, h } = css_size();
-			let listener = { left: view.ox, top: view.oy,
-				right: view.ox + w / view.zoom, bottom: view.oy + h / view.zoom };
+			let listener = sound_listener();
 			sound_player.advance(game.sounds, previous_clock, clock, speed, self_player, () => listener);
 			if (clock >= game.t1) set_playing(false);
 		}
