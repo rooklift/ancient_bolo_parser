@@ -55,8 +55,10 @@ const MAX_FAILURES_RETRIED_ALL = 200;  /* all-256 retries per file */
 
 /* ---- velocity models ------------------------------------------------- */
 
+/* Saturated to int8 like the viewer's copy: the peak entry is 127, not 128
+ * (see docs/tank_shell_bradians.md, "The peak of the table"). */
 const QUARTER_SINE = Array.from({ length: 65 }, (_, bradian) =>
-	Math.trunc(128 * Math.sin(bradian * 2 * Math.PI / 256)));
+	Math.min(127, Math.trunc(128 * Math.sin(bradian * 2 * Math.PI / 256))));
 
 function sine_value(bradian) {
 	let direction = bradian & 0xff;

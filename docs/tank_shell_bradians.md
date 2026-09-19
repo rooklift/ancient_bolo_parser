@@ -61,6 +61,47 @@ offset 0 (9,651) is a pinning artifact, not an aim deficit: bradians
 adjacent to a cardinal are nearly identical, so cardinal shots usually
 retain two candidates instead of one.
 
+## The peak of the table
+
+The pillbox data never reaches the even bradians, so the recovered table's
+peak, `SIN[64]`, was an extrapolation: `trunc(128·sin)` gives 128 there.
+An independently sourced copy of the original table (a 320-entry
+`SInt8 sine_cos_table`, cosine-phased) reads 127 at the peak, as a signed
+byte must. The two candidates differ only at the cardinals. With +127 and
++128 the arithmetic shift in `SCALE` gives the same velocity, so south and
+east shells are unaffected; with −127 and −128 it does not, so a shell
+fired due north (bradian 0) or due west (bradian 192) moves at 63 units per
+update under the int8 table and 64 under the naive one, and its muzzle
+offset is 127 units rather than 128.
+
+Tank shells decide it. Over the full corpus (1,030 logs, 1,005,722 chains
+of three or more restatements), counting chains that exactly one table can
+explain at slack 1, gated to the viewer's `direction*16 + [-12..11]`:
+
+| bradian | fits only the 127 table | fits only the 128 table |
+|---|---|---|
+| 0 (north) | 2,344 | 0 |
+| 192 (west) | 2,405 | 1 |
+
+Of those, 1,113 and 1,083 chains fit no gated bradian at all under the 128
+table. At slack 0 the picture is the same (1,334 and 1,410 against 1 and
+1). The single-player emulator log (`fixtures/emulator_solo`), where every
+shell is the tank's own and records come every two ticks, agrees: of its
+110 chains gated onto a cardinal, all 110 fit the 127 table and 105 the 128
+table, none the other way.
+
+The same source table reads 77 for `SIN[26]` and `SIN[102]` (three of its
+copies of that entry) against 76 for the mirrored `SIN[154]` and
+`SIN[230]`; `128·sin` there is 76.25, so truncation says 76. The corpus
+says 76 too: at each of bradians 26, 90, 102 and 166 the 76 velocity
+explains 2,400–2,800 chains that 77 cannot, and 77 explains 1–2 chains
+exclusively. The 77 is a transcription error in that copy.
+
+So the table is `trunc(128·sin)` saturated to int8, which is what
+`viewer/pillbox_shell_orbits.js` now generates. The pillbox orbits are
+unchanged by it; the viewer's tank bradian states for north and west shots
+pick up the corrected velocity through the shared `scale` helper.
+
 ## The residue, itemised
 
 * **~2% nibble/bradian skew.** The unique-offset histogram has a tail at
