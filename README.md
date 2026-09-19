@@ -42,12 +42,14 @@ cd viewer
 npx electron .
 ```
 
-The same files also run as a plain web page: open `viewer/index.html` in a browser, or serve the `viewer/` directory with any static file server. The web version has no application menu, so it cannot export video, and its toggle shortcuts are bare keys (D, I, F, L, G, M, B, R, T) rather than Ctrl+key. Since there is no menu to read the keys off, the web version alone gets a shortcut sheet: press `?`, or use the `?` button at the end of the transport bar.
+The same files also run as a plain web page: open `viewer/index.html` in a browser, or serve the `viewer/` directory with any static file server. The web version has no application menu, so it cannot export video, and its toggle shortcuts are bare keys (A, D, I, F, L, G, M, B, R, T) rather than Ctrl+key. Since there is no menu to read the keys off, the web version alone gets a shortcut sheet: press `?`, or use the `?` button at the end of the transport bar.
 
 ### Game sounds
 
-Game sounds use the visible area as the listener. Events on screen use near
-sounds, and events off screen use far sounds, however distant. Locking
+Game sounds start muted. The sound button on the transport bar turns them
+on and off, as does Toggle sound on the Playback menu (Ctrl+A, or A on the
+web). Game sounds use the visible area as the listener. Events on screen use
+near sounds, and events off screen use far sounds, however distant. Locking
 the camera to a player makes audio follow that player, and only then are that
 player's own gunfire and hits played as self sounds; a free camera hears every
 tank as near or far. The player selector alone only changes friendly colours.

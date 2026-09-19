@@ -146,7 +146,8 @@ let clock = 0;           /* current tick */
 let playing = false;
 let speed = 1;
 let sound_player = BoloSound.create_player();
-let sound_enabled = true;
+let sound_enabled = false; /* muted until asked: the sound button, Ctrl+A or A */
+sound_player.set_enabled(sound_enabled);
 let viewpoint = -1; /* player whose side draws as friendly; -1 = first player */
 let player_locked = false;
 let effect_lo = 0;       /* rolling window start into game.effects */
@@ -169,6 +170,7 @@ let view = { zoom: 3, ox: 0, oy: 0 };
 let canvas = document.getElementById("view");
 let ctx = canvas.getContext("2d");
 let play_btn = document.getElementById("playBtn");
+let sound_btn = document.getElementById("soundBtn");
 let time_label = document.getElementById("timeLabel");
 let seek_el = document.getElementById("seek");
 let speed_el = document.getElementById("speed");
@@ -1404,6 +1406,16 @@ function toggle_pill_fire_flashes() {
 	request_draw();
 }
 
+function toggle_sound() {
+	if (exporting || loading) return;
+	sound_enabled = !sound_enabled;
+	sound_player.set_enabled(sound_enabled);
+	sound_btn.title = sound_enabled
+		? "Mute game sounds (automatically muted above 100% speed)"
+		: "Enable game sounds (automatically muted above 100% speed)";
+	sound_btn.setAttribute("aria-pressed", String(sound_enabled));
+}
+
 function toggle_player_lock() {
 	if (!game || viewpoint < 0) return;
 	player_locked = !player_locked;
@@ -1430,15 +1442,9 @@ play_btn.addEventListener("click", () => {
 	set_playing(!playing);
 	play_btn.blur();
 });
-document.getElementById("soundBtn").addEventListener("click", event => {
-	if (exporting || loading) return;
-	sound_enabled = !sound_enabled;
-	sound_player.set_enabled(sound_enabled);
-	event.currentTarget.title = sound_enabled
-		? "Mute game sounds (automatically muted above 100% speed)"
-		: "Enable game sounds (automatically muted above 100% speed)";
-	event.currentTarget.setAttribute("aria-pressed", String(sound_enabled));
-	event.currentTarget.blur();
+sound_btn.addEventListener("click", () => {
+	toggle_sound();
+	sound_btn.blur();
 });
 
 speed_el.addEventListener("change", () => {
@@ -1527,6 +1533,7 @@ const SHORTCUT_GROUPS = [
 		{ what: "Back / forward 10s", keys: ["\u2190", "/", "\u2192"] },
 		{ what: "Back / forward 60s", keys: ["Shift \u2190", "/", "Shift \u2192"] },
 		{ what: "Beginning / end", keys: ["Home", "/", "End"] },
+		{ what: "Sound", keys: ["A"] },
 	] },
 	{ name: "Mouse", rows: [
 		{ what: "Pan the map", via: "drag" },
@@ -1717,6 +1724,9 @@ window.addEventListener("keydown", e => {
 		set_clock(clock - TPS * (e.shiftKey ? 60 : 10), true);
 	} else if (e.code === "ArrowRight") {
 		set_clock(clock + TPS * (e.shiftKey ? 60 : 10));
+	} else if (toggle_key(e, "KeyA")) {
+		e.preventDefault();
+		toggle_sound();
 	} else if (toggle_key(e, "KeyL")) {
 		e.preventDefault();
 		toggle_player_lock();
@@ -1851,6 +1861,7 @@ if (window.api) {
 			case "next-change": step_change(1); break;
 			case "go-to-beginning": go_to_boundary(false); break;
 			case "go-to-end": go_to_boundary(true); break;
+			case "toggle-sound": toggle_sound(); break;
 			case "zoom-in": zoom_step(1); break;
 			case "zoom-out": zoom_step(-1); break;
 			case "centre-map": centre_map(); break;
