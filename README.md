@@ -47,7 +47,7 @@ The same files also run as a plain web page: open `viewer/index.html` in a brows
 ### Game sounds
 
 Game sounds start muted. The sound button on the transport bar turns them
-on and off, as does Toggle sound on the Playback menu (Ctrl+A, or A on the
+on and off, as does Toggle audio on the Playback menu (Ctrl+A, or A on the
 web). Game sounds use the visible area as the listener. Events on screen use
 near sounds, and events off screen use far sounds, however distant. Locking
 the camera to a player makes audio follow that player, and only then are that

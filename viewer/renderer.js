@@ -1533,7 +1533,7 @@ const SHORTCUT_GROUPS = [
 		{ what: "Back / forward 10s", keys: ["\u2190", "/", "\u2192"] },
 		{ what: "Back / forward 60s", keys: ["Shift \u2190", "/", "Shift \u2192"] },
 		{ what: "Beginning / end", keys: ["Home", "/", "End"] },
-		{ what: "Sound", keys: ["A"] },
+		{ what: "Audio", keys: ["A"] },
 	] },
 	{ name: "Mouse", rows: [
 		{ what: "Pan the map", via: "drag" },
