@@ -102,6 +102,7 @@ check("top level is EBML header then segment",
 
 const header = parse_level(file, top[0].start, top[0].start + top[0].size);
 check("doctype", string_at(file, find(header, 0x4282)[0]), "webm");
+check("doctype version 2 without audio", [uint_at(file, find(header, 0x4287)[0]), uint_at(file, find(header, 0x4285)[0])], [2, 2]);
 
 const segment = top[1];
 check("segment size patch covers the file exactly",
@@ -213,6 +214,9 @@ check("every block roundtrips (count, mismatches, ordering)",
 	check("nothing is written until the audio track has delivered", released_before_audio, 0);
 
 	const t = parse_level(bytes, 0, bytes.length);
+	const h = parse_level(bytes, t[0].start, t[0].start + t[0].size);
+	check("doctype version 4 with audio, readable from 2",
+		[uint_at(bytes, find(h, 0x4287)[0]), uint_at(bytes, find(h, 0x4285)[0])], [4, 2]);
 	const s = parse_level(bytes, t[1].start, t[1].start + t[1].size);
 	check("segment size patch covers the two-track file", t[1].start + t[1].size, bytes.length);
 	const tr = find(s, 0x1654ae6b)[0];

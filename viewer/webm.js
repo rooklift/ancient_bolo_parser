@@ -146,7 +146,10 @@ function create_muxer({ width, height, codec_id, audio = null }) {
 			element(ID_EBMLMAXIDLENGTH, be_uint(4, 1)),
 			element(ID_EBMLMAXSIZELENGTH, be_uint(8, 1)),
 			element(ID_DOCTYPE, ascii("webm")),
-			element(ID_DOCTYPEVERSION, be_uint(2, 1)),
+			/* CodecDelay and SeekPreRoll are Matroska version 4 elements,
+			 * so a file with the audio track declares that version (as
+			 * libwebm does); readers of version 2 still play it */
+			element(ID_DOCTYPEVERSION, be_uint(audio ? 4 : 2, 1)),
 			element(ID_DOCTYPEREADVERSION, be_uint(2, 1)),
 		])));
 
