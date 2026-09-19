@@ -1627,6 +1627,15 @@ window.addEventListener("keydown", e => {
 		}
 		return;
 	}
+	/* Nothing on the page is meant to be selected (user-select: none),
+	 * but a browser's select-all takes the whole document regardless,
+	 * canvas included. With that selection standing, a left-drag on the
+	 * canvas becomes a native drag of the selection, drawn as an image
+	 * of the viewer, instead of a pan. */
+	if (e.code === "KeyA" && (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
+		e.preventDefault();
+		return;
+	}
 	/* ? opens and closes the sheet, and Escape closes it. Any other
 	 * shortcut closes it on the way through rather than being swallowed:
 	 * a key pressed to find out what it does still does it, with the
@@ -1752,6 +1761,9 @@ window.addEventListener("keydown", e => {
 });
 
 let panning = false, pan_start = null;
+/* belt and braces for the select-all case above: however a selection
+ * comes to include the canvas, a drag on it is a pan, never a native drag */
+canvas.addEventListener("dragstart", e => e.preventDefault());
 canvas.addEventListener("pointerdown", e => {
 	pointer_buttons = e.buttons;
 	hover_point = hover_point_from_event(e);
