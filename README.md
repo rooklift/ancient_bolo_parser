@@ -27,10 +27,6 @@ for (const rec of records(new Uint8Array(fs.readFileSync(file)))) {
 }
 ```
 
-## Fixtures
-
-`fixtures/` holds anonymised logs: three single games from the 2000s, and in `fixtures/pairs/` ten games each recorded on two machines at once, named by date (a second number telling apart two games of one day) with `-A` and `-B` for the two recorders. `fixtures/emulator_solo` is different: a single-player game the owner recorded in an emulator in 2026 as a set of controlled experiments, with the ground truth typed into the chat, read by `tools/measure-emulator-log.cjs` and written up in FORMAT.notes.md under [E:emulator-log]. In the old logs, player and machine names, chat and IP addresses are substituted byte for byte (`tools/redact-names.cjs`, `redact-chat.cjs`, `redact-addresses.cjs`); every other byte is as recorded, so the two logs of a pair still agree on every shared record. `tools/compare-recordings.cjs` lays the two logs of a pair side by side, and `tools/audit-paired-reconstruction.cjs` compares what the viewer's shell matcher makes of each: the same packets under two sets of timestamps. `tools/fingerprint-build.cjs` digests the viewer's build of every fixture (`--save` before a change that should leave the reconstruction alone, `--check` after), so such a change is proven byte-identical rather than trusted.
-
 # Ancient Bolo Log Viewer
 
 `viewer/` is the Ancient Bolo Log Viewer — an [Electron](https://www.electronjs.org/) app that plays logs back. Featuring gameplay, alliances, messages, seeking, speeds up to 64×, and a viewpoint selector choosing whose side draws as friendly.
@@ -42,7 +38,7 @@ cd viewer
 npx electron .
 ```
 
-The same files also run as a plain web page, hosted at [rooklift.github.io/ancient_bolo_parser](https://rooklift.github.io/ancient_bolo_parser) (logs are parsed in the browser and never uploaded). Or open `viewer/index.html` locally, or serve the `viewer/` directory with any static file server. The web version has no application menu, so it cannot export video, and its toggle shortcuts are bare keys (D, I, F, L, G, M, B, R, T) rather than Ctrl+key. Since there is no menu to read the keys off, the web version alone gets a shortcut sheet: press `?`, or use the `?` button at the end of the transport bar.
+The same files also run as a plain web page, hosted at [rooklift.github.io/ancient_bolo_parser](https://rooklift.github.io/ancient_bolo_parser) (logs are parsed in the browser and never uploaded). Or open `viewer/index.html` locally, or serve the `viewer/` directory with any static file server. The web version cannot export video.
 
 ### Tauri edition (Windows)
 
