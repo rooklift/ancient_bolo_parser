@@ -94,10 +94,11 @@ check("header-only file yields no records", [...BoloLog.records(header())].lengt
 	throws("records() rejects wrong signature", () => [...BoloLog.records(new Uint8Array(128).fill(0x11))]);
 }
 
-// --- towed-base bit (b=2): never seen in real logs, but the position
-// extension must be consumed (bolorama skips senderFlags & 0xE0) ---
+// --- towed-base bit (b & 2): never seen in a real log, and nothing is
+// known of the layout it implies, so the record is refused whole rather
+// than parsed under a guessed one [E:ext-bit] ---
 {
-	const MASK = [0x83, 0xb6, 0x59, 0xe3, 0xee, 0x59, 0x10, 0x27, 0xa8, 0x64];
+	const MASK = [0x83, 0xb6, 0x59, 0xe3, 0xee, 0x59, 0x10, 0x27, 0xa8, 0x64, 0xff, 0x17];
 	function rec(payload) {
 		const buf = new Uint8Array(72 + 4 + 1 + payload.length);
 		buf.set([0x42, 0x6f, 0x6c, 0x6f, 0x00, 0x99, 0x07, 0x00]);
@@ -105,15 +106,28 @@ check("header-only file yields no records", [...BoloLog.records(header())].lengt
 		for (let i = 0; i < payload.length; i++) buf[77 + i] = payload[i] ^ MASK[(i + 1) % MASK.length];
 		return [...BoloLog.records(buf)][0];
 	}
-	// b=2, no tank position: 3-byte extension then a shot_fired opcode
+	// b=2 alone, payload shaped like a 3-byte block then a shot_fired
 	let r = rec([0x00, 0x20, 0x00, 0x40, 0x41, 0x00, 0x54]);
-	check("b=2 record parses cleanly", r.warning === undefined, true);
-	check("b=2 extension type", r.subpackets[0].type, "towed_base_position");
-	check("b=2 following opcode intact", r.subpackets[1].type, "shot_fired");
-	// b=a (LGM out + towed bit): single extension, reads as LGM
-	r = rec([0x00, 0xa0, 0x00, 0x40, 0x41, 0x00, 0x54]);
-	check("b=a record parses cleanly", r.warning === undefined, true);
-	check("b=a extension type", r.subpackets[0].type, "lgm_position");
+	check("b=2 record warns", r.warning, "towed-base status bit set (b & 2): record layout unknown");
+	check("b=2 record yields no subpackets", r.subpackets, []);
+	check("b=2 record keeps its payload for inspection", r.unparsed, "40410054");
+	check("b=2 header fields still read", [r.seq, r.player, r.status, r.tankStatus, r.tankDir], [0, 0, 2, 0, 0]);
+	// b=a (LGM out + towed bit): the bit taints the whole record, even
+	// the tank position, since the layout after it is the guess
+	r = rec([0x00, 0xa0, 0x80, 0x40, 0x41, 0x00, 0x30, 0x00, 0x40, 0x41, 0x00, 0x54]);
+	check("b=a record warns", !!r.warning, true);
+	check("b=a record yields no subpackets", r.subpackets, []);
+	// b=3 (tick + towed): the same
+	r = rec([0x00, 0x30, 0x00, 0x54]);
+	check("b=3 record warns", !!r.warning, true);
+	check("b=3 record yields no subpackets", r.subpackets, []);
+	// b=8 and b=4 still parse the 3-byte extension as before
+	r = rec([0x00, 0x80, 0x00, 0x40, 0x41, 0x00, 0x54]);
+	check("b=8 parses cleanly", r.warning, undefined);
+	check("b=8 extension type", r.subpackets.map(s => s.type), ["lgm_position", "shot_fired"]);
+	r = rec([0x00, 0x40, 0x00, 0x40, 0x41, 0x00, 0x54]);
+	check("b=4 parses cleanly", r.warning, undefined);
+	check("b=4 extension type", r.subpackets.map(s => s.type), ["parachute_position", "shot_fired"]);
 }
 
 // One awaited main for the async checks: two detached IIFEs could race,

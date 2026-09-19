@@ -210,6 +210,18 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   is unexplained. The shell
   matcher's working bound of "an angry pill fires at most every 5 or 6
   ticks" in `viewer/motion.js` agrees.
+- **A shell on a base angers its pills.** A shell hitting a base counts as
+  one hit on every live grounded pill allied to the base (the base's owner
+  or an ally of theirs) whose square lies **strictly within 7 squares** of
+  the base's, centre to centre: one base shell halves the pill's delay from
+  100 to about 50 exactly as a direct hit does, a second to about 25, and a
+  grind of eighteen puts the pill on the floor. The range is a circle, not a
+  box: a pill at offset (6,3), distance 6.71, is angered every time, while
+  pills at (7,0), (5,5), (7,1) and (6,4), distances 7.00 to 7.21, go on
+  firing at the rested pace through the whole grind. Neutral pills are not
+  angered, and hostile pills near the hit base only at the background rate
+  of a fight; neutral bases are never hit, since shells pass through them
+  **(corpus, [E:base-anger])**.
 - **Targeting.** A pill fires at the nearest hostile tank within about 8.5
   tiles that is not hidden in forest, leading a moving target by a sector or
   two, and simulated by the target's own machine **(corpus,
@@ -401,10 +413,15 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
 - **What allies share.** Their pills do not fire at each other and their
   bases refuel each other **(corpus)**. A player can switch their view to the
   area around any friendly pillbox instead of their own tank **(owner)**.
-  Messages can be addressed to allies only **(owner)**; the `FA` recipient
-  bitmask carries the set. The owner knows of no "nearby" recipient option,
-  so any bitmask that is neither everyone nor an alliance is a hand-picked
-  set. Allied shells still do damage **(owner)**.
+  Messages can be addressed to everyone, to allies, to nearby tanks, or
+  to any single player **(owner, in the emulator)**; the `FA` recipient
+  bitmask carries the set and nothing says which option built it, so a
+  viewer should show a non-broadcast message as sent to some players and
+  not guess further. Every option sets the sender's own bit, and the
+  allies option counts only the allies still in the ring **(corpus,
+  [E:chat-address], which also has what the corpus shows of each
+  option)**. Allied shells still do damage
+  **(owner)**.
 - **Leaving, quitting, disconnecting.** A leaver's planted pills and bases
   stay with the alliance; a quitter's do too; a disconnection is treated the
   same as a quit **(owner, unsure on the last)**. Which member holds them is
@@ -414,7 +431,12 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   player's things **(owner, unsure)**. The log does not say which was
   pressed, and playback assumes Rejoin **(corpus, [E:pill-target])**.
 - **Brains** (AI players) did send chat messages and moved according to
-  their own code **(owner, unsure)**; nothing in the log marks a brain.
+  their own code **(owner, unsure)**. The messages mark them: a brain
+  addresses its allies, or one peer, by a bitmask **without the sender's
+  own bit**, which the chat dialog always sets, and the text is protocol
+  ("/mytype aIndy 31", "Received: doGetBaseTargetInfo"): 6,344 such
+  messages in fewer than ten corpus logs, none in the fixtures
+  **(corpus, [E:chat-address])**. Nothing else in the log marks a brain.
 - The player@node **history string** in the `F1 Cn` groups remains
   unexplained **(owner: don't know; corpus: murky, [E:history])**.
 

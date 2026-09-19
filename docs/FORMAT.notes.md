@@ -14,6 +14,8 @@ Corpus figures are from the 443-log set unless an entry says 446, in which case 
 - [`[E:tankpos-5]`](#etankpos-5-the-tank-position-subpacket-is-5-bytes) — the tank position subpacket is 5 bytes
 - [`[E:ext-bit]`](#eext-bit-the-lgm-parachute-position-extension) — the LGM / parachute position extension
 - [`[E:empty-chat]`](#eempty-chat-a-zero-length-chat-message-is-followed-by-junk) — a zero-length chat message is followed by junk
+- [`[E:chat-cap]`](#echat-cap-a-chat-message-is-capped-by-the-room-left-in-its-record) — a chat message is capped by the room left in its record
+- [`[E:chat-address]`](#echat-address-what-the-recipient-mask-says-about-who-sent-it-and-how) — what the recipient mask says about who sent it, and how
 
 **The ring and the network**
 
@@ -44,6 +46,7 @@ Corpus figures are from the 443-log set unless an entry says 446, in which case 
 - [`[E:pill-target]`](#epill-target-the-f4-sender-is-the-pills-target-hand-over-of-a-departed-players-property) — the `F4` sender is the pill's target; hand-over of a departed player's property
 - [`[E:pill-fire-index]`](#epill-fire-index-the-direction-0-index-fault) — the direction-0 index fault
 - [`[E:massaging]`](#emassaging-a-touching-tank-makes-a-pill-fire-along-the-tanks-facing) — a touching tank makes a pill fire along the tank's facing
+- [`[E:base-anger]`](#ebase-anger-a-shell-on-a-base-is-a-hit-on-every-allied-pill-within-7-squares) — a shell on a base is a hit on every allied pill within 7 squares
 - [`[E:pill-capture]`](#epill-capture-pickup-captures-repair-never-does) — pickup captures; repair never does
 - [`[E:superboom-pill]`](#esuperboom-pill-superboom-pill-damage-is-4-a-single-crater-does-none-a-plant-is-at-full-armour) — superboom pill damage is 4; a single crater does none; a plant is at full armour
 - [`[E:crater-pill]`](#ecrater-pill-a-grounded-pillbox-spares-the-ground-beneath-it-from-every-crater-path) — a grounded pillbox spares the ground beneath it from every crater path
@@ -134,13 +137,49 @@ An early version of Osterwald's notes described a 6-byte layout with a leading `
 
 ### [E:ext-bit] — the LGM / parachute position extension
 
-Every record of both sample logs parses exactly to its length under this rule and fails without it. That bit 1 also carries the extension comes from bolorama's wire parser, which skips it for `senderFlags & 0xE0`.
+Every record of both sample logs parses exactly to its length under this rule and fails without it.
+
+Bit 1 (`b & 2`) is a different matter. The 2003 notes name it towed bases, a feature that never shipped, and say nothing of its payload; no record in the corpus or in any fixture has ever set it. The parser once consumed the same 3-byte extension for it, on the strength of bolorama's wire parser, whose whole treatment of the sender flags is
+
+```go
+senderFlags := buffer[pos] & 0xf0
+...
+if senderFlags&0xe0 > 0 {
+    pos = pos + 3
+}
+```
+
+(`src/bolo/bolo.go`, `rewriteGameStateBlock`). That is a NAT proxy stepping past a block it never had to understand: it skips 3 bytes for any of the top three bits, never separates them, and carries no comment on what they mean, so its `0xE0` may be nothing more than a mask wide enough for the two bits its author had seen. It cannot tell whether bit 1 shares the LGM block, adds a block of its own beside it, or adds none, and under two of those three readings consuming one block misreads every byte that follows, silently. Since a guessed layout costs more than a refused record, the parser now refuses a record with the bit set: header fields only, the payload kept in `unparsed`, and a warning, so a first sighting is loud rather than misparsed. `test/test-robustness.cjs` pins the behaviour, and a log that sets the bit would be the evidence this entry is missing.
 
 ### [E:empty-chat] — a zero-length chat message is followed by junk
 
 Of 44,374 chat messages in both collections (1,030 logs), ten have a Pascal length byte of zero, and every one of the ten is followed in its record by bytes that are not subpackets, while no legitimately empty message exists at all. Read as subpackets the leavings are five terrain changes and explosions on deep sea, 79 to 195 squares from the sender's tank (one painted a shot building into open water at (104,32) of `20021024.3`, record 8617), and five three-shell lists at absurd positions. Their first byte is always printable — a letter or a space — and the rest reads as text under no encoding and under no shift of the XOR mask. Each trailer is exactly as long as the one subpacket its first byte would name (3 bytes after a letter, `6x`/`7x`; 8 bytes after a space, `20`), which says the sending machine sized the packet by walking its own buffer with the opcode table: it stepped into the leavings and copied what they claimed. It is the sender's fault, not the recorder's or the ring's: one of the ten is the recorder's own outgoing message (`20020912`, second collection, record 137), and the other nine reached two different recorders at like rates and were logged whole, the junk inside the packet's length. The parser therefore ends the record at a zero-length message, keeps the leavings in `unparsed`, and warns.
 
 The rule is as narrow as it needs to be. Messages are not always last in a record: 995 records carry subpackets after a message, and the 1,290 shell lists among them are real — their distance from the sender's tank has the ordinary shell list's distribution (median 3.0 squares against 3.2, 90th percentile 6.0 against 6.0). Only the ten zero-length messages are followed by junk, and every trailing explosion or terrain change is one of them.
+
+### [E:chat-cap] — a chat message is capped by the room left in its record
+
+The length byte of a record counts itself and stops at 127, so a payload is at most 126 bytes. The record header takes 3 and the `FA` byte, the recipient mask and the Pascal length byte take 4, which leaves 119 for the text of a message in a bare record, and 114 once a 5-byte tank position stands in front of it. A 120-character message, the limit this document used to give, cannot be written in the format at all.
+
+The logs agree. Of 44,374 chat messages in both collections (1,030 logs) none is longer than 119. Six are exactly 119 (one in the first collection, five in the second), all in records with no tank position; two are exactly 114 (one in each), both behind a tank position; and no message has a length from 115 to 118. All eight end on the last byte of a 126-byte payload with no other subpacket in the record, where the eight longest messages short of a cap (100 to 111 characters) end 8 to 19 bytes before it.
+
+Bolo splits rather than drops. Each of the eight is followed 3 to 29 ticks later by another message from the same sender that picks up where it was cut, usually in the middle of a word; one 272-character line spans three records as 119 + 119 + 34. None of the eight messages short of a cap has a follow-up within a second. The continuation is an ordinary `FA` with nothing to mark it as one, so a reader that wants the message whole has to join them itself: same sender, the earlier part ending on its record's last byte.
+
+Not seen: a message at a cap behind the 3-byte position extension [E:ext-bit], which by the same arithmetic would stop at 116, or 111 with a tank position as well.
+
+### [E:chat-address] — what the recipient mask says about who sent it, and how
+
+The chat dialog offers four targets, seen by the owner in the emulator: everyone, allies, nearby tanks, and any single player. Everyone is `FFFF`. The other three all go out as a bitmask with nothing to say which built it, so `tools/measure-chat-recipients.cjs` reads the mask's shape against the viewer's game model and the tanks' positions. Over both collections (1,030 logs, 44,374 messages, 14,859 of them non-broadcast; the holder's run of the tool at `c7f63a5` is archived as `docs/corpus_runs/c7f63a5-chat-recipients-corpus.txt`, and the reading below was made from its rows) the masks fall into four shapes.
+
+**The sender's own bit is the first split.** 8,515 non-broadcast masks carry it and 6,344 do not, and the two populations have nothing in common. Every one of the 6,344 is in fewer than ten logs, and all but one carry protocol text rather than speech: `/mytype aIndy 31`, `Received: doGetBaseTargetInfo`, `/pt 13 337`, `/gbt 11 122`, `/BASE 10 139 114 F 5 5 5` — brains (AI players) talking to each other. 3,437 of them are the sender's alliance set with the sender left out, and 2,907 name one peer alone. The dialog never omits the sender: of the 8,515 masks with the bit, none is a brain's. So a mask without the sender's bit is a brain's message, which is the first thing in a log to mark a brain at all (GAMEPLAY.md had "nothing in the log marks a brain"), and a viewer can tell the two apart from the address alone.
+
+**Allies.** 8,387 masks with the bit equal the sender's alliance set as the model holds it, before or after the record. 80 more equal it once players unheard from for 30 s are dropped from the set, 24 of those being the sender's bit alone with every ally gone quiet: the option builds from the ring as it stands, and the model's `present` outlives a player the ring has dropped ([E:owner-signals]). The tool now builds the set that way.
+
+**One player.** 42 masks are the sender plus one other, not the alliance set, in some fifteen logs: private words to an enemy ("[private] check yer email", "pvt: hhmm...", "damon: this was absurd", "ally me"), the privacy marked by hand, since Bolo marks nothing. The target sits anywhere from 1.5 to 60 squares off and is the nearest tank in 10 of the 42.
+
+**Nearby.** Five masks are the sender's bit alone while an ally or an enemy is still heard from, which no other option produces, and one of them reads "fuck all nearby tanks!" with every tank 40 squares off. The nearest excluded tanks in the five are 8.0, 15.8, 19.1, 22.2 and 40 squares away, so the radius is under 8 squares. Five of the one-player masks reach a tank 1.5 to 3.7 squares away with the next tank beyond 5.1 ("I run. u fuel", "i go s", "oops", "ally me" twice), which is what a nearby message with one tank in range looks like and also what a single-player message to a neighbour looks like; the log cannot separate them. If they are nearby messages the radius is between 3.7 and 5.1 squares, measured centre to centre here, and whether Bolo measures a circle or a box the rows to hand cannot say (the tool now prints per-axis distances for the next run). One mask of two others that is not the alliance set is a mixed cut and reads as the model's alliance picture being off. So the nearby option was used, at most, about ten times in 1,030 logs, and the owner's guess that it saw little use stands.
+
+The fixtures (24 logs, 236 non-broadcast messages) hold 235 alliance messages and one single-player message, and no brain.
 
 ## The ring and the network
 
@@ -488,6 +527,37 @@ It survived twenty years unnoticed because nothing depends on it: which pillbox 
 ### [E:massaging] — a touching tank makes a pill fire along the tank's facing
 
 The well-known Bolo bug: a tank against a hostile pillbox, creeping along its edge, makes the pill fire in the tank's own facing direction instead of at the tank. Measured by `tools/measure-pill-target.cjs`: over the corpus, of 1,156,489 fires at the sender's tank, the tank is within 24 px of the pill in 14,790, and in 5,767 of those (39.0%) the fire direction equals the tank's facing, against 76,031 of 1,141,699 (6.7%, the 1-in-16 chance rate) when the tank is further off; the sample log alone reads 189 of 323 (58.5%) against 6.2%. Among the contested fires whose nibble points at neither tank, 1,022 of 8,672 are touching fires along the facing. A consumer matching pill shells to fire events should not assume the direction nibble points at the target when the target is touching the pill.
+
+### [E:base-anger] — a shell on a base is a hit on every allied pill within 7 squares
+
+The log has no anger field, but a pill's fire rate is its anger (a rested pill fires every ~100 ticks and each hit halves the delay, [E:gameplay]), so whether shooting a base provokes the pills around it, and from how far, can be read off the pills' fire gaps. `tools/measure-base-anger.cjs` opens an episode at every `An` for every grounded live pill in the log, requires the pill to have been at rest (no `9n` on it and no hit on any base allied to it for 120 s), and reads its `F4` fires per sending machine over the next 10 s, stopping at the first `9n` on the pill or the first hit on a different allied base. The smallest gap in the window, counting the gap that spans the hit, classifies the pill: 70 ticks or less is angry (a rested gap is 97–107, one halving gives 48–60). Hostile pills near the same hits are the control.
+
+Over 1,030 logs and 190,995 base hits, 5,169 episodes have an observable pill. By the pill's relation to the base: same owner 320 of 493 angry (65%), allied owner 123 of 235 (52%), hostile 30 of 1,443 (2%), neutral pill 35 of 2,998 (1%). Hits on a neutral base never occur, since shells pass through them ([E:terrain-hits]). The allied fraction is a distance effect. By the squared distance between the pill's square and the base's:
+
+| d² | d | observed | angry |
+|---|---|---|---|
+| 1–36 | ≤ 6.00 | 494 | 96% |
+| 37 | 6.08 | 36 | 100% |
+| 40, 41 | 6.32, 6.40 | 47 | 94% |
+| 45 | 6.71 | 26 | 100% |
+| 49 | 7.00 | 3 | 0% |
+| 50–64 | 7.07–8.00 | 44 | 0% |
+| > 64 | | 233 | 2% |
+
+So the rule is a circle of radius 7, strictly inside: 438 of 448 allied pills at d² < 49 are angered and 5 of 280 at d² ≥ 49, the latter at the control's rate. A box would not do: (5,5) and (6,4) lie inside a 6-box and never anger, (6,3) lies outside a circle of 6 and always does. The |dx|,|dy| grid in the tool's output shows the quarter-circle directly.
+
+**The anger is one hit's worth.** With exactly one base hit in the episode, 70 in-circle pills gave a smallest gap of 44–62 in all but a handful, median 53, the single halving from 100; with two hits, 82 cases cluster at 21–30, median 26; with three, median 13. A base under a full grind (18 shells, the base's 90 armour at 5 a shell) puts every allied pill in the circle on the floor.
+
+**The edge, case by case.** The rest requirement leaves few cases at the outside offsets, so the tool's `--relaxed` mode drops it: pills already angry from the fight then read angry at every distance (55–62% at d² of 49–52, against 98% at 45), but a pill that fires at the rested pace *while* its base is being shot cannot be inside the circle, and those are the proof. The clearest, by replay label and log tick, with the pill firing at the shooting tank throughout unless said otherwise:
+
+- (7,0), d 7.00: `20020730.1` t216748, 18 shells on the base in 4.5 s, the pill 7 squares south of it, same owner, unhit for 36 minutes, fires six times at gaps of 99–106; `20010410~e0f9a1` t817298, 18 shells, pill 7 squares west, gaps 96–106; `20040601.1~77f665` t14723718, 8 shells, gaps 99–105; `20040812.1~a51417` t1202775, 3 shells and eight rested gaps over 16 s, after which the tank turns on the pill itself and it is on the floor within a few `9n` — anger, when it comes, is unmistakable.
+- (5,5), d 7.07: `20011027~628a3e` t211935, 18 shells, pill unhit for 8 minutes, gaps 97 and 98; `20021022.2~e1eecd` t418779, 16 shells, gaps 97 and 104; `20020202~910e86` t651172, 6 shells, five gaps of 94–113 at a second enemy; `20020209~1a1380` t1043770, six gaps of 89–106.
+- (6,4), d 7.21: `20020923~4fac3d` t80705, 14 shells in 3 s, five gaps of 97–107; `20040927~45f82d` t1090931, 14 shells, gaps 99–103; `20030327~a1ce9d` t263893, 10 shells, gaps 98–103; `20050311.4~ec4128` t128427, 4 shells and five rested gaps, then the tank shoots the pill and it fires every 6–8 ticks.
+- (6,3), d 6.71, the nearest offset inside: 26 of 26 angered under the rest requirement, 317 of 323 relaxed.
+
+The ownership in every listed case is the model's ([E:owner-signals]), the pill and base under the same owner in all but one, where the owners are allies.
+
+**Noise.** The 10 in-circle pills reading calm are mostly a single fire 15–70 ticks after the hit at a gap of about 100: a shot that was already due, stamped by the recorder after a hit that came from another machine. The 5 far pills reading angry include three pills of one replay bursting at gap 0 on the same tick, a superboom, which damages pills with no event ([E:superboom-pill]). Two machines simulating one pill would interleave into false short gaps, which is why gaps are taken per sender. The corpus runs are archived as `docs/corpus_runs/60aad34-base-anger.txt` and `-base-anger-relaxed.txt`.
 
 ### [E:pill-capture] — pickup captures; repair never does
 

@@ -42,30 +42,7 @@ cd viewer
 npx electron .
 ```
 
-The same files also run as a plain web page: open `viewer/index.html` in a browser, or serve the `viewer/` directory with any static file server. The web version has no application menu, so it cannot export video, and its toggle shortcuts are bare keys (A, D, I, F, L, G, M, B, R, T) rather than Ctrl+key. Since there is no menu to read the keys off, the web version alone gets a shortcut sheet: press `?`, or use the `?` button at the end of the transport bar.
-
-### Game sounds
-
-Game sounds start muted. The sound button on the transport bar turns them
-on and off, as does Toggle audio on the Playback menu (Ctrl+A, or A on the
-web). Game sounds use the visible area as the listener. Events on screen use
-near sounds, and events off screen use far sounds, however distant. Locking
-the camera to a player makes audio follow that player, and only then are that
-player's own gunfire and hits played as self sounds; a free camera hears every
-tank as near or far. The player selector alone only changes friendly colours.
-Sounds are mono, as in the game. They play at 50% volume, with a random ±3%
-pitch/rate variation on each playback to soften repetition. Up to four copies
-of one sound overlap; a fifth restarts the copy that has played longest. The
-**Speaker** button toggles audio. Playback above 100%, seeking, and
-frame stepping are silent. Video exports remain silent. Browsers may require
-a click or keypress before allowing sound. The logs do not contain an audio
-track, so sounds are inferred. A record is stamped when its packet reached
-the recorder, which bunches a busy pillbox's fire events into whatever records
-the ring delivered, so gunfire is not taken from the fire events: each shell
-the matcher traced back to a muzzle sounds at the moment it is drawn leaving
-it, the same clock as the impact sounds, and a shell the matcher could not
-place is silent. Builder and terrain-impact sounds come from the recorded
-events, impacts retimed to the matched shell's arrival where there is one.
+The same files also run as a plain web page, hosted at [rooklift.github.io/ancient_bolo_parser](https://rooklift.github.io/ancient_bolo_parser) (logs are parsed in the browser and never uploaded). Or open `viewer/index.html` locally, or serve the `viewer/` directory with any static file server. The web version has no application menu, so it cannot export video, and its toggle shortcuts are bare keys (D, I, F, L, G, M, B, R, T) rather than Ctrl+key. Since there is no menu to read the keys off, the web version alone gets a shortcut sheet: press `?`, or use the `?` button at the end of the transport bar.
 
 ### Tauri edition (Windows)
 

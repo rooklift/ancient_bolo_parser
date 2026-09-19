@@ -16,6 +16,7 @@
 				"title": "Ancient Bolo Log Viewer",
 				"width": 1280,
 				"height": 860,
+				"center": true,
 				"backgroundColor": "#10131a",
 				"backgroundThrottling": "disabled",
 				"devtools": true

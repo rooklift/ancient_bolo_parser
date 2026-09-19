@@ -52,12 +52,12 @@ Bit 0 is independent; bits 2–3 form a two-bit field:
 | value | meaning |
 |-------|---------|
 | 1     | 1000 ticks elapsed: increment base stocks. **Every** player's tick increments **every** base's shells, mines and armour by 1 (capped at 90), so regeneration scales with player count [E:base-tick] |
-| 2     | unused (towed bases) |
+| 2     | unknown; the 2003 notes call it towed bases, a feature that never shipped. No log has ever set it, and a record that does is refused (see below) |
 | 4     | LGM (man) dead — position subpacket is the replacement man's **parachute** |
 | 8     | LGM out of tank |
 | C     | LGM out of tank, carrying a pillbox |
 
-**If `b & 0xE` is nonzero, a 3-byte position subpacket is present** (after the tank position, if any): `XX YY yx` — the LGM for 8/C, the replacement man's parachute for 4. This resolves the values 5, 9 and D that the 2003 notes left as unknown — they are simply 4/8/C with the tick bit set. Bit 1 (the never-shipped towed-base feature) also carries the extension, but no real log has ever been seen with that bit set, so its payload semantics are unconfirmed [E:ext-bit].
+**If `b & 0xC` is nonzero, a 3-byte position subpacket is present** (after the tank position, if any): `XX YY yx` — the LGM for 8/C, the replacement man's parachute for 4. This resolves the values 5, 9 and D that the 2003 notes left as unknown — they are simply 4/8/C with the tick bit set. **A record with `b & 2` set is refused whole**: the parser reads the header fields, parses no subpackets, keeps the payload in `unparsed` and warns. Nothing is known of the layout that bit implies — whether it adds a block of its own, shares the LGM one, or adds none — and no real log has ever set it, so any layout would be a guess applied silently to every byte after it [E:ext-bit].
 
 ### Tank status bits `T`
 
@@ -110,7 +110,7 @@ After the position subpackets, zero or more subpackets identified by their first
 | `F7` | 1 | tank lays mine |
 | `F8` | 2+len | node id: Pascal string `player@node`; also sent on rename. A joining player's F8 has tank status `T=7` and is followed by established ring members restating their unchanged F8 ids; together those distinguish a slot admission from an isolated rename even when the former occupant's quit was lost |
 | `F9` | 2 | tank death; code 1 = explosion, 2 = crater, 3 = sunk in deep sea, which is also how a boat dies on the map's mined border (an F901 may be followed by F902 mid-animation). The respawn is the next tank position without the dying bit [E:respawn-gap]. Terminal cratering at the wreck's resting place is **evented** (`7T`/`7D`) and is gated on the ammo aboard: a 4-square superboom above 60 shells + mines, a single crater from 1 to 60, and no explosion at all when the tank dies empty [E:death-tiers] |
-| `FA` | 4+len | chat message: 2-byte little-endian recipient bitmask (`FFFF` = all) + Pascal string (max 120 chars; longer messages split across records). Shell lists can follow a message in the same record. A **zero-length** message is a sender-side fault, and the bytes after it are buffer leavings, not subpackets: the parser stops there and flags the record [E:empty-chat] |
+| `FA` | 4+len | chat message: 2-byte little-endian recipient bitmask (`FFFF` = all) + Pascal string. **Every message a player sends carries the sender's own bit** in the mask, whichever of the dialog's targets built it (allies, nearby, one player); a mask without it is a brain's, which addresses its peers by explicit mask [E:chat-address]. The text is capped by the room left in the record: 119 chars, or 114 behind a tank position; a longer message is cut there and continues in a later record from the same sender [E:chat-cap]. Shell lists can follow a message in the same record. A **zero-length** message is a sender-side fault, and the bytes after it are buffer leavings, not subpackets: the parser stops there and flags the record [E:empty-chat] |
 | `FB` | 4 | shell falls to ground at `XX YY yx`; the pixel position is the shell's terminal point [E:shell-fall-terminal] |
 | `FC dn` | 2 | shell (direction `d`) hits tank `n`. Sent by the machine **simulating the shell** — the firing tank's owner for a tank shell; the pill's target for a pill shell, regardless of which tank it strikes — so a tank hit by a pill aimed at it reports its own hit, a tank hit by another tank's shell does not, and a pill shell that strikes a tank other than its target is reported by the target, not the tank hit. No hit is reported by two machines [E:hit-reporter] |
 | `FD`, `FE` | 1 | unused |
