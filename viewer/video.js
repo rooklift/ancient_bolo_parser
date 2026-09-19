@@ -435,13 +435,16 @@ async function ex_run(start_tick) {
 			draw();
 			draw_export_sidebar();
 			if (mixer) {
-				/* the frame covers the clock advance that led to it; the
-				 * first one takes the events on the start tick as well */
+				/* The frame covers the clock advance that led to it (the
+				 * first one takes the events on the start tick as well), and
+				 * the audio rendered here ends at this frame's time: every
+				 * event up to that time is queued before its samples are
+				 * rendered, so no sound loses its start to a later frame. */
 				let previous = i === 0 ? start_tick - step : Math.min(game.t1, start_tick + (i - 1) * step);
 				let self_player = centre_locked_player() ? viewpoint : -1;
 				let listener = sound_listener();
 				mixer.advance(game.sounds, previous, clock, self_player, () => listener);
-				audio_feed(mixer.render((i + 1) * EXPORT_AUDIO_RATE / EX.fps), false);
+				audio_feed(mixer.render(i * EXPORT_AUDIO_RATE / EX.fps), false);
 			}
 			let frame = new VideoFrame(export_canvas, {
 				timestamp: Math.round(i * 1e6 / EX.fps),
@@ -461,7 +464,12 @@ async function ex_run(start_tick) {
 		if (!export_cancel_requested) {
 			ex_progress(total, total);
 			if (audio_feed) {
-				audio_feed(new Float32Array(0), true);
+				/* the last frame's own duration: the events it would have
+				 * led to, then the samples up to the end of the video */
+				let self_player = centre_locked_player() ? viewpoint : -1;
+				let listener = sound_listener();
+				mixer.advance(game.sounds, clock, clock + step, self_player, () => listener);
+				audio_feed(mixer.render(total * EXPORT_AUDIO_RATE / EX.fps), true);
 				await audio_encoder.flush();
 			}
 			await encoder.flush();

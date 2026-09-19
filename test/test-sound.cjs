@@ -272,6 +272,15 @@ assert.equal(Sound.seeded_random(7)(), Sound.seeded_random(7)(), "the seeded gen
 	out = mixer.render(60000);
 	assert.ok(out.every(v => v === 0), "a variant without a loaded sample is skipped");
 	assert.equal(mixer.render(60000).length, 0, "rendering up to the same point yields nothing");
+	/* an event queued after its samples were rendered can only start
+	 * late, which is why the export queues every event of an interval
+	 * before rendering it */
+	/* tick 1074.9 is output sample 59920, inside the 60000 already rendered */
+	mixer.advance([{ time: 1074.9, kind: "shooting", player: 1, x: 5, y: 5 }], 1000, 1100, -1, () => screen);
+	out = mixer.render(60100);
+	assert.deepEqual(Array.from(out.slice(0, 2)), [0.5, 0.5], "a late-queued event starts at the render point");
+	out = mixer.render(60200);
+	assert.equal(out.lastIndexOf(0.5), 60118 - 60100, "and keeps its scheduled end, so its start is lost");
 }
 {
 	/* speed compresses time; overlapping voices sum and clamp; the seeded
