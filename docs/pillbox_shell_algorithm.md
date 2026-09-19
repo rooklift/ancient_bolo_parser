@@ -34,14 +34,20 @@ All 128 trajectories (4224 coordinate pairs) reproduce **bit-exactly**. Here's t
 
 Everything lives in an integer world unit = **1/16 of the JSON unit**. (If the JSON is pixels at 16 px/tile, the internal unit is 1/256 tile — i.e. a 16-bit coordinate split 8 bits tile / 8 bits sub-tile.)
 
-**1. One 8-bit sine table, amplitude 128, magnitude-truncated**
+**1. One 8-bit sine table, amplitude 128, magnitude-truncated, saturated to int8**
 
 ```c
-/* quarter table, 65 entries, 0..128; other quadrants by reflect + negate */
-SIN[i] == (int)(128.0 * sin(i * 2*PI/256))     /* truncate toward zero, NOT round */
+/* quarter table, 65 entries, 0..127; other quadrants by reflect + negate */
+SIN[i] == MIN(127, (int)(128.0 * sin(i * 2*PI/256)))   /* truncate toward zero, NOT round */
 /*  0   3   6   9  12  15  18  21  24  28  31  34  37  40  43  46  48 ...
-   ... 122 123 124 124 125 126 126 127 127 127 127 127 128            */
+   ... 122 123 124 124 125 126 126 127 127 127 127 127 127            */
 ```
+
+The saturation touches one entry: the peak, `SIN[64]`, where `128·sin` is
+exactly 128 and does not fit a signed byte. Nothing in the pillbox data
+below reaches it (pills fire odd bradians only); it was settled later from
+tank shells, which do — see `docs/tank_shell_bradians.md`, "The peak of the
+table".
 
 **2. One scaling helper — round-half-up via arithmetic shift**
 
@@ -86,6 +92,6 @@ That is exactly `(T + 1) >> 1` on a *signed* table value with an arithmetic shif
 - `/2` instead of `>>1` — C's truncating division gives −61 where bradian 9 needs vy = −62;
 - negating *after* the shift (`-SCALE(dir+64, ...)`) — that yields −64 where bradian 1 needs −63. The negation has to happen at the table lookup, which is what a quarter-table-with-sign-fixup does naturally.
 
-Because each entry is used twice, at two different scales, it is also pinned down exactly. The velocity on its own is ambiguous: `(T+1)>>1` maps both `T = 2v−1` and `T = 2v` to the same `v`. The spawn offset is the *unhalved* entry `SIN[dir]`, so those two candidates start one world unit apart and their 33 rendered samples diverge — across all 256 axis-trajectories in the file the wrong twin is always rejected. Every recovered entry equals `trunc(128·sinθ)`, and `SIN[256-i] == -SIN[i]` and `SIN[128-i] == SIN[i]` hold exactly. Since `dir` is always odd here, both lookups (`dir` and `dir+192`) land on odd indices, so those 128 entries are the entire set this code path can ever reach; the even ones, `SIN[64] = 128` included, are never touched.
+Because each entry is used twice, at two different scales, it is also pinned down exactly. The velocity on its own is ambiguous: `(T+1)>>1` maps both `T = 2v−1` and `T = 2v` to the same `v`. The spawn offset is the *unhalved* entry `SIN[dir]`, so those two candidates start one world unit apart and their 33 rendered samples diverge — across all 256 axis-trajectories in the file the wrong twin is always rejected. Every recovered entry equals `trunc(128·sinθ)`, and `SIN[256-i] == -SIN[i]` and `SIN[128-i] == SIN[i]` hold exactly. Since `dir` is always odd here, both lookups (`dir` and `dir+192`) land on odd indices, so those 128 entries are the entire set this code path can ever reach; the even ones, the peak `SIN[64]` included, are never touched. (The peak is 127, not the 128 a naive truncation gives — the table is int8 — but that was established from tank shells, not from this data.)
 
 The tidy part is that `dist = 128` makes `SCALE(dir, 128) == SIN[dir]` exactly, so the muzzle offset needs no rounding of its own — spawn and per-tick motion come from the same one-line helper, which is why the spawn looks "unrounded" and the velocity "rounded".

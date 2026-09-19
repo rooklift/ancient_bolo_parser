@@ -2459,6 +2459,7 @@ all on the fixture, all from the sections above:
 | the terminal's nearest explainer is the doubtful voter; the stitcher reads the clock | 0.998251 | 0.000895 | 0.865919 |
 | a record the reading marks late slides its heads (drawing only) | 0.998251 | 0.000895 | 0.865919 |
 | a pill's passed election is the sender's clock for the joins | 0.998251 | 0.000895 | 0.865919 |
+| the sine table's peak is 127 (byte-identical on the fixture) | 0.998251 | 0.000895 | 0.865919 |
 
 * **Every headline record is held by the current head** (the terminal
   rate by one shell: the clock's nearest-explainer reading gave back one

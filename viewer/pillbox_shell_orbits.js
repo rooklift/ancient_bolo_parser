@@ -3,11 +3,16 @@
 "use strict";
 (function () {
 
-/* Magnitude-truncated values of 128 * sin(angle) for the first quadrant.
- * Reflections in sine_value preserve the signed lookup value before SCALE's
- * arithmetic shift, which is significant for negative components. */
+/* Magnitude-truncated values of 128 * sin(angle) for the first quadrant,
+ * saturated to the signed 8-bit range: the table is int8 in the original,
+ * so the one entry that reaches 128 (the peak, bradian 64) is stored as
+ * 127. Pillbox shells never read it (they fire odd bradians only), but tank
+ * shells do, and the corpus shows shells fired due north or west moving at
+ * 63 units per update, not 64 (docs/tank_shell_bradians.md). Reflections in
+ * sine_value preserve the signed lookup value before SCALE's arithmetic
+ * shift, which is significant for negative components. */
 const QUARTER_SINE = Array.from({ length: 65 }, (_, bradian) =>
-	Math.trunc(128 * Math.sin(bradian * 2 * Math.PI / 256)));
+	Math.min(127, Math.trunc(128 * Math.sin(bradian * 2 * Math.PI / 256))));
 
 function sine_value(bradian) {
 	let direction = bradian & 0xff;

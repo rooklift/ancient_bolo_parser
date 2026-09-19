@@ -180,6 +180,7 @@ Constant at all ten commits, and worth having once:
 | `a3cbd20` | a read-late head slides by its lateness against the chain's tail (drawing only) | 0.998408 | 0.000612 | 0.839410 | 242,335 | 13,565 | **633** | 16 |
 | `0c90f1e` | a pill's passed election is the sender's clock for the joins | **0.998419** | **0.000606** | **0.839422** | 242,335 | 13,563 | **629** | 16 |
 | `f7c7c39` | build trims, byte-identical; a zero-length chat message ends the record | 0.998419 | **0.000605** | **0.839423** | 242,335 | 13,563 | 629 | 16 |
+| `474797b` | the sine table's peak is 127 (tank shells due north or west at 63 units per update) | 0.998419 | 0.000605 | 0.839423 | 242,335 | 13,563 | 629 | 16 |
 
 The three right-hand columns are lower-is-better counts from the drawn
 audit and the vouched-link score, added so that a drawing-only commit
@@ -4157,6 +4158,48 @@ Reading. Nothing the matcher decides moved; the six lines that did are
 the phantoms leaving, three unmatchable shells and one unexplainable
 explosion fewer. The second collection holds the other six affected
 records.
+
+## The sine table's peak is 127 -- `474797b`
+
+The recovered quarter table's peak entry, `SIN[64]`, is read by no
+pillbox shell (pills fire odd bradians only), and `trunc(128·sin)` put it
+at 128. An independently sourced copy of the original table is declared
+`SInt8` and reads 127 there, and the tank-shell chains decide for it: a
+shell fired due north (bradian 0) or due west (192) moves 63 units per
+update, not 64, and its muzzle offset is 127 units, not 128
+(`docs/tank_shell_bradians.md`, "The peak of the table"). The generator
+gains a `min(127, ...)`; nothing else changes. The pillbox orbits are
+untouched, and the tank bradian states for bradians 0 and 192 carry the
+corrected velocity through the shared `scale` helper.
+
+Corpus, `474797b-report.txt` and `474797b-audit.txt` against
+`f7c7c39-*`, the same 443 files, run on the holder's machine (the input
+hash and the build times are not comparable; the report's content hash
+is). The branch point `e7082f6` reproduces `f7c7c39`'s content hash
+exactly (run here, not archived), so the commits between -- the
+towed-base refusal, the sounds, the redaction tools -- move nothing on
+this corpus, and the two lines below are this change's alone.
+
+* every headline rate unchanged: 0.998419 / 0.000605 / 0.839423,
+  `tank_hit` 242,335, `timed` 13,563, `contra` 16, and every other
+  shell, terminal, link and vote count identical.
+* `flow_components` 121,127 -> **121,121**: six fewer fragments reach
+  the residual pass, cardinal chains the corrected state now explains
+  outright.
+* `pairs_advance_read` 880,631 -> **880,632**: one more sender pair
+  whose tank-shell advance is read.
+* the drawn audit is byte-identical, content hash included: across
+  8,167,953 links the one-unit-per-update difference at the cardinals
+  moves no drawn shell by a pixel.
+
+Reading. On this corpus about 2,600 cardinal chains fit only the
+corrected velocity at slack 1 (1,213 fit no gated bradian at all under
+the old table), yet the matcher had already linked every one of them,
+through a neighbouring bradian's state or the pair's slack. The change
+is about the simulation being right rather than about coverage; what it
+moves is which state explains a chain, and the six fragments and the one
+read advance are all that shows of it. The fixture is byte-identical as
+well.
 
 ## Findings
 
