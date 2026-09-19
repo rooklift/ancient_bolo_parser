@@ -76,16 +76,13 @@ function birth_sounds(shell_births) {
 
 /* player is the one the camera is locked to, or -1 with a free camera: only
  * a locked camera hears its player's own gunfire and hits as self sounds.
- * listener is the visible area in tiles: its centre (x, y) and its edges
- * (left, top, right, bottom). */
+ * listener is the visible area in tiles (left, top, right, bottom). */
 function variant(event, listener, player) {
 	if (!listener) return null;
 	if (player >= 0 && event.player === player && ["shooting", "hit_tank"].includes(event.kind)) return event.kind + "_self";
-	// An event on screen is near; one off screen is far while it lies
-	// within 40 tiles of the camera centre, and silent beyond that.
+	// An event on screen is near; one off screen is far, however distant.
 	let near = event.x >= listener.left && event.x < listener.right
 		&& event.y >= listener.top && event.y < listener.bottom;
-	if (!near && Math.hypot(event.x - listener.x, event.y - listener.y) >= 40) return null;
 	if (event.kind === "bubbles") return near ? "bubbles" : null;
 	if (event.kind === "man_lay_mine") return near ? "man_lay_mine_near" : null;
 	return event.kind + (near ? "_near" : "_far");

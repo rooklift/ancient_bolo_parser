@@ -6,12 +6,12 @@ const Sound = require("../viewer/sound.js");
 const Game = require("../viewer/game.js");
 
 // The listener is the visible area: a view w by h tiles centred on (x, y).
-let view_at = (x, y, w = 24, h = 16) => ({ x, y, left: x - w / 2, top: y - h / 2, right: x + w / 2, bottom: y + h / 2 });
+let view_at = (x, y, w = 24, h = 16) => ({ left: x - w / 2, top: y - h / 2, right: x + w / 2, bottom: y + h / 2 });
 let listener = view_at(50.5, 50.5);
 let shot = { time: 10, kind: "shooting", player: 2, x: 50.5, y: 50.5 };
 assert.equal(Sound.variant(shot, listener, -1), "shooting_near", "a free camera hears its own tank's shot as near, never self");
 assert.equal(Sound.variant(shot, view_at(70.5, 50.5), -1), "shooting_far", "far is measured from the camera without a self tank");
-assert.equal(Sound.variant(shot, view_at(90.5, 50.5), -1), null);
+assert.equal(Sound.variant(shot, view_at(90.5, 50.5), -1), "shooting_far", "off screen is far at any distance");
 assert.equal(Sound.variant(shot, listener, 2), "shooting_self", "the locked player's shot is self");
 assert.equal(Sound.variant(shot, listener, 1), "shooting_near");
 assert.equal(Sound.variant({ ...shot, player: null }, listener, 2), "shooting_near");
@@ -27,11 +27,8 @@ assert.equal(Sound.variant(shot, view_at(61.5, 57.5), 1), "shooting_near", "a sc
 assert.equal(Sound.variant(shot, view_at(63.5, 59.5), 1), "shooting_far", "just past a screen corner is far");
 assert.equal(Sound.variant(shot, view_at(50.5, 50.5, 100, 100), 1), "shooting_near", "near depends on the view, not a fixed radius");
 assert.equal(Sound.variant(shot, view_at(95.5, 50.5, 100, 100), 1), "shooting_near", "on screen is near even beyond 40 tiles");
-assert.equal(Sound.variant(shot, view_at(74.5, 82.5), 1), null, "off screen at radius 40 is silent");
-assert.equal(Sound.variant(shot, view_at(74.5, 81.5), 1), "shooting_far", "off screen just inside radius 40 is far");
-assert.equal(Sound.variant(shot, view_at(80.5, 80.5), 1), null, "square corner lies outside audible radius");
 assert.equal(Sound.variant(shot, view_at(66.5, 50.5), 1), "shooting_far");
-assert.equal(Sound.variant(shot, view_at(90.5, 50.5), 1), null);
+assert.equal(Sound.variant(shot, view_at(240.5, 240.5), 1), "shooting_far", "the far side of the map is still far, not silent");
 assert.equal(Sound.variant(shot, null, 2), null);
 assert.equal(Sound.variant({ ...shot, kind: "hit_tank" }, listener, 2), "hit_tank_self");
 for (let kind of ["bubbles", "man_lay_mine"]) {

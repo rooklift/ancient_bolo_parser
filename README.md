@@ -47,9 +47,7 @@ The same files also run as a plain web page: open `viewer/index.html` in a brows
 ### Game sounds
 
 Game sounds use the visible area as the listener. Events on screen use near
-sounds, and events off screen but less than 40 tiles from the camera centre
-use far sounds. That circular distance uses map tiles, independent of zoom,
-so a view wider than 40 tiles hears no far sounds at all. Locking
+sounds, and events off screen use far sounds, however distant. Locking
 the camera to a player makes audio follow that player, and only then are that
 player's own gunfire and hits played as self sounds; a free camera hears every
 tank as near or far. The player selector alone only changes friendly colours.

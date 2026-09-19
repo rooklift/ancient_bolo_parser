@@ -499,9 +499,8 @@ function frame(ts) {
 			let self_player = centre_locked_player() ? viewpoint : -1;
 			snap_view();
 			let { w, h } = css_size();
-			let tw = w / view.zoom, th = h / view.zoom;
-			let listener = { x: view.ox + tw / 2, y: view.oy + th / 2,
-				left: view.ox, top: view.oy, right: view.ox + tw, bottom: view.oy + th };
+			let listener = { left: view.ox, top: view.oy,
+				right: view.ox + w / view.zoom, bottom: view.oy + h / view.zoom };
 			sound_player.advance(game.sounds, previous_clock, clock, speed, self_player, () => listener);
 			if (clock >= game.t1) set_playing(false);
 		}
