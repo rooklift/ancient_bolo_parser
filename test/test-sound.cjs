@@ -5,27 +5,37 @@ const path = require("node:path");
 const Sound = require("../viewer/sound.js");
 const Game = require("../viewer/game.js");
 
-let listener = { x: 50.5, y: 50.5 };
-let shot = { time: 10, kind: "shooting", player: 2, ...listener };
+// The listener is the visible area: a view w by h tiles centred on (x, y).
+let view_at = (x, y, w = 24, h = 16) => ({ x, y, left: x - w / 2, top: y - h / 2, right: x + w / 2, bottom: y + h / 2 });
+let listener = view_at(50.5, 50.5);
+let shot = { time: 10, kind: "shooting", player: 2, x: 50.5, y: 50.5 };
 assert.equal(Sound.variant(shot, listener, -1), "shooting_near", "a free camera hears its own tank's shot as near, never self");
-assert.equal(Sound.variant(shot, { x: 70.5, y: 50.5 }, -1), "shooting_far", "far is measured from the camera without a self tank");
-assert.equal(Sound.variant(shot, { x: 90.5, y: 50.5 }, -1), null);
+assert.equal(Sound.variant(shot, view_at(70.5, 50.5), -1), "shooting_far", "far is measured from the camera without a self tank");
+assert.equal(Sound.variant(shot, view_at(90.5, 50.5), -1), null);
 assert.equal(Sound.variant(shot, listener, 2), "shooting_self", "the locked player's shot is self");
 assert.equal(Sound.variant(shot, listener, 1), "shooting_near");
 assert.equal(Sound.variant({ ...shot, player: null }, listener, 2), "shooting_near");
-assert.equal(Sound.variant(shot, { x: 62.5, y: 50.5 }, 1), "shooting_near", "12 tiles is near");
-assert.equal(Sound.variant(shot, { x: 63.5, y: 50.5 }, 1), "shooting_far", "13 tiles is far");
-assert.equal(Sound.variant(shot, { x: 57.5, y: 60.0 }, 1), "shooting_near", "diagonal inside radius 12 is near");
-assert.equal(Sound.variant(shot, { x: 62.5, y: 62.5 }, 1), "shooting_far", "square corner lies outside near radius");
-assert.equal(Sound.variant(shot, { x: 74.5, y: 82.5 }, 1), null, "diagonal at radius 40 is silent");
-assert.equal(Sound.variant(shot, { x: 74.5, y: 81.5 }, 1), "shooting_far", "just inside audible radius is far");
-assert.equal(Sound.variant(shot, { x: 80.5, y: 80.5 }, 1), null, "square corner lies outside audible radius");
-assert.equal(Sound.variant(shot, { x: 66.5, y: 50.5 }, 1), "shooting_far");
-assert.equal(Sound.variant(shot, { x: 90.5, y: 50.5 }, 1), null);
+assert.equal(Sound.variant(shot, view_at(62.5, 50.5), 1), "shooting_near", "on the left edge of the view is on screen");
+assert.equal(Sound.variant(shot, view_at(62.6, 50.5), 1), "shooting_far", "just beyond the left edge is far");
+assert.equal(Sound.variant(shot, view_at(38.6, 50.5), 1), "shooting_near", "just inside the right edge is near");
+assert.equal(Sound.variant(shot, view_at(38.5, 50.5), 1), "shooting_far", "on the right edge is off screen, so far");
+assert.equal(Sound.variant(shot, view_at(50.5, 58.5), 1), "shooting_near", "on the top edge is on screen");
+assert.equal(Sound.variant(shot, view_at(50.5, 58.6), 1), "shooting_far", "just beyond the top edge is far");
+assert.equal(Sound.variant(shot, view_at(50.5, 42.6), 1), "shooting_near", "just inside the bottom edge is near");
+assert.equal(Sound.variant(shot, view_at(50.5, 42.5), 1), "shooting_far", "on the bottom edge is off screen, so far");
+assert.equal(Sound.variant(shot, view_at(61.5, 57.5), 1), "shooting_near", "a screen corner is near");
+assert.equal(Sound.variant(shot, view_at(63.5, 59.5), 1), "shooting_far", "just past a screen corner is far");
+assert.equal(Sound.variant(shot, view_at(50.5, 50.5, 100, 100), 1), "shooting_near", "near depends on the view, not a fixed radius");
+assert.equal(Sound.variant(shot, view_at(95.5, 50.5, 100, 100), 1), "shooting_near", "on screen is near even beyond 40 tiles");
+assert.equal(Sound.variant(shot, view_at(74.5, 82.5), 1), null, "off screen at radius 40 is silent");
+assert.equal(Sound.variant(shot, view_at(74.5, 81.5), 1), "shooting_far", "off screen just inside radius 40 is far");
+assert.equal(Sound.variant(shot, view_at(80.5, 80.5), 1), null, "square corner lies outside audible radius");
+assert.equal(Sound.variant(shot, view_at(66.5, 50.5), 1), "shooting_far");
+assert.equal(Sound.variant(shot, view_at(90.5, 50.5), 1), null);
 assert.equal(Sound.variant(shot, null, 2), null);
 assert.equal(Sound.variant({ ...shot, kind: "hit_tank" }, listener, 2), "hit_tank_self");
 for (let kind of ["bubbles", "man_lay_mine"]) {
-	assert.equal(Sound.variant({ ...shot, kind }, { x: 66.5, y: 50.5 }, 1), null);
+	assert.equal(Sound.variant({ ...shot, kind }, view_at(66.5, 50.5), 1), null, kind + " has no far variant");
 }
 
 let played = [], audios = [];
@@ -115,7 +125,7 @@ state.tanks[2] = { x: 50, y: 50, px: 0, py: 0 };
 let mine_sound = Sound.event_for(state, { player: 2, time: 9 }, { type: "lay_mine" });
 assert.deepEqual(mine_sound, { time: 9, kind: "man_lay_mine", player: null, x: 50.5, y: 50.5 });
 assert.equal(Sound.variant(mine_sound, listener, 2), "man_lay_mine_near");
-assert.equal(Sound.variant(mine_sound, { x: 70.5, y: 50.5 }, 2), null, "tank mine-laying has no far variant");
+assert.equal(Sound.variant(mine_sound, view_at(70.5, 50.5), 2), null, "tank mine-laying has no far variant");
 assert.equal(Sound.event_for(state, { player: 1, time: 9 }, { type: "lay_mine" }), null, "unknown tank position stays silent");
 assert.equal(Sound.event_for(state, { player: 2, time: 9 }, { type: "explosion", code: 12, x: 50, y: 50 }).kind,
 	mine_sound.kind, "tank and builder mine-laying share the sample");
@@ -176,8 +186,8 @@ assert.equal(Sound.event_for(state, { player: 2, time: 11 }, { type: "terrain_ch
 		{ time: 100.25, kind: "shooting", player: 1, x: 51, y: 25.5 },
 		{ time: 120, kind: "shooting", player: null, x: 101, y: 101 },
 	]);
-	assert.equal(Sound.variant(Sound.birth_sounds(births)[0], { x: 51, y: 25.5 }, 1), "shooting_self");
-	assert.equal(Sound.variant(Sound.birth_sounds(births)[1], { x: 101, y: 101 }, 1), "shooting_near", "a pill's shell is never self");
+	assert.equal(Sound.variant(Sound.birth_sounds(births)[0], view_at(51, 25.5), 1), "shooting_self");
+	assert.equal(Sound.variant(Sound.birth_sounds(births)[1], view_at(101, 101), 1), "shooting_near", "a pill's shell is never self");
 }
 // In a built game every gunfire sound is a drawn birth and vice versa, on the
 // births' own clock, and the sound list stays sorted.
@@ -198,7 +208,7 @@ assert.equal(Sound.event_for(state, { player: 2, time: 11 }, { type: "terrain_ch
 let kinds = ["shooting", "hit_tank", "shot_tree", "shot_building", "mine_explosion",
 	"big_explosion", "tank_sinking", "farming_tree", "man_building", "man_dying", "bubbles", "man_lay_mine"];
 for (let kind of kinds) for (let viewpoint of [1, 2]) for (let x of [50.5, 70.5]) {
-	let name = Sound.variant({ ...shot, kind }, { x, y: 50.5 }, viewpoint);
+	let name = Sound.variant({ ...shot, kind }, view_at(x, 50.5), viewpoint);
 	if (name) assert.ok(fs.existsSync(path.join(__dirname, "../viewer/sounds", name + ".wav")), name);
 }
 assert.ok(fs.readdirSync(path.join(__dirname, "../viewer/sounds")).every(name => !name.startsWith("lobby_")));
