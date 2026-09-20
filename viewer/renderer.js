@@ -190,6 +190,7 @@ let players_el = document.getElementById("players");
 let chat_el = document.getElementById("chat");
 let file_pick = document.getElementById("filePick");
 let drop_hint_keys = document.getElementById("dropHintKeys");
+let drop_hint_sample = document.getElementById("dropHintSample");
 let help_btn = document.getElementById("helpBtn");
 let shortcut_sheet_el = document.getElementById("shortcutSheet");
 let shortcut_groups_el = document.getElementById("shortcutGroups");
@@ -235,6 +236,21 @@ drop_hint_link.querySelector("a").addEventListener("click", e => e.stopPropagati
 
 /* The keys are advertised only where there's no menu to find them in. */
 drop_hint_keys.hidden = !WEB;
+
+/* The deployed web page has a sample log beside index.html (the Pages
+ * workflow copies one fixture there as sample_replay). It arrives by
+ * fetch, so the offer is made only where a fetch can reach it: a page
+ * served over HTTP. A checkout's index.html opened from disk is a file://
+ * page, where browsers refuse to fetch anything, and the apps have File →
+ * Open and no sample. As with the repo link, the click must not fall
+ * through to the file picker. */
+const SAMPLE_REPLAY = "sample_replay";
+drop_hint_sample.hidden = !(WEB && /^https?:$/.test(location.protocol));
+drop_hint_sample.querySelector("a").addEventListener("click", e => {
+	e.preventDefault();
+	e.stopPropagation();
+	open_sample();
+});
 
 /* Toggle shortcuts: Cmd/Ctrl+key in Electron (mirroring the menu's
  * accelerators), the bare key on the web. */
@@ -1865,6 +1881,19 @@ function open_log() {
 		if (!res.canceled && res.data) load_log(res.data, res.path);
 		else if (res.error) show_error("Could not open log", res.error);
 	});
+}
+
+/* The sample is claimed like a picked file: a slow fetch loses to any log
+ * chosen after it, and a failure after that is not worth a dialog. */
+function open_sample() {
+	if (exporting) return;
+	let claim = ++load_claims;
+	fetch(SAMPLE_REPLAY).then(res => {
+		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		return res.arrayBuffer();
+	}).then(
+		ab => load_log(new Uint8Array(ab), SAMPLE_REPLAY, claim),
+		err => { if (claim === load_claims) show_error("Could not load sample replay", String(err)); });
 }
 
 if (window.api) {
