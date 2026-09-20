@@ -237,8 +237,7 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   8 or 12) probably happen when the tank has less than a full unit of wood to
   spend **(owner, unsure)**.
 - **Planting** brings a pill up at full armour; dumping (death, quit, killed
-  man) drops it dead, still owned by the same player **(owner; corpus,
-  FORMAT.md)**.
+  man) drops it dead, still owned by the same player **(owner; corpus)**.
 
 ## Bases
 
