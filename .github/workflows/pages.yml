@@ -9,15 +9,19 @@ name: Deploy viewer to GitHub Pages
 # set to "GitHub Actions" (not "Deploy from a branch"), or the deploy step
 # fails. The site is served over HTTPS and is public.
 #
-# The whole viewer/ directory is uploaded as is. The Electron-only files in
-# it (main.js, preload.js, builder.py, the tauri/ folder) are harmless
-# there: index.html never loads them, so the browser never asks for them.
+# The whole viewer/ directory is uploaded, plus one game log from fixtures/
+# placed beside index.html as "sample_replay", which the page's start
+# screen offers to play (renderer.js fetches it by that name). The
+# Electron-only files in viewer/ (main.js, preload.js, builder.py, the
+# tauri/ folder) are harmless there: index.html never loads them, so the
+# browser never asks for them.
 
 on:
   push:
     branches: [main]
     paths:
       - "viewer/**"
+      - "fixtures/pairs/20010406.1-B"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -40,8 +44,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      - name: Stage the site
+        run: |
+          mkdir site
+          cp -r viewer/. site/
+          cp fixtures/pairs/20010406.1-B site/sample_replay
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: viewer
+          path: site
       - id: deployment
         uses: actions/deploy-pages@v4
