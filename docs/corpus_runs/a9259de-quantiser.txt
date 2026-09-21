@@ -1,7 +1,7 @@
 # node tools/measure-shell-offset-quantiser.cjs --workers=4 --show=40   (no target: the 24 committed fixtures)
 # GENERATED - shell-list offset quantiser tally; nothing written to disk.
 # orbit states resolved with the list-offset pruning OFF
-commit	a9259de-dirty
+commit	a9259de
 files	24
 pairs	81769
 negative_components	82276
