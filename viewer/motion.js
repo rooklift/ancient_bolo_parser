@@ -974,6 +974,7 @@ function pillbox_states_encode_offset(previous, previous_state, next,
  * list is a chain, so repeated pairwise pruning is sufficient to remove
  * every state which participates in no complete assignment. */
 function refine_pillbox_orbits_from_shell_lists(snapshot) {
+	if (!prune_orbits_by_shell_offsets) return false;
 	let changed = false;
 	let keep_pruning = true;
 	while (keep_pruning) {
@@ -3270,6 +3271,16 @@ const EMPTY_MAP = new Map();
 let record_roster_votes = false;
 function set_roster_vote_recording(on) {
 	record_roster_votes = !!on;
+}
+
+/* On in the viewer, off for measurement: the list-offset pruning above
+ * applies the recovered offset quantiser as a constraint, so a tally of
+ * how often that quantiser reproduces the logged bytes must resolve orbit
+ * states without it, or it would be grading its own homework
+ * (tools/measure-shell-offset-quantiser.cjs). */
+let prune_orbits_by_shell_offsets = true;
+function set_shell_offset_pruning(on) {
+	prune_orbits_by_shell_offsets = !!on;
 }
 
 function build_pill_lockstep_reference(snapshots,
@@ -6495,7 +6506,7 @@ const BoloMotion = {
 	describe_unmatched_terminals, describe_unfated_ends, score_pill_links,
 	score_pill_order, score_tank_order, sweep_contradicted_links,
 	enforce_tank_lockstep_candidates, tank_advance_reading,
-	set_roster_vote_recording, reset_flow_component_stats,
+	set_roster_vote_recording, set_shell_offset_pruning, reset_flow_component_stats,
 	flow_component_stats: () => flow_component_stats,
 };
 
