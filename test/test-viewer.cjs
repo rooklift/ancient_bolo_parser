@@ -2314,6 +2314,44 @@ if (!fs.existsSync(log1)) {
 			[{ bradian: 201, step: 0 }],
 			[{ bradian: 201, step: 1 }],
 		]);
+	/* The measurement switch: with the pruning off the same kind of list
+	 * keeps every orbit position its member's one-sided box admits, which
+	 * is what tools/measure-shell-offset-quantiser.cjs conditions on so
+	 * that its tally of the quantiser is not circular. */
+	{
+		let motion = require("../viewer/motion.js");
+		let overlapping_list = () => BoloGame.build([
+			record(80, [{ type: "pillbox_list", items: [{
+				x: 10, y: 10, owner: 1, armour: 15, speed: 100,
+			}] }]),
+			record(90, []),
+			record(100, [
+				{ type: "pillbox_fires", pillbox: 0, direction: 13 },
+				{ type: "pillbox_fires", pillbox: 0, direction: 13 },
+				shell_list(13, [[152, 158], [144, 155]]),
+			]),
+		]);
+		let orbit_states = game => game.shell_positions[0][1].shells.map(
+			shell => shell.pillbox_orbit_states);
+		let pruned = orbit_states(overlapping_list());
+		motion.set_shell_offset_pruning(false);
+		let unpruned;
+		try {
+			unpruned = orbit_states(overlapping_list());
+		} finally {
+			motion.set_shell_offset_pruning(true);
+		}
+		check("raw chained offset picks one of three overlapping positions",
+			pruned, [[{ bradian: 201, step: 0 }], [{ bradian: 203, step: 2 }]]);
+		check("offset pruning switched off leaves all three",
+			unpruned, [[{ bradian: 201, step: 0 }], [
+				{ bradian: 201, step: 2 },
+				{ bradian: 203, step: 2 },
+				{ bradian: 205, step: 2 },
+			]]);
+		check("offset pruning switch restores itself",
+			orbit_states(overlapping_list()), pruned);
+	}
 
 	let wrong_sign_pill_orbit = BoloGame.build([
 		record(80, [{ type: "pillbox_list", items: [{
