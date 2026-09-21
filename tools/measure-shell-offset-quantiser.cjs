@@ -22,6 +22,14 @@
  *   trunc     trunc(d / 16) on the internal difference  -- C division
  *   rendered  (next >> 4) - (previous >> 4)             -- pixel subtraction
  *
+ * The same states also grade the reconstruction bound in FORMAT.md: a
+ * member at list index i, reconstructed by adding its chained offsets to
+ * the head, should sit at or below its exact position by at most i pixels
+ * per axis, never above. For every member whose whole chain back to the
+ * head is same-pill and uniquely resolved, the tool histograms exact
+ * minus reconstructed per axis by index, and counts any pair outside
+ * [0, i].
+ *
  * The viewer normally applies the shift rule itself as a pruning
  * constraint on orbit hypotheses (refine_pillbox_orbits_from_shell_lists
  * in viewer/motion.js), which would make the count circular. The tool
@@ -73,6 +81,10 @@ function empty_tally() {
 		 * one the log sides with */
 		shift_vs_rendered: { pairs: 0, shift: 0, rendered: 0, neither: 0 },
 		shift_vs_trunc: { pairs: 0, shift: 0, trunc: 0, neither: 0 },
+		/* exact minus reconstructed, "x,y" -> count, by member index */
+		errors: Array.from({ length: MAX_MEMBER_INDEX + 1 }, () => ({
+			members: 0, outside: 0, histogram: {},
+		})),
 		contradictions: [],
 	};
 	return tally;
@@ -92,6 +104,14 @@ function add_tally(into, from) {
 			into[key][field] += from[key][field];
 		}
 	}
+	for (let i = 0; i <= MAX_MEMBER_INDEX; i++) {
+		into.errors[i].members += from.errors[i].members;
+		into.errors[i].outside += from.errors[i].outside;
+		for (let [key, count] of Object.entries(from.errors[i].histogram)) {
+			into.errors[i].histogram[key] =
+				(into.errors[i].histogram[key] || 0) + count;
+		}
+	}
 	into.contradictions.push(...from.contradictions);
 }
 
@@ -107,6 +127,40 @@ function predict(previous_state, next_state) {
 		rendered: [(next[0] >> 4) - (previous[0] >> 4),
 			(next[1] >> 4) - (previous[1] >> 4)],
 	};
+}
+
+/* Is every member from the list head to this one from the same pill and
+ * pinned to one orbit state? Only then is the member's exact position, and
+ * so its reconstruction error, known rather than guessed. */
+function chain_resolved(shells, index) {
+	let shell = shells[index];
+	for (let back = 0; back <= shell.shell_list_index; back++) {
+		let member = shells[index - back];
+		if (!member || member.shell_list_start !== shell.shell_list_start ||
+			member.pillbox_source_x === undefined ||
+			member.pillbox_source_x !== shell.pillbox_source_x ||
+			member.pillbox_source_y !== shell.pillbox_source_y ||
+			!member.pillbox_orbit_states ||
+			member.pillbox_orbit_states.length !== 1) return false;
+	}
+	return true;
+}
+
+function tally_error(tally, shells, index) {
+	let shell = shells[index];
+	if (!chain_resolved(shells, index)) return;
+	let state = shell.pillbox_orbit_states[0];
+	let internal = Orbits.internal_position_at(state.bradian, state.step);
+	let error_x = shell.pillbox_source_x + (internal[0] >> 4) - shell.pixel_x;
+	let error_y = shell.pillbox_source_y + (internal[1] >> 4) - shell.pixel_y;
+	let row = tally.errors[Math.min(shell.shell_list_index, MAX_MEMBER_INDEX)];
+	let key = `${error_x},${error_y}`;
+	row.members++;
+	row.histogram[key] = (row.histogram[key] || 0) + 1;
+	let bound = shell.shell_list_index;
+	if (error_x < 0 || error_x > bound || error_y < 0 || error_y > bound) {
+		row.outside++;
+	}
 }
 
 function same_bytes(a, b) {
@@ -138,6 +192,7 @@ function tally_file(file, tally, show) {
 			for (let index = 1; index < shells.length; index++) {
 				let next = shells[index];
 				let previous = shells[index - 1];
+				if (next.shell_list_index > 0) tally_error(tally, shells, index);
 				if (next.shell_list_index === 0 ||
 					next.shell_offset_x === undefined ||
 					next.shell_list_start !== previous.shell_list_start ||
@@ -228,6 +283,14 @@ function print_report(tally, show) {
 		let row = tally[key];
 		console.log(`${key}\tpairs ${row.pairs}\tshift ${row.shift}\t` +
 			`${other} ${row[other]}\tneither ${row.neither}`);
+	}
+	for (let i = 1; i <= MAX_MEMBER_INDEX; i++) {
+		let row = tally.errors[i];
+		let histogram = Object.entries(row.histogram)
+			.sort((a, b) => b[1] - a[1])
+			.map(([key, count]) => `${key}:${count}`).join(" ");
+		console.log(`error_${i}${i === MAX_MEMBER_INDEX ? "+" : ""}\t` +
+			`members ${row.members}\toutside_bound ${row.outside}\t${histogram}`);
 	}
 	if (tally.contradictions.length) {
 		console.log(`# pairs the shift rule does not reproduce ` +
