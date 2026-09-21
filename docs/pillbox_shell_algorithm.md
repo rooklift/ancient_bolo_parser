@@ -52,7 +52,7 @@ SIN[i] == (int)(128.0 * sin(i * 2*PI/256))     /* truncate toward zero, NOT roun
 **3. Fire and fly**
 
 ```c
-dir = bradian;                       /* 0..255, 0 = north, increasing clockwise */
+dir = bradian;                       /* 0..255, 0 = north, clockwise; always ODD here */
 opp = (dir + 192) & 255;             /* sin(θ-90°) = -cos θ  →  the Y component */
 
 x = SCALE(dir, 128);   y = SCALE(opp, 128);   /* muzzle: 128 units = half a tile */
@@ -86,13 +86,13 @@ That is exactly `(T + 1) >> 1` on a *signed* table value with an arithmetic shif
 - `/2` instead of `>>1` — C's truncating division gives −61 where bradian 9 needs vy = −62;
 - negating *after* the shift (`-SCALE(dir+64, ...)`) — that yields −64 where bradian 1 needs −63. The negation has to happen at the table lookup, which is what a quarter-table-with-sign-fixup does naturally.
 
-The double reduction also pins the table down: the spawn offset is `SIN[dir]` and the velocity is `(SIN[dir]+1)>>1`, and the two sum to `SIN[dir]`, so **every table entry the file touches is uniquely recoverable** — all 128 of them come out equal to `trunc(128·sinθ)`, with `SIN[256-i] == -SIN[i]` and `SIN[128-i] == SIN[i]` holding exactly. (Only odd indices are exercised by this file; the 33 even quarter-table entries, `SIN[64] = 128` included, are inferred from the formula.)
+Because each entry is used twice, at two different scales, it is also pinned down exactly. The velocity on its own is ambiguous: `(T+1)>>1` maps both `T = 2v−1` and `T = 2v` to the same `v`. The spawn offset is the *unhalved* entry `SIN[dir]`, so those two candidates start one world unit apart and their 33 rendered samples diverge — across all 256 axis-trajectories in the file the wrong twin is always rejected. Every recovered entry equals `trunc(128·sinθ)`, and `SIN[256-i] == -SIN[i]` and `SIN[128-i] == SIN[i]` hold exactly. Since `dir` is always odd here, both lookups (`dir` and `dir+192`) land on odd indices, so those 128 entries are the entire set this code path can ever reach; the even ones, `SIN[64] = 128` included, are never touched.
 
 The tidy part is that `dist = 128` makes `SCALE(dir, 128) == SIN[dir]` exactly, so the muzzle offset needs no rounding of its own — spawn and per-tick motion come from the same one-line helper, which is why the spawn looks "unrounded" and the velocity "rounded".
 
 ## Addendum (2026-09-20)
 
-The transcript above is kept as it was written. The algorithm it recovered is what `viewer/pillbox_shell_orbits.js` implements, and re-running it against the file still reproduces all 128 orbits (4224 coordinate pairs) bit-exactly. Later work found the following corrections. The two that rest on this file alone, the per-entry uniqueness and the tallies, are reproduced by `tools/measure-pillbox-orbit-alternatives.cjs`.
+The transcript above is kept as it stood on 2026-08-28, with the light editing done when it was recorded. The algorithm it recovered is what `viewer/pillbox_shell_orbits.js` implements, and re-running it against the file still reproduces all 128 orbits (4224 coordinate pairs) bit-exactly. Later work found the following corrections. The one that rests on this file alone, the tallies, is reproduced by `tools/measure-pillbox-orbit-alternatives.cjs`, which also re-checks the per-entry uniqueness argument (every odd entry is pinned to a single value, `trunc(128·sinθ)`, when varied alone over −128..127).
 
 **The peak of the table is 127, not 128.** The table is a signed byte, so the one entry where `128·sin` reaches exactly 128, `SIN[64]`, is stored saturated as 127. The transcript's `SIN[64] = 128` was an extrapolation of the truncation formula to an entry this data never reads. It was settled from tank shells, which do fire the even bradians: an independently sourced copy of the original table is declared `SInt8` and reads 127 at the peak, and the replay corpus agrees — a shell fired due north (bradian 0) or due west (bradian 192) moves 63 world units per update, not 64 (over 1,030 logs, 2,344 north and 2,405 west chains fit only the 127 table, against 0 and 1 the other way). The corrected definition is
 
@@ -102,9 +102,5 @@ SIN[i] == MIN(127, (int)(128.0 * sin(i * 2*PI/256)))   /* truncate toward zero, 
 ```
 
 and the listing in step 1 ends `... 127 127 127 127 127 127`. Nothing else in the transcript changes: `dir` is always odd for pillboxes, so both lookups (`dir` and `dir + 192`) land on odd indices, and the 128 odd entries the transcript recovered are the entire set this code path can reach. See `docs/tank_shell_bradians.md`, "The peak of the table".
-
-**Only odd bradians.** The file's 128 odd bradians are not a sampling artefact of this data set: pillboxes only ever fire odd bradians, eight fine directions per sector of the 16 the direction nibble reports (`docs/FORMAT.md`). The `dir = bradian` line in step 3 can be read with "always odd here" attached.
-
-**The argument that pins each table entry down is misstated.** The paragraph beginning "The double reduction also pins the table down" says the spawn offset `SIN[dir]` and the velocity `(SIN[dir]+1)>>1` "sum to `SIN[dir]`". They do not (for bradian 1 that is 3 + 2). The entries are nonetheless uniquely recoverable, for a different reason. The velocity alone is ambiguous: `(T+1)>>1` maps both `T = 2v−1` and `T = 2v` to the same `v`, and every one of the 128 odd entries has such a twin. But the spawn offset is the *unhalved* entry, so the two candidates start one world unit apart and their 33 rendered samples diverge. Re-checked against the file: varying any single odd entry over −128..127 while holding the rest fixed, exactly one value reproduces every orbit that reads it, and that value is `trunc(128·sinθ)` in all 128 cases.
 
 **Two tallies in the "ruling out" section are in units the transcript did not state.** Re-counted against the velocities the file fixes, a `round(64·sin)` velocity table disagrees at 34 of the 128 odd entries, and since every entry is used twice, at 68 of the file's 256 components; `trunc(64·sin)` likewise. The transcript's 58 is the count over the whole 256-entry table with the 128 peak, the even entries this file never reads included (it is 59 with the 127 peak). Its "best possible is 98/128" for a single amplitude and phase with one uniform rounding rule is a per-axis count: ceiling at amplitude about 63.5 gets 98 of the 128 x components right and 98 of the 128 y components right, but only 76 of the 128 orbits have both. So both figures are correct in their own units, and the conclusion stands: no such rule reproduces the file. The "provably impossible" inequality at bradian 63, though, only covers round-to-nearest (and floor). Ceiling gives vx = 64 and vy = −1 there at any amplitude from 63.02 to 64.01, and truncation from 64.02 to 65.01, so those two rules are ruled out by the search, not by that argument.
