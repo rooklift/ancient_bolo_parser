@@ -72,6 +72,18 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   `BASE_ARMOUR_GIVE`)**. The log carries no armour field, so a tank's health
   is integrated from hits, drains and deaths, as ammo already is
   [E:death-tiers].
+- **Knockback.** A shell hit shoves the tank along the shell's direction,
+  and the shove grows as the armour goes: a tank at full armour (9) slides
+  8 px, and each armour point already missing adds about 1 px, so a tank
+  on its last survivable point (armour 2, one display bar) slides 15 px
+  **(corpus, [E:knockback])**. The figure depends on the compass too: a
+  shove north or west travels the full 8 → 15 px, a shove south or east
+  about 2 px less (6 at full armour, 13 at armour 2), the diagonals in
+  between, which looks like rounding in the slide arithmetic rather than a
+  rule. The slide takes under a second: 57% of the distance is covered in
+  the first 10 ticks, 90% by 30 and all of it by 40–49 ticks, and the tank
+  restates its position in every record while it slides, at speed 0 with
+  no motion bits. Terrain, pills and other tanks cut the slide short.
 - **Ammunition.** A tank holds at most 40 shells and 40 mines **(corpus,
   [E:ammo-clamp])**. What it respawns with depends on the game type: **open**
   40 shells, 40 mines, full armour; **strict** 0 shells, 0 mines, full armour;
@@ -473,3 +485,8 @@ what it left, and what it raised, is here.
    one finished by an angry pill with no gap.
 8. Whether the 13.2-tick reload is Bolo's or the emulator's clock: a
    second recording with a different emulator speed setting would tell.
+9. The knockback slide's per-update velocity and decay, and why a shove
+   north or west travels 2 px farther than one south or east
+   [E:knockback]. Ring-cadence restatements give the endpoint, not the
+   steps; a fine-cadence emulator recording of a parked tank under pill
+   fire from each side would.

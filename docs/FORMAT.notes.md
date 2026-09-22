@@ -56,6 +56,7 @@ Corpus figures are from the 443-log set unless an entry says 446, in which case 
 - [`[E:gameplay]`](#egameplay-the-measured-numbers-behind-gameplaymd) — the measured numbers behind GAMEPLAY.md
 - [`[E:emulator-log]`](#eemulator-log-the-owners-single-player-emulator-recording) — the owner's single-player emulator recording
 - [`[E:mine-damage]`](#emine-damage-a-mine-takes-3-armour-or-2-when-3-would-kill-the-tank) — a mine takes 3 armour, or 2 when 3 would kill the tank
+- [`[E:knockback]`](#eknockback-a-hit-shoves-the-tank-8-px-at-full-armour-1-px-more-per-armour-point-missing) — a hit shoves the tank 8 px at full armour, 1 px more per armour point missing
 - [`[E:ammo-clamp]`](#eammo-clamp-shells-and-mines-cap-at-40) — shells and mines cap at 40
 - [`[E:respawn-gap]`](#erespawn-gap-respawn-5068-s-after-death) — respawn 5.0–6.8 s after death
 - [`[E:death-tiers]`](#edeath-tiers-the-terminal-explosion-is-gated-on-ammo-aboard) — the terminal explosion is gated on ammo aboard
@@ -676,6 +677,29 @@ A second run (`docs/corpus_runs/3656caf-mine-damage.txt`) read the loss directly
 The secondary peaks are runs of mines the attribution credited as one, and they carry the reduction too: 6 at armour 7–9 (two mines), 5 at armour 6 (6 → 3 → 1) and 8 at armour 9 (9 → 6 → 3 → 1); a plain 3 per mine would give 6 and 9 there. The clean losses — one mine, no shell hit within 2 s, no other mined-square explosion nearby — sat 45 at armour 1–2 and 28 above, the latter mostly runs the first filter's before-the-hit window missed (a tank at 5 lost 0.06 s after the hit is two mines at once); the tool now looks for other mines up to the loss.
 
 Three survivors' readings of a loss of 0 are the size of the one open question: what a mine set off by a shell does to a tank standing on it. The tool's attribution (tank centre on the square within a second) does not separate that case from a tank rolling onto the mine. The emulator log answers what it can ([E:emulator-log]): a shell that hits a tank stops at the tank and leaves the mine beneath untouched, and a mine chained from a neighbour does not hurt a tank on the next square; a mine chained under a standing tank is the case still unseen.
+
+### [E:knockback] — a hit shoves the tank 8 px at full armour, 1 px more per armour point missing
+
+A tank at rest that takes an `FC` hit slides away along the shell's direction and, while it slides, restates its position in every record at speed 0 with no motion bits, so the shove is read straight off the victim's own restatements: the resting position before the hit and the position where the restatements settle afterwards. `tools/measure-knockback.cjs` over the 1,030-log corpus (`docs/corpus_runs/7ebbfd5-knockback.txt`, 518,119 hits) keeps a hit when the victim's last restatement before it is at rest (speed 0, motion 0, not dying, not in a boat, under 8 s old), no other hit struck the victim in the previous 3 s, and the restatements after it stay at rest until at least 40 ticks on with no further hit; the endpoint is the last such restatement. Only 846 hits pass, since 483,977 of the corpus's hits land on moving tanks and most hit tanks drive off inside two seconds. Each kept hit is then classed CLEAR when the 16 px tank box swept 48 px along the shell's direction meets no building, deep sea or live pill and no other tank's latest restatement lies near the sweep (188 of the 846 are not clear), and gets an armour reading when its life is TRUSTED: integrated from 9 at respawn, −1 per hit, +1 per armour drain capped at 9, −3 per mine detonation under the tank (or down to 1 from 4 or 3, [E:mine-damage]), and ending in a shell death the integration puts at exactly 0 — 367 clear hits, against 291 clear hits in lives with no trusted reading.
+
+**The slide.** Over the 115 slides still at rest 100 ticks on, the median distance covered is 57% of the total in the first 10 ticks, 80% by 10–19, 90% by 20–29, 91% by 30–39 and 100% from 40–49 on, so an endpoint 40 ticks after the hit is the finished slide (a 60-tick threshold gives the same medians at every armour; 25 reads 0.5–1 px short). The displacement lies within 15° of the `FC` direction nibble in 638 of the 658 clear samples.
+
+**By armour before the hit**, clear path, trusted lives, median distance in px with the whole-pixel histogram:
+
+| armour | n | median | histogram |
+|---|---|---|---|
+| 9 | 219 | 8.0 | 5:3 6:29 7:43 8:94 9:50 |
+| 8 | 45 | 8.9 | 7:4 8:11 9:20 10:9 11:1 |
+| 7 | 29 | 10.0 | 5:2 8:1 9:2 10:17 11:7 |
+| 6 | 19 | 10.8 | 7:1 10:8 11:8 12:2 |
+| 5 | 25 | 11.4 | 10:5 11:8 12:8 13:4 |
+| 4 | 13 | 12.6 | 0:1 11:1 12:2 13:7 14:2 |
+| 3 | 8 | 14.6 | 13:2 14:2 15:4 |
+| 2 | 9 | 15.0 | 13:1 15:6 16:2 |
+
+One pixel per armour point missing, 8 at full and 15 at the last survivable point (a tank hit at 1 dies, and its slide is not measured). The 291 clear hits without an armour reading have a median of 8.2 with the same tail to 15, as a pool dominated by full-armour tanks should. The blocked or crowded 188 have lower medians and a tail down to 0–3 px at every armour (pill 51, another tank 93, sea 25, building 38 among them), the obstacle doing what was expected of it.
+
+**The compass matters.** The excess over 17 − armour by direction nibble is 0 to +1 px for shoves north-west-ward (d 12–15 and 0) and −2 for south-east-ward ones (d 4–8), the mixed sectors in between. Read on the axes at full armour: due north 8 px (14 of 17), due west 8 (15 of 16), due east 6 (4 of 5), due south 6 (5 of 6); by quadrant, armour 9 gives NW 8.3, SE 6.3, mixed 7.3, and armour 2 gives NW 15.3, SE 13.0, mixed 14.9. A shove toward the map's origin travels about 2 px farther than the same shove away from it, which is the mark of a sub-pixel velocity rounded toward −∞ (an arithmetic shift) rather than a rule of the game. The per-update velocity and its decay are not resolved by ring-cadence restatements; a fine-cadence recording of a parked tank under pill fire would give them.
 
 ### [E:ammo-clamp] — shells and mines cap at 40
 
