@@ -106,8 +106,13 @@ function between(events, from, to) {
  * clipping; the cap bounds the number of audio elements, not the loudness. */
 const MAX_VOICES = 4;
 
+/* A sound file that fails to load is fetched afresh by a later trigger, up
+ * to this many times; the web build's requests can drop now and then. */
+const MAX_LOAD_RETRIES = 4;
+
 function create_player(make_audio = url => new Audio(url), random = Math.random) {
 	let pools = new Map();
+	let attempts = new Map(); /* name -> failed loads so far */
 	let enabled = true;
 	let triggers = 0;
 	function stop() {
@@ -121,9 +126,22 @@ function create_player(make_audio = url => new Audio(url), random = Math.random)
 		if (!pool) { pool = []; pools.set(name, pool); }
 		let voice = pool.find(v => v.audio.paused || v.audio.ended);
 		if (!voice && pool.length < MAX_VOICES) {
-			let audio = make_audio("sounds/" + name + ".wav");
+			let attempt = attempts.get(name) || 0;
+			if (attempt > MAX_LOAD_RETRIES) return;
+			/* A retry adds a query string so a cached failure can't be served back. */
+			let audio = make_audio("sounds/" + name + ".wav" + (attempt ? "?retry=" + attempt : ""));
 			audio.volume = 0.5;
-			voice = { audio, started: 0 };
+			let created = { audio, started: 0 };
+			// A copy whose file failed to load would otherwise sit in the pool
+			// as a paused voice, reused and silent for good. Drop it so the
+			// next trigger fetches again; copies that failed together count
+			// as one failure.
+			audio.addEventListener("error", () => {
+				let i = pool.indexOf(created);
+				if (i !== -1) pool.splice(i, 1);
+				if ((attempts.get(name) || 0) === attempt) attempts.set(name, attempt + 1);
+			});
+			voice = created;
 			pool.push(voice);
 		}
 		// Past MAX_VOICES copies of a sound, the newest trigger restarts the
@@ -203,12 +221,33 @@ function decode_wav(bytes) {
 	return { sample_rate: format.sample_rate, samples };
 }
 
+async function fetch_ok_bytes(url) {
+	let response = await fetch(url);
+	if (!response.ok) throw new Error(url + ": HTTP " + response.status);
+	return new Uint8Array(await response.arrayBuffer());
+}
+
 /* Every sample the mixer may need, fetched relative to the page (the same
- * URLs the audio elements use) and decoded: a Map of name -> decoded. */
-async function load_samples(fetch_bytes = async url => new Uint8Array(await (await fetch(url)).arrayBuffer())) {
+ * URLs the audio elements use) and decoded: a Map of name -> decoded. A
+ * failed fetch is retried after each of retry_delays (ms), with a query
+ * string so a cached failure can't be served back, before the error is
+ * passed on. */
+const SAMPLE_RETRY_DELAYS = [500, 1500, 4000, 10000];
+
+async function load_samples(fetch_bytes = fetch_ok_bytes, retry_delays = SAMPLE_RETRY_DELAYS) {
 	let samples = new Map();
 	for (let name of SAMPLE_NAMES) {
-		let bytes = await fetch_bytes("sounds/" + name + ".wav");
+		let url = "sounds/" + name + ".wav";
+		let bytes;
+		for (let attempt = 0; ; attempt++) {
+			try {
+				bytes = await fetch_bytes(attempt ? url + "?retry=" + attempt : url);
+				break;
+			} catch (err) {
+				if (attempt >= retry_delays.length) throw err;
+				await new Promise(resolve => setTimeout(resolve, retry_delays[attempt]));
+			}
+		}
 		samples.set(name, decode_wav(bytes));
 	}
 	return samples;
