@@ -170,6 +170,8 @@ for (let terrain of [1, 7, 255]) {
 		"shell falls never trigger tank-in-water audio, regardless of terrain");
 }
 assert.equal(Sound.event_for(state, { player: 2, time: 11 }, { type: "terrain_change", x: 52, y: 50, terrain: 5 }), null, "tree growth is silent");
+state.grid[50 * 256 + 52] = 1;
+assert.equal(Sound.event_for(state, { player: 2, time: 11 }, { type: "terrain_change", x: 52, y: 50, terrain: 9 }), null, "a boat appearing on the river is silent");
 
 // Gunfire comes from the matcher's shell births: one sound per traced shell,
 // at its muzzle time, named for the firing player unless a pill fired it.
