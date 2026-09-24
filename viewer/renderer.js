@@ -43,7 +43,7 @@ const OBJ_NATIVE_TILE = 16;
 const LGM_ANIMATION_FPS = 20;
 const LGM_ANIMATION = ["lgm_frame0", "lgm_frame1", "lgm_frame0", "lgm_frame2"];
 
-/* ---------- object sprites (sprites/objects/) ---------- */
+/* ---------- object sprites (objects/ in sprite_data.js) ---------- */
 let use_obj_sprites = true;				// Sprites vs vector graphics (but the latter is always used at low zoom).
 let use_lgm_sprites = true;				// Sprites for men specifically.
 let use_big_shots = false;				// Optional big yellow shots.
@@ -65,7 +65,7 @@ function load_obj_sprites() {
 			`pillbox_good_${n}`, `pillbox_evil_${n}`, `pillbox_neutral_${n}`, `shell_${n}`);
 	}
 	for (let name of names) {
-		BoloSprites.load_image("sprites/objects/" + name + ".png", (img) => {
+		BoloSprites.load_image("objects/" + name, (img) => {
 			obj_imgs.set(name, img);
 			request_draw();
 		});
