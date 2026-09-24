@@ -139,6 +139,14 @@ check("header-only file yields no records", [...BoloLog.records(header())].lengt
 	const committed = fs.readFileSync(path.join(__dirname, "..", "viewer", "logparse.js"), "utf8").replace(/\r\n/g, "\n");
 	check("viewer/logparse.js is freshly generated from src/parse.js", build() === committed, true);
 
+	// --- likewise the viewer's sprite data, from the PNGs in sprites/ ---
+	const sprites = await import("../tools/build-viewer-sprites.mjs");
+	const committed_sprites = fs.readFileSync(path.join(__dirname, "..", "viewer", "sprite_data.js"), "utf8").replace(/\r\n/g, "\n");
+	check("viewer/sprite_data.js is freshly generated from sprites/", sprites.build() === committed_sprites, true);
+	const sprite_data = require("../viewer/sprite_data.js");
+	const missing = require("../viewer/sprites.js").NAMES.filter(name => !sprite_data[name]);
+	check("every terrain sprite the viewer draws is in viewer/sprite_data.js", missing.join(), "");
+
 	// --- parity: both parser builds must agree on the whole sample log ---
 	const esm = await import("../src/parse.js");
 	const log1 = path.join(__dirname, "..", "fixtures", "long_game");
