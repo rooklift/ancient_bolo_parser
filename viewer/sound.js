@@ -39,10 +39,11 @@ function event_for(state, rec, sub) {
 			else kind = "shot_building";
 			break;
 		case "terrain_change":
-			// Growth and crater flooding are silent. Construction and harvesting
+			// Growth, crater flooding and boats are silent: a boat appears on
+			// the river whenever a tank leaves one. Construction and harvesting
 			// are inferred from terrain transitions; the log has no audio opcode.
 			if ((under === 5 || under === 13) && sub.terrain === 7) kind = "farming_tree";
-			else if (under !== sub.terrain && [0, 4, 9].includes(sub.terrain)) kind = "man_building";
+			else if (under !== sub.terrain && [0, 4].includes(sub.terrain)) kind = "man_building";
 			break;
 		case "pill_plant": kind = "man_building"; break;
 		case "pill_repair_4": case "pill_repair_8":
