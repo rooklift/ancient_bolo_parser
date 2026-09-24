@@ -40,6 +40,7 @@ let player = Sound.create_player(url => {
 	let audio = { paused: true, currentTime: 0,
 		play() { this.paused = false; played.push(url); return Promise.resolve(); },
 		pause() { this.paused = true; },
+		addEventListener() {},
 	};
 	audios.push(audio);
 	return audio;
@@ -78,6 +79,7 @@ assert.ok(audios.every(a => a.paused));
 		let audio = { paused: true, currentTime: 0,
 			play() { this.paused = false; return Promise.resolve(); },
 			pause() { this.paused = true; },
+			addEventListener() {},
 		};
 		voices.push(audio);
 		return audio;
@@ -307,6 +309,41 @@ assert.equal(Sound.seeded_random(7)(), Sound.seeded_random(7)(), "the seeded gen
 	assert.equal(slow.lastIndexOf(0.5), 24102, "at the slowest rate, 0.97, the same sound plays 3% longer");
 }
 
+// A copy whose file fails to load is dropped, so a later trigger fetches
+// afresh; copies that fail together count once, and retries are bounded.
+{
+	let urls = [], made = [];
+	let flaky = Sound.create_player(url => {
+		let audio = { paused: true, currentTime: 0, handlers: [],
+			play() { this.paused = false; return Promise.resolve(); },
+			pause() { this.paused = true; },
+			addEventListener(type, fn) { if (type === "error") this.handlers.push(fn); },
+			fail() { this.paused = true; for (let fn of this.handlers) fn(); },
+		};
+		urls.push(url);
+		made.push(audio);
+		return audio;
+	}, () => 0.5);
+	let fire = (n = 1) => flaky.advance(Array.from({ length: n }, () => shot), 0, 10, 1, 2, () => listener);
+	fire(2);
+	assert.deepEqual(urls, ["sounds/shooting_self.wav", "sounds/shooting_self.wav"]);
+	made.forEach(a => a.fail());
+	fire();
+	assert.equal(urls.at(-1), "sounds/shooting_self.wav?retry=1", "a failed load is fetched again, once for copies that failed together");
+	assert.equal(made.length, 3, "failed copies are not reused");
+	made[2].paused = true;
+	fire();
+	assert.equal(made.length, 3, "a loaded copy is reused as before");
+	for (let i = 0; i < 4; i++) {
+		made.at(-1).fail();
+		fire();
+	}
+	assert.deepEqual(urls.slice(2), ["sounds/shooting_self.wav?retry=1", "sounds/shooting_self.wav?retry=2",
+		"sounds/shooting_self.wav?retry=3", "sounds/shooting_self.wav?retry=4"]);
+	fire();
+	assert.equal(made.length, 6, "past the retry limit the sound is given up on");
+}
+
 // The sample loader fetches every name the variant rule can produce.
 (async () => {
 	let urls = [];
@@ -318,5 +355,6 @@ assert.equal(Sound.seeded_random(7)(), Sound.seeded_random(7)(), "the seeded gen
 		if (name) assert.ok(loaded.has(name), name);
 	}
 	assert.ok(urls.every(u => u.startsWith("sounds/") && u.endsWith(".wav")));
+
 	console.log("all sound checks passed");
 })().catch(err => { console.error(err); process.exit(1); });
