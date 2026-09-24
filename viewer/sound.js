@@ -221,33 +221,12 @@ function decode_wav(bytes) {
 	return { sample_rate: format.sample_rate, samples };
 }
 
-async function fetch_ok_bytes(url) {
-	let response = await fetch(url);
-	if (!response.ok) throw new Error(url + ": HTTP " + response.status);
-	return new Uint8Array(await response.arrayBuffer());
-}
-
 /* Every sample the mixer may need, fetched relative to the page (the same
- * URLs the audio elements use) and decoded: a Map of name -> decoded. A
- * failed fetch is retried after each of retry_delays (ms), with a query
- * string so a cached failure can't be served back, before the error is
- * passed on. */
-const SAMPLE_RETRY_DELAYS = [500, 1500, 4000, 10000];
-
-async function load_samples(fetch_bytes = fetch_ok_bytes, retry_delays = SAMPLE_RETRY_DELAYS) {
+ * URLs the audio elements use) and decoded: a Map of name -> decoded. */
+async function load_samples(fetch_bytes = async url => new Uint8Array(await (await fetch(url)).arrayBuffer())) {
 	let samples = new Map();
 	for (let name of SAMPLE_NAMES) {
-		let url = "sounds/" + name + ".wav";
-		let bytes;
-		for (let attempt = 0; ; attempt++) {
-			try {
-				bytes = await fetch_bytes(attempt ? url + "?retry=" + attempt : url);
-				break;
-			} catch (err) {
-				if (attempt >= retry_delays.length) throw err;
-				await new Promise(resolve => setTimeout(resolve, retry_delays[attempt]));
-			}
-		}
+		let bytes = await fetch_bytes("sounds/" + name + ".wav");
 		samples.set(name, decode_wav(bytes));
 	}
 	return samples;

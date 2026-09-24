@@ -356,18 +356,5 @@ assert.equal(Sound.seeded_random(7)(), Sound.seeded_random(7)(), "the seeded gen
 	}
 	assert.ok(urls.every(u => u.startsWith("sounds/") && u.endsWith(".wav")));
 
-	// A failed fetch is retried, with a query string, up to the number of delays given.
-	let tries = [];
-	let failing_twice = async url => {
-		tries.push(url);
-		if (url.startsWith("sounds/bubbles.wav") && tries.filter(u => u.startsWith("sounds/bubbles.wav")).length <= 2) throw new Error("dropped");
-		return wav;
-	};
-	let retried = await Sound.load_samples(failing_twice, [0, 0]);
-	assert.equal(retried.size, Sound.SAMPLE_NAMES.length);
-	assert.deepEqual(tries.filter(u => u.startsWith("sounds/bubbles.wav")),
-		["sounds/bubbles.wav", "sounds/bubbles.wav?retry=1", "sounds/bubbles.wav?retry=2"]);
-	await assert.rejects(Sound.load_samples(async () => { throw new Error("gone"); }, [0, 0]), /gone/,
-		"the error is passed on once the retries run out");
 	console.log("all sound checks passed");
 })().catch(err => { console.error(err); process.exit(1); });
