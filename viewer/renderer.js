@@ -565,6 +565,12 @@ function fmt_time(ticks) {
 	return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
+/* WebKit/Blink can't paint the played part of the seek track by itself;
+ * style.css splits the track's gradient at --seek_fill. */
+function update_seek_fill() {
+	seek_el.style.setProperty("--seek_fill", seek_el.value / 1000);
+}
+
 function update_transport() {
 	if (!game) return;
 	time_label.textContent = `${fmt_time(clock)} / ${fmt_time(game.t1)}`;
@@ -575,6 +581,7 @@ function update_transport() {
 	game_meta_el.textContent = bits.filter(Boolean).join(" · ");
 	let span = Math.max(1, game.t1 - game.t0);
 	seek_el.value = Math.round(((clock - game.t0) / span) * 1000);
+	update_seek_fill();
 	update_viewpoint_options();
 	update_players();
 	update_chat();
@@ -1482,6 +1489,7 @@ viewpoint_el.addEventListener("change", () => {
 	request_draw();
 });
 seek_el.addEventListener("input", () => {
+	update_seek_fill();
 	if (!game || exporting) return;
 	let tick = game.t0 + (parseInt(seek_el.value, 10) / 1000) * (game.t1 - game.t0);
 	set_clock(tick, tick < clock);
