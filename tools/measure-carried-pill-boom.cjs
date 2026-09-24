@@ -111,6 +111,11 @@ class Carry {
 		this.hits_before = hits_before;             /* 9n on the pill in the HIT_LOOKBACK before pickup */
 		this.last_hit_before = last_hit_before;     /* ticks from the last 9n to the pickup */
 		this.booms = [];                            /* ticks after t0 of each 7D covering the old square */
+		this.boom_senders = [];                     /* the machine whose record carried each boom */
+		this.boom_carrier_dist = [];                /* the carrier's tank square, Chebyshev distance from the old square, at each boom */
+		this.tank_booms = [];                       /* ticks after t0 of each 7D covering the carrier's tank square but not the old square */
+		this.armour_at_pickup = null;
+		this.last_dead_base_hit_before = null;      /* ticks from the last allied base hit in the circle while the pill lay dead, to the pickup */
 		this.craters = [];                          /* 7 3 on the old square */
 		this.hits_while = [];                       /* 9n on the pill's index while carried */
 		this.base_hits = [];                        /* allied base hits inside the circle around the old square */
@@ -136,7 +141,8 @@ class Carry {
 	}
 	last_boom_to_plant() { return this.booms.length ? this.plant - this.t0 - this.booms[this.booms.length - 1] : null; }
 	last_base_hit_to_plant() { return this.base_hits.length ? this.plant - this.t0 - this.base_hits[this.base_hits.length - 1] : null; }
-	provoked() { return this.booms.length || this.hits_while.length || this.base_hits.length; }
+	provoked() { return this.booms.length || this.hits_while.length || this.base_hits.length || this.tank_booms.length; }
+	last_tank_boom_to_plant() { return this.tank_booms.length ? this.plant - this.t0 - this.tank_booms[this.tank_booms.length - 1] : null; }
 }
 
 /* A superboom covering a grounded pill; fires read from the boom exactly as
@@ -184,6 +190,7 @@ function scan(file) {
 	let last_fire = Array.from({length: 16}, () => new Array(16).fill(-Infinity));   /* [pill][sender] */
 	let hit_times = Array.from({length: 16}, () => []);
 	let ground_boom_times = Array.from({length: 16}, () => []);
+	let dead_base_hit_times = Array.from({length: 16}, () => []);
 	let open = new Array(16).fill(null);       /* carry in progress per pill index */
 	let reading = [];                          /* carries planted, still in their fire window */
 	let living = new Array(16).fill(null);     /* planted carry whose life is being counted, per pill index */
@@ -243,6 +250,10 @@ function scan(file) {
 					if (!allied(state, pill.owner, base.owner)) continue;
 					if (d2(c.nx, c.ny, base.x, base.y) < RADIUS_SQ) { c.end = now; c.ended_by = "allied base hit"; }
 				}
+				state.pills.forEach((p, k) => {
+					if (p.inTank === null && p.armour === 0 && allied(state, p.owner, base.owner) && d2(p.x, p.y, base.x, base.y) < RADIUS_SQ)
+						dead_base_hit_times[k].push(now);
+				});
 			} else if (sub.type === "explosion" && (sub.code === 0x0d || sub.code === 3)) {
 				let squares = sub.code === 0x0d
 					? [[0, 0], [1, 0], [0, 1], [1, 1]].map(([dx, dy]) => [sub.x + dx, sub.y + dy])
@@ -261,8 +272,17 @@ function scan(file) {
 				for (let c of open) {
 					if (!c) continue;
 					let on = squares.some(([x, y]) => x === c.ox && y === c.oy);
-					if (!on) continue;
+					let tank = state.tanks[c.picker];
+					let tsq = tank ? {x: tank.x, y: tank.y} : null;
+					if (!on) {
+						if (sub.code === 0x0d && tsq && squares.some(([x, y]) => x === tsq.x && y === tsq.y)) c.tank_booms.push(now - c.t0);
+						continue;
+					}
 					(sub.code === 0x0d ? c.booms : c.craters).push(now - c.t0);
+					if (sub.code === 0x0d) {
+						c.boom_senders.push(rec.player);
+						c.boom_carrier_dist.push(tsq ? Math.max(Math.abs(tsq.x - c.ox), Math.abs(tsq.y - c.oy)) : null);
+					}
 					/* flood read-out: the vacated square, if it can report */
 					let under = state.grid[c.oy * MAP_SIZE + c.ox];
 					if (is_water(under) || under === 3) continue;
@@ -303,6 +323,8 @@ function scan(file) {
 				let last = hit_times[k].length ? now - hit_times[k][hit_times[k].length - 1] : null;
 				let last_boom = ground_boom_times[k].length ? now - ground_boom_times[k][ground_boom_times[k].length - 1] : null;
 				open[k] = new Carry(label, now, k, p.x, p.y, pl, recent, last, last_boom);
+				open[k].armour_at_pickup = p.armour;
+				open[k].last_dead_base_hit_before = dead_base_hit_times[k].length ? now - dead_base_hit_times[k][dead_base_hit_times[k].length - 1] : null;
 			} else if (sub.type === "pill_plant") {
 				let k = state.pills.findIndex(p => p.inTank === pl);
 				if (k < 0) continue;
@@ -351,7 +373,7 @@ function median(xs) {
 function describe(c) {
 	return `${c.log} pill ${c.pill} picked t${c.t0} at ${c.ox},${c.oy} by p${c.picker} (last 9n ${c.last_hit_before === null ? "never" : c.last_hit_before + " ticks"} before), ` +
 		`planted t${c.plant} at ${c.nx},${c.ny} after ${c.carry_ticks()} ticks; ` +
-		`booms +${c.booms.join(",+")} 9n-while ${c.hits_while.length} base-hits ${c.base_hits.length}; ` +
+		`armour at pickup ${c.armour_at_pickup}; booms +${c.booms.join(",+")} (carrier ${c.boom_carrier_dist.join(",")} squares off) tank-booms +${c.tank_booms.join(",+")} 9n-while ${c.hits_while.length} base-hits ${c.base_hits.length}; ` +
 		`fires ${c.fires.map(f => `+${f[0]}/p${f[1]}`).join(" ")} gaps ${c.gaps.join(",")} ended by ${c.ended_by}; ` +
 		`life ${c.life_hits} hits then ${c.life_end || "log end"}`;
 }
@@ -451,8 +473,12 @@ function matched(name, set) {
 console.log("\n=== matched against the control at the same elapsed time since the pill's last hit ===");
 console.log("control bins: " + control_bins.map((b, i) => `[${ELAPSED_BINS[i]},${ELAPSED_BINS[i + 1]}) n ${b.length} median ${b.length ? b[b.length >> 1] : "-"}`).join("; "));
 matched("superboom on the vacated square, within 1500 ticks of the plant", boomed.filter(c => c.last_boom_to_plant() <= 1500));
+matched("superboom on the vacated square with the carrier 2+ squares away, within 1500 ticks of the plant", boomed.filter(c => c.last_boom_to_plant() <= 1500 && c.boom_carrier_dist.some(d => d !== null && d >= 2)));
+matched("superboom on the carrier's tank square, old square not covered, within 1500 ticks of the plant", carries.filter(c => c.tank_booms.length && !c.booms.length && c.last_tank_boom_to_plant() <= 1500));
 matched("superboom on the pill while it lay dead on the ground, after its last hit, then carried under 30 s", carries.filter(c => c.ground_boom_after_last_hit() && !c.provoked() && c.carry_ticks() < 1500));
 matched("allied base hit inside the circle of the vacated square, last within 500 ticks of the plant", base_hit.filter(c => c.last_base_hit_to_plant() <= 500));
+matched("allied base hit in the circle while the pill lay DEAD ON THE GROUND, after its last hit and within 500 ticks of the pickup, then carried under 30 s",
+	carries.filter(c => c.last_dead_base_hit_before !== null && c.last_dead_base_hit_before <= 500 && c.last_hit_before !== null && c.last_dead_base_hit_before < c.last_hit_before && !c.provoked() && !c.ground_boom_after_last_hit() && c.carry_ticks() < 1500));
 
 console.log("\n=== superboom on a grounded pill: fire gaps in the 500 ticks after the boom ===");
 function ground_row(name, set) {
@@ -507,8 +533,40 @@ let built = carries.filter(c => c.builds.length);
 console.log(`\n=== builds on the vacated square while the pill was carried: ${built.length} carries, ${built.reduce((a, c) => a + c.builds.length, 0)} builds ` +
 	`(Bolo refuses a build on a square holding a grounded pill) ===`);
 
+console.log("\n=== ordering: when the boom fell relative to the pickup, and who logged it ===");
+console.log("booms on the vacated square, ticks after the pickup record (P = the picker's own machine logged the boom, so the order is exact):");
+console.log("  " + boomed.map(c => `${c.booms[0]}${c.boom_senders[0] === c.picker ? "P" : ""}${c.verdict() === "unobserved" ? "" : "*"}`).join(" ") + "   (* = post-plant fires observed)");
+let ground_before = carries.filter(c => c.ground_boom_after_last_hit());
+console.log("booms on the pill while it lay dead on the ground after its last hit, ticks before the pickup:");
+console.log("  " + ground_before.map(c => c.last_ground_boom_before).sort((a, b) => a - b).join(" "));
+console.log("carried booms 50+ ticks after the pickup:");
+for (let c of boomed.filter(c => c.booms[0] >= 50)) console.log(`  ${describe(c)}`);
+console.log("carried booms logged by the picker's own machine:");
+for (let c of boomed.filter(c => c.boom_senders[0] === c.picker)) console.log(`  ${describe(c)}`);
+
+console.log("\n=== does anger relax while the pill is carried? control carries at matched elapsed time since the last hit, short carry vs long ===");
+for (let i = 2; i < ELAPSED_BINS.length - 1; i++) {
+	let set = control_obs.filter(c => bin_of(c.elapsed()) === i);
+	let lo = ELAPSED_BINS[i], hi = ELAPSED_BINS[i + 1];
+	let short_c = set.filter(c => c.carry_ticks() < (hi - lo) / 4);
+	let long_c = set.filter(c => c.carry_ticks() > (hi - lo) / 2);
+	console.log(`elapsed [${lo},${hi}): carry under ${(hi - lo) / 4} ticks n ${short_c.length} median gap ${median(short_c.map(c => c.min_gap()))}; ` +
+		`carry over ${(hi - lo) / 2} ticks n ${long_c.length} median gap ${median(long_c.map(c => c.min_gap()))}`);
+}
+
 console.log("\n=== every superboomed carry ===");
 for (let c of boomed) console.log(`  ${describe(c)}`);
+console.log("\n=== every carry with a superboom on the carrier's tank square but not the old square ===");
+for (let c of carries.filter(c => c.tank_booms.length && !c.booms.length)) console.log(`  ${describe(c)}`);
+console.log("\n=== model armour at pickup, all carries (a pickup needs a dead pill; a boom logged after the pickup that really came first would leave 1-4 here) ===");
+{
+	let bins = {};
+	for (let c of carries) bins[c.armour_at_pickup] = (bins[c.armour_at_pickup] || 0) + 1;
+	console.log("  all: " + Object.keys(bins).map(Number).sort((a, b) => a - b).map(a => `${a}:${bins[a]}`).join(" "));
+	let bb = {};
+	for (let c of boomed.filter(c => c.booms[0] <= 30)) bb[c.armour_at_pickup] = (bb[c.armour_at_pickup] || 0) + 1;
+	console.log("  boomed within 30 ticks after the pickup: " + Object.keys(bb).map(Number).sort((a, b) => a - b).map(a => `${a}:${bb[a]}`).join(" "));
+}
 
 if (SAMPLES) {
 	console.log("\n=== samples: control carries under 5 s reading angry ===");
