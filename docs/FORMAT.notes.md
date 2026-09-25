@@ -45,6 +45,7 @@ Corpus figures are from the 443-log set unless an entry says 446, in which case 
 
 - [`[E:pill-shell-migration]`](#epill-shell-migration-pill-shells-ride-in-the-simulating-machines-lists) — pill shells ride in the simulating machine's lists
 - [`[E:pill-target]`](#epill-target-the-f4-sender-is-the-pills-target-hand-over-of-a-departed-players-property) — the `F4` sender is the pill's target; hand-over of a departed player's property
+- [`[E:pill-shell-cap]`](#epill-shell-cap-a-machine-holds-at-most-12-pill-shells-and-no-pill-fires-at-it-while-full) — a machine holds at most 12 pill shells, and no pill fires at it while full
 - [`[E:pill-fire-index]`](#epill-fire-index-the-direction-0-index-fault) — the direction-0 index fault
 - [`[E:massaging]`](#emassaging-a-touching-tank-makes-a-pill-fire-along-the-tanks-facing) — a touching tank makes a pill fire along the tank's facing
 - [`[E:base-anger]`](#ebase-anger-a-shell-on-a-base-is-a-hit-on-every-allied-pill-within-7-squares) — a shell on a base is a hit on every allied pill within 7 squares
@@ -509,6 +510,16 @@ That leaves one dead, passed-over ally unshot: 255 ticks as the nearest tank in 
 Two-sided, then: of four dead allies whose tanks came back within range of the handed pills, three were shot and the fourth was not given longer than a hostile pill has been seen to wait. The reading stands, on four quits; the viewer's test (`has_live_tank`, the dead and dying bits with no staleness clause) matches the split and needs no change.
 
 Unlike the index fault, the dead-heir hand-over changed the game: the orphaned pills were hostile to everyone until killed and re-planted. Playback reproduces it, because the corpus shows it happening; a disconnect presumably behaves the same, since the log records both as a quit. A dead player is still a member of the alliance, and the manual promises the alliance keeps the property, so this looks like Bolo searching its live tanks for an heir rather than its players.
+
+### [E:pill-shell-cap] — a machine holds at most 12 pill shells, and no pill fires at it while full
+
+A pill's shells ride in its target's lists [E:pill-shell-migration] [E:pill-target], and every record restates every shell its sender simulates [E:shell-restate], so the pill shells one machine holds is a count over one record. The lists also carry the sender's own tank shells, at most four [E:tank-shell-range]; `node tools/measure-pill-shell-cap.cjs` separates them with the viewer's own attribution, building each replay and labelling each snapshot shell a pill's, a tank's or neither with `BoloMotion.shell_origin`. Over both corpora (1,030 logs, 24.0 million snapshots), 16.9 million shells are labelled and 162,357 (1%) are not.
+
+**The ceiling.** Pill shells per record run 0 to **12** and never above: 41,518 records hold 11, 13,037 hold 12, none hold 13. Counting every unlabelled shell as a pill's moves 505 records to 13 and 17 to 14, but tank shells never pass 4 and the raw lists, attribution aside, never pass 16 shells, so those are the sender's own shots unlabelled. The count drops by a factor of three from 11 to 12 and stops, where a free tail would put some four thousand at 13.
+
+**No fire at a full machine.** The `F4` fires in a sender's next record, by the pill shells in its current one, climb from 0.21 a record at 1 shell to 0.85 at 9, fall to 0.76 at 10 and 0.57 at 11, and are **0** after all 13,037 records at 12, where the rate at 9–10 would give some ten thousand. So the table does not drop a thirteenth shell: the pill does not fire, or at least nothing is sent, and it fires again once a shell has landed. The fall at 10 and 11 is the same limit seen early, a machine at 11 having room for one more shot in the record.
+
+**How often.** 979 of the 1,030 logs and 2,698 of 3,782 client streams reach 12, in 10,121 runs of consecutive records at the cap: median 8 ticks from the first record at 12 to the first below it, p90 15, p99 25, and one of 355 across a stall; 91,984 ticks in all, about half an hour over the corpus. That is 0.054% of all records and 0.354% of those holding any pill shell. One pill owns all twelve shells in 7,092 of the records at the cap, two in 4,377, three in 1,271, and four to six in the other 297: a fully angry pill fires every 6 ticks and its shell flies 64 (GAMEPLAY.md, Anger), so one pill alone runs a machine up to about eleven, and a hit landing or a second pill does the rest. The replay most often at the cap, `20021012.4~c739a3`, spends 317 records there in 136 runs over 57 minutes.
 
 ### [E:pill-fire-index] — the direction-0 index fault
 

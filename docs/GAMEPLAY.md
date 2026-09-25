@@ -247,6 +247,15 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   [E:pill-target])**. It does not fire at the man; it does fire at a tank in
   a boat **(owner)**. A tank touching the pill can make it fire along the
   tank's facing instead, the "massaging" bug **(corpus, [E:massaging])**.
+- **At most 12 pill shells per machine.** A machine simulating pills (the
+  target's) never holds more than **12** pill shells in flight at once,
+  whichever pills fired them, and while it holds 12 no pill fires at it:
+  no `F4` follows, and firing resumes as the first shell lands. One fully
+  angry pill keeps close to that many aloft (a shot every 4–6 ticks, a
+  flight of 64), and in half the records at the cap a single pill owns all
+  twelve. The cap is common but brief: 979 of 1,030 replays reach it, in
+  runs lasting a median of 8 ticks, for 0.35% of the records that hold any
+  pill shell **(corpus, [E:pill-shell-cap])**.
 - **Capture and repair.** A pill must be dead (armour 0) to be picked up, and
   anyone may pick it up, its owner included; pickup captures it **(owner;
   corpus, [E:pill-capture], [E:owner-signals])**. Repairing never changes
