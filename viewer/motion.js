@@ -137,9 +137,15 @@ const TICKS_PER_SHELL_UPDATE = 2;
  * tank shot measured from its birth. Fuzzy joins with no discrete
  * evidence keep the ordinary window. */
 const MAX_STITCH_GAP_TICKS = 100;
+/* A tank shell is last listed at most 50 ticks after its shot
+ * [E:tank-shell-range], but this bound is read against record stamps,
+ * and a ring stall stretches the stamps past the shell's true age --
+ * the very lag the stitcher exists to bridge. So it keeps its slack: at
+ * 56 the corpus audit lost 402 links, most of them real shells split
+ * into a pop-out and a same-direction pop-in ahead. */
 const TANK_SHELL_FLIGHT_LIMIT_TICKS = 72;
-/* 8.5 tiles: the pill orbit range, and the assumed tank-shot range from
- * the shared simulation. */
+/* 8.5 tiles: the pill orbit range. Tank shots fly less far, about 109
+ * px [E:tank-shell-range]; this stays a ceiling for both. */
 const SHELL_RANGE_PIXELS = 136;
 /* The longest drawable birth segment. A birth replays the flight from the
  * muzzle to the shell's first restatement, and no claiming path puts that

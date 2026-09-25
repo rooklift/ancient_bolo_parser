@@ -36,6 +36,7 @@ Corpus figures are from the 443-log set unless an entry says 446, in which case 
 - [`[E:shell-fall-terminal]`](#eshell-fall-terminal-fb-is-the-shells-terminal-point) — `FB` is the shell's terminal point
 - [`[E:shot-fire-time]`](#eshot-fire-time-the-5d-nibble-is-stamped-at-fire-time) — the `5d` nibble is stamped at fire time
 - [`[E:muzzle]`](#emuzzle-the-opening-frame-does-not-fell-the-firers-tree) — the opening frame does not fell the firer's tree
+- [`[E:tank-shell-range]`](#etank-shell-range-a-tank-shell-flies-at-most-50-ticks-so-at-most-four-are-aloft) — a tank shell flies at most 50 ticks, so at most four are aloft
 - [`[E:shell-birth-sector]`](#eshell-birth-sector-a-shell-born-on-a-sector-boundary-is-listed-a-sector-off-for-life) — a shell born on a sector boundary is listed a sector off for life
 - [`[E:shell-passthrough]`](#eshell-passthrough-apparent-pass-throughs-are-identity-errors) — apparent pass-throughs are identity errors
 - [`[E:hit-reporter]`](#ehit-reporter-the-fc-hit-is-sent-by-the-shells-simulator) — the `FC` hit is sent by the shell's simulator
@@ -390,6 +391,18 @@ So these are not shells crossing forest: the opening frame simply does not fell 
 It does **not** follow that a tank can never fell its own tile. Of 14,666 shots fired by a tank standing on forest, 17.0% see that tile felled within 1.5 s, and the rate rises with the room the shell has to cross the square: at a runway of 15-16 px — the tank hard against one edge, firing straight across — it reaches 29% and 39%, and at maximum inwardness 41%. The flat ~17% elsewhere is uncontrolled, since a tank sitting in cover is usually being shot at and incoming fire fells the same tile; separating the two would need a control this measurement does not have. Read it as: the opening frame is exempt, the rest of the flight is not.
 
 This matters only to code that models shell-terrain interaction, since the felling itself is evented — but such a model will otherwise clear the firer's own tile every time anyone shoots from cover.
+
+### [E:tank-shell-range] — a tank shell flies at most 50 ticks, so at most four are aloft
+
+Tank shells share the pill shells' integer physics (`docs/tank_shell_bradians.md`) but not their range. Pill shells fly 32 updates, 8.5 tiles; tank shells were long assumed to do the same, and the viewer's stitching bounds still carry that figure as a ceiling. The logs say otherwise.
+
+Both measurements read only records that no pill shell can be in: more than 80 ticks after the last `F4` from any sender in the replay, since a pill shell lives 64. What remains in a sender's lists is its own tank shells [E:shell-restate].
+
+**Lifetime.** A lone shell is a run of one sender's records listing exactly one shell, opened by that sender's `5d`, closed by a record listing none, with no second `5d` inside and no record gap over 4 ticks, so a stalled ring cannot stretch it. Of 2,336 such runs, most end early against something, but the tail is sharp: the last listing comes at most **50 ticks** after the `5d` record (p99 48), and the distance from the tank's centre at the shot to that last listing piles up at 102–108 px and never passes **109**. About 6.7 tiles, against the pill shell's 8.5. Adding the second corpus (587 logs) raises the runs to 3,722 and moves neither bound.
+
+**Shells aloft.** Of 5.8 million pill-quiet records, the most shells any one lists is 4 (39,697 records), save 12 records listing 5 to 10. Each of those 12 lists more shells than its sender fired in the preceding 90 ticks, so they are pill shells whose `F4` was lost with its record, not tank shells; 217 records in all fail that check and are set aside. Over both corpora the figures are 63,731 at 4 and 32 above it, all 32 unexplained the same way. The count follows from the lifetime and the 13.2-tick reload (GAMEPLAY.md): four reloads are 52.8 ticks, longer than any shell lives. The log cannot tell that from a hard cap of four, since both give the same count.
+
+The 50 ticks are between record stamps on gap-free runs. Across a ring stall the stamps stretch past the shell's true age, which is why the viewer's `TANK_SHELL_FLIGHT_LIMIT_TICKS`, a bound on record time, keeps its slack: set to 56, it split real shells across lagged records (286 more pop-outs paired with a same-direction pop-in ahead over the corpus audit). `node tools/measure-tank-shells-aloft.cjs`.
 
 ### [E:shell-birth-sector] — a shell born on a sector boundary is listed a sector off for life
 
