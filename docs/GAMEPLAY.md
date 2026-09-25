@@ -117,8 +117,15 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   goes into a record the sender was already late with, so the second
   follows it by as little as 8 ticks, and a ring that spaces records 6 or
   more ticks apart makes that shape everywhere **(emulator log)**. Tank shells run the same integer physics as pill shells
-  at all 256 bradians, at 2 px per tick, with a flight of about 8.5 tiles
-  **(corpus, `docs/tank_shell_bradians.md`)**.
+  at all 256 bradians, at 2 px per tick **(corpus,
+  `docs/tank_shell_bradians.md`)**, but fly less far: a shell that hits
+  nothing is last listed at most 50 ticks after its shot, 102–109 px from
+  the firing tank's centre, about 6.7 tiles against a pill shell's 8.5
+  **(corpus, [E:tank-shell-range])**. Whether the gunsight also sets
+  shorter ranges is not measured. With that flight and the reload, a tank
+  has at most **4** shells in the air at once: 50 ticks is under four
+  reloads, so the fifth shot leaves after the first has landed **(corpus,
+  [E:tank-shell-range])**.
 - **Hiding.** A tank is hidden in trees when no non-forest square comes
   within 9 px (Chebyshev) of the tank centre: the whole 16 px box plus a
   one-pixel margin must be forest **(owner: "the entire box, maybe
