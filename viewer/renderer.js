@@ -630,6 +630,16 @@ function player_color(p) {
 	return NAME_COLORS[BoloGame.team_of(cur, p)];
 }
 
+/* nuBolo names a player's machine by its IPv4 address and UDP port in
+ * hex (Oscar@55E29735999F is 85.226.151.53, port 39327), so a nuBolo
+ * log's hosts are shown as the address. Anything else is shown as
+ * written; the parsed names keep the hex. */
+function display_host(host) {
+	let gi = game.final.gameInfo;
+	if (!gi || !gi.nubolo || !/^[0-9A-F]{12}$/i.test(host)) return host;
+	return [0, 2, 4, 6].map(i => parseInt(host.slice(i, i + 2), 16)).join(".");
+}
+
 /* The players panel's content, shared between the DOM panel and the video
  * export's canvas-painted sidebar. */
 function player_rows() {
@@ -641,7 +651,7 @@ function player_rows() {
 		rows.push({
 			color: player_color(p),
 			handle: at >= 0 ? name.slice(0, at) : name,
-			host: at >= 0 ? name.slice(at + 1) : "",
+			host: at >= 0 ? display_host(name.slice(at + 1)) : "",
 			gone: !!cur.quit[p],
 		});
 	}
