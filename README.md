@@ -22,7 +22,10 @@ Logs that went through a Mac-to-Unix text conversion (every CR byte turned into 
 ```
 node tools/repair-crlf.mjs <logfile-or-directory>... --out repaired/
 node tools/repair-crlf.mjs <logfile-or-directory>... --check   # just say which are converted
+node tools/repair-crlf.mjs <logfile-or-directory>... --map Map.map --out repaired/
 ```
+
+With `--map`, a log whose map name matches the map file's name takes the file's pill, base and start positions and terrain as evidence, which settles the few bytes of the map transfer that the game itself says little about.
 
 Library:
 

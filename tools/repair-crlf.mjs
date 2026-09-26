@@ -53,6 +53,10 @@
  *              (default: alongside each input, as <name>.repaired)
  *   --verbose  list every ambiguous byte in the report, not only the
  *              undecided and low-confidence ones
+ *   --map FILE a .map file of the map these games were played on; for a
+ *              log whose map name matches the file's name, the file's
+ *              pill, base and start positions and its terrain count as
+ *              evidence
  *
  * The library exports looks_converted, repair, and damage (the forward
  * conversion, for testing against intact logs).
@@ -67,6 +71,7 @@ import { parseRecord } from "../src/parse.js";
 
 const require = createRequire(import.meta.url);
 const BoloGame = require("../viewer/game.js");
+const BoloMap = require("../viewer/format.js");
 
 const HEADER_SIZE = 72;
 const LF = 0x0a;
@@ -880,6 +885,11 @@ function score(rec, i, ctx, s, seed_grid, explain) {
 				if (next_run && next_run.mapKnown !== ((sub.run[1] << 8) | sub.run[3])) add("mapknown chain", 20);
 				if (prev_run && sub.run[1] < prev_run.run[1]) add("rows out of order", 20);
 				/* terrain agreeing with the rows above and below */
+				if (ctx.map_hint) {
+					let differ = 0;
+					for (let [x, t] of run.squares) if (x < MAP_SIZE && ctx.map_hint.grid[run.y * MAP_SIZE + x] !== t) differ++;
+					add("differs from the map file", differ * 2);
+				}
 				if (seed_grid) {
 					let differ = 0;
 					for (let [x, t] of run.squares) {
@@ -897,6 +907,8 @@ function score(rec, i, ctx, s, seed_grid, explain) {
 			case "base_list":
 			case "start_list":
 				sub.items.forEach((item, n) => {
+					let from_file = ctx.map_hint && ctx.map_hint[{ pillbox_list: "pills", base_list: "bases", start_list: "starts" }[sub.type]][n];
+					if (from_file && (from_file.x !== item.x || from_file.y !== item.y)) add("differs from the map file", 20);
 					if (item.x <= 20 || item.x >= 236 || item.y <= 20 || item.y >= 236) add("object in the mined border", 10);
 					if (item.owner !== undefined && item.owner > 15 && item.owner !== 0xff) add("object owner", 5);
 					if (sub.type === "start_list") {
@@ -1051,6 +1063,7 @@ export function repair(buf, options = {}) {
 	for (let pass = 0; pass < passes; pass++) {
 		let last = pass === passes - 1;
 		let ctx = build_context(parsed, doubt);
+		ctx.map_hint = options.map_hint || null;
 		let node_joins = BoloGame.classify_node_joins(parsed);
 		let seed = BoloGame.extract_initial_map(parsed, node_joins);
 		let s = BoloGame.initial_state(seed);
@@ -1131,11 +1144,40 @@ export function repair(buf, options = {}) {
 	let out = new Uint8Array(parts.reduce((n, a) => n + a.length, 0));
 	let at = 0;
 	for (let a of parts) { out.set(a, at); at += a.length; }
-	return { bytes: out, records: parsed, offsets, decisions, tail: framed.tail.length };
+	return { bytes: out, records: parsed, offsets, decisions, tail: framed.tail.length, map_note: options.map_note };
 }
 
 /* ------------------------------------------------------------------------
  * CLI */
+
+/* Does a log's map name match a .map file's name? The name is compared
+ * with punctuation and case dropped, and may end the file's name, since
+ * files are often saved as "Chew_Toy_3.map" or with a prefix. */
+function map_name_matches(map_name, file) {
+	let norm = t => t.toLowerCase().replace(/[^a-z0-9]/g, "");
+	let want = norm(map_name);
+	return want.length > 0 && norm(path.basename(file).replace(/\.map$/i, "")).endsWith(want);
+}
+
+/* the map name a damaged log names in its game info (never ambiguous in
+ * practice: checked by the caller against the repaired reading) */
+function log_map_name(bytes) {
+	for (let rec of repair_free_records(bytes)) {
+		let info = rec.subpackets.find(s => s.type === "game_info");
+		if (info) return info.mapName;
+	}
+	return null;
+}
+
+function* repair_free_records(bytes) {
+	let pos = HEADER_SIZE;
+	while (pos + 5 <= bytes.length) {
+		let len = bytes[pos + 4] ^ MASK[0];
+		if (len < 4 || len > 127 || pos + 4 + len > bytes.length) return;
+		yield parse_bytes(bytes.subarray(pos, pos + 4 + len), pos);
+		pos += 4 + len;
+	}
+}
 
 function fmt_time(ticks, t0) {
 	let s = (ticks - t0) / 50;
@@ -1158,6 +1200,7 @@ export function report_text(name, buf, result, verbose) {
 	lines.push(`  low confidence (won by under 1):                ${count(x => x.margin > 0 && x.margin < 1)}`);
 	lines.push(`records with parse warnings after repair: ${result.records.filter(r => r.warning).length}`);
 	if (result.tail) lines.push(`truncated final record: ${result.tail} byte(s) kept as found`);
+	if (result.map_note) lines.push(result.map_note);
 	let by_field = new Map();
 	for (let x of d) {
 		let key = x.field || "(no alternative)";
@@ -1198,19 +1241,21 @@ function collect(target) {
 
 function main(argv) {
 	let args = argv.slice(2);
-	let out_dir = null, check = false, verbose = false, explain;
+	let out_dir = null, check = false, verbose = false, explain, map_file = null;
 	let targets = [];
 	for (let i = 0; i < args.length; i++) {
 		if (args[i] === "--out") out_dir = args[++i];
 		else if (args[i] === "--check") check = true;
 		else if (args[i] === "--verbose") verbose = true;
 		else if (args[i] === "--explain") explain = +args[++i];
+		else if (args[i] === "--map") map_file = args[++i];
 		else targets.push(args[i]);
 	}
 	if (!targets.length) {
-		console.error("usage: node tools/repair-crlf.mjs <log-or-directory>... [--out DIR] [--check] [--verbose]");
+		console.error("usage: node tools/repair-crlf.mjs <log-or-directory>... [--out DIR] [--check] [--verbose] [--map FILE]");
 		process.exit(2);
 	}
+	let map = map_file ? BoloMap.parse_map(new Uint8Array(fs.readFileSync(map_file))) : null;
 	for (let f of targets.flatMap(collect)) {
 		let buf = new Uint8Array(fs.readFileSync(f));
 		if (buf.length < HEADER_SIZE || String.fromCharCode(...buf.subarray(0, 4)) !== "Bolo") {
@@ -1222,7 +1267,21 @@ function main(argv) {
 			console.log(`${f}: ${look.converted ? "CONVERTED" : "intact"} (CR ${look.cr}, LF ${look.lf})`);
 			continue;
 		}
-		let result = repair(buf, { explain });
+		let options = { explain };
+		if (map) {
+			let name = log_map_name(buf);
+			if (name !== null && map_name_matches(name, map_file)) {
+				options.map_hint = map;
+				options.map_note = `map file ${path.basename(map_file)} used as evidence (log's map: "${name}")`;
+			} else {
+				options.map_note = `map file ${path.basename(map_file)} not used: this log's map is "${name}"`;
+			}
+		}
+		let result = repair(buf, options);
+		/* the name the hint was matched on must survive the repair */
+		if (options.map_hint && log_map_name(result.bytes) !== log_map_name(buf)) {
+			result = repair(buf, { explain, map_note: `map file ${path.basename(map_file)} not used: this log's map name was itself damaged` });
+		}
 		let base = path.basename(f);
 		let dest = out_dir ? path.join(out_dir, base) : f + ".repaired";
 		if (out_dir) fs.mkdirSync(out_dir, { recursive: true });
