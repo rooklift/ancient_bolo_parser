@@ -786,7 +786,7 @@ function score(rec, i, ctx, s, seed_grid, explain) {
 				if (sj !== null) {
 					let dt = rec.time - ctx.parsed[sj].time;
 					let pts = shell_points(ctx.parsed[sj]).map(b => fly(b, dt));
-					if (pts.length) add("shell falls", Math.min(20, Math.max(0, Math.min(...pts.map(q => dist(q, at_px))) - 2 - 0.4 * dt) / 3));
+					if (pts.length) add("shell falls", Math.min(20, Math.min(...pts.map(q => dist(q, at_px))) / 3));
 				}
 				break;
 			}
@@ -1002,8 +1002,7 @@ function score(rec, i, ctx, s, seed_grid, explain) {
 				for (let b of list) {
 					let dt = rec.time - t;
 					let pred = fly(b, dt);
-					let slack = 2 + Math.abs(dt) * 0.4;
-					best = Math.min(best, 1 + Math.max(0, dist(a, pred) - slack) / 3 + (b[2] === a[2] ? 0 : 3));
+					best = Math.min(best, 1 + dist(a, pred) / 4 + (b[2] === a[2] ? 0 : 3));
 				}
 			}
 			if (origin) best = Math.min(best, 4 + Math.max(0, dist(a, origin) - 24) / 4);
