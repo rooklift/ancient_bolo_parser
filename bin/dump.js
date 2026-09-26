@@ -27,12 +27,10 @@ function warnTruncation(stats) {
 	}
 }
 
-// The game id's start time: seconds since the Mac epoch (1904-01-01),
-// in GMT since Bolo 0.99.5.
-const MAC_EPOCH_MS = Date.UTC(1904, 0, 1);
-
-function macTime(seconds) {
-	return new Date(MAC_EPOCH_MS + seconds * 1000).toISOString().slice(0, 19).replace("T", " ");
+// The game's start, from game_info.startTime (ms; the parser resolves the
+// host client's epoch).
+function utcTime(ms) {
+	return new Date(ms).toISOString().slice(0, 19).replace("T", " ");
 }
 
 function clock(ticks, t0) {
@@ -150,6 +148,9 @@ function dumpSummary() {
 	}
 
 	console.log(`Bolo log, version ${header.versionString} (${header.version})`);
+	if (gameInfo && gameInfo.nubolo) {
+		console.log(`client: nuBolo (Mac OS X clock, Latin-1 text)`);
+	}
 	console.log(`records: ${count} (${warned} with parse warnings)`);
 	if (stats.truncatedBytes) {
 		console.log(`NOTE: file is truncated — ${stats.truncatedBytes} trailing bytes dropped`);
@@ -159,8 +160,8 @@ function dumpSummary() {
 	}
 	if (gameInfo) {
 		console.log(`map: "${gameInfo.mapName}"  host: ${gameInfo.hostIp}  game type: ${gameInfo.gameType}`);
-		if (gameInfo.startTimeMac) {
-			console.log(`started: ${macTime(gameInfo.startTimeMac)} UTC`);
+		if (gameInfo.startTime !== null) {
+			console.log(`started: ${utcTime(gameInfo.startTime)} UTC`);
 		}
 	}
 	console.log(`players:`);

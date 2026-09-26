@@ -95,6 +95,7 @@ Corpus figures are from the 443-log set unless an entry says 446, in which case 
 **Game info, map transfer and the start-of-log burst**
 
 - [`[E:gameinfo]`](#egameinfo-the-gameinfo-struct) — the `GAMEINFO` struct
+- [`[E:nubolo]`](#enubolo-a-nubolo-host-counts-from-2001-and-writes-latin-1) — a nuBolo host counts from 2001 and writes Latin-1
 - [`[E:history]`](#ehistory-the-pillbase-history-groups) — the pill/base history groups
 - [`[E:mapknown]`](#emapknown-the-f3-transfer-frontier) — the `F3` transfer frontier
 
@@ -963,6 +964,14 @@ So a shell kills the man at its terminal point whatever it ends against — open
 ### [E:gameinfo] — the `GAMEINFO` struct
 
 The struct layout and the constants are from `Brain.h`: `enum { GameType_open=1, GameType_tournament, GameType_strict_tment };` and `#define GAMEINFO_HIDDENMINES 0x80` / `#define GAMEINFO_ALLMINES_VISIBLE 0xC0`, with the field declared `BYTE hidden_mines;` and commented as holding one of those two values. The corpus shows only those two values across all 446 logs (`0xc0` in 435, `0x80` in 11, all of the latter in 2001–2002). 442 of 446 logs are strict. Brain.h declares the two `long` fields on a big-endian Mac, but the log stores them little-endian: only 3 corpus logs have a nonzero time limit, and they read as 230–239 minutes little-endian against 0.7–2.5 *years* big-endian. The start delay is zero in all 446 logs, so its endianness is inferred from its neighbour rather than measured.
+
+### [E:nubolo] — a nuBolo host counts from 2001 and writes Latin-1
+
+From one log, `20070123.4`, not committed: a two-player game between Swedish players, Oscar (the host) and Fredde (the recorder). One of Oscar's messages reads "lite lurigt nubolo", "nuBolo is a bit tricky". Its header is byte for byte that of most fixtures, version `00 99 07 00` included, and its records parse without a warning.
+
+The clock: the game info's start time is 191256632. Read from the Mac epoch that is 1910-01-22 14:50:32; from Core Foundation's (2001-01-01) it is 2007-01-23 14:50:32, the date in the file's name. The day's difference between the two readings is the leap days: 1904 and 1908 fall in the first six years, only 2004 in the second. Every committed fixture reads 2001–2004 from the Mac epoch, with values of 3.1–3.2 billion, far above the 2^31 threshold. The corpora have not been run against the threshold.
+
+The text: two of the six messages, one from each player, carry high bytes: `E4` four times and `E5` once. Read as Latin-1 they are clean Swedish, "jag är så jävla arg" and "det är ok"; read as MacRoman, "jag ‰r sÂ j‰vla arg". In MacRoman `ä` and `å` would be `8A` and `8C`. Both players' clients evidently sent Latin-1, so both were presumably nuBolo. The names and the map name are plain ASCII, so the log does not show whether nuBolo's names are Latin-1 as well; the parser assumes so.
 
 ### [E:history] — the pill/base history groups
 

@@ -630,6 +630,16 @@ function player_color(p) {
 	return NAME_COLORS[BoloGame.team_of(cur, p)];
 }
 
+/* nuBolo names a player's machine by its IPv4 address and UDP port in
+ * hex (Oscar@55E29735999F is 85.226.151.53, port 39327), so a nuBolo
+ * log's hosts are shown as the address. Anything else is shown as
+ * written; the parsed names keep the hex. */
+function display_host(host) {
+	let gi = game.final.gameInfo;
+	if (!gi || !gi.nubolo || !/^[0-9A-F]{12}$/i.test(host)) return host;
+	return [0, 2, 4, 6].map(i => parseInt(host.slice(i, i + 2), 16)).join(".");
+}
+
 /* The players panel's content, shared between the DOM panel and the video
  * export's canvas-painted sidebar. */
 function player_rows() {
@@ -641,7 +651,7 @@ function player_rows() {
 		rows.push({
 			color: player_color(p),
 			handle: at >= 0 ? name.slice(0, at) : name,
-			host: at >= 0 ? name.slice(at + 1) : "",
+			host: at >= 0 ? display_host(name.slice(at + 1)) : "",
 			gone: !!cur.quit[p],
 		});
 	}
@@ -668,14 +678,13 @@ function esc(s) {
 	return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-/* The game's start as a YYYY-MM-DD date in GMT, from the game id's Mac
- * epoch timestamp (seconds since 1904-01-01). null if the timestamp is
- * zero, which no real game carries. */
-const MAC_EPOCH_MS = Date.UTC(1904, 0, 1);
-
+/* The game's start as a YYYY-MM-DD date in GMT, from the game id's
+ * timestamp, whose epoch the parser picks by the host's client (1904 for
+ * classic Bolo, 2001 for nuBolo). null if the timestamp is zero, which
+ * no real game carries. */
 function game_start_date(gi) {
-	if (!gi.startTimeMac) return null;
-	return new Date(MAC_EPOCH_MS + gi.startTimeMac * 1000).toISOString().slice(0, 10);
+	if (gi.startTime === null) return null;
+	return new Date(gi.startTime).toISOString().slice(0, 10);
 }
 
 /* U+F8FF is the Apple logo — a Private Use codepoint only Apple platforms
@@ -1342,11 +1351,12 @@ async function load_log(bytes, name, generation = ++load_claims) {
 	/* keep the source path/filename: shown in the window title and
 	 * available as ABV.filename in the dev console */
 	loaded_name = name || null;
-	/* the version Bolo wrote in the header: what the log claims, not
-	 * anything the viewer has verified */
-	loaded_version = header.versionString;
-	document.title = (name ? name.split(/[\\/]/).pop() + " — " : "") + "Ancient Bolo Log Viewer";
 	let gi = game.final.gameInfo;
+	/* the version Bolo wrote in the header: what the log claims, not
+	 * anything the viewer has verified. nuBolo writes classic Bolo's
+	 * header, so its logs are named by their host's clock instead. */
+	loaded_version = gi && gi.nubolo ? "nuBolo" : header.versionString;
+	document.title = (name ? name.split(/[\\/]/).pop() + " — " : "") + "Ancient Bolo Log Viewer";
 	map_name_el.textContent = gi ? gi.mapName : (name || "Bolo log");
 
 	/* One verdict for the whole log, so it is set here and not in
@@ -1362,7 +1372,8 @@ async function load_log(bytes, name, generation = ++load_claims) {
 
 	/* When the game started and whose machine wrote the file. The date is
 	 * the host's, from the game id in the game info: seconds since the
-	 * Mac epoch (1904), stored big-endian, in GMT since Bolo 0.99.5. It is
+	 * Mac epoch (1904), stored big-endian, in GMT since Bolo 0.99.5, or
+	 * since 2001 when the host ran nuBolo (see game_start_date). It is
 	 * the game's start, not the log's, which may have begun later. The
 	 * recorder is found from the ring's records landing in same-tick
 	 * bursts that end with the recording machine's own, and only the
