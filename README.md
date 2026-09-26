@@ -17,6 +17,13 @@ node bin/dump.js <logfile> --json     # one JSON record per line
 node bin/dump.js <logfile> --raw 20   # hex of decrypted records
 ```
 
+Logs that went through a Mac-to-Unix text conversion (every CR byte turned into LF, and CR LF pairs into a single LF) have no 0x0D bytes left; they misparse subtly or stop framing altogether. `tools/repair-crlf.mjs` spots them and undoes the damage as far as the log's own redundancy allows, writing each repaired log with a report of every byte it could not be sure of:
+
+```
+node tools/repair-crlf.mjs <logfile-or-directory>... --out repaired/
+node tools/repair-crlf.mjs <logfile-or-directory>... --check   # just say which are converted
+```
+
 Library:
 
 ```js
