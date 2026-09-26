@@ -144,6 +144,8 @@ nuBolo, a Mac OS X Bolo, writes the same format, header version `00 99 07 00` an
 - **The start time counts from 2001, not 1904.** It is seconds since Core Foundation's epoch, 2001-01-01 GMT; read from the Mac epoch it lands around 1910. Classic Bolo's values all read 1972 or later, so at least 2^31, and nuBolo's stay below 2^31 until 2069: the value alone tells them apart.
 - **Text is Latin-1, not MacRoman.** `ä` and `å` arrive as `E4` and `E5`, which MacRoman reads as `‰` and `Â`. The parser reads every string in a nuBolo log as Latin-1, except a string holding a byte in `80`–`9F` (control codes in Latin-1, letters in MacRoman), which it keeps as MacRoman. A classic Mac player's text in such a game that uses only `A0`–`FF` (curly quotes, bullets) is misread, since the log does not say which client sent it.
 
+nuBolo's machine names are addresses too. The machine half of a nuBolo player's `F8` node id is the machine's IPv4 address and UDP port as 12 hex digits, the same six bytes a quit record's address fields carry: `name@C0000201C350` is 192.0.2.1, port 50000. The parser does not use this to detect nuBolo, and the viewer's players panel shows the address in place of the hex. `tools/redact-addresses.cjs` patches only the game info and quit records, so redacting a nuBolo log needs these names replaced to match, through the name mapping [E:nubolo].
+
 The test names the host's client, not the recorder's. The viewer shows "nuBolo" for these logs in place of the header version.
 
 ## What the log does NOT contain
