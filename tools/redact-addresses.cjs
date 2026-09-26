@@ -4,11 +4,12 @@
  * A log holds addresses in two places: the host's, in the `F1 01` game
  * info (the first four bytes of the game id), and three `IP:port` pairs
  * in every `FF F0` quit record, the quitter's upstream neighbour, the
- * quitter, and the downstream neighbour. Between them they name most
- * of the players' machines. This tool swaps each for a made-up address
+ * quitter, and the downstream neighbour. nuBolo's `FF F7` join records
+ * carry the same three for the joiner. Between them they name most of
+ * the players' machines. This tool swaps each for a made-up address
  * from a mapping file, the same real address always becoming the same
- * made-up one, so the ring the quit records describe stays consistent
- * across every log of a game and every game of a corpus.
+ * made-up one, so the ring the quit and join records describe stays
+ * consistent across every log of a game and every game of a corpus.
  *
  * An address is four bytes before and after, so the swap is patched in
  * place under the XOR mask like tools/redact-names.cjs and no other
@@ -64,8 +65,8 @@ function read_mapping(file) {
 /* Every address in a log, with the file offset of its four bytes. The
  * parser reports where each subpacket starts (`at`, the offset of its
  * first byte within the record), so the bytes are never searched for:
- * map data that happens to spell a game info or a quit is not mistaken
- * for one. */
+ * map data that happens to spell a game info, a quit or a join is not
+ * mistaken for one. */
 function addresses(bytes) {
 	let out = [];
 	for (let raw of BoloLog.rawRecords(bytes)) {
@@ -77,13 +78,14 @@ function addresses(bytes) {
 				let at = sub.at;
 				if (at + GAMEINFO_LEN > data.length) throw new Error(`game info overruns the record at offset ${raw.offset}`);
 				out.push({ kind: "host", at: base + at + GAMEINFO_IP, ip: format_ip(data.subarray(at + GAMEINFO_IP, at + GAMEINFO_IP + 4)) });
-			} else if (sub.type === "quit") {
+			} else if (sub.type === "quit" || sub.type === "join") {
 				let len = sub.fields[0].length / 2;
 				let at = sub.at;
-				if (len < 4) throw new Error(`quit record with ${len}-byte fields at record offset ${raw.offset}`);
+				if (len < 4) throw new Error(`${sub.type} record with ${len}-byte fields at record offset ${raw.offset}`);
+				let self = sub.type === "quit" ? "quitter" : "joiner";
 				for (let k = 0; k < 3; k++) {
 					let field_at = at + 3 + k * len;
-					out.push({ kind: ["upstream", "quitter", "downstream"][k], at: base + field_at, ip: format_ip(data.subarray(field_at, field_at + 4)) });
+					out.push({ kind: ["upstream", self, "downstream"][k], at: base + field_at, ip: format_ip(data.subarray(field_at, field_at + 4)) });
 				}
 			}
 		}

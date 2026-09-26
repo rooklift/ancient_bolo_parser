@@ -425,12 +425,18 @@ function parseFF(subs, data, pos) {
 		subs.push({ type: "base_tow_drop", base: lo, x: data[pos + 2], y: data[pos + 3] });
 		return pos + 4;
 	}
-	if (code === 0xf0) {
-		// Quit: length byte then three fields of that length (network addresses?).
+	if (code === 0xf0 || code === 0xf7) {
+		// Quit (F0), or nuBolo's join (F7): length byte then three fields of
+		// that length, the upstream / self / downstream ring neighbours'
+		// IP:port.
 		ensure(data, pos, 3);
 		const fieldLen = data[pos + 2];
 		ensure(data, pos, 3 + fieldLen * 3);
-		subs.push({ type: "quit", at: pos, fields: [0, 1, 2].map(i => hex(data, pos + 3 + i * fieldLen, fieldLen)) });
+		subs.push({
+			type: code === 0xf0 ? "quit" : "join",
+			at: pos,
+			fields: [0, 1, 2].map(i => hex(data, pos + 3 + i * fieldLen, fieldLen)),
+		});
 		return pos + 3 + fieldLen * 3;
 	}
 	if (code === 0xf1) {

@@ -70,7 +70,10 @@ function classify_node_joins(records) {
 	for (let i = 0; i < records.length; i++) {
 		let rec = records[i];
 		let node = rec.subpackets.find(sub => sub.type === "node_id");
-		if (node && rec.tankStatus === 0x07) {
+		/* nuBolo announces its joins outright, with FF F7 */
+		if (rec.subpackets.some(sub => sub.type === "join")) {
+			joins.add(rec);
+		} else if (node && rec.tankStatus === 0x07) {
 			let expected = names.slice();
 			let available = 0;
 			for (let player = 0; player < 16; player++) {

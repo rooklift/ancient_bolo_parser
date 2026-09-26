@@ -96,6 +96,7 @@ Corpus figures are from the 443-log set unless an entry says 446, in which case 
 
 - [`[E:gameinfo]`](#egameinfo-the-gameinfo-struct) — the `GAMEINFO` struct
 - [`[E:nubolo]`](#enubolo-a-nubolo-host-counts-from-2001-and-writes-latin-1) — a nuBolo host counts from 2001 and writes Latin-1
+- [`[E:nubolo-join]`](#enubolo-join-ff-f7-is-a-nubolo-join-in-the-quits-layout) — `FF F7` is a nuBolo join, in the quit's layout
 - [`[E:history]`](#ehistory-the-pillbase-history-groups) — the pill/base history groups
 - [`[E:mapknown]`](#emapknown-the-f3-transfer-frontier) — the `F3` transfer frontier
 
@@ -974,6 +975,24 @@ The clock: the game info's start time is 191256632. Read from the Mac epoch that
 The text: two of the six messages, one from each player, carry high bytes: `E4` four times and `E5` once. Read as Latin-1 they are clean Swedish, "jag är så jävla arg" and "det är ok"; read as MacRoman, "jag ‰r sÂ j‰vla arg". In MacRoman `ä` and `å` would be `8A` and `8C`. Both players' clients evidently sent Latin-1, so both were presumably nuBolo. The names and the map name are plain ASCII, so the log does not show whether nuBolo's names are Latin-1 as well; the parser assumes so.
 
 The machine names: both node ids end in 12 hex digits, and each decodes to an IPv4 address and a port. The host's is the game info's host address, and the log's two quit records carry the same strings, byte for byte, as their address fields. A second nuBolo log, `20060920b.blg`, also not committed, was published on nubolo.net as an example game: four players, and all four machine names decode the same way, the host's again matching the game info. Its start time, 180500181, reads 2006-09-21 02:56:21 UTC from the 2001 epoch, the evening of the 20th where its US players were, which fits its name. The joining players' ports are 50000 in both logs, and the hosts' are not (31723 and 39327). Classic machine names are DNS or Mac names (`This Macintosh`, `Unknown Machine Name`).
+
+### [E:nubolo-join] — `FF F7` is a nuBolo join, in the quit's layout
+
+From one log, `20070123.3`, not committed: a nuBolo game from the same day as `20070123.4`. Two players, the host H and a second player A, are there from the start; three more join, one at a time, J1, then J2, who quits, then J3 into J2's slot. Before the parser knew `FF F7`, these three joins were the log's only parse warnings, each an unknown `FF F7` subpacket ending the record.
+
+Each `FF F7` is the last subpacket of its joiner's first record, which holds only the joiner's F8 node id and has tank status `T=7`, and each is 21 bytes: `FF F7 06` and three 6-byte fields. The middle field is, in all three, byte for byte the machine half of the node id before it (see [E:nubolo]), so it is the joiner, and reading the three fields as a quit's upstream / self / downstream gives one ring throughout, which the log's two quit records confirm:
+
+| event | fields | ring after (each sends to the next) |
+|-------|--------|-------------------------------------|
+| J1 joins | A, J1, H | H → A → J1 → H |
+| J2 joins | A, J2, J1 | H → A → J2 → J1 → H |
+| J2 quits (`FF F0`) | A, J2, J1 | H → A → J1 → H |
+| J3 joins | A, J3, J1 | H → A → J3 → J1 → H |
+| A quits (`FF F0`) | H, A, J3 | H → J3 → J1 → H |
+
+J2's quit repeats its join's fields exactly. Every joiner is admitted just downstream of A, which is not the host. The joins' ports are 50000.
+
+The viewer's F8 restatement test (`classify_node_joins` in `viewer/game.js`) already classified all three records as joins, so taking `FF F7` as a join changes no playback of this log. No committed fixture has an `FF F7`. `20070123.4` has none, since it parses without a warning. Whether `20060920b.blg` has any was not checked.
 
 ### [E:history] — the pill/base history groups
 
