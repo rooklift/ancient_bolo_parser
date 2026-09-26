@@ -556,11 +556,20 @@ function build_context(parsed, doubt) {
 	return { parsed, doubt, per, names, players, step, runs, pill_visits, base_visits, pill_shots };
 }
 
-/* how English-like a short text is: a rank penalty per character */
+/* how English-like a short text is: a rank penalty per character, and
+ * another for a character unlike both its neighbours (a digit in a run
+ * of question marks) */
 const COMMON = " etaoinshrdlcumwfgypbvkjxqz";
+function char_class(ch) {
+	if (/[a-z]/i.test(ch)) return "letter";
+	if (/[0-9]/.test(ch)) return "digit";
+	if (ch === " ") return "space";
+	return ch;
+}
 function text_penalty(str) {
 	let pen = 0;
-	for (let ch of str) {
+	let chars = [...str];
+	chars.forEach((ch, i) => {
 		let c = ch.charCodeAt(0);
 		let lower = ch.toLowerCase();
 		let r = COMMON.indexOf(lower);
@@ -569,7 +578,11 @@ function text_penalty(str) {
 		else if (c >= 0x30 && c <= 0x39) pen += 2;
 		else if (".,!?'-:;()".includes(ch)) pen += 2.5;
 		else pen += 4;
-	}
+		if (i > 0 && i + 1 < chars.length) {
+			let a = char_class(chars[i - 1]), b = char_class(ch), z = char_class(chars[i + 1]);
+			if (a === z && b !== a) pen += 1.5;
+		}
+	});
 	return pen;
 }
 
@@ -799,6 +812,19 @@ function score(rec, i, ctx, s, seed_grid, explain) {
 				let pill = s.pills[sub.pillbox];
 				if (!pill) { add("no such pill", 20); break; }
 				if (pill.inTank !== null && pill.inTank !== undefined) add("pill not on the ground", 10);
+				if (sub.type === "pillbox_damage") {
+					/* hits come in runs on one pill (94% of them share a
+					 * target with the sender's neighbouring records), and
+					 * a dead pill is hardly ever hit */
+					if (pill.armour === 0) add("hit on a dead pill", 4);
+					let at_all = rank(pp.all, i), run = false;
+					for (let k = Math.max(0, at_all - 8); k <= Math.min(pp.all.length - 1, at_all + 8) && !run; k++) {
+						let idx = pp.all[k];
+						if (idx === i || !trusted(ctx, idx, ["pillbox_damage:pillbox"])) continue;
+						run = ctx.parsed[idx].subpackets.some(q => q.type === "pillbox_damage" && q.pillbox === sub.pillbox);
+					}
+					if (!run) add("hit breaks the sender's run", 3);
+				}
 				add("pill far from sender", Math.min(15, near_penalty(sender_points(ctx, rec, i, s), [pill.x, pill.y], 10, 1)));
 				/* a pill fires at the sender's tank */
 				let t = rec.subpackets.find(q => q.type === "tank_position");
@@ -844,7 +870,14 @@ function score(rec, i, ctx, s, seed_grid, explain) {
 			case "base_tow_drop": {
 				let t = terrain_at(s, sub.x, sub.y);
 				if (t === DEEP_SEA || t === 0 || t === 8) add("placed on impossible terrain", 10);
-				add("placed far from sender", Math.min(15, near_penalty(sender_points(ctx, rec, i, s), [sub.x, sub.y], 2, 2)));
+				/* the man plants a pill where he stands; a towed base is
+				 * dropped by the tank */
+				let who = sub.type === "base_tow_drop" ? "tank_position" : "lgm_position";
+				let pts = rec.subpackets.filter(q => q.type === who).map(tank_px);
+				let held = tank_state_px(who === "tank_position" ? s.tanks[p] : s.men[p]);
+				if (held) pts.push(held);
+				if (!pts.length) pts = sender_points(ctx, rec, i, s);
+				add("placed far from its placer", Math.min(15, near_penalty(pts, [sub.x, sub.y], 1, 3)));
 				break;
 			}
 			case "tank_hit":
