@@ -97,7 +97,7 @@ After the position subpackets, zero or more subpackets identified by their first
 | `Bn`/`Cn`/`Dn` | 1 | base `n` refuels the sender's tank by 1 shell / 1 mine / 1 armour. The shell and mine drains cost the base 1 each; the armour drain costs it **5** for the tank's 1 point [E:base-capture]. A full tank (40 shells or 40 mines) takes nothing and logs nothing: the stream stops when the tank fills and resumes when it spends, and the base keeps its stock [E:base-fill] |
 | `En` | 1 | unused (missile drained) |
 | `F0` | 2 | rejoin / map-header request |
-| `F1 01` | 90 | game info: the 56-byte `GAMEINFO` struct (36-byte Pascal map name; 8-byte game id = host IPv4 + Mac-epoch start time; 1-byte game type (1 open, 2 tournament, 3 strict); 1-byte hidden mines flag (`0x80` hidden OK, `0xc0` all visible); 1-byte allow-AI; 1-byte assist-AI; 4-byte little-endian start delay; 4-byte little-endian time limit; both in ticks) plus 16 little-endian words of per-player alliance bitmaps (0 bit = allied) [E:gameinfo] |
+| `F1 01` | 90 | game info: the 56-byte `GAMEINFO` struct (36-byte Pascal map name; 8-byte game id = host IPv4 + start time in seconds since 1904 GMT, or since 2001 from a nuBolo host (see nuBolo logs below); 1-byte game type (1 open, 2 tournament, 3 strict); 1-byte hidden mines flag (`0x80` hidden OK, `0xc0` all visible); 1-byte allow-AI; 1-byte assist-AI; 4-byte little-endian start delay; 4-byte little-endian time limit; both in ticks) plus 16 little-endian words of per-player alliance bitmaps (0 bit = allied) [E:gameinfo] |
 | `F1 02` | 3+5n | pillbox list: `x y owner armour speed` each (map-file layout). An armour of `0xFF` marks a pill that is inside a tank when logging starts: the owner nibble is the carrying player, and playback holds the pill carried at full armour |
 | `F1 03` | 3+6n | base list: `x y owner armour shells mines` each |
 | `F1 04` | 3+3n | start list: `x y direction` each |
@@ -132,6 +132,19 @@ Usually: tank position, LGM position, base drains, pill pickups, base captures, 
 ### Start-of-log sequence
 
 When logging starts, Bolo emits: an `F8` for every player in the ring, then `F0 00`, `F1 01` (game info), `F1 02/03/04` (pill/base/start lists), `F1 Cx` history, and `F3` map runs (the whole map as RLE). If logging starts while the map is still downloading from the ring, the log is defective.
+
+### Text
+
+Strings (map and player names, chat) are Pascal strings in MacRoman, except in nuBolo logs.
+
+### nuBolo logs
+
+nuBolo, a Mac OS X Bolo, writes the same format, header version `00 99 07 00` and all, so the header cannot say which program wrote a log. A nuBolo host shows itself in the game info in two ways [E:nubolo]:
+
+- **The start time counts from 2001, not 1904.** It is seconds since Core Foundation's epoch, 2001-01-01 GMT; read from the Mac epoch it lands around 1910. Classic Bolo's values all read 1972 or later, so at least 2^31, and nuBolo's stay below 2^31 until 2069: the value alone tells them apart.
+- **Text is Latin-1, not MacRoman.** `ä` and `å` arrive as `E4` and `E5`, which MacRoman reads as `‰` and `Â`. The parser reads every string in a nuBolo log as Latin-1, except a string holding a byte in `80`–`9F` (control codes in Latin-1, letters in MacRoman), which it keeps as MacRoman. A classic Mac player's text in such a game that uses only `A0`–`FF` (curly quotes, bullets) is misread, since the log does not say which client sent it.
+
+The test names the host's client, not the recorder's. The viewer shows "nuBolo" for these logs in place of the header version.
 
 ## What the log does NOT contain
 

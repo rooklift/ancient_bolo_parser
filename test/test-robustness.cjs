@@ -22,6 +22,36 @@ check("macRoman fixture", BoloLog.macRoman(fixture), "é ˇ•’");
 check("macRoman table is 128 entries",
 	BoloLog.macRoman(Uint8Array.from(Array.from({ length: 128 }, (_, i) => i + 0x80))).length, 128);
 
+// --- nuBolo: the host's clock picks the epoch and the text encoding ---
+{
+	const { build_log, str } = require("./synthetic-log.cjs");
+	/* F1 01 game info whose start time is `seconds` */
+	function game_info(seconds) {
+		const g = new Array(88).fill(0);
+		g[40] = seconds >>> 24; g[41] = (seconds >> 16) & 0xff; g[42] = (seconds >> 8) & 0xff; g[43] = seconds & 0xff;
+		return [0, 0x00, 0x70, 0xf1, 0x01, ...g];
+	}
+	/* the node id comes ahead of the game info, as it does in real logs */
+	const name = [0, 0x00, 0x70, 0xf8, ...str("\xc5sa@1")];
+	const chat = [1, 0x00, 0x70, 0xfa, 0xff, 0xff, ...str("j\xe4vla")];
+	const mac_chat = [2, 0x00, 0x70, 0xfa, 0xff, 0xff, ...str("\x8a\xe4")];
+	function decoded(seconds) {
+		const recs = [...BoloLog.records(build_log([name, game_info(seconds), chat, mac_chat]))];
+		const subs = recs.flatMap(r => r.subpackets);
+		const gi = subs.find(s => s.type === "game_info");
+		return {
+			nubolo: gi.nubolo,
+			start: new Date(gi.startTime).toISOString().slice(0, 19),
+			text: subs.filter(s => s.type === "node_id" || s.type === "message").map(s => s.name || s.text),
+		};
+	}
+	check("nuBolo log: 2001 epoch, Latin-1 text, 80-9F kept MacRoman", decoded(191256632),
+		{ nubolo: true, start: "2007-01-23T14:50:32", text: ["Åsa@1", "jävla", "ä‰"] });
+	check("classic log: 1904 epoch, MacRoman text", decoded(3117823323),
+		{ nubolo: false, start: "2002-10-18T22:02:03", text: ["≈sa@1", "j‰vla", "ä‰"] });
+	check("no timestamp: no start time", BoloLog.gameStart(0), { nubolo: false, startTime: null });
+}
+
 // --- malformed inputs ---
 const MASK0 = 0x83; // first mask byte
 throws("empty buffer rejected", () => BoloLog.parseHeader(new Uint8Array(0)));

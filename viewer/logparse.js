@@ -54,6 +54,21 @@ function macRoman(bytes) {
 	return out;
 }
 
+/* Text in a nuBolo log (see gameStart) is Latin-1: the Swedish chat of
+ * the one such log known spells ä and å E4 and E5, which MacRoman
+ * reads as ‰ and Â. A string holding
+ * any of 80-9F stays MacRoman, since those are control codes in Latin-1
+ * but letters in MacRoman, so a classic Mac player in the game is read
+ * right whenever their text shows it. */
+function nuBoloText(bytes) {
+	for (const b of bytes) {
+		if (b >= 0x80 && b < 0xa0) return macRoman(bytes);
+	}
+	let out = "";
+	for (const b of bytes) out += String.fromCharCode(b);
+	return out;
+}
+
 // ---------------------------------------------------------------------------
 // Low level: header + record splitting + decryption.
 
@@ -79,6 +94,20 @@ function formatVersion(bytes) {
 	let out = Array.from(bytes.subarray(0, 3)).map(bcd).join(".");
 	if (bytes[3]) out += "." + bcd(bytes[3]);
 	return out;
+}
+
+// The game id's start time is seconds since an epoch that depends on the
+// host's client. Classic Bolo counts from the Mac epoch (1904-01-01), in
+// GMT since 0.99.5, so every real game reads 1972 or later: at least
+// 2^31. nuBolo, on Mac OS X, counts from Core Foundation's (2001-01-01),
+// so its games read below 2^31 until 2069. Zero means no timestamp.
+const MAC_EPOCH_MS = Date.UTC(1904, 0, 1);
+const CF_EPOCH_MS = Date.UTC(2001, 0, 1);
+
+function gameStart(seconds) {
+	if (!seconds) return { nubolo: false, startTime: null };
+	const nubolo = seconds < 0x80000000;
+	return { nubolo, startTime: (nubolo ? CF_EPOCH_MS : MAC_EPOCH_MS) + seconds * 1000 };
 }
 
 // Yields { offset, time, data } with data already decrypted.
@@ -140,11 +169,11 @@ function ensure(data, pos, n) {
 	}
 }
 
-function pascalString(data, pos) {
+function pascalString(data, pos, text) {
 	ensure(data, pos, 1);
 	const len = data[pos];
 	ensure(data, pos, 1 + len);
-	const str = macRoman(data.subarray(pos + 1, pos + 1 + len));
+	const str = text(data.subarray(pos + 1, pos + 1 + len));
 	return { str, next: pos + 1 + len };
 }
 
@@ -157,8 +186,8 @@ function squarePos(x, y, pix) {
 
 // Parse the ID-coded subpackets that follow any position subpackets.
 // Appends to record.subpackets; on anything unrecognised, stores the raw
-// remainder in record.unparsed and returns.
-function parseIdSubpackets(rec, data, pos) {
+// remainder in record.unparsed and returns. `text` decodes a string.
+function parseIdSubpackets(rec, data, pos, text) {
 	const subs = rec.subpackets;
 	while (pos < data.length) {
 		const start = pos;
@@ -219,7 +248,7 @@ function parseIdSubpackets(rec, data, pos) {
 				subs.push({ type: "map_header_request", code: data[pos + 1] });
 				pos += 2;
 			} else if (byte === 0xf1) {    // map header info
-				pos = parseF1(subs, data, pos);
+				pos = parseF1(subs, data, pos, text);
 			} else if (byte === 0xf2) {    // map terrain request
 				ensure(data, pos, 3);
 				subs.push({ type: "map_terrain_request", mapKnown: (data[pos + 1] << 8) | data[pos + 2] });
@@ -256,7 +285,7 @@ function parseIdSubpackets(rec, data, pos) {
 				// history, attached_log) is the offset of that string's length
 				// byte within the record; on game_info and quit it is the
 				// subpacket's first byte. The redaction tools patch by it.
-				const { str, next } = pascalString(data, pos + 1);
+				const { str, next } = pascalString(data, pos + 1, text);
 				subs.push({ type: "node_id", name: str, at: pos + 1 });
 				pos = next;
 			} else if (byte === 0xf9) {    // tank death (1 = explosion, 2 = crater, 3 = sunk)
@@ -266,7 +295,7 @@ function parseIdSubpackets(rec, data, pos) {
 			} else if (byte === 0xfa) {    // chat message
 				ensure(data, pos, 4);
 				const address = data[pos + 1] | (data[pos + 2] << 8);
-				const { str, next } = pascalString(data, pos + 3);
+				const { str, next } = pascalString(data, pos + 3, text);
 				subs.push({ type: "message", address, text: str, at: pos + 3 });
 				pos = next;
 				/* A zero-length message is a sender-side fault, and the bytes
@@ -310,7 +339,7 @@ function parseIdSubpackets(rec, data, pos) {
 	}
 }
 
-function parseF1(subs, data, pos) {
+function parseF1(subs, data, pos, text) {
 	ensure(data, pos, 2);
 	const sub = data[pos + 1];
 	if (sub === 0x01) {
@@ -322,13 +351,15 @@ function parseF1(subs, data, pos) {
 		for (let i = 0; i < 16; i++) {
 			alliances.push(g[56 + i * 2] | (g[57 + i * 2] << 8));
 		}
+		const startTimeMac = (g[40] << 24 | g[41] << 16 | g[42] << 8 | g[43]) >>> 0;
 		subs.push({
 			type: "game_info",
 			at: pos,   // offset of the F1 byte within the record
-			mapName: macRoman(g.subarray(1, 1 + nameLen)),
+			mapName: text(g.subarray(1, 1 + nameLen)),
 			gameId: hex(g, 36, 8),
 			hostIp: `${g[36]}.${g[37]}.${g[38]}.${g[39]}`,
-			startTimeMac: (g[40] << 24 | g[41] << 16 | g[42] << 8 | g[43]) >>> 0,
+			startTimeMac,   // raw seconds; the epoch is the host client's
+			...gameStart(startTimeMac),   // nubolo, startTime (ms, Unix epoch)
 			gameType: g[44],
 			minesFlag: g[45],
 			allowAI: g[46],
@@ -378,7 +409,7 @@ function parseF1(subs, data, pos) {
 		type: "history", sub,
 		pillMask: data[pos + 2] | (data[pos + 3] << 8),
 		baseMask: data[pos + 4] | (data[pos + 5] << 8),
-		name: nameLen >= 1 && nameLen <= 35 ? macRoman(data.subarray(pos + 7, pos + 7 + nameLen)) : null,
+		name: nameLen >= 1 && nameLen <= 35 ? text(data.subarray(pos + 7, pos + 7 + nameLen)) : null,
 		at: pos + 6,
 		raw: hex(data, pos + 2, 40),
 	});
@@ -468,7 +499,9 @@ function hex(data, pos, len) {
 // pillbox. (So e.g. 9 = LGM out + tick, D = C + tick.)
 // tank status bits: 1 = in boat, 2 = hidden, 4 = dead, 8 = has tank
 // position; special values 7 = joining/dead, F = BoloViewer attached log.
-function parseRecord(raw) {
+// `text` decodes the record's strings: macRoman, or nuBoloText for a log
+// written by nuBolo (records() picks it).
+function parseRecord(raw, text = macRoman) {
 	const data = raw.data;
 	const rec = {
 		offset: raw.offset,
@@ -489,7 +522,7 @@ function parseRecord(raw) {
 			return rec;
 		}
 		try {
-			const { str, next } = pascalString(data, pos + 1);
+			const { str, next } = pascalString(data, pos + 1, text);
 			rec.subpackets.push({ type: "attached_log", name: str, at: pos + 1 });
 			if (next !== data.length) {
 				rec.warning = "attached-log record with trailing bytes";
@@ -562,13 +595,30 @@ function parseRecord(raw) {
 		rec.subpackets.push({ type: "base_stock_tick" });
 	}
 
-	parseIdSubpackets(rec, data, pos);
+	parseIdSubpackets(rec, data, pos, text);
 	return rec;
 }
 
+// Whether the host of the game was running nuBolo, from the first game
+// info's clock (see gameStart). The game info comes a few records in,
+// after the node ids, whose names therefore need the answer first.
+function isNuBolo(buf) {
+	try {
+		for (const raw of rawRecords(buf)) {
+			for (const sub of parseRecord(raw).subpackets) {
+				if (sub.type === "game_info") return sub.nubolo;
+			}
+		}
+	} catch {
+		// a damaged log: records() reports it
+	}
+	return false;
+}
+
 function* records(buf, stats) {
+	const text = isNuBolo(buf) ? nuBoloText : macRoman;
 	for (const raw of rawRecords(buf, stats)) {
-		yield parseRecord(raw);
+		yield parseRecord(raw, text);
 	}
 }
 
@@ -582,7 +632,7 @@ function parseLog(buf) {
 	return { header, records: recs, truncatedBytes: stats.truncatedBytes || 0 };
 }
 
-const BoloLog = { TICKS_PER_SECOND, macRoman, parseHeader, formatVersion, rawRecords, parseRecord, records, parseLog };
+const BoloLog = { TICKS_PER_SECOND, macRoman, nuBoloText, parseHeader, formatVersion, gameStart, rawRecords, parseRecord, isNuBolo, records, parseLog };
 
 if (typeof module !== "undefined" && module.exports) {
 	module.exports = BoloLog;
