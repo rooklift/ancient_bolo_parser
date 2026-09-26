@@ -967,7 +967,7 @@ The struct layout and the constants are from `Brain.h`: `enum { GameType_open=1,
 
 ### [E:nubolo] — a nuBolo host counts from 2001 and writes Latin-1
 
-From one log, `20070123.4`, not committed: a two-player game between Swedish players, Oscar (the host) and Fredde (the recorder). One of Oscar's messages reads "lite lurigt nubolo", "nuBolo is a bit tricky". Its header is byte for byte that of most fixtures, version `00 99 07 00` included, and its records parse without a warning.
+From one log, `20070123.4`, not committed: a two-player game between Swedish players, one the host and the other the recorder. One of the host's messages reads "lite lurigt nubolo", "nuBolo is a bit tricky". Its header is byte for byte that of most fixtures, version `00 99 07 00` included, and its records parse without a warning.
 
 The clock: the game info's start time is 191256632. Read from the Mac epoch that is 1910-01-22 14:50:32; from Core Foundation's (2001-01-01) it is 2007-01-23 14:50:32, the date in the file's name. The day's difference between the two readings is the leap days: 1904 and 1908 fall in the first six years, only 2004 in the second. Every committed fixture reads 2001–2004 from the Mac epoch, with values of 3.1–3.2 billion, far above the 2^31 threshold. The corpora have not been run against the threshold.
 

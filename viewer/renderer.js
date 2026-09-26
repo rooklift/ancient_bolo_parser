@@ -631,7 +631,7 @@ function player_color(p) {
 }
 
 /* nuBolo names a player's machine by its IPv4 address and UDP port in
- * hex (Oscar@55E29735999F is 85.226.151.53, port 39327), so a nuBolo
+ * hex (name@C0000201C350 is 192.0.2.1, port 50000), so a nuBolo
  * log's hosts are shown as the address. Anything else is shown as
  * written; the parsed names keep the hex. */
 function display_host(host) {
