@@ -149,7 +149,7 @@ nuBolo's machine names are addresses too. The machine half of a nuBolo player's 
 
 The test names the host's client, not the recorder's. The viewer shows "nuBolo" for these logs in place of the header version.
 
-nuBolo announces a join outright. The joiner's `T=7` F8 record carries an `FF F7` after the node id, laid out like the `FF F0` quit: a field-length byte (6) and the joiner's upstream, own and downstream `IP:port`. Classic Bolo leaves a join to be inferred from the F8 restatements that follow it; the viewer takes an `FF F7` record as a join without that inference [E:nubolo-join].
+nuBolo announces a join outright. The joiner's `T=7` F8 record carries an `FF F7` after the node id, laid out like the `FF F0` quit: a field-length byte (6) and the joiner's upstream, own and downstream `IP:port`. Classic Bolo leaves a join to be inferred from the F8 restatements that follow it. The parser reads `FF F7`, but the viewer ignores it and infers nuBolo's joins the same way [E:nubolo-join].
 
 ## What the log does NOT contain
 

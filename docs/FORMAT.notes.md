@@ -992,7 +992,7 @@ Each `FF F7` is the last subpacket of its joiner's first record, which holds onl
 
 J2's quit repeats its join's fields exactly. Every joiner is admitted just downstream of A, which is not the host. The joins' ports are 50000.
 
-The viewer's F8 restatement test (`classify_node_joins` in `viewer/game.js`) already classified all three records as joins, so taking `FF F7` as a join changes no playback of this log. No committed fixture has an `FF F7`. `20070123.4` has none, since it parses without a warning. Whether `20060920b.blg` has any was not checked.
+The viewer ignores `FF F7`. Its F8 restatement test (`classify_node_joins` in `viewer/game.js`) classifies all three records as joins without it. No committed fixture has an `FF F7`. `20070123.4` has none, since it parses without a warning. Whether `20060920b.blg` has any was not checked.
 
 ### [E:history] — the pill/base history groups
 

@@ -109,9 +109,6 @@ function dumpEvents() {
 				case "quit":
 					console.log(`${at}  quit: ${who()}`);
 					break;
-				case "join":
-					console.log(`${at}  join: ${who()}`);
-					break;
 			}
 		}
 		if (rec.warning) {
