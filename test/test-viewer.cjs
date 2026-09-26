@@ -473,6 +473,31 @@ if (!fs.existsSync(log1)) {
 	check("pill masks its ground from a single crater", st.grid[10 * 256 + 11], 13);
 }
 
+// A superboom spares open water but not a boat: the boat square craters
+// (destroying the boat) and is left for the log's explicit flood to return
+// to river, exactly as a single crater on a boat is (FORMAT.md
+// [E:crater-water]). Emulator-observed; WinBolo's big explosion differs.
+{
+	const st = BoloGame.initial_state();
+	st.grid[20 * 256 + 20] = 9; /* boat */
+	st.grid[20 * 256 + 21] = 1; /* river */
+	st.grid[21 * 256 + 20] = 7; /* grass */
+	st.grid[21 * 256 + 21] = 255; /* deep sea */
+	BoloGame.apply_record(st, {
+		time: 100, seq: 0, status: 0, player: 0, tankStatus: 0, tankDir: 0,
+		subpackets: [{ type: "explosion", code: 0x0d, x: 20, y: 20 }],
+	}, null, null);
+	check("superboom craters a boat square", st.grid[20 * 256 + 20], 3);
+	check("superboom spares river", st.grid[20 * 256 + 21], 1);
+	check("superboom craters grass", st.grid[21 * 256 + 20], 3);
+	check("superboom spares deep sea", st.grid[21 * 256 + 21], 255);
+	BoloGame.apply_record(st, {
+		time: 130, seq: 1, status: 0, player: 0, tankStatus: 0, tankDir: 0,
+		subpackets: [{ type: "terrain_change", x: 20, y: 20, terrain: 1 }],
+	}, null, null);
+	check("the evented flood returns the cratered boat square to river", st.grid[20 * 256 + 20], 1);
+}
+
 // Pill-fire events are always retained so the renderer can toggle their
 // flashes without rebuilding an already-loaded replay.
 {

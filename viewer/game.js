@@ -286,9 +286,14 @@ function superboom(s, x, y) {
 		const sx = x + dx, sy = y + dy;
 		if (sx >= MAP_SIZE || sy >= MAP_SIZE) continue;
 		const t = s.grid[sy * MAP_SIZE + sx];
-		/* Water, bases and pillbox squares keep their terrain; the pill
-		 * damage below still lands. See FORMAT.md [E:crater-pill]. */
-		if (t !== DEEP_SEA && t !== 1 && t !== 9 && !base_at(s, sx, sy) && !pill_at(s, sx, sy)) {
+		/* Open water, bases and pillbox squares keep their terrain; the
+		 * pill damage below still lands. A boat square is not water here:
+		 * it craters like any ground, destroying the boat, and the log's
+		 * explicit flood then returns it to river, exactly as the single
+		 * crater does. (WinBolo's big explosion spares BOAT; Bolo does
+		 * not, emulator-observed.) See FORMAT.md [E:crater-pill]
+		 * [E:crater-water]. */
+		if (t !== DEEP_SEA && t !== 1 && !base_at(s, sx, sy) && !pill_at(s, sx, sy)) {
 			set_terrain(s, sx, sy, 3); /* crater */
 		}
 		for (const p of s.pills) {
