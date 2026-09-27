@@ -136,8 +136,9 @@ function* rawRecords(buf, stats) {
 		throw new Error("Not a Bolo log file (missing 'Bolo' signature)");
 	}
 	let pos = HEADER_SIZE;
-	// The 32-bit time tag derives from the Mac's TickCount() and wraps after
-	// ~2.7 years of uptime. Times are monotonic in file order (verified:
+	// The 32-bit time tag is the recorder's uptime in 50/s ticks (see
+	// FORMAT.md, [E:first-tag]) and wraps after ~2.7 years of it. Times
+	// are monotonic in file order (verified:
 	// zero backward steps across all sample logs), so a huge backward jump
 	// can only be a wrap: unwrap it so downstream timelines stay monotonic.
 	let timeBase = 0;

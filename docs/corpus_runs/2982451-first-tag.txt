@@ -1,0 +1,80 @@
+
+== corpus 1: 443 logs
+first tag, ticks: min 4475  p5 56507  p25 435879  median 3458887  p75 13359184  p95 42094421  max 78027669
+as uptime at 50/s: min 0.02 h  p25 2.4 h  median 19.2 h  p75 74.2 h  max 433.5 h
+uptime histogram:
+  under 30 min      30
+  30 min to 1 h     25
+  1 to 2 h          44
+  2 to 4 h          47
+  4 to 8 h          40
+  8 to 24 h         56
+  1 to 3 days       86
+  3 to 7 days       69
+  1 to 4 weeks      46
+  over 4 weeks       0
+lowest five: 4475 5470 5520 6252 7760
+tag wraps past 2^32 inside the log: 0
+same-day consecutive logs: tag went up 224, down 25
+ticks per second between same-host logs an hour or more apart (16 pairs): p10 27.7  p25 36.6  median 47.0  p75 51.9  p90 52.2
+
+== corpus 2: 587 logs
+first tag, ticks: min 5655  p5 73271  p25 297909  median 589416  p75 902340  p95 2592025  max 17060688
+as uptime at 50/s: min 0.03 h  p25 1.7 h  median 3.3 h  p75 5.0 h  max 94.8 h
+uptime histogram:
+  under 30 min      48
+  30 min to 1 h     45
+  1 to 2 h          75
+  2 to 4 h         199
+  4 to 8 h         149
+  8 to 24 h         52
+  1 to 3 days       17
+  3 to 7 days        2
+  1 to 4 weeks       0
+  over 4 weeks       0
+lowest five: 5655 9415 14618 16363 18807
+tag wraps past 2^32 inside the log: 0
+same-day consecutive logs: tag went up 350, down 47
+ticks per second between same-host logs an hour or more apart (18 pairs): p10 13.4  p25 49.3  median 50.0  p75 50.5  p90 52.0
+skipping ~016302: Not a Bolo log file (missing 'Bolo' signature)
+skipping ~f87505: Not a Bolo log file (missing 'Bolo' signature)
+skipping ~66591d: Not a Bolo log file (missing 'Bolo' signature)
+skipping ~762220: Not a Bolo log file (missing 'Bolo' signature)
+
+== corpus 3: 14 logs
+first tag, ticks: min 41684  p5 41684  p25 150675  median 570388  p75 1050420  p95 1213203  max 1213203
+as uptime at 50/s: min 0.23 h  p25 0.84 h  median 3.2 h  p75 5.8 h  max 6.7 h
+uptime histogram:
+  under 30 min       1
+  30 min to 1 h      3
+  1 to 2 h           2
+  2 to 4 h           3
+  4 to 8 h           5
+  8 to 24 h          0
+  1 to 3 days        0
+  3 to 7 days        0
+  1 to 4 weeks       0
+  over 4 weeks       0
+lowest five: 41684 96537 107450 150675 201565
+tag wraps past 2^32 inside the log: 0
+same-day consecutive logs: tag went up 9, down 0
+ticks per second between same-host logs an hour or more apart (2 pairs): p10 0.0  p25 0.0  median 45.2  p75 45.2  p90 45.2
+
+== all together: 1044 logs
+first tag, ticks: min 4475  p5 65091  p25 340375  median 721354  p75 2925878  p95 26466292  max 78027669
+as uptime at 50/s: min 0.02 h  p25 1.9 h  median 4.0 h  p75 16.3 h  max 433.5 h
+uptime histogram:
+  under 30 min      79
+  30 min to 1 h     73
+  1 to 2 h         121
+  2 to 4 h         249
+  4 to 8 h         194
+  8 to 24 h        108
+  1 to 3 days      103
+  3 to 7 days       71
+  1 to 4 weeks      46
+  over 4 weeks       0
+lowest five: 4475 5470 5520 5655 6252
+tag wraps past 2^32 inside the log: 0
+same-day consecutive logs: tag went up 588, down 105
+ticks per second between same-host logs an hour or more apart (36 pairs): p10 13.4  p25 43.9  median 49.8  p75 50.7  p90 52.0
