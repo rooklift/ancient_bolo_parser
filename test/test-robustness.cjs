@@ -22,7 +22,8 @@ check("macRoman fixture", BoloLog.macRoman(fixture), "é ˇ•’");
 check("macRoman table is 128 entries",
 	BoloLog.macRoman(Uint8Array.from(Array.from({ length: 128 }, (_, i) => i + 0x80))).length, 128);
 
-// --- nuBolo: the host's clock picks the epoch and the text encoding ---
+// --- nuBolo: the host's clock and the machine names pick the epoch and
+// the text encoding; a nuBolo log needs both signs ---
 {
 	const { build_log, str } = require("./synthetic-log.cjs");
 	/* F1 01 game info whose start time is `seconds` */
@@ -31,25 +32,36 @@ check("macRoman table is 128 entries",
 		g[40] = seconds >>> 24; g[41] = (seconds >> 16) & 0xff; g[42] = (seconds >> 8) & 0xff; g[43] = seconds & 0xff;
 		return [0, 0x00, 0x70, 0xf1, 0x01, ...g];
 	}
-	/* the node id comes ahead of the game info, as it does in real logs */
-	const name = [0, 0x00, 0x70, 0xf8, ...str("\xc5sa@1")];
+	/* the node ids come ahead of the game info, as they do in real logs */
+	const dns_name = [0, 0x00, 0x70, 0xf8, ...str("\xc5sa@1")];
+	const hex_name = [1, 0x00, 0x71, 0xf8, ...str("Bo@C0000201C350")];
 	const chat = [1, 0x00, 0x70, 0xfa, 0xff, 0xff, ...str("j\xe4vla")];
 	const mac_chat = [2, 0x00, 0x70, 0xfa, 0xff, 0xff, ...str("\x8a\xe4")];
-	function decoded(seconds) {
-		const recs = [...BoloLog.records(build_log([name, game_info(seconds), chat, mac_chat]))];
+	function decoded(names, seconds) {
+		const recs = [...BoloLog.records(build_log([...names, game_info(seconds), chat, mac_chat]))];
 		const subs = recs.flatMap(r => r.subpackets);
 		const gi = subs.find(s => s.type === "game_info");
 		return {
 			nubolo: gi.nubolo,
 			start: new Date(gi.startTime).toISOString().slice(0, 19),
-			text: subs.filter(s => s.type === "node_id" || s.type === "message").map(s => s.name || s.text),
+			text: subs.filter(s => s.type === "message").map(s => s.text),
 		};
 	}
-	check("nuBolo log: 2001 epoch, Latin-1 text, 80-9F kept MacRoman", decoded(191256632),
-		{ nubolo: true, start: "2007-01-23T14:50:32", text: ["Åsa@1", "jävla", "ä‰"] });
-	check("classic log: 1904 epoch, MacRoman text", decoded(3117823323),
-		{ nubolo: false, start: "2002-10-18T22:02:03", text: ["≈sa@1", "j‰vla", "ä‰"] });
-	check("no timestamp: no start time", BoloLog.gameStart(0), { nubolo: false, startTime: null });
+	const latin1 = ["jävla", "ä‰"], macroman = ["j‰vla", "ä‰"];
+	check("nuBolo log: 2001 epoch, Latin-1 text, 80-9F kept MacRoman", decoded([dns_name, hex_name], 191256632),
+		{ nubolo: true, start: "2007-01-23T14:50:32", text: latin1 });
+	check("classic log: 1904 epoch, MacRoman text", decoded([dns_name], 3117823323),
+		{ nubolo: false, start: "2002-10-18T22:02:03", text: macroman });
+	check("classic log with a dead clock battery: 1904 epoch, reads 1956", decoded([dns_name], 1661743877),
+		{ nubolo: false, start: "1956-08-28T03:31:17", text: macroman });
+	check("nuBolo player in a classic host's game: 1904 epoch", decoded([dns_name, hex_name], 3117823323),
+		{ nubolo: false, start: "2002-10-18T22:02:03", text: macroman });
+	check("nuBolo node id name is decoded Latin-1", [...BoloLog.records(build_log([dns_name, hex_name, game_info(191256632)]))]
+		.flatMap(r => r.subpackets).filter(s => s.type === "node_id").map(s => s.name), ["Åsa@1", "Bo@C0000201C350"]);
+	check("isNuBoloName", ["Bo@C0000201C350", "Bo@c0000201c350", "Bo@1", "Bo@C0000201C35", "Bo@mac.example.org", "C0000201C350"].map(BoloLog.isNuBoloName),
+		[true, true, false, false, false, false]);
+	check("clockIsNuBolo", [0, 1, 0x7fffffff, 0x80000000, 3117823323].map(BoloLog.clockIsNuBolo), [false, true, true, false, false]);
+	check("no timestamp: no start time", BoloLog.gameStart(0, true), { nubolo: false, startTime: null });
 }
 
 // --- malformed inputs ---
