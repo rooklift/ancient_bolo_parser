@@ -75,16 +75,29 @@ export function formatVersion(bytes) {
 
 // The game id's start time is seconds since an epoch that depends on the
 // host's client. Classic Bolo counts from the Mac epoch (1904-01-01), in
-// GMT since 0.99.5, so every real game reads 1972 or later: at least
-// 2^31. nuBolo, on Mac OS X, counts from Core Foundation's (2001-01-01),
-// so its games read below 2^31 until 2069. Zero means no timestamp.
+// GMT since 0.99.5, so a real game reads 1972 or later: at least 2^31.
+// nuBolo, on Mac OS X, counts from Core Foundation's (2001-01-01), so its
+// games read below 2^31 until 2069. A classic Mac whose clock was never
+// set reads below 2^31 too: with a dead PRAM battery the clock falls back
+// to 1956, so the machine names settle it (see isNuBolo). `nubolo` is
+// that verdict, and picks the epoch. Zero means no timestamp.
 const MAC_EPOCH_MS = Date.UTC(1904, 0, 1);
 const CF_EPOCH_MS = Date.UTC(2001, 0, 1);
 
-export function gameStart(seconds) {
+export function clockIsNuBolo(seconds) {
+	return seconds > 0 && seconds < 0x80000000;
+}
+
+export function gameStart(seconds, nubolo = false) {
 	if (!seconds) return { nubolo: false, startTime: null };
-	const nubolo = seconds < 0x80000000;
 	return { nubolo, startTime: (nubolo ? CF_EPOCH_MS : MAC_EPOCH_MS) + seconds * 1000 };
+}
+
+// nuBolo names a player's machine by its IPv4 address and UDP port as 12
+// hex digits (name@C0000201C350 is 192.0.2.1, port 50000); classic Bolo
+// uses the DNS or Mac name. Whether an F8 node id is a nuBolo player's.
+export function isNuBoloName(name) {
+	return /@[0-9A-F]{12}$/i.test(name);
 }
 
 // Yields { offset, time, data } with data already decrypted.
@@ -164,7 +177,7 @@ function squarePos(x, y, pix) {
 // Parse the ID-coded subpackets that follow any position subpackets.
 // Appends to record.subpackets; on anything unrecognised, stores the raw
 // remainder in record.unparsed and returns. `text` decodes a string.
-function parseIdSubpackets(rec, data, pos, text) {
+function parseIdSubpackets(rec, data, pos, text, nubolo) {
 	const subs = rec.subpackets;
 	while (pos < data.length) {
 		const start = pos;
@@ -225,7 +238,7 @@ function parseIdSubpackets(rec, data, pos, text) {
 				subs.push({ type: "map_header_request", code: data[pos + 1] });
 				pos += 2;
 			} else if (byte === 0xf1) {    // map header info
-				pos = parseF1(subs, data, pos, text);
+				pos = parseF1(subs, data, pos, text, nubolo);
 			} else if (byte === 0xf2) {    // map terrain request
 				ensure(data, pos, 3);
 				subs.push({ type: "map_terrain_request", mapKnown: (data[pos + 1] << 8) | data[pos + 2] });
@@ -316,7 +329,7 @@ function parseIdSubpackets(rec, data, pos, text) {
 	}
 }
 
-function parseF1(subs, data, pos, text) {
+function parseF1(subs, data, pos, text, nubolo) {
 	ensure(data, pos, 2);
 	const sub = data[pos + 1];
 	if (sub === 0x01) {
@@ -336,7 +349,7 @@ function parseF1(subs, data, pos, text) {
 			gameId: hex(g, 36, 8),
 			hostIp: `${g[36]}.${g[37]}.${g[38]}.${g[39]}`,
 			startTimeMac,   // raw seconds; the epoch is the host client's
-			...gameStart(startTimeMac),   // nubolo, startTime (ms, Unix epoch)
+			...gameStart(startTimeMac, nubolo),   // nubolo, startTime (ms, Unix epoch)
 			gameType: g[44],
 			minesFlag: g[45],
 			allowAI: g[46],
@@ -483,8 +496,9 @@ function hex(data, pos, len) {
 // tank status bits: 1 = in boat, 2 = hidden, 4 = dead, 8 = has tank
 // position; special values 7 = joining/dead, F = BoloViewer attached log.
 // `text` decodes the record's strings: macRoman, or nuBoloText for a log
-// written by nuBolo (records() picks it).
-export function parseRecord(raw, text = macRoman) {
+// written by nuBolo, and `nubolo` says which the log is (records() picks
+// both, from isNuBolo); a game info's epoch follows it.
+export function parseRecord(raw, text = macRoman, nubolo = false) {
 	const data = raw.data;
 	const rec = {
 		offset: raw.offset,
@@ -578,18 +592,24 @@ export function parseRecord(raw, text = macRoman) {
 		rec.subpackets.push({ type: "base_stock_tick" });
 	}
 
-	parseIdSubpackets(rec, data, pos, text);
+	parseIdSubpackets(rec, data, pos, text, nubolo);
 	return rec;
 }
 
-// Whether the host of the game was running nuBolo, from the first game
-// info's clock (see gameStart). The game info comes a few records in,
-// after the node ids, whose names therefore need the answer first.
+// Whether the host of the game was running nuBolo: the first game info's
+// clock counts from 2001 (see gameStart) and a player's machine name is
+// a nuBolo address (see isNuBoloName). Either alone misleads: a classic
+// Mac with a dead clock battery counts from 1956, below 2^31 as well,
+// and a nuBolo player can join a classic host's game. The log opens with
+// the ring's node ids, then the game info, so the scan ends there; the
+// names need the answer before they are decoded.
 export function isNuBolo(buf) {
+	let nuBoloName = false;
 	try {
 		for (const raw of rawRecords(buf)) {
 			for (const sub of parseRecord(raw).subpackets) {
-				if (sub.type === "game_info") return sub.nubolo;
+				if (sub.type === "node_id" && isNuBoloName(sub.name)) nuBoloName = true;
+				if (sub.type === "game_info") return nuBoloName && clockIsNuBolo(sub.startTimeMac);
 			}
 		}
 	} catch {
@@ -599,9 +619,10 @@ export function isNuBolo(buf) {
 }
 
 export function* records(buf, stats) {
-	const text = isNuBolo(buf) ? nuBoloText : macRoman;
+	const nubolo = isNuBolo(buf);
+	const text = nubolo ? nuBoloText : macRoman;
 	for (const raw of rawRecords(buf, stats)) {
-		yield parseRecord(raw, text);
+		yield parseRecord(raw, text, nubolo);
 	}
 }
 
