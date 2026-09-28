@@ -20,12 +20,14 @@ function event_for(state, rec, sub) {
 		case "base_damage": kind = "shot_building"; source = state.bases[sub.base]; break;
 		case "tank_death":
 			// Death itself is silent; any ammunition explosion has its own
-			// explosion event. Only sinking has a sound here: a tank driven
-			// into deep sea (code 3), or the wreck of a death on land sliding
-			// in later (code 2, sent while the tank is already dead).
-			if (tank && (sub.code === 3 ? !tank.dead : sub.code === 2 && tank.dead)) {
-				kind = "tank_sinking";
-				source = tank;
+			// explosion event. Only sinking has a sound here.
+			if (tank) {
+				let drowned = sub.code === 3 && !tank.dead;     /* a live tank driven into deep sea */
+				let wreck_sank = sub.code === 2 && tank.dead;   /* the wreck of a death on land sliding in */
+				if (drowned || wreck_sank) {
+					kind = "tank_sinking";
+					source = tank;
+				}
 			}
 			break;
 		case "lgm_death":
