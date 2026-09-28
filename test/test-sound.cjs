@@ -138,7 +138,6 @@ Game.apply_record(state, { time: 10, player: 2, tankStatus: 0, status: 0, tankDi
 		{ type: "tank_hit", tank: 3, direction: 0 },
 		{ type: "explosion", x: 52, y: 50, code: 7 },
 		{ type: "tank_death", code: 1 },
-		{ type: "tank_death", code: 2 },
 	],
 }, null, null, null, null, sounds);
 assert.deepEqual(sounds.map(s => s.kind), ["hit_tank", "shot_tree"], "gunfire is not read from the fire event");
@@ -151,19 +150,30 @@ for (let code of [1, 2, 3, 13]) {
 	let death_state = Game.initial_state();
 	death_state.tanks[2] = { x: 50, y: 50, px: 0, py: 0 };
 	let death_sounds = [];
-	let subpackets = code <= 3
+	let subpackets = code === 2
+		? [{ type: "tank_death", code: 1 }, { type: "tank_death", code: 2 }]
+		: code === 3
 		? [{ type: "tank_death", code }, { type: "tank_death", code }]
 		: [{ type: "tank_death", code: 1 }];
 	Game.apply_record(death_state, { time: 10, player: 2, tankStatus: 0, status: 0, tankDir: 0, subpackets },
 		null, null, null, null, death_sounds);
-	assert.deepEqual(death_sounds.map(s => s.kind), code === 3 ? ["tank_sinking"] : []);
-	if (code === 2 || code === 13) {
+	// A tank sinks once, whether it drives into deep sea or its wreck
+	// slides in after a death on land [E:death-codes].
+	assert.deepEqual(death_sounds.map(s => s.kind), code === 2 || code === 3 ? ["tank_sinking"] : []);
+	if (code === 1 || code === 13) {
 		Game.apply_record(death_state, { time: 55, player: 2, tankStatus: 7, status: 0, tankDir: 0,
-			subpackets: [{ type: "explosion", code: code === 2 ? 3 : 13, x: 50, y: 50 }],
+			subpackets: [{ type: "explosion", code: code === 1 ? 3 : 13, x: 50, y: 50 }],
 		}, null, null, null, null, death_sounds);
 		assert.deepEqual(death_sounds.map(s => [s.time, s.kind]),
-			[[55, code === 2 ? "mine_explosion" : "big_explosion"]]);
+			[[55, code === 1 ? "mine_explosion" : "big_explosion"]]);
 	}
+}
+// A code 2 for a tank the model does not hold dead (the log opened
+// mid-death) has no wreck to sink, and stays silent.
+{
+	let live_state = Game.initial_state();
+	live_state.tanks[2] = { x: 50, y: 50, px: 0, py: 0 };
+	assert.equal(Sound.event_for(live_state, { player: 2, time: 10 }, { type: "tank_death", code: 2 }), null);
 }
 for (let terrain of [1, 7, 255]) {
 	state.grid[50 * 256 + 52] = terrain;

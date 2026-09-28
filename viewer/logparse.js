@@ -302,7 +302,7 @@ function parseIdSubpackets(rec, data, pos, text, nubolo) {
 				const { str, next } = pascalString(data, pos + 1, text);
 				subs.push({ type: "node_id", name: str, at: pos + 1 });
 				pos = next;
-			} else if (byte === 0xf9) {    // tank death (1 = explosion, 2 = crater, 3 = sunk)
+			} else if (byte === 0xf9) {    // tank death (1 = on land, 2 = the wreck of a 1 sinks, 3 = in deep sea)
 				ensure(data, pos, 2);
 				subs.push({ type: "tank_death", code: data[pos + 1] });
 				pos += 2;
