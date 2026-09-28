@@ -1,0 +1,122 @@
+======================================================================
+443 logs (0 unreadable), 13338093 records
+
+[F9 codes seen]
+    15450  90.4%  code 1
+      866   5.1%  code 2
+      779   4.6%  code 3
+
+[code 1: does it open a death?]
+    15450 100.0%  opens a death
+
+[code 3: does it open a death?]
+      776  99.6%  opens a death
+        3   0.4%  opens a death (the last one's respawn went unlogged)
+
+[code 2: does it follow an open death?]
+      817  94.3%  follows an open death opened by code 1
+       49   5.7%  no death open (follows a respawn, or opens the log's view of the player)
+  ticks from the opening F9 to the F902: n 817, min 3, 10% 12, median 31, 90% 45, max 142 ticks
+
+[code 2: the wreck, projected to the F902's tick from the last two trail positions]
+      614  75.2%  projected square: deep sea | deep sea within 1 square: yes
+      138  16.9%  projected square: land     | deep sea within 1 square: yes
+       35   4.3%  projected square: river    | deep sea within 1 square: yes
+       27   3.3%  projected square: land     | deep sea within 1 square: no
+        2   0.2%  projected square: boat     | deep sea within 1 square: yes
+        1   0.1%  projected square: river    | deep sea within 1 square: no
+
+[code 2: the last trail position actually logged]
+      602  73.7%  last logged trail square: land     | deep sea within 1 square: yes
+      129  15.8%  last logged trail square: river    | deep sea within 1 square: yes
+       78   9.5%  last logged trail square: land     | deep sea within 1 square: no
+        7   0.9%  last logged trail square: river    | deep sea within 1 square: no
+        1   0.1%  last logged trail square: boat     | deep sea within 1 square: yes
+  age of that position at the F902: n 817, min 1, 10% 5, median 9, 90% 15, max 22 ticks
+
+[code 1: the tank when it died (this record's position, else its last live one)]
+    15181  98.3%  on foot  | on land, no deep sea within 1 square
+      189   1.2%  on foot  | on land, deep sea within 1 square
+       41   0.3%  on foot  | on river, no deep sea within 1 square
+       29   0.2%  on foot  | on river, deep sea within 1 square
+        6   0.0%  on foot  | on boat, deep sea within 1 square
+        3   0.0%  on foot  | on boat, no deep sea within 1 square
+        1   0.0%  on foot  | on deep sea
+  age of that position: n 15450, min 0, 10% 0, median 0, 90% 0, max 319 ticks
+
+[code 3: the tank when it died (this record's position, else its last live one)]
+      435  55.8%  on foot  | on land, deep sea within 1 square
+      167  21.4%  in boat  | on deep sea
+      113  14.5%  on foot  | on river, deep sea within 1 square
+       57   7.3%  on foot  | on deep sea
+        4   0.5%  on foot  | on land, no deep sea within 1 square
+        3   0.4%  in boat  | on river, deep sea within 1 square
+  age of that position: n 779, min 0, 10% 5, median 10, 90% 22, max 488 ticks
+
+[code 3: the wreck's trail]
+      779 100.0%  dying positions logged after it: none
+
+[every death: its codes | a 7 3 / 7D from the dying player within 60 ticks | where the wreck's trail went]
+     9816  60.5%  1            | terminal crater | trail on land only
+     4059  25.0%  1            | no crater       | trail on land only
+      777   4.8%  3            | no crater       | no trail logged
+      595   3.7%  1+2          | no crater       | trail within 1 square of deep sea
+      226   1.4%  1            | terminal crater | trail within 1 square of deep sea
+      169   1.0%  1            | terminal crater | trail reaches river/boat, not deep sea
+      142   0.9%  1            | no crater       | no trail logged
+      136   0.8%  1+2          | no crater       | trail reaches river/boat, not deep sea
+      115   0.7%  1            | no crater       | trail within 1 square of deep sea
+       91   0.6%  1            | no crater       | trail reaches river/boat, not deep sea
+       76   0.5%  1+2          | no crater       | trail on land only
+       14   0.1%  1            | terminal crater | no trail logged
+        6   0.0%  1+2          | terminal crater | trail within 1 square of deep sea
+        3   0.0%  1+2          | terminal crater | trail reaches river/boat, not deep sea
+        2   0.0%  3            | terminal crater | no trail logged
+        1   0.0%  1            | terminal crater | trail reaches deep sea
+        1   0.0%  1+2          | terminal crater | trail on land only
+
+[counterexamples and oddities]
+  code 2 with no death open: 49
+    20010326~fc6a01 record 45182 tick 9237304 player 0
+    20010412~5bc8e2 record 11266 tick 6636281 player 3
+    20010425.1~7802ec record 10666 tick 3900294 player 3
+    20010504.10~8329af record 10891 tick 1212458 player 1
+    20010507.2~a943c8 record 10735 tick 3488540 player 3
+    20010607.1~a2cccd record 26837 tick 1434125 player 1
+    20010625.2~ecc1e6 record 25929 tick 12333605 player 3
+    20010627~752496 record 1571 tick 4570243 player 2
+    20010627.1~8b3b14 record 14448 tick 5107738 player 0
+    20010627.1~8b3b14 record 15977 tick 5111827 player 2
+    20011019 record 24924 tick 2832895 player 3
+    20011210.1 record 21940 tick 10352657 player 3
+    ... 37 more
+  code 2 with no deep sea within 1 square of the projected wreck: 28
+    20010530.1~a22552 record 19661 tick 16964343 player 1 +13t; trail 0:forest(47,123); projected grass(47,123)
+    20010627~752496 record 11200 tick 4596613 player 3 +10t; trail 0:road(125,121); projected road(125,121)
+    20010627.1~8b3b14 record 7026 tick 5083270 player 2 +12t; trail 0:forest(106,150); projected grass(106,150)
+    20010627.1~8b3b14 record 12576 tick 5102838 player 2 +13t; trail 0:grass(106,153); projected grass(106,153)
+    20011019.1 record 8216 tick 2886150 player 5 +13t; trail 0:road(122,142); projected road(122,142)
+    20020123 record 15251 tick 9738479 player 2 +19t; trail 0:grass(106,134); projected grass(106,134)
+    20020123 record 17290 tick 9744908 player 5 +17t; trail 0:forest(107,118); projected grass(107,118)
+    20020123 record 45274 tick 9825721 player 3 +16t; trail 0:grass(134,105); projected grass(134,105)
+    20020128 record 10897 tick 15939915 player 0 +13t; trail 0:forest(154,128); projected grass(154,128)
+    20020128.1 record 26222 tick 16005171 player 0 +10t; trail 0:grass(146,145); projected grass(146,145)
+    20021011.2~3f1e94 record 5926 tick 151349 player 1 +12t; trail 0:forest(153,117); projected grass(153,117)
+    20021012.1~60f3de record 22442 tick 210538 player 1 +8t; trail 0:grass(139,109); projected grass(139,109)
+    ... 16 more
+  F902 death that still got a terminal crater: 10
+    20010926 record 17230 tick 90850 player 2
+    20021021.4~82b065 record 26939 tick 795602 player 3
+    20021030.3~d71e9c record 18574 tick 425821 player 3
+    20030730.1~4d1fc7 record 55388 tick 8455058 player 3
+    20040812.5~6cb74f record 31525 tick 606115 player 2
+    20040827.11~292c2e record 11476 tick 42804280 player 0
+    20040827.3~67648b record 12095 tick 42237279 player 0
+    20040913.4~1638d7 record 24887 tick 15978005 player 1
+    20050311.2~190e4d record 6619 tick 49342 player 1
+    20050311.4~ec4128 record 25647 tick 195155 player 1
+  code 1 with the tank on deep sea: 1
+    20040324.4~e23dd3 record 9774 tick 3904804 player 1 not in a boat (107,101)
+  F901 whose wreck reached deep sea, with no F902: 1
+    20040324.4~e23dd3 record 9774 tick 3904804 player 1; trail 0:deep sea(107,101) 5:deep sea(107,101) 11:deep sea(107,101) 16:deep sea(107,101) 21:deep sea(107,101) 27:deep sea(107,101) 33:deep sea(107,101) 38:deep sea(107,101) 44:deep sea(107,101)
+======================================================================

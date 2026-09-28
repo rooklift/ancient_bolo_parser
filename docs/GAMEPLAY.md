@@ -163,7 +163,9 @@ allied. Pills and bases, by contrast, can be neutral, owned by nobody
   pill dump are corpus-established (FORMAT.md), and the tier boundary is
   confirmed by controlled deaths: 60 shells + mines aboard craters, 61
   superbooms, a single shell craters, and the crater or superboom comes
-  48–50 ticks after the `F9` **(emulator log)**. The respawn follows 5.0–6.8 s
+  48–50 ticks after the `F9` **(emulator log)**. A wreck that slides into
+  deep sea sinks instead, logged as `F9` code 2, with no crater
+  **(corpus, [E:death-codes])**. The respawn follows 5.0–6.8 s
   later **(corpus, [E:respawn-gap])**, at a square of the start list that is
   not always the player's original one; the choice rule is not known
   **(owner)**, and neither the nearest start nor the farthest from enemies

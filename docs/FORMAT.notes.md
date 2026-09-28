@@ -61,6 +61,7 @@ Corpus figures are from the 443-log set unless an entry says 446, in which case 
 - [`[E:mine-damage]`](#emine-damage-a-mine-takes-3-armour-or-2-when-3-would-kill-the-tank) — a mine takes 3 armour, or 2 when 3 would kill the tank
 - [`[E:knockback]`](#eknockback-a-hit-shoves-the-tank-8-px-at-full-armour-1-px-more-per-armour-point-missing) — a hit shoves the tank 8 px at full armour, 1 px more per armour point missing
 - [`[E:ammo-clamp]`](#eammo-clamp-shells-and-mines-cap-at-40) — shells and mines cap at 40
+- [`[E:death-codes]`](#edeath-codes-code-2-is-the-wreck-sinking-not-a-crater) — code 2 is the wreck sinking, not a crater
 - [`[E:respawn-gap]`](#erespawn-gap-respawn-5068-s-after-death) — respawn 5.0–6.8 s after death
 - [`[E:death-tiers]`](#edeath-tiers-the-terminal-explosion-is-gated-on-ammo-aboard) — the terminal explosion is gated on ammo aboard
 - [`[E:superboom-cargo]`](#esuperboom-cargo-the-second-explosion-is-the-cargo) — the second explosion is the cargo
@@ -739,6 +740,22 @@ One pixel per armour point missing, 8 at full and 15 at the last survivable poin
 ### [E:ammo-clamp] — shells and mines cap at 40
 
 Two measurements. Directly: over every stint of a tank sitting on a base square in the 1,030-log corpus (40,618 stints with a shell or mine drain), the shell drains never exceed the shots by more than 40, and the mine drains never exceed the mines laid, by the tank or by the man, by more than 40; both maxima are exactly 40, a tank arriving empty and filling ([E:base-fill], `node tools/measure-base-fill.cjs`). Indirectly: reconstructing tank ammo across 12,583 lives that begin at an observed respawn (see [E:death-tiers]), every out-of-range excursion is an overflow past Brain.h's cap of 40 and not one is a negative. Holding the reconstruction at 40 drops its violation rate from 5.7% to 1.2%. That clamp is a filter for the method's noise, not a rule of the game: a full tank is never refuelled at all ([E:base-fill]), so an overflow is a spend the reconstruction missed, which left its count too high for the next refuel to push over. `node tools/measure-death-ammo.cjs`.
+
+### [E:death-codes] — code 2 is the wreck sinking, not a crater
+
+The codes were long read as 1 = explosion, 2 = crater, 3 = sunk. Work on another Bolo project suggested 1 = a new death on land, 2 = an already-dead tank's wreck sinking, 3 = a new death by sinking, and the 443-log corpus bears that out (`node tools/measure-death-codes.cjs`, the holder's run at `09100c5` archived as `docs/corpus_runs/09100c5-death-codes.txt`). A death is open from its first `F9` to the player's next position without the dying bit; of 17,095 `F9`s, 15,450 are code 1, 866 code 2 and 779 code 3.
+
+**Code 1** opens a death every time, 15,450 of 15,450, and the tank is on land: 15,181 with no deep sea within a square, one on deep sea itself.
+
+**Code 3** opens a death every time, 779 of 779 (three come 250 ticks or more after an earlier `F903` with no respawn logged between, the respawned tank having sat still), and no dying position is ever logged after it. The tank was last seen on deep sea or beside it in 775: on foot beside deep sea or on it, 605, driven off a shore; in a boat, 170, which takes in the mined border ([E:dump-terrain]). The other four come from positions up to 488 ticks old.
+
+**Code 2** never opens a death. 817 of 866 follow an `F901` still open, 3–142 ticks after it (10% 12, median 31, 90% 45), and none follows an `F903`. The wreck's trail of dying positions is logged every 5–15 ticks, so it is projected forward from its last two positions to the `F902`'s tick: it lies on deep sea in 614 and has deep sea within a square in 789 of 817. The 28 without are, in every example printed, a trail of a single position, nothing to project from, 8–19 ticks old. 807 of the 817 get no terminal crater (`7 3` / `7D` from the dying player within 60 ticks), where code 1 deaths without a code 2 get one in 10,226 of 14,633 (70%); cratering spares open water ([E:crater-water]). The converse holds as well: of 14,633 code-1-only deaths, one trail is logged on deep sea, and that one looks like a fault in the model's map — a code 1 tank on deep sea not in a boat, its wreck standing on the square for 44 ticks. River does not sink a wreck: 260 code-1-only trails reach river or a boat square with no `F902`.
+
+So code 2 is the burning wreck of a tank killed on land sliding into deep sea and sinking, sent by the dead tank's own machine. It is not a second death, and the old note that "an F901 may be followed by F902 mid-animation" was this.
+
+For the tier table of [E:death-tiers] the consequence is that a sunk wreck counts as "no explosion" whatever it carried: `measure-death-ammo.cjs` excludes code 3 deaths but not code 1 deaths ending in a code 2, some 5% of deaths. How much of the table's "none" at high ammo that accounts for has not been re-measured.
+
+Open: 49 `F902`s arrive with no death open, and 10 code 2 deaths do get a crater within 60 ticks.
 
 ### [E:respawn-gap] — respawn 5.0–6.8 s after death
 
