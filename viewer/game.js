@@ -408,19 +408,21 @@ function has_live_tank(s, i) {
 	return !!(t && !t.dead && !t.dying);
 }
 
-/* The lowest-index mutual ally still in the game, or -1: the player who
- * inherits pills their owner leaves behind (manual: "any active ones on
- * the map remain with the members of the alliance"). On a quit the heir
- * must have a tank: over the corpus, pills handed to a live ally never
- * fired at him (0 of 2,281), pills handed to an ally who was dead or
- * tankless at that moment did (7 of 243), and those seven are the only
- * such fires anywhere [E:pill-target]. With no ally holding a tank the
- * pills belong to nobody. */
-function lowest_remaining_ally(s, pl, live_only) {
-	for (let i = 0; i < 16; i++) {
+/* The heir of a player's grounded pills and bases when he quits or leaves
+ * his alliance, or -1: the HIGHEST-index mutual ally still in the game
+ * who has a live tank at that moment (manual: "any active ones on the map
+ * remain with the members of the alliance"). Both conditions apply on
+ * both paths, and the slot order matters only when two or more allies
+ * qualify. The heir must have a tank: over the corpus, pills handed to a
+ * live ally never fired at him (0 of 2,281), pills handed to an ally who
+ * was dead or tankless at that moment did (7 of 243), and those seven are
+ * the only such fires anywhere [E:pill-target]. With no ally holding a
+ * tank there is no heir: a quitter's things belong to nobody, and an
+ * alliance-leaver keeps his. */
+function heir_of(s, pl) {
+	for (let i = 15; i >= 0; i--) {
 		const mutual = i !== pl && !(s.alliances[pl] & (1 << i)) && !(s.alliances[i] & (1 << pl));
-		if (mutual && !s.quit[i] && (s.present[i] || s.names[i] !== null) &&
-			(!live_only || has_live_tank(s, i))) return i;
+		if (mutual && !s.quit[i] && (s.present[i] || s.names[i] !== null) && has_live_tank(s, i)) return i;
 	}
 	return -1;
 }
@@ -888,7 +890,7 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins, sounds
 					 * disconnect is announced): an IMPLICIT quit hands
 					 * his grounded things over before his links reset */
 					if (s.names[pl] !== null) {
-						hand_over_pills(s, pl, lowest_remaining_ally(s, pl, true));
+						hand_over_pills(s, pl, heir_of(s, pl));
 					}
 					/* the new (or returning) player does not inherit the
 					 * previous occupant's alliances */
@@ -991,7 +993,7 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins, sounds
 				 * two rings of the quitter's tank square). With no known
 				 * tank position they leave the game (GONE). Planted pills
 				 * stay with his alliance
-				 * [E:pill-target]: they go to the lowest-index remaining
+				 * [E:pill-target]: they go to the highest-index remaining
 				 * ally who has a tank, as on alliance-leave, or, with none
 				 * (a netsplit takes a whole team at once; a lone ally may
 				 * be dead), into the DEPARTED state, from which only the
@@ -1014,7 +1016,7 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins, sounds
 					}
 					s.men[pl] = null; /* his man leaves with him, pill dropped above */
 				}
-				hand_over_pills(s, pl, lowest_remaining_ally(s, pl, true));
+				hand_over_pills(s, pl, heir_of(s, pl));
 				for (const p of s.pills) {
 					if (p.inTank === pl) p.inTank = GONE;
 				}
@@ -1058,11 +1060,13 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins, sounds
 				s.lastAllianceEvent = rec.time;
 				/* Manual: "Any pillboxes he is carrying at the time are his,
 				 * but any active ones on the map remain with the members of
-				 * the alliance." Reassign planted pills to the lowest-index
-				 * remaining ally before severing the links. The manual does
-				 * not mention bases, but ownership works the same for both
-				 * [E:pill-target], so they go over too. */
-				const heir = lowest_remaining_ally(s, pl, false);
+				 * the alliance." Reassign planted pills to the same heir a
+				 * quit would choose, the highest-index remaining ally with
+				 * a live tank, before severing the links; with no such ally
+				 * the leaver keeps them. The manual does not mention bases,
+				 * but ownership works the same for both [E:pill-target], so
+				 * they go over too. */
+				const heir = heir_of(s, pl);
 				if (heir >= 0) hand_over_pills(s, pl, heir);
 				s.alliances[pl] = 0xffff & ~(1 << pl);
 				for (let i = 0; i < 16; i++) {

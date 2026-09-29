@@ -968,7 +968,7 @@ Netsplits shuffle players across slots, sometimes with no quit event at all — 
 
 ### [E:leave-pills] — a leaver's planted pills stay with the alliance
 
-From the Bolo manual, on leaving an alliance: "Any pillboxes he is carrying at the time are his, but any active ones on the map remain with the members of the alliance." Which member inherits is not stated; the viewer assigns them to the lowest-index remaining mutual ally. Bases are not mentioned; ownership works the same for pills and bases (see [E:pill-target]), so the viewer hands the leaver's bases over with the pills.
+From the Bolo manual, on leaving an alliance: "Any pillboxes he is carrying at the time are his, but any active ones on the map remain with the members of the alliance." Which member inherits is not stated; the viewer assigns them to the highest-index remaining mutual ally who has a live tank, the same heir a quit chooses, and with none the leaver keeps them. Bases are not mentioned; ownership works the same for pills and bases (see [E:pill-target]), so the viewer hands the leaver's bases over with the pills.
 
 ### [E:alliance-transitive] — an accept admits to the whole alliance
 

@@ -3051,6 +3051,7 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "long_game"))) {
 	/* allies: 1 and 2 (mutual zero bits) */
 	st.alliances[1] &= ~(1 << 2);
 	st.alliances[2] &= ~(1 << 1);
+	st.tanks[2] = { x: 5, y: 5, px: 0, py: 0, dead: false, dying: false, lastSeen: 0 };
 	st.pills = [
 		{ x: 10, y: 10, owner: 1, armour: 15, speed: 50, inTank: null }, /* planted, leaver's */
 		{ x: 0, y: 0, owner: 1, armour: 15, speed: 50, inTank: 1 },      /* carried by leaver */
@@ -3069,6 +3070,23 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "long_game"))) {
 	check("ally's own pill untouched", st.pills[2].owner, 2);
 	check("leaver's base stays with the alliance", st.bases[0].owner, 2);
 	check("ally's own base untouched by the leave", st.bases[1].owner, 2);
+
+	/* the heir must hold a live tank on this path too: with every ally
+	 * dead the leaver keeps his planted pills and bases */
+	const dead = BoloGame.initial_state();
+	for (let p = 0; p < 3; p++) { dead.present[p] = true; dead.names[p] = "p" + p; }
+	dead.alliances[1] &= ~(1 << 2);
+	dead.alliances[2] &= ~(1 << 1);
+	dead.tanks[2] = { x: 5, y: 5, px: 0, py: 0, dead: true, dying: false, lastSeen: 0 };
+	dead.pills = [{ x: 10, y: 10, owner: 1, armour: 15, speed: 50, inTank: null }];
+	dead.bases = [{ x: 30, y: 30, owner: 1, armour: 90, shells: 90, mines: 90 }];
+	BoloGame.apply_record(dead, {
+		time: 0, seq: 0, status: 0, player: 1, tankStatus: 0, tankDir: 0,
+		subpackets: [{ type: "alliance_leave" }],
+	}, null, null);
+	check("with only a dead ally the leaver keeps his planted pill", dead.pills[0].owner, 1);
+	check("and his base", dead.bases[0].owner, 1);
+	check("the leave still severs the links", dead.alliances[1] & (1 << 2), 1 << 2);
 }
 
 // Quitting: planted pills stay with the alliance too [E:pill-target]. With
@@ -3117,6 +3135,25 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "long_game"))) {
 	heirs.pills = [{ x: 10, y: 10, owner: 1, armour: 15, speed: 50, inTank: null }];
 	BoloGame.apply_record(heirs, rec(1, [{ type: "quit", fields: [] }], 7), null, null);
 	check("a dead ally is passed over for a live one", heirs.pills[0].owner, 3);
+
+	/* with two live allies the higher slot inherits */
+	const two = BoloGame.initial_state();
+	for (let p = 0; p < 4; p++) { two.present[p] = true; two.names[p] = "p" + p; }
+	for (const [a, b] of [[1, 2], [1, 3], [2, 3]]) { two.alliances[a] &= ~(1 << b); two.alliances[b] &= ~(1 << a); }
+	two.tanks[2] = { x: 5, y: 5, px: 0, py: 0, dead: false, dying: false, lastSeen: 0 };
+	two.tanks[3] = { x: 6, y: 6, px: 0, py: 0, dead: false, dying: false, lastSeen: 0 };
+	two.pills = [{ x: 10, y: 10, owner: 1, armour: 15, speed: 50, inTank: null }];
+	two.bases = [{ x: 30, y: 30, owner: 1, armour: 90, shells: 90, mines: 90 }];
+	BoloGame.apply_record(two, rec(1, [{ type: "quit", fields: [] }], 7), null, null);
+	check("of two live allies the higher slot inherits the pill", two.pills[0].owner, 3);
+	check("and the base", two.bases[0].owner, 3);
+	two.tanks[3].dying = true;
+	two.pills.push({ x: 11, y: 11, owner: 0, armour: 15, speed: 50, inTank: null });
+	two.alliances[0] &= ~(1 << 2); two.alliances[2] &= ~(1 << 0);
+	two.alliances[0] &= ~(1 << 3); two.alliances[3] &= ~(1 << 0);
+	BoloGame.apply_record(two, rec(0, [{ type: "quit", fields: [] }], 7), null, null);
+	check("a dying wreck is passed over for the lower live ally", two.pills[1].owner, 2);
+
 	heirs.tanks[3].dead = true;
 	heirs.pills.push({ x: 11, y: 11, owner: 3, armour: 15, speed: 50, inTank: null });
 	BoloGame.apply_record(heirs, rec(3, [{ type: "quit", fields: [] }], 7), null, null);
