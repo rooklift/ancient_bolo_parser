@@ -1,0 +1,71 @@
+======================================================================
+443 logs, 1,276,168 base drains, 19,010 base captures
+71 alliance leaves, 30 by a base owner; 778 quits by a base owner
+events on a contested base (readings disagree): 18921 drains, 223 captures, across 114 logs
+
+Violations per reading (should be ~0 for the correct one):
+  drain-from-hostile = a refuel the model says the base refuses,
+  broken down by what the model thinks the owner is (departed --
+  for H, an absent name -- / a slot that has quit / a live
+  player), and as distinct log:base:drainer pairs;
+  capture-of-friendly = a capture the model says is impossible
+  (of-own: the model says the capturer already owned it);
+  graced = within a second of an alliance event, counted apart.
+
+    model   drains  departed  quit-slot   live  pairs  graced  captures  of-own  graced
+        A     1293         0          0   1293     17      17         7       4       0
+        C     2692      1436          0   1256     16       3         3       1       0
+        E     1164         0          0   1164     12       0         4       1       0
+        H        0         0          0      0      0       0         0       0       0
+        V        0         0          0      0      0       0         0       0       0
+
+Who drains a base the viewer's rule (C) holds DEPARTED:
+    total 1436: by the owner's old slot 1436 (0 while still quit-flagged, i.e. ghosts), by the owner's name in another slot 0, by anyone else 0
+
+The shared floor -- wrong under EVERY reading above:
+    0 drains in 0 log:base:drainer pairs, 0 captures
+
+Cases separating the readings (capped):
+    20010322~5657a5 t850870 base_capture base 14 by p3: owners A/C/E/H/V = 3/4/4/@4/4, wrong under A
+    20010322~5657a5 t851241 base_capture base 1 by p3: owners A/C/E/H/V = 3/4/4/@4/4, wrong under A
+    20010406.1~b6fbb9 t1971973 base_capture base 7 by p1: owners A/C/E/H/V = 1/3/3/@3/5, wrong under A
+    20021015.1~cc786e t177597 base_drain base 10 by p2: owners A/C/E/H/V = 1/4/1/@1/1, wrong under C
+    20021015.1~cc786e t177612 base_drain base 10 by p2: owners A/C/E/H/V = 1/4/1/@1/1, wrong under C
+    20021015.1~cc786e t177625 base_drain base 10 by p2: owners A/C/E/H/V = 1/4/1/@1/1, wrong under C
+    20021015.1~cc786e t177640 base_drain base 10 by p2: owners A/C/E/H/V = 1/4/1/@1/1, wrong under C
+    20021024.3 t159069 base_drain base 3 by p7: owners A/C/E/H/V = 0/0/0/@0/7, wrong under A,C,E
+    20021024.3 t159082 base_drain base 3 by p7: owners A/C/E/H/V = 0/0/0/@0/7, wrong under A,C,E
+    20021024.3 t159098 base_drain base 3 by p7: owners A/C/E/H/V = 0/0/0/@0/7, wrong under A,C,E
+    20021024.3 t159118 base_drain base 3 by p7: owners A/C/E/H/V = 0/0/0/@0/7, wrong under A,C,E
+    20021107.1~9ac748 t163188 base_drain base 12 by p1: owners A/C/E/H/V = 1/departed/1/@1/1, wrong under C
+    20021107.1~9ac748 t163195 base_drain base 12 by p1: owners A/C/E/H/V = 1/departed/1/@1/1, wrong under C
+    20021107.1~9ac748 t163205 base_drain base 12 by p1: owners A/C/E/H/V = 1/departed/1/@1/1, wrong under C
+    20021107.1~9ac748 t163212 base_drain base 12 by p1: owners A/C/E/H/V = 1/departed/1/@1/1, wrong under C
+    20031218.1~8d58c4 t26189045 base_drain base 3 by p0: owners A/C/E/H/V = 2/2/2/@0/0, wrong under A,C,E
+    20031218.1~8d58c4 t26189052 base_drain base 3 by p0: owners A/C/E/H/V = 2/2/2/@0/0, wrong under A,C,E
+    20031218.1~8d58c4 t26189058 base_drain base 3 by p0: owners A/C/E/H/V = 2/2/2/@0/0, wrong under A,C,E
+    20031218.1~8d58c4 t26189065 base_drain base 3 by p0: owners A/C/E/H/V = 2/2/2/@0/0, wrong under A,C,E
+    20040331.4~6159f8 t267304 base_drain base 7 by p0 (graced): owners A/C/E/H/V = 2/0/0/@0/0, wrong under A
+    20040331.4~6159f8 t267313 base_drain base 7 by p0 (graced): owners A/C/E/H/V = 2/0/0/@0/0, wrong under A
+    20040331.4~6159f8 t267322 base_drain base 7 by p0 (graced): owners A/C/E/H/V = 2/0/0/@0/0, wrong under A
+    20040331.4~6159f8 t267331 base_drain base 7 by p0 (graced): owners A/C/E/H/V = 2/0/0/@0/0, wrong under A
+    20040421.3~043256 t3827741 base_drain base 4 by p1 (graced): owners A/C/E/H/V = 0/1/1/@1/1, wrong under A
+    20040421.3~043256 t3827800 base_drain base 4 by p1: owners A/C/E/H/V = 0/1/1/@1/1, wrong under A
+    20010131.4 t1455409 base_drain base 13 by p2 (graced): owners A/C/E/H/V = 0/1/1/@1/2, wrong under A
+    20010131.4 t1455418 base_drain base 13 by p2 (graced): owners A/C/E/H/V = 0/1/1/@1/2, wrong under A
+    20010131.4 t1455427 base_drain base 13 by p2 (graced): owners A/C/E/H/V = 0/1/1/@1/2, wrong under A
+    20010131.4 t1455437 base_drain base 13 by p2 (graced): owners A/C/E/H/V = 0/1/1/@1/2, wrong under A
+
+Hand-overs of bases under reading C -- a quit to a live heir, a leave to the lowest mutual
+ally -- split by the lowest slot the departing player's alliance named, in the model's
+alliance word or in the player's last standing request, and whether that slot's player
+had already quit. Columns: hand-overs (of them named by the word / only by a request) /
+bases handed / heir refuelled at one (drains, bases, hand-overs) / heir captured one
+(captures, hand-overs) / someone else captured one (captures).
+    quit   that slot had quit        18 (17 / 1)     87      0      0      0      0      0      7
+    quit   that slot present        373 (370 / 3)   1757   3503     61     41      0      0     98
+    quit   no slot named              0 (0 / 0)      0      0      0      0      0      0      0
+    leave  that slot had quit         1 (1 / 0)     10     42      1      1      0      0      2
+    leave  that slot present         29 (29 / 0)     78   3404     30     16      0      0     43
+    leave  no slot named              0 (0 / 0)      0      0      0      0      0      0      0
+======================================================================
