@@ -3195,28 +3195,53 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "long_game"))) {
 }
 
 // Identity across netsplits: ownership and alliances belong to the person,
-// not the slot [E:pill-target]. A same-name rejoin is a reconnect keeping
-// alliance links; a new name displacing a live occupant is an implicit
-// quit (not every disconnect is announced); a ghost -- a quit slot still
-// sending records -- recovers his departed things at once; and a rename
-// consolidates duplicate-name property, while a periodic same-name
-// restatement moves nothing.
+// not the slot [E:pill-target], and every rule rests on one event, the
+// drop. A classified join drops the slot's previous occupant, the same
+// name returning or a stranger arriving alike: his grounded things go to
+// his heir or depart under his name, and the slot's alliance links reset.
+// A returning name reclaims only what departed under it. A rename to a
+// name another live slot carries is that slot's drop, routed the same
+// way, while a periodic same-name restatement moves nothing.
 {
 	const rec = (player, subpackets, tankStatus = 0, time = 0) =>
 		({ time, seq: 0, status: 0, player, tankStatus, tankDir: 0, subpackets });
 	const mutual = (s, a, b) => !(s.alliances[a] & (1 << b)) && !(s.alliances[b] & (1 << a));
 
-	/* same-name rejoin: a reconnect, alliances kept */
+	/* same-name rejoin: the links reset like any other join */
 	const re = BoloGame.initial_state();
 	for (let p = 0; p < 3; p++) { re.present[p] = true; re.names[p] = "p" + p; }
 	re.alliances[1] &= ~(1 << 2);
 	re.alliances[2] &= ~(1 << 1);
 	const back = rec(1, [{ type: "node_id", name: "p1" }], 7, 100);
 	BoloGame.apply_record(re, back, null, null, null, new Set([back]));
-	check("a same-name rejoin keeps the player's alliances", mutual(re, 1, 2), true);
+	check("a same-name rejoin resets the slot's alliances", mutual(re, 1, 2), false);
+	re.alliances[1] &= ~(1 << 2);
+	re.alliances[2] &= ~(1 << 1);
 	const usurp = rec(1, [{ type: "node_id", name: "usurper" }], 7, 200);
 	BoloGame.apply_record(re, usurp, null, null, null, new Set([usurp]));
 	check("a new name arriving resets the slot's alliances", mutual(re, 1, 2), false);
+
+	/* same-name rejoin and property: with a live ally the things passed
+	 * to him at the drop and stay his; with none they depart under the
+	 * name and come straight back */
+	const keep = BoloGame.initial_state();
+	for (let p = 0; p < 3; p++) { keep.present[p] = true; keep.names[p] = "p" + p; }
+	keep.alliances[1] &= ~(1 << 2);
+	keep.alliances[2] &= ~(1 << 1);
+	keep.tanks[2] = { x: 5, y: 5, px: 0, py: 0, dead: false, dying: false, lastSeen: 0 };
+	keep.pills = [{ x: 10, y: 10, owner: 1, armour: 15, speed: 50, inTank: null }];
+	keep.bases = [{ x: 30, y: 30, owner: 1, armour: 90, shells: 90, mines: 90 }];
+	const back2 = rec(1, [{ type: "node_id", name: "p1" }], 7, 100);
+	BoloGame.apply_record(keep, back2, null, null, null, new Set([back2]));
+	check("a same-name rejoin's pill went to the live ally at the drop", keep.pills[0].owner, 2);
+	check("and his base", keep.bases[0].owner, 2);
+	const alone = BoloGame.initial_state();
+	for (let p = 0; p < 2; p++) { alone.present[p] = true; alone.names[p] = "p" + p; }
+	alone.pills = [{ x: 10, y: 10, owner: 1, armour: 15, speed: 50, inTank: null }];
+	const back3 = rec(1, [{ type: "node_id", name: "p1" }], 7, 100);
+	BoloGame.apply_record(alone, back3, null, null, null, new Set([back3]));
+	check("with no heir a same-name rejoin gets his pill back", alone.pills[0].owner, 1);
+	check("as an ordinary pill", alone.pills[0].departed, undefined);
 
 	/* a new name displacing a live occupant implicitly quits him */
 	const imp = BoloGame.initial_state();
@@ -3243,28 +3268,41 @@ if (fs.existsSync(path.join(__dirname, "..", "fixtures", "long_game"))) {
 	BoloGame.apply_record(dep, backElse, null, null, null, new Set([backElse]));
 	check("and follows his name to another slot", dep.bases[0].owner, 3);
 
-	/* a ghost -- quit-flagged but still sending -- recovers at once */
+	/* a quit-flagged slot sending again recovers nothing by itself: only
+	 * its node_id, a join, reclaims */
 	const gh = BoloGame.initial_state();
 	for (let p = 0; p < 2; p++) { gh.present[p] = true; gh.names[p] = "p" + p; }
 	gh.bases = [{ x: 30, y: 30, owner: 1, armour: 90, shells: 90, mines: 90 }];
 	BoloGame.apply_record(gh, rec(1, [{ type: "quit", fields: [] }], 7, 100), null, null);
 	check("the quit departs the base", gh.bases[0].owner, BoloGame.DEPARTED);
-	BoloGame.apply_record(gh, rec(1, [], 0, 120), null, null);
-	check("a straggler record does not recover it", gh.bases[0].owner, BoloGame.DEPARTED);
 	BoloGame.apply_record(gh, rec(1, [], 0, 200), null, null);
-	check("a ghost record past the straggler second does", gh.bases[0].owner, 1);
-	check("without clearing the quit flag", gh.quit[1], true);
+	check("a later record from the quit slot does not recover it", gh.bases[0].owner, BoloGame.DEPARTED);
+	BoloGame.apply_record(gh, rec(1, [{ type: "node_id", name: "p1" }], 7, 300), null, null);
+	check("its node_id does", gh.bases[0].owner, 1);
 
-	/* a rename consolidates duplicate-name property; a periodic
-	 * restatement moves nothing */
+	/* a rename to a name another live slot carries drops that slot: with
+	 * no heir its property departs under the name and the reclaim brings
+	 * it to the renamed slot; a periodic restatement moves nothing */
 	const dup = BoloGame.initial_state();
 	dup.present[2] = true;
 	dup.names[2] = "dup";
 	dup.bases = [{ x: 30, y: 30, owner: 2, armour: 90, shells: 90, mines: 90 }];
 	BoloGame.apply_record(dup, rec(0, [{ type: "node_id", name: "dup" }], 7, 100), null, null);
-	check("a rename to a live name consolidates its property low", dup.bases[0].owner, 0);
+	check("a rename to a live name brings its departed property along", dup.bases[0].owner, 0);
 	BoloGame.apply_record(dup, rec(2, [{ type: "node_id", name: "dup" }], 7, 150), null, null);
 	check("a same-name restatement does not move it back", dup.bases[0].owner, 0);
+
+	/* with a live ally the dropped slot's property is the ally's, not
+	 * the renamed slot's */
+	const dup2 = BoloGame.initial_state();
+	for (let p = 2; p < 4; p++) { dup2.present[p] = true; dup2.names[p] = "p" + p; }
+	dup2.names[2] = "dup";
+	dup2.alliances[2] &= ~(1 << 3);
+	dup2.alliances[3] &= ~(1 << 2);
+	dup2.tanks[3] = { x: 5, y: 5, px: 0, py: 0, dead: false, dying: false, lastSeen: 0 };
+	dup2.bases = [{ x: 30, y: 30, owner: 2, armour: 90, shells: 90, mines: 90 }];
+	BoloGame.apply_record(dup2, rec(0, [{ type: "node_id", name: "dup" }], 7, 100), null, null);
+	check("a rename-collision drop with a live heir passes the property to him", dup2.bases[0].owner, 3);
 }
 
 // A map run whose final nibble is a repeat code (its terrain nibble
