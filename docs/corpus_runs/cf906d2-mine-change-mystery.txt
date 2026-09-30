@@ -1,0 +1,37 @@
+======================================================================
+587 logs, 188,071 terrain changes, 73 onto a mined square; 27,481 pill plants, 0 onto a mined square
+
+Terrain changes onto a mined square, by the terrain before and after:
+  soon = a `7 3` there within 100 ticks (the change set the mine off);
+  later = the next `7 3` there came later, no mine laid on the square between
+  (the mine survived the change); relaid = a mine was laid there first;
+  quiet = no `7 3` ever followed.
+
+    change                            count   soon  later relaid  quiet
+    mined grass -> forest                72      0     20      0     52
+    mined crater -> river                 1      0      0      0      1
+
+Cases with a following `7 3` (capped):
+    20010915~6cb162 t863165 (110,136) mined grass -> forest: later (+48355)
+    20010915~6cb162 t881777 (140,116) mined grass -> forest: later (+16102)
+    20010915~6cb162 t891665 (145,120) mined grass -> forest: later (+7233)
+    20011024~5654ec t2641915 (115,140) mined grass -> forest: later (+786)
+    20011106~983a3d t393707 (147,122) mined grass -> forest: later (+15257)
+    20011124~b302a5 t9009370 (140,110) mined grass -> forest: later (+33141)
+    20011124~b302a5 t9009942 (139,115) mined grass -> forest: later (+23143)
+    20011124~b302a5 t9010551 (146,119) mined grass -> forest: later (+26028)
+    20011124~b302a5 t9011045 (140,116) mined grass -> forest: later (+21820)
+    20011124~8df5fc t9083310 (115,140) mined grass -> forest: later (+45985)
+    20011124~8df5fc t9083568 (140,116) mined grass -> forest: later (+91511)
+    20011124~8df5fc t9095772 (139,115) mined grass -> forest: later (+66555)
+    20011124~8df5fc t9107258 (110,136) mined grass -> forest: later (+42487)
+    20011124~8df5fc t9107282 (145,120) mined grass -> forest: later (+37151)
+    20011124~8df5fc t9117230 (147,122) mined grass -> forest: later (+26251)
+    20011124~8df5fc t9121146 (148,121) mined grass -> forest: later (+23278)
+    20020202~906358 t943765 (38,156) mined grass -> forest: later (+7381)
+    20020202~906358 t944024 (36,156) mined grass -> forest: later (+7143)
+    20020202~906358 t944203 (37,156) mined grass -> forest: later (+6953)
+    20030729~aa4aeb t97995 (147,117) mined grass -> forest: later (+4440)
+
+Pill plants onto a mined square: 0; a `7 3` there within 100 ticks: 0; the planter's man died within 100 ticks: 0; no `7 3`: 0
+======================================================================
