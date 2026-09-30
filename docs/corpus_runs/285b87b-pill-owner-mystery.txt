@@ -1,0 +1,25 @@
+======================================================================
+587 logs, 1,094,070 grounded-pill fires, 35,016 pickups (35,016 of dead pills), 22,706 repairs (8,829 of dead pills)
+
+Per model: fire-at-friendly and live-pickup are VIOLATIONS (~0 for
+  the correct model; V's fire count is exactly its self-correction
+  rule's trigger count, and no live pickup has ever been seen);
+  graced = within a second of an alliance event. hostile-repairs is
+  a CENSUS, not evidence: repairing never captures and is not
+  restricted to one's own side (neutral pills are repaired to deny
+  the enemy a capture, enemy pills by misclick). pairs = distinct
+  log:pill:actor.
+
+    model   fires  graced  pairs  live-pickups  hostile-repairs  pairs
+        V       6       2      8             0              159    153
+        N      17       2     10             0              192    175
+
+Cases separating the models (capped; N's owner shown as @slot or absent):
+    20010117~d60497 t8038358 pillbox_fires pill 11 by p2: owners V/N = departed/@2, wrong under N
+    20010117~d60497 t8038465 pillbox_fires pill 11 by p2: owners V/N = departed/@2, wrong under N
+    20011027~a1ea2d t49365 pillbox_fires pill 0 by p0: owners V/N = 3/@3, wrong under N
+    20020211~fdf38b t461045 pillbox_fires pill 13 by p3: owners V/N = departed/@3, wrong under N
+    20020211~fdf38b t461062 pillbox_fires pill 8 by p3: owners V/N = departed/@3, wrong under N
+    20020211~fdf38b t461070 pillbox_fires pill 12 by p3: owners V/N = departed/@3, wrong under N
+    20020211~fdf38b t461098 pillbox_fires pill 13 by p3: owners V/N = departed/@3, wrong under N
+======================================================================
