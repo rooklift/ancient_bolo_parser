@@ -175,6 +175,40 @@ for (let code of [1, 2, 3, 13]) {
 	live_state.tanks[2] = { x: 50, y: 50, px: 0, py: 0 };
 	assert.equal(Sound.event_for(live_state, { player: 2, time: 10 }, { type: "tank_death", code: 2 }), null);
 }
+// A wreck sinks where its slide reaches deep sea, which the last logged
+// flame can be squares short of: the trail is logged every 5-15 ticks and
+// lag holds the F902 back further. The sound and the effect follow the
+// last two flames on to the F902's tick and stop at the first deep-sea
+// square [E:death-codes].
+{
+	let wreck_records = (dying_positions, sink_time) => {
+		let st = Game.initial_state();
+		st.grid.fill(7, 0, 256 * 100); /* grass rows 0-99 */
+		for (let y = 0; y < 100; y++) st.grid.fill(255, y * 256 + 54, y * 256 + 256); /* deep sea from x = 54 */
+		let fx = [], snd = [];
+		dying_positions.forEach(([time, x], i) => {
+			let subpackets = [{ type: "tank_position", x, y: 50, pixelX: 0, pixelY: 0, direction: 4,
+				inBoat: false, hidden: false, dying: true, speed: 40 }];
+			if (i === 0) subpackets.push({ type: "tank_death", code: 1 });
+			Game.apply_record(st, { time, player: 2, tankStatus: 12, status: 0, tankDir: 4, subpackets },
+				fx, null, null, null, snd);
+		});
+		Game.apply_record(st, { time: sink_time, player: 2, tankStatus: 7, status: 0, tankDir: 4,
+			subpackets: [{ type: "tank_death", code: 2 }] }, fx, null, null, null, snd);
+		let sunk = fx.filter(e => e.type === "tank_death" && e.code === 2);
+		return { sounds: snd.filter(s => s.kind === "tank_sinking"), sunk };
+	};
+	/* last flame on (51, 50) moving 1.6 px a tick east; the shore is x = 54 */
+	let slid = wreck_records([[100, 50], [110, 51]], 140);
+	assert.deepEqual(slid.sounds.map(s => [s.x, s.y]), [[54.5, 50.5]], "the sinking sounds on the sea, not at the last flame");
+	assert.deepEqual(slid.sunk.map(e => [e.x, e.y]), [[54, 50]], "the sinking effect is drawn where the wreck went under");
+	/* a single flame has no velocity: a deep-sea square beside it is taken */
+	let alone = wreck_records([[100, 53]], 120);
+	assert.deepEqual(alone.sounds.map(s => [s.x, s.y]), [[54.5, 50.5]]);
+	/* with no deep sea in reach the wreck stays at its last flame */
+	let inland = wreck_records([[100, 20]], 120);
+	assert.deepEqual(inland.sounds.map(s => [s.x, s.y]), [[20.5, 50.5]]);
+}
 for (let terrain of [1, 7, 255]) {
 	state.grid[50 * 256 + 52] = terrain;
 	assert.equal(Sound.event_for(state, { player: 2, time: 11 },

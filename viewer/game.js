@@ -241,6 +241,61 @@ function tank_square(t) {
 	return { x: (t.x * 16 + t.px + 8) >> 4, y: (t.y * 16 + t.py + 8) >> 4 };
 }
 
+/* The wreck's previous flame, for a new dying position: what its slide is
+ * projected from when it sinks (see wreck_sink_square). A restatement on
+ * the same tick keeps the one before it. */
+function wreck_trail(prev, sub, time) {
+	if (!sub.dying || !prev || !prev.dying || prev.position_time === undefined) return null;
+	if (prev.position_time >= time) return prev.wreck_from || null;
+	return { x: prev.x * 16 + prev.px + 8, y: prev.y * 16 + prev.py + 8, time: prev.position_time };
+}
+
+/* A sinking wreck is followed at most this many ticks past its last flame,
+ * as far as the corpus measurement projected it [E:death-codes]. */
+const WRECK_SLIDE_MAX_TICKS = 30;
+
+function deep_sea_at(s, x, y) {
+	return x >= 0 && y >= 0 && x < MAP_SIZE && y < MAP_SIZE && s.grid[y * MAP_SIZE + x] === DEEP_SEA;
+}
+
+/* The square where a wreck an F902 reports went under [E:death-codes].
+ * The F902 comes when the sliding wreck reaches deep sea, but its flames
+ * are logged only every 5-15 ticks and a lagging ring holds packets back
+ * further still, so the last flame can stand on land squares short of the
+ * shore; placed there, the sinking reads as a second death on dry ground.
+ * So the last two flames' velocity is carried on to the F902's tick and the
+ * first deep-sea square on that path is taken; failing one, the deep-sea
+ * square nearest where the path ends, if one touches it, else the end. */
+function wreck_sink_square(s, t, time) {
+	let x = t.x * 16 + t.px + 8, y = t.y * 16 + t.py + 8;
+	let from = t.wreck_from;
+	if (from && time > t.position_time) {
+		let dt = t.position_time - from.time;
+		let vx = (x - from.x) / dt, vy = (y - from.y) / dt;
+		let ahead = Math.min(time - t.position_time, WRECK_SLIDE_MAX_TICKS);
+		for (let i = 0; i <= ahead; i++) {
+			let sx = Math.floor(x + vx * i) >> 4, sy = Math.floor(y + vy * i) >> 4;
+			if (deep_sea_at(s, sx, sy)) return { x: sx, y: sy };
+		}
+		x += vx * ahead;
+		y += vy * ahead;
+	}
+	let sx = Math.floor(x) >> 4, sy = Math.floor(y) >> 4;
+	let best = { x: sx, y: sy }, best_distance = Infinity;
+	for (let dy = -1; dy <= 1; dy++) {
+		for (let dx = -1; dx <= 1; dx++) {
+			if (!deep_sea_at(s, sx + dx, sy + dy)) continue;
+			let ex = (sx + dx) * 16 + 8 - x, ey = (sy + dy) * 16 + 8 - y;
+			let distance = ex * ex + ey * ey;
+			if (distance < best_distance) {
+				best = { x: sx + dx, y: sy + dy };
+				best_distance = distance;
+			}
+		}
+	}
+	return best;
+}
+
 /* The effect for a man's death: F5, or FF 51 when he carried a pill. The
  * event names his square outright, and the effect centres there unless
  * something better is on hand. The same record normally restates the
@@ -523,6 +578,7 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins, sounds
 					 * not a live tank; only a normal position is a respawn */
 					dead: sub.dying ? (s.tanks[pl] ? s.tanks[pl].dead : false) : false,
 					earlier: sub.dying ? [] : earlier_tank_statements(s.tanks[pl]),
+					wreck_from: wreck_trail(s.tanks[pl], sub, rec.time),
 				};
 				s.present[pl] = true;
 				if (sub.dying) {
@@ -774,7 +830,14 @@ function apply_record(s, rec, effects, chat, shell_terminals, node_joins, sounds
 				const t = s.tanks[pl];
 				if (t) {
 					const sq = tank_square(t);
-					if (effects) effects.push({ time: rec.time, type: "tank_death", x: sq.x, y: sq.y, code: sub.code, player: pl });
+					/* a code 2 is the wreck sinking, which it does where its
+					 * slide reached deep sea, not at its last flame */
+					const at = sub.code === 2 && t.dead ? wreck_sink_square(s, t, rec.time) : sq;
+					if (effects) effects.push({ time: rec.time, type: "tank_death", x: at.x, y: at.y, code: sub.code, player: pl });
+					if (sound && sound.kind === "tank_sinking" && at !== sq) {
+						sound.x = at.x + 0.5;
+						sound.y = at.y + 0.5;
+					}
 					dump_carried_pills(s, pl, sq.x, sq.y);
 					t.dead = true; /* hidden until a non-dying position (respawn) */
 				}
@@ -1455,6 +1518,7 @@ const BoloGame = {
 	MAX_SHELL_INTERPOLATION_TICKS: BoloMotion.MAX_SHELL_INTERPOLATION_TICKS,
 	MAX_DIRECTION_INTERPOLATION_TICKS: BoloMotion.MAX_DIRECTION_INTERPOLATION_TICKS,
 	initial_state, clone_state, apply_record, build, build_steps, state_at, team_of,
+	wreck_sink_square,
 	classify_node_joins,
 	adjacent_change_time,
 	tank_position_at: BoloMotion.tank_position_at,

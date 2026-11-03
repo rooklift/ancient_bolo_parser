@@ -1115,7 +1115,10 @@ function draw_effects() {
 				 * so its ring centres on the block's middle corner; a tank
 				 * death centres on its single square */
 				let off = e.type === "superboom" ? z / 2 : 0;
-				ctx.strokeStyle = `rgba(255,120,40,${1 - age})`;
+				/* a code 2 is a burning wreck going under, not a death:
+				 * drawn in the splash's water colour */
+				let sinking = e.type === "tank_death" && e.code === 2;
+				ctx.strokeStyle = sinking ? `rgba(150,200,255,${1 - age})` : `rgba(255,120,40,${1 - age})`;
 				ctx.lineWidth = Math.max(1.5, z * 0.2);
 				ctx.beginPath();
 				ctx.arc(cx + off, cy + off, (0.4 + age * 1.6) * z, 0, Math.PI * 2);

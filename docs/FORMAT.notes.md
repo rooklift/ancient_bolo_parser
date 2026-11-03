@@ -753,6 +753,8 @@ The codes were long read as 1 = explosion, 2 = crater, 3 = sunk. Work on another
 
 So code 2 is the burning wreck of a tank killed on land sliding into deep sea and sinking, sent by the dead tank's own machine. It is not a second death, and the old note that "an F901 may be followed by F902 mid-animation" was this.
 
+For playback the consequence is that the sinking cannot be placed at the last logged flame: in all 26 code 2s of the fixtures that flame stands one square short of deep sea, and a lagging ring can leave it several squares short (in one log the last flame was 38 ticks old and five squares inland). The viewer projects the last two flames on to the `F902`'s tick, capped at the 30 ticks used above, and puts the sinking sound and effect on the first deep-sea square of that path; failing one, on a deep-sea square touching its end. That places all 26 on deep sea.
+
 For the tier table of [E:death-tiers] the consequence is that a sunk wreck counts as "no explosion" whatever it carried: `measure-death-ammo.cjs` excludes code 3 deaths but not code 1 deaths ending in a code 2, some 5% of deaths. How much of the table's "none" at high ammo that accounts for has not been re-measured.
 
 Open: 49 `F902`s arrive with no death open, and 10 code 2 deaths do get a crater within 60 ticks.
