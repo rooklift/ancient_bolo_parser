@@ -1065,7 +1065,7 @@ knew recovers a graze the track has left"), with the tank restated
 
 ## Tank births follow the record gap
 
-Prompted by replay `2de598ba-20011027C` at 4:21 (tick
+Prompted by replay `20011027.3~4f220b` at 4:21 (tick
 13072 from the log's start): player 2's tank, parked at 146,133 facing
 west, fires two shots per record at the wall at 142,133 while pill 13
 fires back through it. The records come 28 ticks apart, the tank fires
@@ -1646,7 +1646,7 @@ baseline's.
 
 The stall sections above read the pair that spans a stall two ways
 and left the pair after it on the stamps. A replay from the 2001
-corpus (`20011221D`, a four-player game on a seven-tick ring) showed
+corpus (`20011221.4~8ec69b`, a four-player game on a seven-tick ring) showed
 what that misses. One sender's records ran 554393, 554407, 554414:
 a fourteen-tick gap, eight ticks of excess, then seven. Its three
 shells advanced 12 px over the fourteen ticks -- the stall of the
@@ -1749,7 +1749,7 @@ contradictions still 14, and with the head slide rushed links 7,473
 ## A tank hit is tried against the statements the sender held -- `ee502e9`
 
 The scene the after-stall sections left behind. In the 2001 replay
-(`20011221D`, records 5082 to 5098) player 2 drives south behind
+(`20011221.4~8ec69b`, records 5082 to 5098) player 2 drives south behind
 tank 3 firing every round, and every hit lands: three `FC` packets
 in five records. The engine explained two and left the third, in
 record 5098, with no shell: its box, tank 3's statement in the same

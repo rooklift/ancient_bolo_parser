@@ -2794,9 +2794,9 @@ every kind. That is the vote earning its keep as an authority rather
 than a meter.
 
 The 14 left standing are all stitched links, in five replays; six of
-them are one chain in `20020911~1f7b70` joined across four records
+them are one chain in `20020911.1~152467` joined across four records
 against the roster at every hop, and three are 4-tick hops in
-`20010326~fc6a01`, a fast-ring log. Every one was remade in the
+`20010326.1~34a1a5`, a fast-ring log. Every one was remade in the
 second round by a stitch or dilated join whose gate consulted the
 reference -- but that reference is keyed by record time, and on a fast
 ring two snapshots share a time, so a one-hop and a composed two-hop
@@ -4062,9 +4062,9 @@ tank reads.
   `pairs_tank_order_inverted` **96** unchanged, `links_pill_vouched` +12,
   `links_pill_unpinned` 2,326 -> 2,325; `links_pill_contradicted`
   **16**, but not the same sixteen: three left (both remaining
-  `20020911` stitches and the `20040729.3` one, every one a stitched
+  `20020911.1~152467` stitches and the `20040729.3` one, every one a stitched
   link the vote at match time had not seen) and three came, all in one
-  replay and one pill (`20010605~dc3b51`, pill (2144,2272)), two
+  replay and one pill (`20010605.2~b2e03e`, pill (2144,2272)), two
   stitches spanning several pairs and one pairwise link that stood down
   5 to 4, each advancing two steps more than the post-hoc roster reads.
   The `20010416.1` pair stands.
@@ -4083,7 +4083,7 @@ in one scene of its own, the same shape from the other side: a
 composed clock four ticks long, a pill election on some pair of the
 span passed a rung high, and the joins made under it a step or two
 long. The count is level at sixteen and every other axis moves on, so
-the change stands as measured; the `20010605` scene is the next thing
+the change stands as measured; the `20010605.2~b2e03e` scene is the next thing
 to read, and the cheap experiment is to lend only elections that
 passed the gates outright, not the tie-break, since a tie-break is
 exactly where a rung alias can win by one.
@@ -4108,7 +4108,7 @@ Corpus, `a7f8196-report.txt`, `-links.txt` and `-audit.txt` against
 * `pairs_pill_clock_read` 445,000 -> 407,177 (-37,823, the tie-break
   passes, one in twelve)
 * `links_pill_contradicted` **16**, the same sixteen scenes: the three
-  `20010605` joins stand, so the election a rung high on their span
+  `20010605.2~b2e03e` joins stand, so the election a rung high on their span
   passed the gates outright, not by the tie-break
 * the cost of the tenth fewer readings: `shells_matched_forward`
   9,801,837 -> 9,801,821 (-16), `shells_unlinked` 5,946 -> 5,962 (+16),
@@ -4118,7 +4118,7 @@ Corpus, `a7f8196-report.txt`, `-links.txt` and `-audit.txt` against
 
 Reading. The tie-break passes were right where they were read: they
 bought sixteen links and a sliver of steady rate and cost nothing the
-axes can see. The alias behind the `20010605` scene won an outright
+axes can see. The alias behind the `20010605.2~b2e03e` scene won an outright
 pass, so the door is elsewhere -- an election over a roster whose
 statements are themselves a rung aliased, which the gates cannot tell
 from a clean one -- and finding it means reading that scene's pairs

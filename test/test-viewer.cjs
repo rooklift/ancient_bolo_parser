@@ -1135,7 +1135,7 @@ if (!fs.existsSync(log1)) {
 			unseen_terminal.tank_source_direction],
 		[true, 4]);
 
-	/* From replay 2de598ba-20011027C at 4:21: a parked
+	/* From replay 20011027.3~4f220b at 4:21: a parked
 	 * tank facing west fires at a wall two tiles ahead, two shots per
 	 * 28-tick record, so each record restates a fresh volley at almost the
 	 * previous volley's pixels beside the previous volley's impacts. The
