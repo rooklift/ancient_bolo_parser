@@ -4,14 +4,18 @@
  * 1998-2008 John Morrison, GPL v2. Sprite names are the PNG filenames in
  * the repository's sprites/ folder, which themselves mirror WinBolo's tile
  * enum names (BUILD_SIDECORN1 → building_sidecorn1, ROAD_WATER5 →
- * road_water5_corner, ...). */
+ * road_water5_corner, ...).
+ *
+ * The craters are the exception: WinBolo has one crater tile, Bolo has 16
+ * (crater0..crater15, Bolo's own drawings recoloured to the palette of the
+ * rest), chosen by Bolo's rule rather than anything in screencalc.c. */
 "use strict";
 (function () {
 
 const MAP_SIZE = 256;
 
 /* editor terrain codes (see format.js) */
-const BUILDING = 0, RIVER = 1, ROAD = 4, FOREST = 5, HALFBUILDING = 8, BOAT = 9, DEEP_SEA = 255;
+const BUILDING = 0, RIVER = 1, CRATER = 3, ROAD = 4, FOREST = 5, HALFBUILDING = 8, BOAT = 9, DEEP_SEA = 255;
 
 const TILE = 16;     /* native sprite size in pixels */
 const MIN_ZOOM = 16; /* zoom at which sprites switch on (below this they'd downscale to mud) */
@@ -188,13 +192,21 @@ function calc_forest(al, a, ar, l, r, bl, b, br) {
 	return "forest";
 }
 
+/* Bolo's own rule, not WinBolo's (which has a single crater tile): a
+ * crater joins up with craters and with water (river, boat, deep sea) on
+ * its four sides, and the tile number is the set of joined sides: north 1,
+ * east 2, south 4, west 8. */
+function calc_crater(a, l, r, b) {
+	let joins = t => t === CRATER || t === RIVER || t === BOAT || t === DEEP_SEA;
+	return "crater" + ((joins(a) ? 1 : 0) | (joins(r) ? 2 : 0) | (joins(b) ? 4 : 0) | (joins(l) ? 8 : 0));
+}
+
 /* Sprite name (sans .png) for the tile at (x, y). */
 function name_for(grid, x, y) {
 	let t = grid[y * MAP_SIZE + x];
 	if (t >= 10 && t <= 15) t -= 8; /* mined: base terrain look, mine drawn on top */
 	switch (t) {
 		case 2: return "swamp";
-		case 3: return "crater";
 		case 6: return "rubble";
 		case 7: return "grass";
 		case HALFBUILDING: return "shot_building";
@@ -205,6 +217,7 @@ function name_for(grid, x, y) {
 	switch (t) {
 		case BUILDING: return calc_building(al, a, ar, l, r, bl, b, br);
 		case RIVER: return calc_river(al, a, ar, l, r, bl, b, br);
+		case CRATER: return calc_crater(a, l, r, b);
 		case ROAD: return calc_road(al, a, ar, l, r, bl, b, br);
 		case FOREST: return calc_forest(al, a, ar, l, r, bl, b, br);
 		case BOAT: return calc_boat(al, a, ar, l, r, bl, b, br);
@@ -215,7 +228,7 @@ function name_for(grid, x, y) {
 
 /* Every sprite the functions above can name, plus the mine overlay. */
 const NAMES = (() => {
-	let n = ["grass", "swamp", "crater", "rubble", "shot_building", "mine",
+	let n = ["grass", "swamp", "rubble", "shot_building", "mine",
 		"forest", "forest_single", "forest_above", "forest_below", "forest_left", "forest_right",
 		"forest_aboveleft", "forest_aboveright", "forest_bottomleft", "forest_bottomright",
 		"river_solid", "river_surround", "river_side1", "river_side2",
@@ -227,7 +240,7 @@ const NAMES = (() => {
 	let range = (prefix, lo, hi, suffix = "") => {
 		for (let i = lo; i <= hi; i++) n.push(prefix + i + suffix);
 	};
-	range("boat", 0, 7);
+	range("boat", 0, 7); range("crater", 0, 15);
 	range("river_corner", 1, 4); range("river_end", 1, 4); range("river_oneside", 1, 4);
 	range("deep_sea_corner", 1, 4); range("deep_sea_side", 1, 4);
 	range("road_corner", 1, 4); range("road_corner", 5, 8, "_solid");

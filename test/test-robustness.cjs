@@ -189,6 +189,33 @@ check("header-only file yields no records", [...BoloLog.records(header())].lengt
 	const missing = require("../viewer/sprites.js").NAMES.filter(name => !sprite_data[name]);
 	check("every terrain sprite the viewer draws is in viewer/sprite_data.js", missing.join(), "");
 
+	// --- the crater tile is the set of sides joined to crater or water ---
+	{
+		const { name_for } = require("../viewer/sprites.js");
+		const GRASS = 7;
+		// the crater at (10, 10) with the given terrain to its N, E, S, W
+		let crater_tile = (n, e, s, w, centre = 3) => {
+			let grid = new Uint8Array(256 * 256).fill(GRASS);
+			grid[10 * 256 + 10] = centre;
+			grid[9 * 256 + 10] = n;
+			grid[10 * 256 + 11] = e;
+			grid[11 * 256 + 10] = s;
+			grid[10 * 256 + 9] = w;
+			return name_for(grid, 10, 10);
+		};
+		check("lone crater", crater_tile(GRASS, GRASS, GRASS, GRASS), "crater0");
+		check("crater to the north", crater_tile(3, GRASS, GRASS, GRASS), "crater1");
+		check("crater to the east", crater_tile(GRASS, 3, GRASS, GRASS), "crater2");
+		check("crater to the south", crater_tile(GRASS, GRASS, 3, GRASS), "crater4");
+		check("crater to the west", crater_tile(GRASS, GRASS, GRASS, 3), "crater8");
+		check("crater joins river, boat, deep sea and mined crater", crater_tile(1, 9, 255, 11), "crater15");
+		check("crater joins nothing else", crater_tile(0, 2, 4, 5), "crater0");
+		check("a mined crater is drawn the same way", crater_tile(3, GRASS, 3, GRASS, 11), "crater5");
+		let corner = new Uint8Array(256 * 256).fill(GRASS);
+		corner[0] = 3;
+		check("off the map counts as deep sea", name_for(corner, 0, 0), "crater9");
+	}
+
 	// --- parity: both parser builds must agree on the whole sample log ---
 	const esm = await import("../src/parse.js");
 	const log1 = path.join(__dirname, "..", "fixtures", "long_game");
